@@ -25,7 +25,8 @@ export default defineEventHandler((event) => {
   const query = getQuery(event)
   const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : undefined
   const category = typeof query.category === 'string' && query.category ? (query.category as BikeCategory) : undefined
-  const limit = query.limit ? Math.min(50, Math.max(1, Number(query.limit))) : 8
+  const limit = query.limit ? Math.min(9, Math.max(1, Number(query.limit))) : 9
+  const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
   const verifiedOnly = query.verifiedOnly === 'true'
   const ownedOnly = query.ownedOnly === 'true'
   const ownedLevels = parseOwnedLevels(query.owned)
@@ -55,10 +56,18 @@ export default defineEventHandler((event) => {
   }
   if (ownedOnly && ownedWheelKeys.length) wheelsets = wheelsets.filter(w => ownedWheelKeys.includes(w.key))
 
-  const rankedCombos = rankCombos(route, frames, wheelsets, frames.length * wheelsets.length)
+  // Score/rank all combinations cheaply, but only run the expensive physics
+  // model for the requested page. This keeps the initial route response fast
+  // while allowing the UI to fetch the next 9 explicitly when requested.
+  const rankedCombos = rankCombos(route, frames, wheelsets, offset + limit)
+  const filteredRankedCombos = search
+    ? rankedCombos.filter(c => c.frame.name.toLowerCase().includes(search) || c.wheelset?.name.toLowerCase().includes(search))
+    : rankedCombos
+  const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
+
   if (hasRiderProfile) {
     const geometry = physicsMode === 'legacy' ? undefined : geometryForRouteLaps(route, laps)
-    for (const combo of rankedCombos) {
+    for (const combo of pageCombos) {
       const legacyFinishTimeSec = estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
       combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
       if (physicsMode === 'legacy' || !geometry) {
@@ -75,19 +84,24 @@ export default defineEventHandler((event) => {
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
-    if (physicsMode === 'compare') rankedCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
-    else rankedCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
+    if (physicsMode === 'compare') pageCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
+    else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
 
-  const combos = (search ? rankedCombos.filter(c => c.frame.name.toLowerCase().includes(search) || c.wheelset?.name.toLowerCase().includes(search)) : rankedCombos).slice(0, limit)
   return {
     route: toRouteSummary(route),
-    combos,
+    combos: pageCombos,
     physics: hasRiderProfile ? {
       mode: physicsMode,
       geometry: 'aggregate-compatibility',
       rider: { weightKg, heightCm, wkg },
       note: 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation and will be replaced with measured route geometry.'
-    } : undefined
+    } : undefined,
+    pagination: {
+      offset,
+      limit,
+      returned: pageCombos.length,
+      hasMore: filteredRankedCombos.length > offset + pageCombos.length
+    }
   }
 })
