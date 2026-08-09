@@ -36,7 +36,12 @@ const recommendQuery = computed(() => ({
   wkg: wkg.value,
   laps: laps.value,
 }));
-const { data: recommendData, status } = await useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery });
+const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false });
+
+// Rider state is loaded from localStorage onMounted, so explicitly refresh the
+// recommendation request whenever a physics input changes. This also makes
+// the route power slider visibly update the finish times immediately.
+watch([weightKg, heightCm, wkg, laps], () => { refreshRecommendations(); });
 
 const categoryOptions: { label: string; value: BikeCategory | "all" }[] = [
   { label: "All categories", value: "all" }, { label: BIKE_CATEGORY_LABELS.standard, value: "standard" },
