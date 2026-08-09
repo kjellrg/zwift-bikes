@@ -28,29 +28,17 @@ const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
 
-// Keep native slider interaction while mirroring the in-flight value into the
-// label. The profile setters are only called by value-commit, so dragging does
-// not persist or trigger the expensive recommendation request on every step.
+// Keep the slider's native v-model binding intact so pointer dragging works.
+// These draft values update on every drag step, but the persisted rider profile
+// is changed only by value-commit, which in turn triggers one physics refresh.
 const draftHeightCm = ref<number[]>([heightCm.value]);
 const draftWkg = ref<number[]>([wkg.value]);
 const firstSliderValue = (value: number[] | null | undefined, fallback: number) => {
   const next = value?.[0];
   return typeof next === "number" && Number.isFinite(next) ? next : fallback;
 };
-const updateHeightDraft = (value: number[] | null | undefined) => {
-  const next = firstSliderValue(value, heightCm.value);
-  draftHeightCm.value = [next];
-};
-const updateWkgDraft = (value: number[] | null | undefined) => {
-  const next = firstSliderValue(value, wkg.value);
-  draftWkg.value = [next];
-};
-const commitHeight = (value: number[]) => {
-  setHeightCm(firstSliderValue(value, heightCm.value));
-};
-const commitWkg = (value: number[]) => {
-  setWkg(firstSliderValue(value, wkg.value));
-};
+const commitHeight = (value: number[]) => setHeightCm(firstSliderValue(value, heightCm.value));
+const commitWkg = (value: number[]) => setWkg(firstSliderValue(value, wkg.value));
 watch(heightCm, (value) => { draftHeightCm.value = [value]; });
 watch(wkg, (value) => { draftWkg.value = [value]; });
 
@@ -70,7 +58,13 @@ const recommendQuery = computed(() => ({
 }));
 const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false });
 
-watch([weightKg, heightCm, wkg, laps], () => { refreshRecommendations(); });
+// Expensive physics requests are intentionally explicit. Rider controls only
+// refresh after their committed value changes; ordinary filters refresh as
+// soon as their actual filter state changes.
+watch([weightKg, heightCm, wkg, laps, bikeSearchDebounced, categoryFilter, verifiedOnly, myBikesOnly, defaultUnownedLevel], () => {
+  refreshRecommendations();
+});
+watch([owned, ownedWheels], () => { refreshRecommendations(); }, { deep: true });
 
 const categoryOptions: { label: string; value: BikeCategory | "all" }[] = [
   { label: "All categories", value: "all" }, { label: BIKE_CATEGORY_LABELS.standard, value: "standard" },
@@ -101,8 +95,8 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
       <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs text-muted uppercase tracking-wide">Distance</p><p class="text-xl font-bold">{{ formatDistance(routeTotals?.distanceKm ?? routeData.distance) }}</p></UCard>
         <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs text-muted uppercase tracking-wide">Elevation</p><p class="text-xl font-bold">{{ formatElevation(routeTotals?.elevationM ?? routeData.elevation) }}</p></UCard>
-        <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs text-muted uppercase tracking-wide">Climb ratio</p><p class="text-xl font-bold">{{ routeData.terrain.climbRatio.toFixed(1) }} m/km</p></UCard>
-        <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs text-muted uppercase tracking-wide">Terrain</p><p class="text-xl font-bold">{{ TERRAIN_LABELS[routeData.terrain.category] }}</p></UCard>
+        <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs font-medium text-muted uppercase tracking-wide">Climb ratio</p><p class="text-xl font-bold">{{ routeData.terrain.climbRatio.toFixed(1) }} m/km</p></UCard>
+        <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs font-medium text-muted uppercase tracking-wide">Terrain</p><p class="text-xl font-bold">{{ TERRAIN_LABELS[routeData.terrain.category] }}</p></UCard>
       </div>
       <div v-if="routeData.lap || routeData.leadInDistance" class="mt-4 flex flex-wrap items-end gap-4 rounded-lg border border-default p-4">
         <div v-if="routeData.lap" class="w-40"><label class="block text-xs font-medium text-muted mb-1">Laps</label><USelectMenu v-model="laps" value-key="value" :items="lapOptions" :search-input="false" /></div>
@@ -124,8 +118,8 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 
       <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">
         <div class="w-40"><label class="block text-xs font-medium text-muted mb-1">Rider weight (kg)</label><UInput :model-value="weightKg" type="number" min="30" max="150" step="1" @update:model-value="(value: string | number) => setWeightKg(Number(value))" /></div>
-        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm[0] ?? heightCm }} cm</label><USlider v-model="draftHeightCm" :min="100" :max="220" :step="1" @update:model-value="updateHeightDraft" @value-commit="commitHeight" /></div>
-        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ (draftWkg[0] ?? wkg).toFixed(1) }} W/kg ({{ Math.round((draftWkg[0] ?? wkg) * weightKg) }} W)</label><USlider v-model="draftWkg" :min="1.0" :max="6.9" :step="0.1" @update:model-value="updateWkgDraft" @value-commit="commitWkg" /></div>
+        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm[0] ?? heightCm }} cm</label><USlider v-model="draftHeightCm" :min="100" :max="220" :step="1" @value-commit="commitHeight" /></div>
+        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ (draftWkg[0] ?? wkg).toFixed(1) }} W/kg ({{ Math.round((draftWkg[0] ?? wkg) * weightKg) }} W)</label><USlider v-model="draftWkg" :min="1.0" :max="6.9" :step="0.1" @value-commit="commitWkg" /></div>
         <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
       </div>
 
