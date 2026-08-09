@@ -3,6 +3,7 @@ import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { rankCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
+import { geometryForRouteLaps, simulateRoute } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
@@ -57,6 +58,10 @@ export default defineEventHandler((event) => {
   const wkg = Number(query.wkg)
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(wkg) && wkg > 0
   const laps = clampLaps(route, Number(query.laps))
+  // `physics=legacy` is a rollback/diagnostic switch. `dynamic` is the new
+  // default when a rider profile is available. `compare` returns both values
+  // on each combo while still using the legacy result for ordering.
+  const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
 
   let frames = getFrames().filter((frame) => {
     if (category && frame.category !== category) return false
@@ -80,33 +85,38 @@ export default defineEventHandler((event) => {
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
 
-  // Only filter wheelsets by ownership when the rider has actually marked
-  // wheels as owned in their garage - if they've only set up owned bikes so
-  // far, "my bikes only" should keep behaving as it did before wheel
-  // ownership existed (all wheelsets available).
   if (ownedOnly && ownedWheelKeys.length) {
     wheelsets = wheelsets.filter(w => ownedWheelKeys.includes(w.key))
   }
 
-  // `search` matches either the frame OR the wheelset name (a rider might be
-  // looking for a specific wheel, not just a bike) - so it can't be applied
-  // as a pre-filter on `frames`/`wheelsets` independently (that would only
-  // keep combos where BOTH sides happen to match). Instead rank the full
-  // cross product first, then filter the sorted combos by search, then
-  // apply `limit`.
   const rankedCombos = rankCombos(route, frames, wheelsets, frames.length * wheelsets.length)
 
-  // When we know the rider's weight/W-per-kg, compute a real physics-based
-  // finish time per combo and re-sort by that instead of the heuristic
-  // `score` - `score` is a "how well suited is this equipment to this
-  // route" rating (aero/climb/gravel/cobble blend) and doesn't always agree
-  // with actual pace (see `scoring.ts`'s `TT_DISC_SCORE_BONUS` comment), so
-  // sorting by estimated time is the more literal "fastest first" ordering.
   if (hasRiderProfile) {
+    const geometry = physicsMode === 'legacy' ? undefined : geometryForRouteLaps(route, laps)
+
     for (const combo of rankedCombos) {
-      combo.finishTimeSec = estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
+      const legacyFinishTimeSec = estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
       combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
+
+      if (physicsMode === 'legacy' || !geometry) {
+        combo.finishTimeSec = legacyFinishTimeSec
+      } else {
+        const simulation = simulateRoute({
+          rider: { weightKg, powerW: weightKg * wkg },
+          frame: combo.frame,
+          wheelset: combo.wheelset,
+          geometry,
+          dtSec: 0.25
+        })
+        combo.finishTimeSec = simulation.elapsedSec
+        if (physicsMode === 'compare') {
+          ;(combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
+        }
+      }
     }
+
+    // In compare mode, preserve the legacy ordering so the debug mode doesn't
+    // silently change the recommendations. Dynamic mode is authoritative.
     rankedCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
 
@@ -118,6 +128,11 @@ export default defineEventHandler((event) => {
 
   return {
     route: toRouteSummary(route),
-    combos
+    combos,
+    physics: hasRiderProfile ? {
+      mode: physicsMode,
+      geometry: 'aggregate-compatibility',
+      note: 'Dynamic physics is enabled, but route geometry is currently synthesized from aggregate distance/elevation. Replace with measured route geometry for segment-accurate results.'
+    } : undefined
   }
 })
