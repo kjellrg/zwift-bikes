@@ -1,46 +1,54 @@
-# Nuxt Starter Template
+# Zwift Best Bike
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+A Nuxt 4 + Nuxt UI 4 app that recommends the best bike frame / wheelset combo
+for a given [Zwift](https://www.zwift.com/) route, based on your rider
+weight and power (W/kg).
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+## What it does
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
+- Browse Zwift routes and see an estimated surface breakdown (road / gravel /
+  cobbles), climb profile, and lap info.
+- For any route, get a ranked list of frame + wheelset combos, scored on
+  aero, climb, and off-road (rolling resistance) performance, with an
+  estimated finish time for your rider weight/power.
+- Track your own "Garage": which bikes/wheels you own (and frame upgrade
+  level 1-5), so recommendations reflect what you can actually ride instead
+  of every bike in the game.
+- Set a rider profile (weight, FTP) on the Profile page to drive the W/kg
+  used in finish-time estimates.
 
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png" width="830" height="466">
-  </picture>
-</a>
+### Data sources
 
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t ui
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
+- Catalog data (routes, frames, wheels) comes from the
+  [`zwift-data`](https://www.npmjs.com/package/zwift-data) npm package.
+- Aero/climb performance and rolling-resistance (Crr) figures are sourced
+  from [ZwiftInsider](https://zwiftinsider.com/) bot-test data where
+  available (marked with a "verified" badge in the UI); everything else
+  falls back to a labeled heuristic estimate.
+- Route surface percentages (gravel/cobble %) are an app-computed estimate,
+  not official Zwift data.
 
 ## Setup
 
-Make sure to install the dependencies:
+Install dependencies:
 
 ```bash
-pnpm install
+npm install
 ```
 
 ## Development Server
 
-Start the development server on `http://localhost:3000`:
+Start the development server (defaults to `http://localhost:3000`):
 
 ```bash
-pnpm dev
+npm run dev
+```
+
+## Type-checking & linting
+
+```bash
+npm run typecheck
+npm run lint       # add -- --fix to auto-fix
 ```
 
 ## Production
@@ -48,17 +56,23 @@ pnpm dev
 Build the application for production:
 
 ```bash
-pnpm build
+npm run build
 ```
 
-Locally preview production build:
+Locally preview the production build:
 
 ```bash
-pnpm preview
+npm run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Deployment
+
+Deployed as an [Azure Static Web App](https://learn.microsoft.com/azure/static-web-apps/)
+via the GitHub Actions workflow in
+[`.github/workflows`](.github/workflows). Pushes to `main` deploy to
+production; pushes to `devel` deploy to a separate staging environment.
 
 ## Renovate integration
 
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+Install the [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target)
+on your repository and you are good to go.
