@@ -102,6 +102,14 @@ const fastestTimeSec = computed(() => {
     .filter((t): t is number => typeof t === "number");
   return times.length ? Math.min(...times) : undefined;
 });
+const surfaceTimePenaltyText = computed(() =>
+  routeData.value
+    ? formatSurfaceTimePenalty(
+        routeData.value.surface,
+        topCombo.value?.surfaceTimePenaltySec,
+      )
+    : undefined,
+);
 </script>
 
 <template>
@@ -128,17 +136,25 @@ const fastestTimeSec = computed(() => {
             {{ routeData.worldName }}
           </p>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <TerrainBadge :terrain="routeData.terrain" />
-          <SurfaceBadges :surface="routeData.surface" />
-          <UBadge
-            v-if="routeData.eventOnly"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-calendar-clock"
+        <div class="flex flex-col items-start sm:items-end gap-1.5">
+          <div class="flex flex-wrap sm:justify-end gap-2">
+            <TerrainBadge :terrain="routeData.terrain" />
+            <SurfaceBadges :surface="routeData.surface" />
+            <UBadge
+              v-if="routeData.eventOnly"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-calendar-clock"
+            >
+              Event only
+            </UBadge>
+          </div>
+          <p
+            v-if="surfaceTimePenaltyText"
+            class="text-xs text-muted sm:text-right"
           >
-            Event only
-          </UBadge>
+            {{ surfaceTimePenaltyText }}
+          </p>
         </div>
       </div>
 

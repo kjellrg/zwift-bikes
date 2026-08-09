@@ -76,8 +76,14 @@ export interface SurfaceEstimate {
   road: number
   gravel: number
   cobble: number
-  /** whether this is a curated best-guess or a generic keyword-based fallback */
-  confidence: 'curated' | 'heuristic'
+  /**
+   * - `curated`: a best-guess percentage for a specific route, based on public route descriptions.
+   * - `unverified`: this route's world is known (via zwiftmap's community-mapped surface data,
+   *   see `shared/data/zwiftmapSurfaceZones.ts`) to contain gravel/cobble zones, but this specific
+   *   route hasn't been individually checked - percentages default to 100% road.
+   * - `heuristic`: no known gravel/cobble zones for this route's world - assumed fully paved.
+   */
+  confidence: 'curated' | 'unverified' | 'heuristic'
 }
 
 export type TerrainCategory = 'flat' | 'rolling' | 'hilly' | 'mountainous'
@@ -132,6 +138,8 @@ export interface ComboScore {
   breakdown: ComboScoreBreakdown
   /** Only present when the request included a rider weight/W-per-kg - see `estimateFinishTimeSec`. */
   finishTimeSec?: number
+  /** Only present alongside `finishTimeSec`. Seconds this combo loses to the route's gravel/cobble sections vs. an equivalent fully-paved route - see `estimateSurfaceTimePenaltySec`. `0` for routes with no known non-tarmac surface. */
+  surfaceTimePenaltySec?: number
 }
 
 export interface RouteFilters {

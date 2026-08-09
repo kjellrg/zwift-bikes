@@ -1,5 +1,6 @@
 import type { Route } from 'zwift-data'
 import type { SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights } from '../types/catalog'
+import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
 
 /**
  * `zwift-data` doesn't expose surface composition (road/gravel/cobbles) for
@@ -9,8 +10,13 @@ import type { SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights }
  *
  * 1. Uses a curated table for that known set of gravel/cobble routes
  *    (approximate percentages, based on public route descriptions).
- * 2. Falls back to "100% road" for everything else - clearly labelled as a
- *    heuristic assumption, not verified per-route.
+ * 2. For everything else, checks `zwiftmapSurfaceZones` (community-mapped
+ *    surface data adapted from zwiftmap, MIT licensed - see
+ *    /THIRD_PARTY_NOTICES.md) to see whether this route's *world* is known
+ *    to contain any gravel/cobble zones at all. If so, the route is marked
+ *    `'unverified'` rather than silently asserting it's fully paved. If the
+ *    world has no known non-tarmac zones, it falls back to "100% road"
+ *    labelled as a plain heuristic assumption.
  *
  * It also derives a simple climb intensity profile from `distance`/`elevation`,
  * which *are* real, authoritative fields from zwift-data.
@@ -33,12 +39,19 @@ const CURATED_SURFACE: Record<string, { road: number, gravel: number, cobble: nu
   'petit-boucle': { road: 85, gravel: 0, cobble: 15 },
   'casse-pattes': { road: 80, gravel: 0, cobble: 20 },
   'petite-douleur': { road: 85, gravel: 0, cobble: 15 },
-  'farmland-loop': { road: 70, gravel: 30, cobble: 0 }
+  'farmland-loop': { road: 70, gravel: 30, cobble: 0 },
+  // Exact figures from zwiftmap's per-route surface breakdown (Tarmac
+  // 19.8km/87%, Brick 1.8km/8%, Wood 538m/2%, Dirt 572m/3%) - wood
+  // boardwalk bucketed under "cobble" (bumpy, not loose like dirt/gravel).
+  'canopies-and-coastlines': { road: 87, gravel: 3, cobble: 10 }
 }
 
 export function estimateSurface(route: Route): SurfaceEstimate {
   const curated = CURATED_SURFACE[route.slug]
   if (curated) return { ...curated, confidence: 'curated' }
+
+  const worldHasKnownZones = getWorldSurfaceZones(route.world).length > 0
+  if (worldHasKnownZones) return { road: 100, gravel: 0, cobble: 0, confidence: 'unverified' }
 
   return { road: 100, gravel: 0, cobble: 0, confidence: 'heuristic' }
 }

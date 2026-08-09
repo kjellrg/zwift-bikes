@@ -1,4 +1,4 @@
-import type { BikeCategory, TerrainCategory, WheelCategory } from '../../shared/types/catalog'
+import type { BikeCategory, SurfaceEstimate, TerrainCategory, WheelCategory } from '../../shared/types/catalog'
 
 export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
   standard: 'Standard (Road)',
@@ -56,6 +56,25 @@ export function formatDuration(seconds: number): string {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
   return `${minutes}:${secs.toString().padStart(2, '0')}`
+}
+
+/**
+ * Describes how much time a route's gravel/cobble sections cost vs. an
+ * equivalent fully-paved route - see `estimateSurfaceTimePenaltySec`.
+ * Returns `undefined` when there's nothing non-tarmac or no penalty to report.
+ */
+export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: number | undefined): string | undefined {
+  if (!penaltySec || penaltySec <= 0) return undefined
+  if (surface.gravel <= 0 && surface.cobble <= 0) return undefined
+
+  const word = surface.gravel > 0 && surface.cobble > 0
+    ? 'gravel and cobbles'
+    : surface.gravel > 0 ? 'gravel' : 'cobbles'
+  // "gravel" is a singular mass noun ("gravel adds...") but "cobbles" and the
+  // combined "gravel and cobbles" read as plural ("...add...").
+  const verb = surface.gravel > 0 && surface.cobble === 0 ? 'adds' : 'add'
+
+  return `Due to increased rolling resistance, ${word} ${verb} ~${Math.round(penaltySec)}s to this route with the fastest combo below.`
 }
 
 /** Formats a time gap vs. the fastest combo on the route, e.g. `+45s slower` or `+1:23 slower`. */

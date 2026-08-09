@@ -26,7 +26,10 @@ weight and power (W/kg).
   available (marked with a "verified" badge in the UI); everything else
   falls back to a labeled heuristic estimate.
 - Route surface percentages (gravel/cobble %) are an app-computed estimate,
-  not official Zwift data.
+  not official Zwift data. Which *worlds* are known to contain gravel/cobble
+  sections at all is cross-checked against community-mapped surface data
+  adapted from [zwiftmap](https://github.com/andipaetzold/zwiftmap) (MIT
+  licensed - see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
 
 ## Setup
 
