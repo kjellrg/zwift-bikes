@@ -9,7 +9,13 @@ if (routeError.value) throw createError({ statusCode: 404, statusMessage: "Route
 const { owned, ownedWheels, load: loadGarage } = useGarage();
 const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile();
 const { verifiedOnly, load: loadPreferences, setVerifiedOnly } = usePreferences();
-onMounted(() => { loadGarage(); loadRiderProfile(); loadPreferences(); });
+onMounted(() => {
+  loadGarage();
+  loadRiderProfile();
+  loadPreferences();
+  draftHeightCm.value = heightCm.value;
+  draftWkg.value = wkg.value;
+});
 
 const bikeSearch = ref("");
 const bikeSearchDebounced = ref("");
@@ -21,6 +27,14 @@ const myBikesOnly = ref(false);
 const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
+
+// Keep slider movement local while the pointer is down. The profile/physics
+// state is committed only on the slider's change event (release), avoiding a
+// recommendation request for every intermediate slider value.
+const draftHeightCm = ref(183);
+const draftWkg = ref(2.7);
+const commitHeight = (value: number | undefined) => setHeightCm(value ?? draftHeightCm.value);
+const commitWkg = (value: number | undefined) => setWkg(value ?? draftWkg.value);
 
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
@@ -38,10 +52,9 @@ const recommendQuery = computed(() => ({
 }));
 const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false });
 
-// Rider state is loaded from localStorage onMounted, so explicitly refresh the
-// recommendation request whenever a physics input changes. This also makes
-// the route power slider visibly update the finish times immediately.
 watch([weightKg, heightCm, wkg, laps], () => { refreshRecommendations(); });
+watch(heightCm, (value) => { if (value !== draftHeightCm.value) draftHeightCm.value = value; });
+watch(wkg, (value) => { if (value !== draftWkg.value) draftWkg.value = value; });
 
 const categoryOptions: { label: string; value: BikeCategory | "all" }[] = [
   { label: "All categories", value: "all" }, { label: BIKE_CATEGORY_LABELS.standard, value: "standard" },
@@ -95,8 +108,8 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 
       <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">
         <div class="w-40"><label class="block text-xs font-medium text-muted mb-1">Rider weight (kg)</label><UInput :model-value="weightKg" type="number" min="30" max="150" step="1" @update:model-value="(value: string | number) => setWeightKg(Number(value))" /></div>
-        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ heightCm }} cm</label><USlider :model-value="heightCm" :min="100" :max="220" :step="1" @update:model-value="(value: number | undefined) => setHeightCm(value ?? heightCm)" /></div>
-        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ wkg.toFixed(1) }} W/kg ({{ Math.round(wkg * weightKg) }} W)</label><USlider :model-value="wkg" :min="1.0" :max="6.9" :step="0.1" @update:model-value="(value: number | undefined) => setWkg(value ?? wkg)" /></div>
+        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm }} cm</label><USlider :model-value="draftHeightCm" :min="100" :max="220" :step="1" @update:model-value="(value: number | undefined) => { draftHeightCm = value ?? draftHeightCm }" @change="commitHeight" /></div>
+        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ draftWkg.toFixed(1) }} W/kg ({{ Math.round(draftWkg * weightKg) }} W)</label><USlider :model-value="draftWkg" :min="1.0" :max="6.9" :step="0.1" @update:model-value="(value: number | undefined) => { draftWkg = value ?? draftWkg }" @change="commitWkg" /></div>
         <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
       </div>
 
