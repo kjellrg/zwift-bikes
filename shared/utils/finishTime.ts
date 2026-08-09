@@ -67,16 +67,33 @@ const CLIMB_MASS_SENSITIVITY = 0.4 // fraction of BASE_BIKE_MASS_KG swung across
 // out-climb dedicated road climbing frames. Since actual TT frames are
 // heavier and worse climbers than the (non-TT) Tron bike, the ~40 sec/hour
 // Tron-vs-top-climbing-setup gap above is a floor, not a target - simulating
-// this model on Road to Sky (a real mountainous route) at a competitive
-// 4 W/kg showed a multiplier of 1.2 wasn't enough to overcome a top TT
-// frame's aero advantage (it still finished ~1-3 sec ahead of the top road
-// climbing frame); 1.5 produces a ~47 sec gap over that same climb
-// (~51 sec/hour), which is comfortably past the Tron-bike floor and reliably
-// keeps TT frames off the top of climbing-route recommendations while still
-// preserving their correct dominance on flat/rolling routes. Like
-// `TT_CDA_MULTIPLIER`, this is a documented approximation, not an exact
-// published cross-baseline figure.
-const TT_CLIMB_MASS_MULTIPLIER = 1.5
+// this model on Road to Sky (a real mountainous route, ~6% average grade)
+// at a competitive 4 W/kg showed a multiplier of 1.2 wasn't enough to
+// overcome a top TT frame's aero advantage (it still finished ~1-3 sec
+// ahead of the top road climbing frame); 1.5 produces a ~47 sec gap over
+// that same climb (~51 sec/hour), comfortably past the Tron-bike floor.
+//
+// **Bug found + fixed (user-reported): TT bikes still showed as faster than
+// road bikes on genuinely "hilly"-category routes (e.g. Achterbahn, ~2%
+// average grade) that are much less steep than Road to Sky.** 1.5 only
+// reliably kept TT off the top on very steep (~6%+) sustained climbs -
+// simulating the model across a range of real routes (climbRatio 0-60 m/km)
+// and power levels (2.5-5 W/kg) showed TT frames still won outright on every
+// "hilly"-category route tested (~1.5-2% avg grade) at every power level.
+// Bumped to 2.0: still preserves TT's correct, well-established dominance on
+// every flat/rolling route at every power level (per ZwiftInsider: "TT bikes
+// are always faster than road bikes in non-drafting flat or rolling
+// situations"), while flipping "hilly" routes to favor road climbing frames
+// at recreational-to-competitive power (2.5-4.5 W/kg) - TT only creeps back
+// ahead on hilly routes at elite-level power (~5 W/kg+), which is physically
+// reasonable (aero drag scales with v^3, so higher speed increasingly favors
+// aero over weight even on a moderate grade) rather than a bug. Mountainous
+// routes (Road to Sky) still favor road frames by an even wider margin than
+// before at every power level - no regression there. Like `TT_CDA_MULTIPLIER`,
+// this is a documented approximation, not an exact published cross-baseline
+// figure - revisit if ZwiftInsider ever publishes a direct TT-vs-road climb
+// comparison on the same course.
+const TT_CLIMB_MASS_MULTIPLIER = 2.0
 
 const BASE_CDA = 0.32 // m^2, roughly a mid-pack road position
 const AERO_SENSITIVITY = 0.12 // fraction of CdA swung across the full 0-100 aero score range
