@@ -28,14 +28,18 @@ export function equipmentCdaFromScore(aeroScore: number, isTT: boolean, isDiscWh
 }
 
 /**
- * Estimate rider frontal area from height and mass. The result is an empirical
- * rider-area estimate; the simulator applies the equipment CdA multiplier
- * separately so changing rider height has a direct aerodynamic effect.
+ * Estimate rider frontal area from height and mass.
+ *
+ * The Du Bois equation returns total body surface area, not frontal area.
+ * Earlier code treated it as frontal area, producing ~1.7 m² of CdA for an
+ * average rider and making the dynamic model dramatically slower than the
+ * legacy model. Use an empirical cycling frontal-area fraction of BSA instead.
  */
 export function riderFrontalAreaM2(heightCm: number, weightKg: number): number {
   const heightM = Math.max(1, heightCm) / 100
   const mass = Math.max(30, weightKg)
-  return 0.2025 * Math.pow(heightM, 0.725) * Math.pow(mass, 0.425)
+  const bodySurfaceAreaM2 = 0.2025 * Math.pow(heightM, 0.725) * Math.pow(mass, 0.425)
+  return bodySurfaceAreaM2 * 0.23
 }
 
 export function riderCdaM2(heightCm: number, weightKg: number): number {
