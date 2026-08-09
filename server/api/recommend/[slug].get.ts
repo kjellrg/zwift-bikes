@@ -6,7 +6,7 @@ import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../s
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
-/** Parses the `owned` query param: a JSON object mapping frame id -> owned upgrade level (0-5). */
+/** Parses the `owned` query param: a JSON object mapping frame id -> owned upgrade level (0-5).. */
 function parseOwnedLevels(raw: unknown): Record<string, number> {
   if (typeof raw !== 'string' || !raw) return {}
   try {

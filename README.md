@@ -4,7 +4,7 @@ A Nuxt 4 + Nuxt UI 4 app that recommends the best bike frame / wheelset combo
 for a given [Zwift](https://www.zwift.com/) route, based on your rider
 weight and power (W/kg).
 
-## What it does
+## What it does?
 
 - Browse Zwift routes and see an estimated surface breakdown (road / gravel /
   cobbles), climb profile, and lap info.
