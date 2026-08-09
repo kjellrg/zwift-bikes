@@ -22,15 +22,12 @@ const bikeSearchDebounced = ref("");
 let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 watch(bikeSearch, (value) => { clearTimeout(bikeSearchDebounceTimer); bikeSearchDebounceTimer = setTimeout(() => { bikeSearchDebounced.value = value; }, 300); });
 const categoryFilter = ref<BikeCategory | "all">("all");
-const limit = ref(9);
+const pageSize = 9;
 const myBikesOnly = ref(false);
 const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
 
-// Keep slider drafts completely separate from the persisted rider profile.
-// Native range inputs update these drafts on every mouse movement, while the
-// change event commits only once when the user releases the control.
 const draftHeightCm = ref(heightCm.value);
 const draftWkg = ref(wkg.value);
 const commitHeight = () => setHeightCm(draftHeightCm.value);
@@ -41,7 +38,8 @@ watch(wkg, (value) => { draftWkg.value = value; });
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
   category: categoryFilter.value !== "all" ? categoryFilter.value : undefined,
-  limit: limit.value,
+  limit: pageSize,
+  offset: 0,
   verifiedOnly: verifiedOnly.value ? "true" : undefined,
   ownedOnly: myBikesOnly.value ? "true" : undefined,
   owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
@@ -54,15 +52,44 @@ const recommendQuery = computed(() => ({
 }));
 const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false });
 
-watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced], () => { refreshRecommendations(); });
-watch([owned, ownedWheels], () => { refreshRecommendations(); }, { deep: true });
+const loadedCombos = ref<any[]>([]);
+const hasMore = ref(true);
+const loadingMore = ref(false);
+watch(recommendData, (data) => {
+  if (!data) return;
+  loadedCombos.value = data.combos ?? [];
+  hasMore.value = data.pagination?.hasMore ?? false;
+}, { immediate: true });
+
+async function refreshFirstPage() {
+  loadedCombos.value = [];
+  hasMore.value = true;
+  await refreshRecommendations();
+}
+
+async function showMore() {
+  if (loadingMore.value || !hasMore.value) return;
+  loadingMore.value = true;
+  try {
+    const nextPage = await $fetch(`/api/recommend/${slug.value}`, {
+      query: { ...recommendQuery.value, offset: loadedCombos.value.length, limit: pageSize }
+    });
+    loadedCombos.value = [...loadedCombos.value, ...(nextPage.combos ?? [])];
+    hasMore.value = nextPage.pagination?.hasMore ?? false;
+  } finally {
+    loadingMore.value = false;
+  }
+}
+
+watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced], () => { refreshFirstPage(); });
+watch([owned, ownedWheels], () => { refreshFirstPage(); }, { deep: true });
 
 const categoryOptions: { label: string; value: BikeCategory | "all" }[] = [
   { label: "All categories", value: "all" }, { label: BIKE_CATEGORY_LABELS.standard, value: "standard" },
   { label: BIKE_CATEGORY_LABELS.tt, value: "tt" }, { label: BIKE_CATEGORY_LABELS.gravel, value: "gravel" },
   { label: BIKE_CATEGORY_LABELS.funbike, value: "funbike" }, { label: BIKE_CATEGORY_LABELS.handbike, value: "handbike" },
 ];
-const combos = computed(() => recommendData.value?.combos ?? []);
+const combos = computed(() => loadedCombos.value);
 const topCombo = computed(() => combos.value[0]);
 const restCombos = computed(() => combos.value.slice(1));
 const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === "number"); return times.length ? Math.min(...times) : undefined; });
@@ -119,7 +146,7 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
         <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" class="mb-6" />
         <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" /></div>
         <p v-else-if="!topCombo" class="text-muted text-center py-10">No bikes match your filters.</p>
-        <div class="text-center mt-6"><UButton color="neutral" variant="subtle" @click="limit += 9">Show more matches</UButton></div>
+        <div v-if="hasMore" class="text-center mt-6"><UButton color="neutral" variant="subtle" :loading="loadingMore" @click="showMore">Show more matches</UButton></div>
       </template>
     </div>
   </UContainer>
