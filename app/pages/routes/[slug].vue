@@ -28,14 +28,22 @@ const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
 
-// Keep the slider fully two-way bound while dragging so pointer/mouse movement
-// remains native to Nuxt UI's slider. The valueCommit event is the only point
-// where the persisted profile and expensive recommendation request change.
+// Keep native slider interaction while mirroring the in-flight value into the
+// label. The profile setters are only called by value-commit, so dragging does
+// not persist or trigger the expensive recommendation request on every step.
 const draftHeightCm = ref<number[]>([heightCm.value]);
 const draftWkg = ref<number[]>([wkg.value]);
 const firstSliderValue = (value: number[] | null | undefined, fallback: number) => {
   const next = value?.[0];
   return typeof next === "number" && Number.isFinite(next) ? next : fallback;
+};
+const updateHeightDraft = (value: number[] | null | undefined) => {
+  const next = firstSliderValue(value, heightCm.value);
+  draftHeightCm.value = [next];
+};
+const updateWkgDraft = (value: number[] | null | undefined) => {
+  const next = firstSliderValue(value, wkg.value);
+  draftWkg.value = [next];
 };
 const commitHeight = (value: number[]) => {
   setHeightCm(firstSliderValue(value, heightCm.value));
@@ -116,8 +124,8 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 
       <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">
         <div class="w-40"><label class="block text-xs font-medium text-muted mb-1">Rider weight (kg)</label><UInput :model-value="weightKg" type="number" min="30" max="150" step="1" @update:model-value="(value: string | number) => setWeightKg(Number(value))" /></div>
-        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm[0] ?? heightCm }} cm</label><USlider v-model="draftHeightCm" :min="100" :max="220" :step="1" @value-commit="commitHeight" /></div>
-        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ (draftWkg[0] ?? wkg).toFixed(1) }} W/kg ({{ Math.round((draftWkg[0] ?? wkg) * weightKg) }} W)</label><USlider v-model="draftWkg" :min="1.0" :max="6.9" :step="0.1" @value-commit="commitWkg" /></div>
+        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm[0] ?? heightCm }} cm</label><USlider v-model="draftHeightCm" :min="100" :max="220" :step="1" @update:model-value="updateHeightDraft" @value-commit="commitHeight" /></div>
+        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ (draftWkg[0] ?? wkg).toFixed(1) }} W/kg ({{ Math.round((draftWkg[0] ?? wkg) * weightKg) }} W)</label><USlider v-model="draftWkg" :min="1.0" :max="6.9" :step="0.1" @update:model-value="updateWkgDraft" @value-commit="commitWkg" /></div>
         <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
       </div>
 
