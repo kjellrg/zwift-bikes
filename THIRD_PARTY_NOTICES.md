@@ -6,13 +6,13 @@ required by those licenses' terms.
 
 ## zwiftmap
 
-`shared/data/zwiftmapSurfaceZones.ts` contains a reference catalog of known
-non-tarmac (gravel/cobble) location labels per Zwift world, adapted from the
-hand-mapped `worldConfigs` surface data in
+`shared/data/zwiftmapSurfaceZones.ts` and `shared/data/surfaceCrr.ts` contain
+reference data adapted from the hand-mapped `worldConfigs` surface data and
+CRR table in
 [zwiftmap](https://github.com/andipaetzold/zwiftmap). Only the location
-labels and coarse surface category are used; the underlying lat/lng polygon
-coordinates and route-geometry computation code are not copied - see the
-notice at the top of that file for details.
+labels, coarse/detailed surface categories, and rolling-resistance values are
+used; the underlying lat/lng polygon coordinates and route-geometry
+computation code are not copied - see the notices in those files for details.
 
 ```
 MIT License

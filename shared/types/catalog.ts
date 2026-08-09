@@ -72,10 +72,21 @@ export interface Wheelset {
   confidence: ScoreConfidence
 }
 
+/**
+ * Surface labels mirrored from zwiftmap's `SurfaceType` enum. The route UI
+ * still exposes a simple road/gravel/cobble summary, but calculations can use
+ * this detailed mix when it is available.
+ */
+export type ZwiftSurfaceType = 'tarmac' | 'brick' | 'wood' | 'cobbles' | 'snow' | 'dirt' | 'grass' | 'sand' | 'gravel'
+
+export type SurfaceComposition = Partial<Record<ZwiftSurfaceType, number>>
+
 export interface SurfaceEstimate {
   road: number
   gravel: number
   cobble: number
+  /** Detailed zwiftmap-style surface percentage mix, summing to roughly 100 when known. */
+  composition?: SurfaceComposition
   /**
    * - `curated`: a best-guess percentage for a specific route, based on public route descriptions.
    * - `unverified`: this route's world is known (via zwiftmap's community-mapped surface data,

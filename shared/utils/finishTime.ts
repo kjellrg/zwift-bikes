@@ -1,4 +1,5 @@
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from '../types/catalog'
+import { SURFACE_CRR } from '../data/surfaceCrr'
 import { blend } from './scoring'
 import { clampLaps } from './routeLaps'
 
@@ -146,10 +147,9 @@ const TT_CDA_MULTIPLIER = 0.87
 // DTSwiss ARC 1100 DICUT 65 on the same TT frame over a real ~35 min route.
 const TT_DISC_CDA_MULTIPLIER = 0.97
 
-// Real Zwift Crr values per wheel class and surface type (see
-// `classifyWheel.ts`'s CRR_COBBLE_SCORE/CRR_GRAVEL_SCORE comment for the
-// ZwiftInsider source). Paved-road Crr is effectively identical across
-// classes in Zwift, so only the off-road cases differentiate.
+// Coarse fallback Crr values for routes without a detailed zwiftmap-style
+// surface composition. Curated routes now provide `surface.composition`, so
+// this remains mostly for older/unverified/heuristic route metadata.
 const CRR_BY_CLASS: Record<'road' | 'gravel' | 'mountain', { road: number, gravel: number, cobble: number }> = {
   road: { road: 0.004, gravel: 0.016, cobble: 0.0065 },
   gravel: { road: 0.004, gravel: 0.008, cobble: 0.008 },
@@ -177,7 +177,20 @@ function blendedCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): numbe
   // read a Crr class from - 'road' is a safe default since paved-road Crr
   // is identical across all classes anyway (only gravel/cobble differ), and
   // these frames are only ever ridden on paved TT courses in practice.
-  const { road, gravel, cobble } = CRR_BY_CLASS[wheelset?.crrClass ?? 'road']
+  const crrClass = wheelset?.crrClass ?? 'road'
+
+  if (route.surface.composition) {
+    return Object.entries(route.surface.composition).reduce((sum, [surface, percent]) => {
+      const crr = SURFACE_CRR[surface as keyof typeof SURFACE_CRR][crrClass]
+      // zwiftmap marks grass as unavailable for road/gravel wheels. If a
+      // future route includes it, use the mountain-bike value as a high,
+      // finite penalty so rankings still sort instead of exploding to NaN.
+      const effectiveCrr = crr ?? SURFACE_CRR.grass.mountain!
+      return sum + effectiveCrr * ((percent ?? 0) / 100)
+    }, 0)
+  }
+
+  const { road, gravel, cobble } = CRR_BY_CLASS[crrClass]
   const gravelFraction = route.surface.gravel / 100
   const cobbleFraction = route.surface.cobble / 100
   const roadFraction = Math.max(0, 1 - gravelFraction - cobbleFraction)
@@ -273,7 +286,16 @@ export function estimateSurfaceTimePenaltySec(
 ): number {
   if (route.surface.gravel === 0 && route.surface.cobble === 0) return 0
 
-  const pavedRoute: RouteWithMeta = { ...route, surface: { road: 100, gravel: 0, cobble: 0, confidence: route.surface.confidence } }
+  const pavedRoute: RouteWithMeta = {
+    ...route,
+    surface: {
+      road: 100,
+      gravel: 0,
+      cobble: 0,
+      composition: route.surface.composition ? { tarmac: 100 } : undefined,
+      confidence: route.surface.confidence
+    }
+  }
   const actualTimeSec = estimateFinishTimeSec(route, frame, wheelset, weightKg, wkg, laps)
   const pavedTimeSec = estimateFinishTimeSec(pavedRoute, frame, wheelset, weightKg, wkg, laps)
   return actualTimeSec - pavedTimeSec

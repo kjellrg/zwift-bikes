@@ -15,13 +15,14 @@ import type { WorldSlug } from 'zwift-data'
  *
  * zwiftmap draws these polygons over each world's map and intersects a
  * route's real GPS track (fetched from Strava) against them to compute an
- * exact per-route surface percentage. This project has no route GPS/track
- * data (no Strava integration), so we can't reproduce that computation.
- * Instead we vendor just the *category* of what each named location is
- * known to be (gravel/dirt/sand/grass/snow -> "gravel", cobbles/brick ->
- * "cobble") as a lightweight, attributed reference. We deliberately do NOT
- * copy the underlying lat/lng polygon coordinates, since they're only
- * useful together with route geometry we don't have.
+ * exact per-route surface percentage. This project has no checked-in route
+ * GPS/track data, so the zone catalog keeps just the *category* of what each
+ * named location is known to be (gravel/dirt/sand/grass/snow -> "gravel",
+ * cobbles/brick -> "cobble") as a lightweight, attributed reference.
+ *
+ * Known route-level surface estimates in `routeTerrain.ts` may additionally
+ * carry a detailed zwiftmap-style surface composition, which is used by
+ * finish-time Crr calculations.
  *
  * This data is used to avoid silently asserting "100% road" for routes in
  * worlds that are known to contain gravel/cobble sections but aren't yet

@@ -1,6 +1,7 @@
 import type { Route } from 'zwift-data'
-import type { SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights } from '../types/catalog'
+import type { SurfaceComposition, SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights } from '../types/catalog'
 import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
+import { normalizeSurfaceComposition } from '../data/surfaceCrr'
 
 /**
  * `zwift-data` doesn't expose surface composition (road/gravel/cobbles) for
@@ -22,9 +23,35 @@ import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
  * which *are* real, authoritative fields from zwift-data.
  */
 
-// slug -> approximate surface mix. Percentages are rough estimates, not
-// measured from route geometry.
-const CURATED_SURFACE: Record<string, { road: number, gravel: number, cobble: number }> = {
+interface CuratedSurfaceMix {
+  road: number
+  gravel: number
+  cobble: number
+  composition?: SurfaceComposition
+}
+
+function coarseComposition({ road, gravel, cobble }: Omit<CuratedSurfaceMix, 'composition'>): SurfaceComposition {
+  return normalizeSurfaceComposition({
+    tarmac: road,
+    dirt: gravel,
+    cobbles: cobble
+  })
+}
+
+function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
+  return {
+    road: mix.road,
+    gravel: mix.gravel,
+    cobble: mix.cobble,
+    composition: normalizeSurfaceComposition(mix.composition ?? coarseComposition(mix)),
+    confidence: 'curated'
+  }
+}
+
+// slug -> approximate surface mix. Most routes still use a coarse public
+// description-derived estimate, but `composition` lets finish-time physics use
+// zwiftmap's richer tarmac/brick/wood/cobbles/snow/dirt/sand/gravel Crr table.
+const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {
   'handful-of-gravel': { road: 10, gravel: 90, cobble: 0 },
   'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 },
   'jungle-circuit': { road: 55, gravel: 45, cobble: 0 },
@@ -43,12 +70,17 @@ const CURATED_SURFACE: Record<string, { road: number, gravel: number, cobble: nu
   // Exact figures from zwiftmap's per-route surface breakdown (Tarmac
   // 19.8km/87%, Brick 1.8km/8%, Wood 538m/2%, Dirt 572m/3%) - wood
   // boardwalk bucketed under "cobble" (bumpy, not loose like dirt/gravel).
-  'canopies-and-coastlines': { road: 87, gravel: 3, cobble: 10 }
+  'canopies-and-coastlines': {
+    road: 87,
+    gravel: 3,
+    cobble: 10,
+    composition: { tarmac: 87, brick: 8, wood: 2, dirt: 3 }
+  }
 }
 
 export function estimateSurface(route: Route): SurfaceEstimate {
   const curated = CURATED_SURFACE[route.slug]
-  if (curated) return { ...curated, confidence: 'curated' }
+  if (curated) return curatedSurface(curated)
 
   const worldHasKnownZones = getWorldSurfaceZones(route.world).length > 0
   if (worldHasKnownZones) return { road: 100, gravel: 0, cobble: 0, confidence: 'unverified' }
