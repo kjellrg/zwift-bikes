@@ -56,10 +56,10 @@ export default defineEventHandler((event) => {
   }
   if (ownedOnly && ownedWheelKeys.length) wheelsets = wheelsets.filter(w => ownedWheelKeys.includes(w.key))
 
-  // Score/rank all combinations cheaply, but only run the expensive physics
-  // model for the requested page. This keeps the initial route response fast
-  // while allowing the UI to fetch the next 9 explicitly when requested.
-  const rankedCombos = rankCombos(route, frames, wheelsets, offset + limit)
+  // Score/rank combinations cheaply, but only run the expensive physics model
+  // for the requested page. Keep one extra cheap result so the UI can know
+  // whether another page exists without calculating its physics yet.
+  const rankedCombos = rankCombos(route, frames, wheelsets, offset + limit + 1)
   const filteredRankedCombos = search
     ? rankedCombos.filter(c => c.frame.name.toLowerCase().includes(search) || c.wheelset?.name.toLowerCase().includes(search))
     : rankedCombos
