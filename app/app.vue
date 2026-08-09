@@ -1,23 +1,23 @@
 <script setup>
 useHead({
-  meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
-  link: [{ rel: 'icon', href: '/favicon.ico' }],
+  meta: [{ name: "viewport", content: "width=device-width, initial-scale=1" }],
+  link: [{ rel: "icon", href: "/favicon.ico" }],
   htmlAttrs: {
-    lang: 'en'
-  }
-})
+    lang: "en",
+  },
+});
 
-const title = 'Zwift Best Bike'
-const description
-  = 'Find the best bike and wheel combination for any Zwift route, based on distance, elevation and surface.'
+const title = "Zwift Best Bike";
+const description =
+  "Find the best bike and wheel combination for any Zwift route, based on distance, elevation and surface.";
 
 useSeoMeta({
   title,
   description,
   ogTitle: title,
   ogDescription: description,
-  twitterCard: 'summary_large_image'
-})
+  twitterCard: "summary_large_image",
+});
 </script>
 
 <template>
@@ -56,6 +56,15 @@ useSeoMeta({
             color="neutral"
             variant="ghost"
           />
+
+          <UButton
+            to="https://github.com/kjellrg/zwift-bikes"
+            target="_blank"
+            icon="i-simple-icons-github"
+            aria-label="zwift-bikes on GitHub"
+            color="neutral"
+            variant="ghost"
+          />
         </div>
 
         <UColorModeButton />
@@ -91,6 +100,17 @@ useSeoMeta({
             variant="ghost"
             block
           />
+
+          <UButton
+            to="https://github.com/kjellrg/zwift-bikes"
+            target="_blank"
+            icon="i-simple-icons-github"
+            label="zwift-bikes on GitHub"
+            aria-label="zwift-bikes on GitHub"
+            color="neutral"
+            variant="ghost"
+            block
+          />
         </div>
       </template>
     </UHeader>
@@ -109,13 +129,15 @@ useSeoMeta({
             to="https://www.npmjs.com/package/zwift-data"
             target="_blank"
             class="underline"
-          >zwift-data</ULink>. Bike frame and wheelset aero/climb ratings use real bot speed-test
+            >zwift-data</ULink
+          >. Bike frame and wheelset aero/climb ratings use real bot speed-test
           data from
           <ULink
             to="https://zwiftinsider.com/charts-wheels/"
             target="_blank"
             class="underline"
-          >ZwiftInsider</ULink>
+            >ZwiftInsider</ULink
+          >
           where available (look for the "verified" badge) - otherwise, and for
           route surface, these are heuristic estimates, not official Zwift data.
         </p>
