@@ -26,11 +26,11 @@ function segmentAt(geometry: RouteGeometry, distanceM: number) {
   const b = points[Math.min(low + 1, points.length - 1)]!
   const distanceDelta = b.distanceM - a.distanceM
   const elevationDelta = b.elevationM - a.elevationM
-  return { grade: distanceDelta > 0 ? elevationDelta / distanceDelta : 0, surface: a.surface }
+  return { grade: distanceDelta > 0 ? elevationDelta / distanceDelta : 0, surface: a.surface, endDistanceM: b.distanceM }
 }
 
 export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationResult {
-  const dt = options.dtSec ?? 0.1
+  const dt = options.dtSec ?? 0.25
   if (dt <= 0) throw new Error('dtSec must be positive')
   if (options.geometry.points.length < 2) throw new Error('Route geometry requires at least two points')
 
@@ -45,7 +45,7 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     elapsedSec: 0
   }
 
-  const maxSteps = Math.ceil(options.geometry.totalDistanceM / Math.max(0.01, state.velocityMps || 0.1) / dt) * 100 + 10000
+  const maxSteps = 2_000_000
   let steps = 0
   while (state.distanceM < options.geometry.totalDistanceM && steps++ < maxSteps) {
     const segment = segmentAt(options.geometry, state.distanceM)
@@ -58,7 +58,16 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     const distanceAdvanced = state.distanceM - previousDistance
     state.elevationM += segment.grade * distanceAdvanced
     state.elapsedSec += dt
-    if (distanceAdvanced <= 0 && state.velocityMps <= 0 && options.rider.powerW <= 0) break
+
+    if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM) {
+      const remainingM = options.geometry.totalDistanceM - state.distanceM
+      state.elapsedSec += remainingM / state.velocityMps
+      state.distanceM = options.geometry.totalDistanceM
+      state.elevationM += segment.grade * remainingM
+      break
+    }
+
+    if (distanceAdvanced <= 0 && state.velocityMps <= 0) break
   }
 
   return {
