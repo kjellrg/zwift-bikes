@@ -13,8 +13,8 @@ onMounted(() => {
   loadGarage();
   loadRiderProfile();
   loadPreferences();
-  draftHeightCm.value = [heightCm.value];
-  draftWkg.value = [wkg.value];
+  draftHeightCm.value = heightCm.value;
+  draftWkg.value = wkg.value;
 });
 
 const bikeSearch = ref("");
@@ -28,21 +28,15 @@ const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
 
-// Keep slider drafts separate from the persisted profile. v-model preserves
-// native pointer dragging; the update event only changes the local draft,
-// while value-commit is the only place that updates the profile/API inputs.
-const draftHeightCm = ref<number[]>([heightCm.value]);
-const draftWkg = ref<number[]>([wkg.value]);
-const firstSliderValue = (value: number[] | null | undefined, fallback: number) => {
-  const next = value?.[0];
-  return typeof next === "number" && Number.isFinite(next) ? next : fallback;
-};
-const onHeightDraft = (value: number[]) => { draftHeightCm.value = value; };
-const onWkgDraft = (value: number[]) => { draftWkg.value = value; };
-const commitHeight = (value: number[]) => setHeightCm(firstSliderValue(value, heightCm.value));
-const commitWkg = (value: number[]) => setWkg(firstSliderValue(value, wkg.value));
-watch(heightCm, (value) => { draftHeightCm.value = [value]; });
-watch(wkg, (value) => { draftWkg.value = [value]; });
+// Keep slider drafts completely separate from the persisted rider profile.
+// Native range inputs update these drafts on every mouse movement, while the
+// change event commits only once when the user releases the control.
+const draftHeightCm = ref(heightCm.value);
+const draftWkg = ref(wkg.value);
+const commitHeight = () => setHeightCm(draftHeightCm.value);
+const commitWkg = () => setWkg(draftWkg.value);
+watch(heightCm, (value) => { draftHeightCm.value = value; });
+watch(wkg, (value) => { draftWkg.value = value; });
 
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
@@ -115,8 +109,8 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 
       <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">
         <div class="w-40"><label class="block text-xs font-medium text-muted mb-1">Rider weight (kg)</label><UInput :model-value="weightKg" type="number" min="30" max="150" step="1" @update:model-value="(value: string | number) => setWeightKg(Number(value))" /></div>
-        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm[0] ?? heightCm }} cm</label><USlider v-model="draftHeightCm" :min="100" :max="220" :step="1" @update:model-value="onHeightDraft" @value-commit="commitHeight" /></div>
-        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ (draftWkg[0] ?? wkg).toFixed(1) }} W/kg ({{ Math.round((draftWkg[0] ?? wkg) * weightKg) }} W)</label><USlider v-model="draftWkg" :min="1.0" :max="6.9" :step="0.1" @update:model-value="onWkgDraft" @value-commit="commitWkg" /></div>
+        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm }} cm</label><input v-model.number="draftHeightCm" type="range" min="100" max="220" step="1" class="w-full cursor-pointer" aria-label="Rider height" @change="commitHeight" /></div>
+        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ draftWkg.toFixed(1) }} W/kg ({{ Math.round(draftWkg * weightKg) }} W)</label><input v-model.number="draftWkg" type="range" min="1" max="6.9" step="0.1" class="w-full cursor-pointer" aria-label="Rider power in watts per kilogram" @change="commitWkg" /></div>
         <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
       </div>
 
