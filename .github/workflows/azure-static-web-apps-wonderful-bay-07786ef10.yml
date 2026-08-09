@@ -5,11 +5,29 @@ on:
     branches:
       - main
       - devel
+    paths:
+      - "app/**"
+      - "server/**"
+      - "shared/**"
+      - "public/staticwebapp.config.json"
+      - "nuxt.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
       - devel
+    paths:
+      - "app/**"
+      - "server/**"
+      - "shared/**"
+      - "public/staticwebapp.config.json"
+      - "nuxt.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml"
 
 jobs:
   build_and_deploy_job:
