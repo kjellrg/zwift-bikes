@@ -252,3 +252,29 @@ export function estimateFinishTimeSec(
 
   return totalTimeSec
 }
+
+/**
+ * How many extra seconds a route's gravel/cobble sections cost a specific
+ * combo, compared to riding the exact same distance/grade fully paved -
+ * i.e. `estimateFinishTimeSec(route, ...) - estimateFinishTimeSec(pavedRoute, ...)`.
+ * Isolates the rolling-resistance (Crr) effect from `blendedCrr` since
+ * everything else (grade, mass, CdA) is identical between the two calls.
+ * Returns `0` for routes with no known gravel/cobble (`estimateSurface`'s
+ * `'unverified'`/`'heuristic'` confidence levels always have `gravel`/`cobble`
+ * at 0, so this is a no-op for them too - see `routeTerrain.ts`).
+ */
+export function estimateSurfaceTimePenaltySec(
+  route: RouteWithMeta,
+  frame: ClassifiedBikeFrame,
+  wheelset: Wheelset | undefined,
+  weightKg: number,
+  wkg: number,
+  laps = 1
+): number {
+  if (route.surface.gravel === 0 && route.surface.cobble === 0) return 0
+
+  const pavedRoute: RouteWithMeta = { ...route, surface: { road: 100, gravel: 0, cobble: 0, confidence: route.surface.confidence } }
+  const actualTimeSec = estimateFinishTimeSec(route, frame, wheelset, weightKg, wkg, laps)
+  const pavedTimeSec = estimateFinishTimeSec(pavedRoute, frame, wheelset, weightKg, wkg, laps)
+  return actualTimeSec - pavedTimeSec
+}

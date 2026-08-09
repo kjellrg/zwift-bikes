@@ -2,7 +2,7 @@ import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils
 import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { rankCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame } from '../../../shared/utils/classifyBikeFrame'
-import { estimateFinishTimeSec } from '../../../shared/utils/finishTime'
+import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
@@ -105,6 +105,7 @@ export default defineEventHandler((event) => {
   if (hasRiderProfile) {
     for (const combo of rankedCombos) {
       combo.finishTimeSec = estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
+      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
     }
     rankedCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
