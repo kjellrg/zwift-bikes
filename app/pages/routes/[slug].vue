@@ -110,6 +110,8 @@ const surfaceTimePenaltyText = computed(() =>
       )
     : undefined,
 );
+const physicsInfo = computed(() => recommendData.value?.physics);
+const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 </script>
 
 <template>
@@ -140,6 +142,14 @@ const surfaceTimePenaltyText = computed(() =>
           <div class="flex flex-wrap sm:justify-end gap-2">
             <TerrainBadge :terrain="routeData.terrain" />
             <SurfaceBadges :surface="routeData.surface" />
+            <UBadge
+              v-if="physicsIsDynamic"
+              color="primary"
+              variant="subtle"
+              icon="i-lucide-atom"
+            >
+              Dynamic physics
+            </UBadge>
             <UBadge
               v-if="routeData.eventOnly"
               color="error"
@@ -213,6 +223,15 @@ const surfaceTimePenaltyText = computed(() =>
         </p>
       </div>
     </div>
+
+    <UAlert
+      v-if="physicsInfo"
+      color="primary"
+      variant="subtle"
+      icon="i-lucide-atom"
+      :title="physicsIsDynamic ? 'Dynamic physics model active' : 'Legacy finish-time model'"
+      :description="physicsInfo.note"
+    />
 
     <UAlert
       color="neutral"
