@@ -3,7 +3,7 @@ import type { PhysicsParameters } from '../../types/physics'
 
 const BASE_BIKE_MASS_KG = 8
 const CLIMB_MASS_SENSITIVITY = 0.4
-const BASE_CDA = 0.32
+const BASE_EQUIPMENT_CDA = 0.32
 const AERO_SENSITIVITY = 0.12
 const TT_CDA_MULTIPLIER = 0.87
 const TT_DISC_CDA_MULTIPLIER = 0.97
@@ -18,13 +18,28 @@ export function bikeMassFromScore(climbScore: number, isTT: boolean): number {
   return isTT ? mass * TT_CLIMB_MASS_MULTIPLIER : mass
 }
 
-export function cdaFromScore(aeroScore: number, isTT: boolean, isDiscWheel: boolean): number {
-  let cda = BASE_CDA
+export function equipmentCdaFromScore(aeroScore: number, isTT: boolean, isDiscWheel: boolean): number {
+  let cda = BASE_EQUIPMENT_CDA
   if (isTT) {
     cda *= TT_CDA_MULTIPLIER
     if (isDiscWheel) cda *= TT_DISC_CDA_MULTIPLIER
   }
   return cda * (1 - normalizeScore(aeroScore) * AERO_SENSITIVITY)
+}
+
+/**
+ * Estimate rider frontal area from height and mass. The result is an empirical
+ * rider-area estimate; the simulator applies the equipment CdA multiplier
+ * separately so changing rider height has a direct aerodynamic effect.
+ */
+export function riderFrontalAreaM2(heightCm: number, weightKg: number): number {
+  const heightM = Math.max(1, heightCm) / 100
+  const mass = Math.max(30, weightKg)
+  return 0.2025 * Math.pow(heightM, 0.725) * Math.pow(mass, 0.425)
+}
+
+export function riderCdaM2(heightCm: number, weightKg: number): number {
+  return riderFrontalAreaM2(heightCm, weightKg) * 0.88
 }
 
 export function equipmentPhysics(frame: ClassifiedBikeFrame, wheelset?: Wheelset): PhysicsParameters {
@@ -39,6 +54,6 @@ export function equipmentPhysics(frame: ClassifiedBikeFrame, wheelset?: Wheelset
 
   return {
     bikeMassKg: bikeMassFromScore(climbScore, isTT),
-    cdaM2: cdaFromScore(aeroScore, isTT, isDiscWheel)
+    cdaM2: equipmentCdaFromScore(aeroScore, isTT, isDiscWheel)
   }
 }
