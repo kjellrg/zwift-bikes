@@ -60,7 +60,7 @@ export default defineEventHandler((event) => {
   const laps = clampLaps(route, Number(query.laps))
   // `physics=legacy` is a rollback/diagnostic switch. `dynamic` is the new
   // default when a rider profile is available. `compare` returns both values
-  // on each combo while still using the legacy result for ordering.
+  // on each combo while preserving legacy ordering for safe validation.
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
 
   let frames = getFrames().filter((frame) => {
@@ -69,9 +69,6 @@ export default defineEventHandler((event) => {
     return true
   })
 
-  // Reclassify owned frames at the rider's actual upgrade level, and
-  // non-owned frames at the rider's assumed default upgrade level, instead
-  // of the cached Stage-0 default.
   frames = frames.map((frame) => {
     const ownedLevel = ownedLevels[frame.id.toString()]
     const level = ownedLevel === undefined ? defaultUnownedLevel : ownedLevel
@@ -115,9 +112,11 @@ export default defineEventHandler((event) => {
       }
     }
 
-    // In compare mode, preserve the legacy ordering so the debug mode doesn't
-    // silently change the recommendations. Dynamic mode is authoritative.
-    rankedCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
+    if (physicsMode === 'compare') {
+      rankedCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
+    } else {
+      rankedCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
+    }
   }
 
   const combos = (
