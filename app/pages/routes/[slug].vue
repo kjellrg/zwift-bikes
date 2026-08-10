@@ -126,6 +126,11 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
       </div>
     </div>
 
+    <div v-if="routeData.terrain.elevationProfile && routeData.terrain.elevationProfile.length > 1">
+      <h2 class="text-lg font-semibold text-highlighted mb-3">Elevation profile</h2>
+      <RouteElevationProfile :route="routeData" :laps="laps" :climbs="climbOccurrences" :sprints="sprintOccurrences" />
+    </div>
+
     <div v-if="climbOccurrences.length || sprintOccurrences.length || routeData.surface.composition" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div v-if="climbOccurrences.length || sprintOccurrences.length" class="lg:col-span-2 space-y-6">
         <div v-if="climbOccurrences.length">
