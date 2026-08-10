@@ -23,8 +23,14 @@ const ownedFrameLevel = computed(() => props.owned?.[props.combo.frame.id]);
 /** Quick-add-to-garage support: lets riders mark a bike/wheel as owned directly from a result card, without visiting the Garage page. */
 const { setOwned, setWheelOwned, isWheelOwned } = useGarage();
 
+/** New quick-adds start at whatever level the rider has chosen in Profile as their default for unowned bikes (e.g. "show everything at level 5"), rather than always level 1 - matching how that same default already drives the level unowned bikes are scored/displayed at everywhere else. */
+const { defaultUnownedLevel } = useRiderProfile();
+
 function toggleFrameOwned() {
-  setOwned(props.combo.frame.id, isOwnedFrame.value ? null : 1);
+  setOwned(
+    props.combo.frame.id,
+    isOwnedFrame.value ? null : defaultUnownedLevel.value,
+  );
 }
 
 /** Lets riders adjust the owned upgrade level (1-5) right from the card, via the subtle level bar shown once a frame is owned. */

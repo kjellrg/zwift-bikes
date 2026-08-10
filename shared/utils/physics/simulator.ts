@@ -1,5 +1,5 @@
 import type { RouteWithMeta, Wheelset } from '../../types/catalog'
-import type { PhysicsEquipment, PhysicsRider, PhysicsSimulationResult, PhysicsState, RouteGeometry } from '../../types/physics'
+import type { PhysicsEquipment, PhysicsRider, PhysicsSimulationResult, PhysicsState, PhysicsSurface, RouteGeometry, RouteSurfaceSegment } from '../../types/physics'
 import { calculateForces } from './forces'
 import { equipmentPhysics, riderCdaM2 } from './equipment'
 
@@ -12,7 +12,8 @@ export interface SimulateRouteOptions {
   initialSpeedMps?: number
 }
 
-function segmentAt(geometry: RouteGeometry, distanceM: number) {
+/** Grade at `distanceM`, from the elevation profile (`geometry.points`). */
+function gradeSegmentAt(geometry: RouteGeometry, distanceM: number) {
   const points = geometry.points
   if (points.length < 2) return undefined
   let low = 0
@@ -26,7 +27,25 @@ function segmentAt(geometry: RouteGeometry, distanceM: number) {
   const b = points[Math.min(low + 1, points.length - 1)]!
   const distanceDelta = b.distanceM - a.distanceM
   const elevationDelta = b.elevationM - a.elevationM
-  return { grade: distanceDelta > 0 ? elevationDelta / distanceDelta : 0, surface: a.surface, endDistanceM: b.distanceM }
+  return { grade: distanceDelta > 0 ? elevationDelta / distanceDelta : 0, endDistanceM: b.distanceM }
+}
+
+/**
+ * Surface at `distanceM`, from `geometry.surfaceSegments` - looked up
+ * independently of the elevation profile above, since real surface
+ * transitions don't happen at the same positions as grade changes (see
+ * `routeGeometry.ts`).
+ */
+function surfaceAt(segments: RouteSurfaceSegment[], distanceM: number): PhysicsSurface {
+  if (segments.length === 0) return 'tarmac'
+  let low = 0
+  let high = segments.length - 1
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2)
+    if (segments[mid]!.toM <= distanceM) low = mid + 1
+    else high = mid
+  }
+  return segments[low]!.surface
 }
 
 export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationResult {
@@ -48,9 +67,10 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   const maxSteps = 2_000_000
   let steps = 0
   while (state.distanceM < options.geometry.totalDistanceM && steps++ < maxSteps) {
-    const segment = segmentAt(options.geometry, state.distanceM)
+    const segment = gradeSegmentAt(options.geometry, state.distanceM)
     if (!segment) break
-    const forces = calculateForces(state.velocityMps, segment.grade, options.rider, physicsEquipment, segment.surface, crrClass)
+    const surface = surfaceAt(options.geometry.surfaceSegments, state.distanceM)
+    const forces = calculateForces(state.velocityMps, segment.grade, options.rider, physicsEquipment, surface, crrClass)
     const previousDistance = state.distanceM
     state.velocityMps = Math.max(0, state.velocityMps + forces.accelerationMps2 * dt)
     state.distanceM += state.velocityMps * dt
@@ -79,18 +99,29 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   }
 }
 
+/**
+ * Compatibility 2-point geometry (straight-line average grade, one surface
+ * for the whole route). Used as a base by `routeGeometry.ts` and directly by
+ * `physics/validate.ts`. When a route has no measured per-position surface
+ * data, this picks the single most prevalent surface from `route.surface.composition`
+ * as a fallback - a coarse approximation, but better than always assuming tarmac.
+ */
 export function geometryFromRoute(route: RouteWithMeta): RouteGeometry {
   const totalDistanceM = route.distance * 1000
   const totalElevationM = route.elevation
-  const surface = route.surface.composition
+  const dominantSurface = route.surface.composition
     ? Object.entries(route.surface.composition).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]?.[0]
     : undefined
+
   return {
     routeSlug: route.slug,
     totalDistanceM,
     points: [
-      { distanceM: 0, elevationM: 0, surface: surface as RouteGeometry['points'][number]['surface'] ?? 'tarmac' },
-      { distanceM: totalDistanceM, elevationM: totalElevationM, surface: surface as RouteGeometry['points'][number]['surface'] ?? 'tarmac' }
+      { distanceM: 0, elevationM: 0 },
+      { distanceM: totalDistanceM, elevationM: totalElevationM }
+    ],
+    surfaceSegments: [
+      { fromM: 0, toM: totalDistanceM, surface: (dominantSurface as PhysicsSurface) ?? 'tarmac' }
     ]
   }
 }

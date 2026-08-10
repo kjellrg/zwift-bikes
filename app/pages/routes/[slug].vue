@@ -8,7 +8,7 @@ if (routeError.value) throw createError({ statusCode: 404, statusMessage: "Route
 
 const { owned, ownedWheels, load: loadGarage } = useGarage();
 const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile();
-const { verifiedOnly, load: loadPreferences, setVerifiedOnly } = usePreferences();
+const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences();
 onMounted(() => {
   loadGarage();
   loadRiderProfile();
@@ -23,10 +23,11 @@ let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 watch(bikeSearch, (value) => { clearTimeout(bikeSearchDebounceTimer); bikeSearchDebounceTimer = setTimeout(() => { bikeSearchDebounced.value = value; }, 300); });
 const categoryFilter = ref<BikeCategory | "all">("all");
 const pageSize = 9;
-const myBikesOnly = ref(false);
 const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
+const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : []);
+const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : []);
 
 const draftHeightCm = ref(heightCm.value);
 const draftWkg = ref(wkg.value);
@@ -84,7 +85,8 @@ async function showMore() {
 }
 
 watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced], () => { refreshFirstPage(); });
-watch([owned, ownedWheels], () => { refreshFirstPage(); }, { deep: true });
+watch(owned, () => { refreshFirstPage(); }, { deep: true });
+watch(ownedWheels, () => { refreshFirstPage(); }, { deep: true });
 
 const categoryOptions: { label: string; value: BikeCategory | "all" }[] = [
   { label: "All categories", value: "all" }, { label: BIKE_CATEGORY_LABELS.standard, value: "standard" },
@@ -124,6 +126,23 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
       </div>
     </div>
 
+    <div v-if="climbOccurrences.length || sprintOccurrences.length || routeData.surface.composition" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div v-if="climbOccurrences.length || sprintOccurrences.length" class="lg:col-span-2 space-y-6">
+        <div v-if="climbOccurrences.length">
+          <h2 class="text-lg font-semibold text-highlighted mb-3">Climbs on this route</h2>
+          <RouteClimbs :climbs="climbOccurrences" :route-slug="routeData.slug" />
+        </div>
+        <div v-if="sprintOccurrences.length">
+          <h2 class="text-lg font-semibold text-highlighted mb-3">Sprints on this route</h2>
+          <RouteSprints :sprints="sprintOccurrences" :route-slug="routeData.slug" />
+        </div>
+      </div>
+      <div v-if="routeData.surface.composition">
+        <h2 class="text-lg font-semibold text-highlighted mb-3">Surface</h2>
+        <RouteSurfaceComposition :surface="routeData.surface" />
+      </div>
+    </div>
+
     <UAlert v-if="physicsInfo" color="primary" variant="subtle" icon="i-lucide-atom" :title="physicsIsDynamic ? 'Dynamic physics model active' : 'Legacy finish-time model'" :description="physicsInfo.note" />
     <UAlert color="neutral" variant="subtle" icon="i-lucide-info" title="How this recommendation works" description="Combos are ranked by an estimated finish time, computed from a simplified physics model (your weight, height &amp; power, the route's terrain/surface mix, and each combo's aerodynamic drag and weight) rather than the match score alone. Bike frame and wheelset aero/climb ratings come from real ZwiftInsider bot speed-test data where available (look for the 'verified' badge) - otherwise they're a name-based heuristic estimate. Route surface is also a best-effort estimate. None of this is official Zwift telemetry, so treat results as directionally useful, not exact." />
 
@@ -133,7 +152,7 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
         <div class="min-w-48"><label class="block text-xs font-medium text-muted mb-1">Bike category</label><USelectMenu v-model="categoryFilter" value-key="value" :items="categoryOptions" :search-input="false" class="w-52" /></div>
         <div class="min-w-56 flex-1"><label class="block text-xs font-medium text-muted mb-1">Search bikes or wheels</label><UInput v-model="bikeSearch" icon="i-lucide-search" placeholder="e.g. Tarmac, Aethos, Zipp, DICUT..." /></div>
         <div class="flex items-center gap-2"><USwitch :model-value="verifiedOnly" @update:model-value="(value: boolean) => setVerifiedOnly(value)" /><span class="text-sm">Only show verified frames/wheels</span></div>
-        <div class="flex items-center gap-2"><USwitch v-model="myBikesOnly" /><span class="text-sm">Only show my bikes</span><ULink to="/garage" class="text-sm text-primary underline">(edit garage)</ULink></div>
+        <div class="flex items-center gap-2"><USwitch :model-value="myBikesOnly" @update:model-value="(value: boolean) => setMyBikesOnly(value)" /><span class="text-sm">Only show items in my garage</span><ULink to="/garage" class="text-sm text-primary underline">(edit garage)</ULink></div>
       </div>
 
       <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">

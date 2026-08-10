@@ -1,5 +1,5 @@
 export { calculateForces, rollingResistanceCoefficient, GRAVITY, AIR_DENSITY, DRIVETRAIN_EFFICIENCY } from './forces'
-export { bikeMassFromScore, cdaFromScore, equipmentPhysics } from './equipment'
+export { bikeMassFromScore, equipmentCdaFromScore, equipmentPhysics, standardEquivalentClimbScore } from './equipment'
 export { geometryFromRoute, simulateRoute } from './simulator'
-export { geometryForRouteLaps } from './routeGeometry'
+export { geometryForRouteLaps, geometryForSegment, geometryForWarmup, prependWarmup } from './routeGeometry'
 export type { SimulateRouteOptions } from './simulator'

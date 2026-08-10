@@ -16,13 +16,24 @@ export interface RouteGeometryPoint {
   distanceM: number
   /** Elevation at this point in metres. */
   elevationM: number
-  /** Surface beginning at this point. */
+}
+
+/**
+ * A contiguous stretch of one surface, at its real position along the ride
+ * (metres from the start of this geometry) - independent of `points`, since
+ * surface transitions don't happen at the same positions as grade changes.
+ */
+export interface RouteSurfaceSegment {
+  fromM: number
+  toM: number
   surface: PhysicsSurface
 }
 
 export interface RouteGeometry {
   routeSlug: string
   points: RouteGeometryPoint[]
+  /** Ordered, non-overlapping, covering `[0, totalDistanceM)`. */
+  surfaceSegments: RouteSurfaceSegment[]
   totalDistanceM: number
 }
 

@@ -1,11 +1,12 @@
-import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
-import { getWheelsets } from '../../../shared/utils/wheelsets'
-import { capWheelsetsPerFrame, rankCombos } from '../../../shared/utils/scoring'
-import { classifyBikeFrame } from '../../../shared/utils/classifyBikeFrame'
-import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { geometryForRouteLaps, simulateRoute } from '../../../shared/utils/physics'
-import { clampLaps } from '../../../shared/utils/routeLaps'
-import type { BikeCategory } from '../../../shared/types/catalog'
+import { getFrames } from '../../../../shared/utils/catalog'
+import { getSegmentSummary, routeWithMetaForSegment } from '../../../../shared/utils/routeSegments'
+import { getWheelsets } from '../../../../shared/utils/wheelsets'
+import { capWheelsetsPerFrame, rankCombos } from '../../../../shared/utils/scoring'
+import { classifyBikeFrame } from '../../../../shared/utils/classifyBikeFrame'
+import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
+import { geometryForSegment, geometryForWarmup, prependWarmup, simulateRoute } from '../../../../shared/utils/physics'
+import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
+import type { BikeCategory } from '../../../../shared/types/catalog'
 
 function parseOwnedLevels(raw: unknown): Record<string, number> {
   if (typeof raw !== 'string' || !raw) return {}
@@ -15,13 +16,23 @@ function parseOwnedWheelKeys(raw: unknown): Set<string> {
   if (typeof raw !== 'string' || !raw) return new Set()
   try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? new Set(parsed) : new Set() } catch { return new Set() }
 }
+
+// Flat lead-up distance simulated before the timed segment itself, long
+// enough for a rider's speed to converge close to steady-state for their
+// power before entering the segment - see `prependWarmup`'s doc comment for
+// why a standing-start simulation would badly distort segment rankings.
+const WARMUP_DISTANCE_M = 2000
+
 export default defineEventHandler((event) => {
   const slug = getRouterParam(event, 'slug')
-  if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing route slug' })
-  const route = getRouteBySlug(slug)
-  if (!route) throw createError({ statusCode: 404, statusMessage: `Route "${slug}" not found` })
+  if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing segment slug' })
+  const summary = getSegmentSummary(slug)
+  if (!summary) throw createError({ statusCode: 404, statusMessage: `Segment "${slug}" not found` })
 
   const query = getQuery(event)
+  const preferredRoute = typeof query.route === 'string' && query.route ? query.route : undefined
+  const segmentRoute = routeWithMetaForSegment(summary, preferredRoute)
+
   const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : undefined
   const category = typeof query.category === 'string' && query.category ? (query.category as BikeCategory) : undefined
   const limit = query.limit ? Math.min(9, Math.max(1, Number(query.limit))) : 9
@@ -36,7 +47,6 @@ export default defineEventHandler((event) => {
   const heightCm = Number(query.heightCm)
   const wkg = Number(query.wkg)
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
-  const laps = clampLaps(route, Number(query.laps))
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
 
   let frames = getFrames().filter((frame) => {
@@ -57,36 +67,19 @@ export default defineEventHandler((event) => {
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
 
-  // `rankCombos` scores every frame x wheelset pair internally regardless of
-  // the `limit` passed in - it only truncates the *returned* array at the
-  // end - so there's no computational reason to restrict it up front. Always
-  // fetch the full candidate pool so both the search filter below and the
-  // ranking step that follows see every candidate, not an arbitrary slice.
-  const rankedCombos = rankCombos(route, frames, wheelsets, frames.length * wheelsets.length)
+  // See the equivalent comments in `recommend/[slug].get.ts` - `rankCombos`
+  // scores every candidate internally regardless of `limit`, so it's always
+  // fetched in full, and once a rider profile is known, pagination/search
+  // are driven by the cheap `estimateFinishTimeSec` estimate rather than the
+  // abstract `score` (which zeroes aero/climb credit on off-road surfaces,
+  // unlike real finish time). Otherwise a genuinely faster combo could rank
+  // outside `score`'s view of "the best candidates" and never surface.
+  const rankedCombos = rankCombos(segmentRoute, frames, wheelsets, frames.length * wheelsets.length)
 
-  // Once we know the rider's weight/power, `estimateFinishTimeSec` (cheap -
-  // a ~40-iteration bisection, no per-meter simulation) is a far more
-  // faithful ranking signal than `rankCombos`'s abstract 0-100 `score`.
-  // `score` deliberately zeroes out aero/climb credit in proportion to a
-  // route's off-road percentage, modeling the real Zwift fact that rolling
-  // resistance on cobbles/gravel is purely a wheel-Crr-class effect (see
-  // `scoring.ts`'s `OFFROAD_FRAME_WEIGHT` comment). But `estimateFinishTimeSec`
-  // correctly keeps rewarding a low-CdA/light combo's aero and climb
-  // advantage on those same routes, since aero drag and gravity don't stop
-  // applying just because the surface is rough - Crr is an ADDITIONAL
-  // resistance term, not a replacement for them. That mismatch let a combo
-  // that's genuinely faster (by the same physics `estimateFinishTimeSec`
-  // itself uses) rank outside `score`'s idea of "the best candidates" and
-  // never get a finish time computed at all - hiding it from both the
-  // results list and `search`, e.g. an aero/climb-strong road frame losing
-  // to a merely score-tied one on a heavily cobbled route. Re-ranking the
-  // FULL pool by the cheap estimate up front - before search/pagination -
-  // fixes that at the source instead of only patching what a page happens
-  // to already contain.
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, wkg, laps) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, wkg, 1) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
 
@@ -99,23 +92,28 @@ export default defineEventHandler((event) => {
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
   if (hasRiderProfile) {
-    const geometry = physicsMode === 'legacy' ? undefined : geometryForRouteLaps(route, laps)
+    const segmentGeometry = physicsMode === 'legacy'
+      ? undefined
+      : geometryForSegment(
+          segmentRoute.slug,
+          segmentRoute.distance,
+          segmentRoute.elevation,
+          sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')
+        )
+    const warmedGeometry = segmentGeometry ? prependWarmup(segmentGeometry, WARMUP_DISTANCE_M) : undefined
+    const warmupOnlyGeometry = segmentGeometry ? geometryForWarmup(WARMUP_DISTANCE_M) : undefined
+
     for (const combo of pageCombos) {
-      // Already computed in the full-pool ranking pass above - reuse it
-      // instead of recalculating the same closed-form estimate twice.
+      // Already computed in the full-pool ranking pass above.
       const legacyFinishTimeSec = combo.finishTimeSec!
-      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
-      if (physicsMode === 'legacy' || !geometry) {
+      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(segmentRoute, combo.frame, combo.wheelset, weightKg, wkg, 1)
+      if (physicsMode === 'legacy' || !warmedGeometry || !warmupOnlyGeometry) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
-        const simulation = simulateRoute({
-          rider: { weightKg, heightCm, powerW: weightKg * wkg },
-          frame: combo.frame,
-          wheelset: combo.wheelset,
-          geometry,
-          dtSec: 0.25
-        })
-        combo.finishTimeSec = simulation.elapsedSec
+        const rider = { weightKg, heightCm, powerW: weightKg * wkg }
+        const warmupOnly = simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry, dtSec: 0.25 })
+        const warmedSegment = simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry, dtSec: 0.25 })
+        combo.finishTimeSec = warmedSegment.elapsedSec - warmupOnly.elapsedSec
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
@@ -124,16 +122,15 @@ export default defineEventHandler((event) => {
   }
 
   return {
-    route: toRouteSummary(route),
+    segment: summary,
     combos: pageCombos,
     physics: hasRiderProfile
       ? {
           mode: physicsMode,
-          geometry: route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility',
           rider: { weightKg, heightCm, wkg },
-          note: route.terrain.climbs.length > 0
-            ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s named climb(s) use real length/gradient data, with the remaining unmapped distance still synthesized from aggregate elevation.'
-            : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.'
+          note: physicsMode === 'legacy'
+            ? 'Legacy finish-time model active - a constant-speed estimate at this segment’s own average grade.'
+            : 'Dynamic physics is active. The segment is simulated after a 2km flat warmup so the timed portion starts at realistic speed, matching how a Zwift/Strava segment is actually entered (never from a standing start).'
         }
       : undefined,
     pagination: {

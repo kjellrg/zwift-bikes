@@ -4,15 +4,37 @@ This project vendors a small amount of reference data adapted from other
 open-source projects. Their original licenses are reproduced below, as
 required by those licenses' terms.
 
+## ZwiftInsider
+
+`shared/data/frameSpeedData.ts` and `shared/data/wheelSpeedData.ts` reproduce
+per-frame and per-wheel flat/climb speed-test figures (seconds gained/lost
+per hour vs. a baseline bike, at Stage 0 and Stage 5 upgrade) published by
+[ZwiftInsider](https://zwiftinsider.com/) at
+[zwiftinsider.com/charts-frames](https://zwiftinsider.com/charts-frames/),
+[/charts-tt](https://zwiftinsider.com/charts-tt/), and
+[/charts-wheels](https://zwiftinsider.com/charts-wheels/), sourced from their
+public results spreadsheet. The rolling-resistance (Crr) constants in
+`shared/utils/classifyWheel.ts` are likewise taken from ZwiftInsider's
+published Crr-by-surface table at
+[zwiftinsider.com/crr](https://zwiftinsider.com/crr/). This data is not
+released under a specific open-source license; it's reproduced here with
+attribution as ZwiftInsider's own bot-test results, publicly shared by them
+for exactly this kind of community use. No ZwiftInsider code is used - only
+the numeric test results.
+
 ## zwiftmap
 
-`shared/data/zwiftmapSurfaceZones.ts` and `shared/data/surfaceCrr.ts` contain
-reference data adapted from the hand-mapped `worldConfigs` surface data and
-CRR table in
-[zwiftmap](https://github.com/andipaetzold/zwiftmap). Only the location
-labels, coarse/detailed surface categories, and rolling-resistance values are
-used; the underlying lat/lng polygon coordinates and route-geometry
-computation code are not copied - see the notices in those files for details.
+`shared/data/zwiftmapSurfaceZones.ts`, `shared/data/surfaceCrr.ts`, and
+`shared/data/zwiftmapSurfacePolygons.json`/`.ts` contain reference data
+adapted from the hand-mapped `worldConfigs` surface data and CRR table in
+[zwiftmap](https://github.com/andipaetzold/zwiftmap). This includes the full
+per-world surface polygon coordinates (`zwiftmapSurfacePolygons.json`,
+extracted via `scripts/route-surfaces/extract-surface-polygons.mjs`), used by
+`shared/utils/surfaceGeometry.ts` to compute real per-route surface
+composition from each route's GPS trace - the same point-in-polygon
+classification method zwiftmap's own `frontend/src/util/surface.ts` uses,
+reimplemented here rather than copied. zwiftmap's route-matching/road-graph
+code is not copied.
 
 ```
 MIT License

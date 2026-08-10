@@ -18,6 +18,31 @@ export function bikeMassFromScore(climbScore: number, isTT: boolean): number {
   return isTT ? mass * TT_CLIMB_MASS_MULTIPLIER : mass
 }
 
+/**
+ * `climbScore` is measured against a different baseline for TT frames than
+ * for standard ones (see `classifyBikeFrame.ts`'s `TT_CLIMB_GAP_RANGE` vs
+ * `CLIMB_GAP_RANGE`), so a TT frame scoring e.g. 65 is NOT "as good a
+ * climber" as a standard frame scoring 65 - `bikeMassFromScore` already
+ * corrects for this via `TT_CLIMB_MASS_MULTIPLIER` when computing real
+ * dynamic-physics finish times. `scoreCombo` (`scoring.ts`) is a cheap 0-100
+ * heuristic that never runs that physics, so without this it compared raw
+ * TT and standard climb scores at face value - letting TT frames rank
+ * competitively with (or above) genuine road climbers on climb-heavy
+ * routes, contradicting the real simulated finish times (verified: on
+ * Lutscher, a Canyon Speedmax CFR combo scored *higher* than a Tarmac SL7
+ * SRAM combo despite finishing ~136s slower). This returns the
+ * standard-scale climb score that would produce the SAME effective bike
+ * mass as `bikeMassFromScore(climbScore, true)`, so the heuristic score
+ * applies the identical, already-calibrated TT climb penalty instead of a
+ * separately-invented one.
+ */
+export function standardEquivalentClimbScore(climbScore: number, isTT: boolean): number {
+  if (!isTT) return climbScore
+  const massKg = bikeMassFromScore(climbScore, true)
+  const normalized = (1 - massKg / BASE_BIKE_MASS_KG) / CLIMB_MASS_SENSITIVITY
+  return Math.max(0, Math.min(100, 50 + normalized * 50))
+}
+
 export function equipmentCdaFromScore(aeroScore: number, isTT: boolean, isDiscWheel: boolean): number {
   let cda = BASE_EQUIPMENT_CDA
   if (isTT) {

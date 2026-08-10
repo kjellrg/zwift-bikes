@@ -31,3 +31,18 @@ export function normalizeSurfaceComposition(composition: SurfaceComposition): Su
       .map(([surface, value]) => [surface, (value / total) * 100])
   ) as SurfaceComposition
 }
+
+/**
+ * Collapses a detailed zwiftmap-style composition into the coarse
+ * road/gravel/cobble split `SurfaceEstimate` exposes for simple UI badges
+ * and filtering. Brick/wood/cobbles are bumpy-but-fixed surfaces (bucketed
+ * as "cobble"); dirt/snow/grass/sand/gravel are loose surfaces (bucketed as
+ * "gravel") - matching the existing convention in `routeTerrain.ts`'s
+ * curated data (e.g. `canopies-and-coastlines`'s wood boardwalk -> cobble).
+ */
+export function coarsenSurfaceComposition(composition: SurfaceComposition): { road: number, gravel: number, cobble: number } {
+  const road = composition.tarmac ?? 0
+  const cobble = (composition.brick ?? 0) + (composition.wood ?? 0) + (composition.cobbles ?? 0)
+  const gravel = (composition.dirt ?? 0) + (composition.snow ?? 0) + (composition.grass ?? 0) + (composition.sand ?? 0) + (composition.gravel ?? 0)
+  return { road, gravel, cobble }
+}
