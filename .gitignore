@@ -26,3 +26,16 @@ logs
 .env
 .env.*
 !.env.example
+
+# Claude Code local/machine-specific state - not meant to be shared via git
+**/.claude/settings.local.json
+**/.claude/*.lock
+**/.claude/scheduled_tasks.json
+**/.claude/routines/.state/
+**/.claude/worktrees/
+**/.claude/checkpoints/
+**/.claude/mailbox/
+**/.claude/agent-registry.json
+**/.claude/agent-memory-local
+**/.claude/first-run
+**/.claude/assistant-daemon-state.json

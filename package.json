@@ -7,8 +7,11 @@
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "prepare": "husky",
     "lint": "eslint .",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
+    "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.121",
@@ -20,7 +23,9 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.16.0",
+    "esbuild": "^0.27.7",
     "eslint": "^10.8.0",
+    "husky": "^9.1.7",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.9"
   }

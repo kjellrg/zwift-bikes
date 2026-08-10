@@ -1,16 +1,21 @@
 import type { Route } from 'zwift-data'
-import type { SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights } from '../types/catalog'
+import type { SurfaceComposition, SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights } from '../types/catalog'
 import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
+import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
+import { getGeneratedRouteSurface } from '../data/routeSurfaces'
+import { getRouteClimbs } from './routeClimbs'
 
 /**
  * `zwift-data` doesn't expose surface composition (road/gravel/cobbles) for
- * routes. The vast majority of Zwift routes are fully paved, with a small,
- * well-known set of routes built specifically to include gravel or cobbled
- * sections. This module:
+ * routes. This module:
  *
- * 1. Uses a curated table for that known set of gravel/cobble routes
- *    (approximate percentages, based on public route descriptions).
- * 2. For everything else, checks `zwiftmapSurfaceZones` (community-mapped
+ * 1. Uses `routeSurfaces.ts`'s generated data where available - real
+ *    per-route composition computed from each route's actual GPS trace, the
+ *    same way zwiftmap.com does it (see `scripts/route-surfaces/`).
+ * 2. Falls back to a curated table for a small, well-known set of
+ *    gravel/cobble routes not yet covered by generated data (approximate
+ *    percentages, based on public route descriptions).
+ * 3. For everything else, checks `zwiftmapSurfaceZones` (community-mapped
  *    surface data adapted from zwiftmap, MIT licensed - see
  *    /THIRD_PARTY_NOTICES.md) to see whether this route's *world* is known
  *    to contain any gravel/cobble zones at all. If so, the route is marked
@@ -22,33 +27,56 @@ import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
  * which *are* real, authoritative fields from zwift-data.
  */
 
-// slug -> approximate surface mix. Percentages are rough estimates, not
-// measured from route geometry.
-const CURATED_SURFACE: Record<string, { road: number, gravel: number, cobble: number }> = {
+interface CuratedSurfaceMix {
+  road: number
+  gravel: number
+  cobble: number
+  composition?: SurfaceComposition
+}
+
+function coarseComposition({ road, gravel, cobble }: Omit<CuratedSurfaceMix, 'composition'>): SurfaceComposition {
+  return normalizeSurfaceComposition({
+    tarmac: road,
+    dirt: gravel,
+    cobbles: cobble
+  })
+}
+
+function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
+  return {
+    road: mix.road,
+    gravel: mix.gravel,
+    cobble: mix.cobble,
+    composition: normalizeSurfaceComposition(mix.composition ?? coarseComposition(mix)),
+    confidence: 'curated'
+  }
+}
+
+// slug -> approximate surface mix, for the small remaining set of routes
+// `routeSurfaces.generated.json` doesn't (and can't yet) cover: they have no
+// `stravaSegmentId` in zwift-data at all, so `compute-route-surfaces.mjs`
+// has no GPS trace to work from. Every other route that used to be listed
+// here now has real measured data instead (see `estimateSurface` below,
+// which always checks generated data first) - re-check this list whenever
+// zwift-data adds a `stravaSegmentId` for one of these, since the curated
+// entry becomes dead weight the moment generated data covers it too.
+const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {
   'handful-of-gravel': { road: 10, gravel: 90, cobble: 0 },
   'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 },
-  'jungle-circuit': { road: 55, gravel: 45, cobble: 0 },
   'jungle-circuit-rev': { road: 55, gravel: 45, cobble: 0 },
-  'repack-rush': { road: 20, gravel: 80, cobble: 0 },
-  'the-muckle-yin': { road: 70, gravel: 30, cobble: 0 },
   'peaky-pave': { road: 70, gravel: 0, cobble: 30 },
-  'cobbled-climbs': { road: 60, gravel: 0, cobble: 40 },
-  'cobbled-climbs-run': { road: 60, gravel: 0, cobble: 40 },
-  'cobbled-climbs-rev': { road: 60, gravel: 0, cobble: 40 },
-  'cobbled-crown': { road: 75, gravel: 0, cobble: 25 },
-  'petit-boucle': { road: 85, gravel: 0, cobble: 15 },
-  'casse-pattes': { road: 80, gravel: 0, cobble: 20 },
-  'petite-douleur': { road: 85, gravel: 0, cobble: 15 },
-  'farmland-loop': { road: 70, gravel: 30, cobble: 0 },
-  // Exact figures from zwiftmap's per-route surface breakdown (Tarmac
-  // 19.8km/87%, Brick 1.8km/8%, Wood 538m/2%, Dirt 572m/3%) - wood
-  // boardwalk bucketed under "cobble" (bumpy, not loose like dirt/gravel).
-  'canopies-and-coastlines': { road: 87, gravel: 3, cobble: 10 }
+  'cobbled-crown': { road: 75, gravel: 0, cobble: 25 }
 }
 
 export function estimateSurface(route: Route): SurfaceEstimate {
+  const measured = getGeneratedRouteSurface(route.slug)
+  if (measured) {
+    const composition = normalizeSurfaceComposition(measured.composition)
+    return { ...coarsenSurfaceComposition(composition), composition, segments: measured.segments, confidence: 'measured' }
+  }
+
   const curated = CURATED_SURFACE[route.slug]
-  if (curated) return { ...curated, confidence: 'curated' }
+  if (curated) return curatedSurface(curated)
 
   const worldHasKnownZones = getWorldSurfaceZones(route.world).length > 0
   if (worldHasKnownZones) return { road: 100, gravel: 0, cobble: 0, confidence: 'unverified' }
@@ -88,5 +116,5 @@ export function computeTerrain(route: Route): TerrainProfile {
     cobble: 0
   }
 
-  return { climbRatio, category, weights }
+  return { climbRatio, category, weights, climbs: getRouteClimbs(route), elevationProfile: getGeneratedRouteSurface(route.slug)?.elevationProfile }
 }

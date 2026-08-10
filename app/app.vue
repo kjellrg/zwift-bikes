@@ -138,8 +138,16 @@ useSeoMeta({
             class="underline"
             >ZwiftInsider</ULink
           >
-          where available (look for the "verified" badge) - otherwise, and for
-          route surface, these are heuristic estimates, not official Zwift data.
+          where available (look for the "verified" badge). Route surface and
+          elevation data is cross-referenced against
+          <ULink
+            to="https://zwiftmap.com"
+            target="_blank"
+            class="underline"
+            >zwiftmap</ULink
+          >'s real GPS/world-surface mapping where available (look for the
+          "measured" badge) - otherwise these are heuristic estimates, not
+          official Zwift data.
         </p>
       </template>
 

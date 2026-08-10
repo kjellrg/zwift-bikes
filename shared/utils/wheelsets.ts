@@ -1,5 +1,5 @@
 import { bikeFrontWheels, bikeRearWheels } from 'zwift-data'
-import type { ClassificationScores, ClassifiedWheel, ScoreConfidence, Wheelset } from '../types/catalog'
+import type { ClassificationScores, ClassifiedWheel, EquipmentPhysicsDelta, ScoreConfidence, Wheelset } from '../types/catalog'
 import { classifyFrontWheel, classifyRearWheel } from './classifyWheel'
 
 /**
@@ -22,6 +22,17 @@ function averageScores(a: ClassificationScores, b: ClassificationScores): Classi
 
 function combinedConfidence(a: ClassifiedWheel, b: ClassifiedWheel): ScoreConfidence {
   return a.confidence === 'measured' && b.confidence === 'measured' ? 'measured' : 'estimated'
+}
+
+// Only meaningful when both sides are 'measured' - front/rear of the same
+// model solve to (near-)identical deltas anyway, since both come from the
+// same `WHEEL_SPEED_DATA` entry in the ~98% same-name case.
+function averagePhysics(a: ClassifiedWheel, b: ClassifiedWheel): EquipmentPhysicsDelta | undefined {
+  if (!a.physics || !b.physics) return undefined
+  return {
+    cdaDeltaM2: (a.physics.cdaDeltaM2 + b.physics.cdaDeltaM2) / 2,
+    bikeMassDeltaKg: (a.physics.bikeMassDeltaKg + b.physics.bikeMassDeltaKg) / 2
+  }
 }
 
 let cachedWheelsets: Wheelset[] | undefined
@@ -49,7 +60,8 @@ export function getWheelsets(): Wheelset[] {
       rear,
       crrClass: front.crrClass,
       scores: averageScores(front.scores, rear.scores),
-      confidence: combinedConfidence(front, rear)
+      confidence: combinedConfidence(front, rear),
+      physics: averagePhysics(front, rear)
     })
   }
 
@@ -69,7 +81,8 @@ export function getWheelsets(): Wheelset[] {
       rear,
       crrClass: effectiveFront.crrClass,
       scores: front ? averageScores(front.scores, rear.scores) : rear.scores,
-      confidence: combinedConfidence(effectiveFront, rear)
+      confidence: combinedConfidence(effectiveFront, rear),
+      physics: front ? averagePhysics(effectiveFront, rear) : rear.physics
     })
   }
 

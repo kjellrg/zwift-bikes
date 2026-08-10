@@ -3,7 +3,11 @@ import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta } from '../types/
 import { classifyBikeFrame } from './classifyBikeFrame'
 import { computeTerrain, estimateSurface } from './routeTerrain'
 
-const worldNameBySlug = new Map(worlds.map(w => [w.slug, w.name]))
+const worldNameBySlug = new Map<string, string>(worlds.map(w => [w.slug, w.name]))
+
+export function getWorldName(slug: string): string {
+  return worldNameBySlug.get(slug) ?? slug
+}
 
 let cachedFrames: ClassifiedBikeFrame[] | undefined
 let cachedRoutes: RouteWithMeta[] | undefined
@@ -24,7 +28,7 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
       .filter(r => r.slug)
       .map(route => ({
         ...route,
-        worldName: worldNameBySlug.get(route.world) ?? route.world,
+        worldName: getWorldName(route.world),
         terrain: computeTerrain(route),
         surface: estimateSurface(route)
       }))

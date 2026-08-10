@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RouteSummary } from '../../shared/types/catalog'
+import type { RouteSummary, SegmentSummary } from '../../shared/types/catalog'
 
 const search = ref('')
 const searchDebounced = ref('')
@@ -16,6 +16,8 @@ const surfaceFilter = ref<string>('all')
 const distanceRange = ref<[number, number]>([0, 120])
 const elevationRange = ref<[number, number]>([0, 2000])
 const visibleCount = ref(24)
+// Defaults to routes-only, matching today's behavior - segments are opt-in.
+const kindFilter = ref<'routes' | 'segments' | 'both'>('routes')
 
 const query = computed(() => ({
   search: searchDebounced.value || undefined,
@@ -36,6 +38,15 @@ const query = computed(() => ({
 
 const { data, status } = await useFetch('/api/routes', { query })
 
+// Fetched unconditionally alongside routes (segments are a small list, ~70
+// entries) so the filter toggle below is instant - only whether they're
+// merged into `items` depends on `kindFilter`, not whether this request runs.
+const segmentQuery = computed(() => ({
+  search: searchDebounced.value || undefined,
+  world: worldFilter.value !== 'all' ? worldFilter.value : undefined
+}))
+const { data: segmentData, status: segmentStatus } = await useFetch('/api/segments', { query: segmentQuery })
+
 const worldOptions = computed(() => [
   { label: 'All worlds', value: 'all' },
   ...(data.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
@@ -47,8 +58,25 @@ const surfaceOptions = [
   { label: 'Includes cobbles', value: 'cobble' }
 ]
 
+const kindOptions = [
+  { label: 'Routes', value: 'routes' },
+  { label: 'Segments', value: 'segments' },
+  { label: 'Routes & segments', value: 'both' }
+]
+
 const routes = computed<RouteSummary[]>(() => data.value?.routes ?? [])
-const visibleRoutes = computed(() => routes.value.slice(0, visibleCount.value))
+const segments = computed<SegmentSummary[]>(() => segmentData.value?.segments ?? [])
+
+type BrowseItem = { kind: 'route', slug: string, name: string, route: RouteSummary } | { kind: 'segment', slug: string, name: string, segment: SegmentSummary }
+
+const items = computed<BrowseItem[]>(() => {
+  const result: BrowseItem[] = []
+  if (kindFilter.value !== 'segments') result.push(...routes.value.map(route => ({ kind: 'route' as const, slug: route.slug, name: route.name, route })))
+  if (kindFilter.value !== 'routes') result.push(...segments.value.map(segment => ({ kind: 'segment' as const, slug: segment.slug, name: segment.name, segment })))
+  return result.sort((a, b) => a.name.localeCompare(b.name))
+})
+const visibleItems = computed(() => items.value.slice(0, visibleCount.value))
+const isLoading = computed(() => status.value === 'pending' || (kindFilter.value !== 'routes' && segmentStatus.value === 'pending'))
 
 function resetFilters() {
   search.value = ''
@@ -56,9 +84,10 @@ function resetFilters() {
   surfaceFilter.value = 'all'
   distanceRange.value = [0, 120]
   elevationRange.value = [0, 2000]
+  kindFilter.value = 'routes'
 }
 
-watch(query, () => {
+watch([query, kindFilter], () => {
   visibleCount.value = 24
 })
 </script>
@@ -105,6 +134,16 @@ watch(query, () => {
           class="w-44"
         />
       </div>
+      <div class="min-w-40">
+        <label class="block text-xs font-medium text-muted mb-1">Show</label>
+        <USelectMenu
+          v-model="kindFilter"
+          value-key="value"
+          :items="kindOptions"
+          :search-input="false"
+          class="w-44"
+        />
+      </div>
       <div class="min-w-56">
         <label class="block text-xs font-medium text-muted mb-1">
           Distance: {{ distanceRange[0] }}–{{ distanceRange[1] }} km
@@ -140,37 +179,45 @@ watch(query, () => {
     <div>
       <div class="flex items-center justify-between mb-4">
         <p class="text-sm text-muted">
-          {{ routes.length }} route{{ routes.length === 1 ? "" : "s" }} found
+          {{ items.length }} result{{ items.length === 1 ? "" : "s" }} found
         </p>
       </div>
 
       <div
-        v-if="status === 'pending'"
+        v-if="isLoading"
         class="text-center py-10 text-muted"
       >
-        Loading routes...
+        Loading...
       </div>
 
       <div
-        v-else-if="routes.length === 0"
+        v-else-if="items.length === 0"
         class="text-center py-10 text-muted"
       >
-        No routes match your filters.
+        No routes or segments match your filters.
       </div>
 
       <div
         v-else
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
       >
-        <RouteCard
-          v-for="route in visibleRoutes"
-          :key="route.slug"
-          :route="route"
-        />
+        <template
+          v-for="item in visibleItems"
+          :key="`${item.kind}-${item.slug}`"
+        >
+          <RouteCard
+            v-if="item.kind === 'route'"
+            :route="item.route"
+          />
+          <SegmentCard
+            v-else
+            :segment="item.segment"
+          />
+        </template>
       </div>
 
       <div
-        v-if="visibleCount < routes.length"
+        v-if="visibleCount < items.length"
         class="text-center mt-6"
       >
         <UButton
@@ -178,7 +225,7 @@ watch(query, () => {
           variant="subtle"
           @click="visibleCount += 24"
         >
-          Show more ({{ routes.length - visibleCount }} remaining)
+          Show more ({{ items.length - visibleCount }} remaining)
         </UButton>
       </div>
     </div>

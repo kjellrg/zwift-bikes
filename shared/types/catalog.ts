@@ -38,6 +38,20 @@ export interface ClassificationScores {
 /** Whether `scores` come from real ZwiftInsider bot speed-test data or a name-based heuristic guess */
 export type ScoreConfidence = 'measured' | 'estimated'
 
+/**
+ * Absolute CdA/mass offsets from this equipment's own category baseline
+ * (standard/TT reference bike, or the reference wheel), solved directly from
+ * its real ZwiftInsider flat/climb gap-seconds via physics rather than
+ * derived from the abstract 0-100 `scores` - see
+ * `shared/utils/physics/equipment.ts`'s `solveFrameEquipmentDelta`/
+ * `solveWheelEquipmentDelta`. Only present when `confidence === 'measured'`;
+ * `scores` themselves are unaffected and keep powering ranking/UI display.
+ */
+export interface EquipmentPhysicsDelta {
+  cdaDeltaM2: number
+  bikeMassDeltaKg: number
+}
+
 export interface ClassifiedBikeFrame extends BikeFrame {
   category: BikeCategory
   style?: BikeStyle
@@ -47,6 +61,7 @@ export interface ClassifiedBikeFrame extends BikeFrame {
   hasFixedWheels: boolean
   /** Upgrade stage (0-5) these scores were computed at - see `classifyBikeFrame.ts`'s `level` param. */
   level: number
+  physics?: EquipmentPhysicsDelta
 }
 
 export interface ClassifiedWheel {
@@ -58,6 +73,7 @@ export interface ClassifiedWheel {
   crrClass: 'road' | 'gravel' | 'mountain'
   scores: ClassificationScores
   confidence: ScoreConfidence
+  physics?: EquipmentPhysicsDelta
 }
 
 /** A front+rear wheel pairing, as commonly ridden together in Zwift */
@@ -70,20 +86,48 @@ export interface Wheelset {
   crrClass: 'road' | 'gravel' | 'mountain'
   scores: ClassificationScores
   confidence: ScoreConfidence
+  physics?: EquipmentPhysicsDelta
+}
+
+/**
+ * Surface labels mirrored from zwiftmap's `SurfaceType` enum. The route UI
+ * still exposes a simple road/gravel/cobble summary, but calculations can use
+ * this detailed mix when it is available.
+ */
+export type ZwiftSurfaceType = 'tarmac' | 'brick' | 'wood' | 'cobbles' | 'snow' | 'dirt' | 'grass' | 'sand' | 'gravel'
+
+export type SurfaceComposition = Partial<Record<ZwiftSurfaceType, number>>
+
+/**
+ * A contiguous stretch of one surface type, at its real position along a
+ * single lap (`fromKm`/`toKm` relative to the lap start, i.e. `0..route.distance`
+ * - the underlying Strava segment covers the lap itself, not the lead-in).
+ * See `shared/utils/surfaceGeometry.ts`'s `computeSurfaceProfile`.
+ */
+export interface SurfaceSegment {
+  fromKm: number
+  toKm: number
+  type: ZwiftSurfaceType
 }
 
 export interface SurfaceEstimate {
   road: number
   gravel: number
   cobble: number
+  /** Detailed zwiftmap-style surface percentage mix, summing to roughly 100 when known. */
+  composition?: SurfaceComposition
+  /** Real position-tagged surface stretches for one lap, when measured (see `confidence: 'measured'`) - lets the dynamic physics model use the real surface at each point instead of one blended value for the whole route. */
+  segments?: SurfaceSegment[]
   /**
+   * - `measured`: computed from the route's real GPS trace intersected against zwiftmap's world
+   *   surface polygons - see `shared/data/routeSurfaces.ts` and `scripts/route-surfaces/`.
    * - `curated`: a best-guess percentage for a specific route, based on public route descriptions.
    * - `unverified`: this route's world is known (via zwiftmap's community-mapped surface data,
    *   see `shared/data/zwiftmapSurfaceZones.ts`) to contain gravel/cobble zones, but this specific
    *   route hasn't been individually checked - percentages default to 100% road.
    * - `heuristic`: no known gravel/cobble zones for this route's world - assumed fully paved.
    */
-  confidence: 'curated' | 'unverified' | 'heuristic'
+  confidence: 'measured' | 'curated' | 'unverified' | 'heuristic'
 }
 
 export type TerrainCategory = 'flat' | 'rolling' | 'hilly' | 'mountainous'
@@ -95,11 +139,101 @@ export interface TerrainWeights {
   cobble: number
 }
 
+/**
+ * A named climb on a route, matched from `zwift-data`'s `segments` catalog
+ * via the route's `segmentsOnRoute` placements - see `routeClimbs.ts`. Real
+ * length/gradient for the *named* climbs on a route (e.g. Alpe du Zwift,
+ * Epic KOM), not derived/estimated from the route's aggregate distance/elevation.
+ */
+export interface RouteClimb {
+  name: string
+  slug: string
+  /** Start position along the route, in km (one lap - repeats per lap on multi-lap routes). */
+  fromKm: number
+  /** End position along the route, in km. */
+  toKm: number
+  lengthKm: number
+  elevationM: number
+  avgGradePercent: number
+  /** Strava-style climb category, steepest to gentlest: HC, 1, 2, 3, 4. Not all climbs are categorized. */
+  climbType?: 'HC' | '4' | '3' | '2' | '1'
+  /**
+   * `zwift-data`'s `segmentsOnRoute` positions are measured from the true
+   * start of a ride on this route, lead-in included - not from the
+   * repeating lap's start. `true` if this climb falls at/after the lead-in
+   * (so it recurs once per lap, and `fromKm`/`toKm` are relative to the lap
+   * start); `false` if it falls entirely within the one-time lead-in (so
+   * `fromKm`/`toKm` are relative to the ride start instead).
+   */
+  perLap: boolean
+}
+
+/**
+ * A point on a route's real measured elevation profile for one lap, relative
+ * to the lap's own start (`distanceM`/`elevationM` both `0` at the lap
+ * start) - see `shared/utils/elevationGeometry.ts`.
+ */
+export interface RouteElevationPoint {
+  distanceM: number
+  elevationM: number
+}
+
 export interface TerrainProfile {
   /** elevation gain per km, m/km */
   climbRatio: number
   category: TerrainCategory
   weights: TerrainWeights
+  /** Named climbs on this route with known length/gradient, ordered by position. Empty if none are mapped. */
+  climbs: RouteClimb[]
+  /**
+   * Real per-lap elevation profile from the route's Strava GPS trace
+   * (simplified - see `computeElevationProfile`), when available. Lets the
+   * dynamic physics model use the route's actual measured shape instead of
+   * the synthetic named-climb/rolling-lap approximation - see
+   * `geometryForRouteLaps`. Undefined for routes with no Strava segment.
+   */
+  elevationProfile?: RouteElevationPoint[]
+}
+
+/**
+ * A named segment occurrence on a route - the same real `segmentsOnRoute` +
+ * `segments` catalog cross-reference `RouteClimb` uses (see `routeClimbs.ts`),
+ * generalized with a `type` discriminator so sprints can be represented too.
+ * Unlike `RouteClimb`, sprint occurrences keep `elevationM`/`avgGradePercent`
+ * at `0` rather than being skipped when `zwift-data` has no gradient for
+ * them (most sprints legitimately don't have one) - see `routeSegments.ts`.
+ */
+export interface RouteSegmentPlacement {
+  name: string
+  slug: string
+  type: 'climb' | 'sprint'
+  fromKm: number
+  toKm: number
+  lengthKm: number
+  elevationM: number
+  avgGradePercent: number
+  climbType?: 'HC' | '4' | '3' | '2' | '1'
+  perLap: boolean
+}
+
+/**
+ * A rankable Zwift segment (climb or sprint), aggregated across every route
+ * that hosts it - the shape used for segment search/listing and the segment
+ * detail page. See `routeSegments.ts`'s `getAllSegmentSummaries`.
+ */
+export interface SegmentSummary {
+  slug: string
+  name: string
+  type: 'climb' | 'sprint'
+  climbType?: 'HC' | '4' | '3' | '2' | '1'
+  world: WorldSlug
+  worldName: string
+  /** Representative length/elevation/grade, taken from the first route occurrence found - real per-route placements are essentially identical since it's the same physical segment. */
+  lengthKm: number
+  elevationM: number
+  avgGradePercent: number
+  /** Every route this segment appears on. */
+  hostRoutes: { slug: string, name: string }[]
 }
 
 export interface RouteWithMeta extends Route {

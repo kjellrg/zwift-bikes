@@ -1,0 +1,38 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+	"name": "zwift-bikes",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:5-24-trixie",
+	"features": {
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/jsburckhardt/devcontainer-features/zizmor:1": {},
+		"ghcr.io/devcontainers-extra/features/claude-code:2": {}
+	},
+	"shutdownAction": "stopContainer",
+	// Installs the trufflehog CLI (no official dev container feature exists for
+	// it yet) so the .husky/pre-commit secret-scanning check works out of the
+	// box on a fresh container, without relying on the Python `pre-commit`
+	// framework - see .husky/pre-commit for how it's actually invoked.
+	//
+	// The install script is fetched by commit SHA rather than the `main`
+	// branch, and the trufflehog version to install is pinned explicitly as
+	// the script's [tag] argument - both pins are load-bearing for supply-
+	// chain safety: a mutable `main` reference would let a compromised/rewritten
+	// script run silently on every future container build via `sh`, and an
+	// unpinned version would float to whatever "latest" resolves to at build
+	// time. `f37f2eff68c31620fd88bc37ff2b7d57ea0c700c` is install.sh's last
+	// commit as of writing (v3.96.0 is current latest) - to bump: check
+	// https://github.com/trufflesecurity/trufflehog/commits/main/scripts/install.sh
+	// for a newer commit SHA and https://github.com/trufflesecurity/trufflehog/releases
+	// for the version tag to pin, verify the script's diff, then update both.
+	"postCreateCommand": "curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/f37f2eff68c31620fd88bc37ff2b7d57ea0c700c/scripts/install.sh | sudo sh -s -- -b /usr/local/bin v3.96.0"
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Configure tool-specific properties.
+	// "customizations": {},
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
