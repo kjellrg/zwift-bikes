@@ -30,6 +30,12 @@ export default defineEventHandler((event) => {
   const ownedOnly = query.ownedOnly === 'true'
   const ownedLevels = parseOwnedLevels(query.owned)
   const ownedWheelKeys = parseOwnedWheelKeys(query.ownedWheels)
+  // "Only show my garage items" only makes sense once the rider has actually
+  // added something of that kind - with no bikes (or no wheels) in the
+  // garage yet, fall back to showing all of them instead of filtering down
+  // to zero results.
+  const filterFramesByOwnership = ownedOnly && Object.keys(ownedLevels).length > 0
+  const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
   const rawDefaultUnownedLevel = Number(query.defaultUnownedLevel)
   const defaultUnownedLevel = Number.isFinite(rawDefaultUnownedLevel) ? Math.min(5, Math.max(0, rawDefaultUnownedLevel)) : 0
   const weightKg = Number(query.weightKg)
@@ -41,7 +47,7 @@ export default defineEventHandler((event) => {
 
   let frames = getFrames().filter((frame) => {
     if (category && frame.category !== category) return false
-    if (ownedOnly && !(frame.id.toString() in ownedLevels)) return false
+    if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
     return true
   }).map((frame) => {
     const ownedLevel = ownedLevels[frame.id.toString()]
@@ -49,7 +55,7 @@ export default defineEventHandler((event) => {
     return level === 0 ? frame : classifyBikeFrame(frame, level)
   })
   let wheelsets = getWheelsets().filter((wheelset) => {
-    if (ownedOnly && !ownedWheelKeys.has(wheelset.key)) return false
+    if (filterWheelsetsByOwnership && !ownedWheelKeys.has(wheelset.key)) return false
     return true
   })
   if (verifiedOnly) {
