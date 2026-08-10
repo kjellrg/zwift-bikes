@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+      - devel
+
+permissions: {}
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - name: Filter relevant paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            app:
+              - "app/**"
+              - "server/**"
+              - "shared/**"
+              - "nuxt.config.ts"
+              - "package.json"
+              - "package-lock.json"
+              - ".github/workflows/build.yml"
+
+  build:
+    name: npm run build
+    needs: changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        if: needs.changes.outputs.app == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        if: needs.changes.outputs.app == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        if: needs.changes.outputs.app == 'true'
+        run: npm ci
+      - name: Build
+        if: needs.changes.outputs.app == 'true'
+        run: npm run build

@@ -1,1 +1,1 @@
-trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && npm run typecheck && npm run build
+trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run typecheck && npm run build
