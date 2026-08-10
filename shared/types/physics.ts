@@ -57,6 +57,12 @@ export interface PhysicsParameters {
   cdaM2: number
 }
 
+/** A frame/wheel's real ZwiftInsider bot-test gap, seconds saved (+) or lost (-) per hour vs. its baseline. */
+export interface MeasuredEquipmentGap {
+  flatGapSec: number
+  climbGapSec: number
+}
+
 export interface PhysicsState {
   distanceM: number
   elevationM: number

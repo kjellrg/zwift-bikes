@@ -7,8 +7,16 @@
 // polygons vendored in shared/data/zwiftmapSurfacePolygons.json (see
 // extract-surface-polygons.mjs and /THIRD_PARTY_NOTICES.md). Position data
 // (`segments`) lets the dynamic physics model use the real surface at each
-// point instead of one blended value for the whole route. Writes
-// shared/data/routeSurfaces.generated.json.
+// point instead of one blended value for the whole route.
+//
+// The same Strava request also fetches the route's real `altitude` stream
+// (index-aligned with `distance`) and simplifies it into `elevationProfile` -
+// see shared/utils/elevationGeometry.ts. This replaces the dynamic physics
+// model's synthetic named-climb/rolling-lap elevation approximation
+// (shared/utils/physics/routeGeometry.ts) with the route's actual measured
+// shape wherever it's available.
+//
+// Writes shared/data/routeSurfaces.generated.json.
 //
 // Requires a Strava API access token with activity/segment read access:
 //   1. Create an API app at https://www.strava.com/settings/api
@@ -29,6 +37,7 @@ import { routes } from 'zwift-data'
 import { loadSharedModule } from './loadShared.mjs'
 
 const { computeSurfaceProfile } = loadSharedModule('shared/utils/surfaceGeometry.ts')
+const { computeElevationProfile } = loadSharedModule('shared/utils/elevationGeometry.ts')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '../..')
@@ -50,7 +59,10 @@ function sleep(ms) {
 }
 
 async function fetchStreams(stravaSegmentId) {
-  const url = `https://www.strava.com/api/v3/segments/${stravaSegmentId}/streams?keys=latlng,distance&key_by_type=true`
+  // `altitude` is the third (and last) stream type Strava's segment streams
+  // endpoint supports, alongside `latlng`/`distance` - same request, no extra
+  // rate-limit cost.
+  const url = `https://www.strava.com/api/v3/segments/${stravaSegmentId}/streams?keys=latlng,distance,altitude&key_by_type=true`
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
 
   if (res.status === 429) {
@@ -64,8 +76,11 @@ async function fetchStreams(stravaSegmentId) {
   const body = await res.json()
   const latlng = body.latlng?.data
   const distance = body.distance?.data
+  const altitude = body.altitude?.data
   if (!latlng || !distance) throw new Error('Response missing latlng/distance stream')
-  return { latlng, distance }
+  // A small number of segments lack an altitude stream - don't fail the
+  // whole route over it, just skip the elevation profile for those.
+  return { latlng, distance, altitude }
 }
 
 const routesToProcess = routes.filter(r => r.slug && r.stravaSegmentId && (force || !existing[r.slug]))
@@ -76,15 +91,18 @@ let done = 0
 for (const route of routesToProcess) {
   process.stdout.write(`[${++done}/${routesToProcess.length}] ${route.world}/${route.slug}... `)
   try {
-    const { latlng, distance } = await fetchStreams(route.stravaSegmentId)
+    const { latlng, distance, altitude } = await fetchStreams(route.stravaSegmentId)
     const { composition, segments } = computeSurfaceProfile(route.world, latlng, distance)
+    const elevationProfile = altitude ? computeElevationProfile(distance, altitude) : undefined
     results[route.slug] = {
       composition,
       segments,
+      ...(elevationProfile ? { elevationProfile } : {}),
       generatedAt: new Date().toISOString(),
       stravaSegmentId: route.stravaSegmentId
     }
-    console.log(Object.entries(composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${segments.length} segments)`)
+    const elevationNote = elevationProfile ? `, ${elevationProfile.length} elevation points` : ', no altitude stream'
+    console.log(Object.entries(composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${segments.length} segments${elevationNote})`)
   } catch (err) {
     console.log(`FAILED: ${err.message}`)
   }

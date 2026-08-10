@@ -1,6 +1,7 @@
 import type { BikeFrame } from 'zwift-data'
 import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame } from '../types/catalog'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
+import { solveFrameEquipmentDelta } from './physics/equipment'
 
 /**
  * Classifier for Zwift bike frames.
@@ -165,7 +166,8 @@ export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFr
         gravel: preset.gravel,
         cobble: preset.cobble
       }
-      return { ...frame, category, style, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel }
+      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, false)
+      return { ...frame, category, style, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
     }
 
     return { ...frame, category, style, scores: preset, confidence: 'estimated', hasFixedWheels, level: clampedLevel }
@@ -184,7 +186,8 @@ export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFr
         gravel: preset.gravel,
         cobble: preset.cobble
       }
-      return { ...frame, category, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel }
+      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, true)
+      return { ...frame, category, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
     }
 
     return { ...frame, category, scores: preset, confidence: 'estimated', hasFixedWheels, level: clampedLevel }

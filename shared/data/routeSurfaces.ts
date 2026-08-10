@@ -1,4 +1,4 @@
-import type { SurfaceComposition, SurfaceSegment } from '../types/catalog'
+import type { RouteElevationPoint, SurfaceComposition, SurfaceSegment } from '../types/catalog'
 import generated from './routeSurfaces.generated.json'
 
 /**
@@ -11,13 +11,16 @@ import generated from './routeSurfaces.generated.json'
  * Starts empty until that script has been run at least once - routes not
  * covered here (either because generation hasn't run yet, or because the
  * route has no Strava segment, e.g. most event-only routes) fall back to the
- * hand-curated/heuristic estimate in `routeTerrain.ts`. `segments` is
- * optional since it was added after `composition` - entries generated before
- * that change won't have it until the script is re-run.
+ * hand-curated/heuristic estimate in `routeTerrain.ts`. `segments` and
+ * `elevationProfile` are optional since they were added after `composition` -
+ * entries generated before those changes won't have them until the script is
+ * re-run.
  */
 interface GeneratedRouteSurface {
   composition: SurfaceComposition
   segments?: SurfaceSegment[]
+  /** Real per-lap elevation profile from the same GPS trace, simplified - see `shared/utils/elevationGeometry.ts`. */
+  elevationProfile?: RouteElevationPoint[]
   generatedAt: string
   stravaSegmentId: number
 }

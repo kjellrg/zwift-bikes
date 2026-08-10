@@ -164,8 +164,8 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 
       <div v-if="status === 'pending' && !recommendData" class="text-center py-10 text-muted">Calculating best matches...</div>
       <template v-else>
-        <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" class="mb-6" />
-        <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" /></div>
+        <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" class="mb-6" />
+        <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" /></div>
         <p v-else-if="!topCombo" class="text-muted text-center py-10">No bikes match your filters.</p>
         <div v-if="hasMore" class="text-center mt-6"><UButton color="neutral" variant="subtle" :loading="loadingMore" @click="showMore">Show more matches</UButton></div>
       </template>

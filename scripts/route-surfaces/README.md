@@ -27,8 +27,16 @@ nothing in `app/`, `server/`, or the Nuxt build runs these scripts.
    `zwift-data`) and classifies each point against the polygons above,
    summing distance per surface type (see `shared/utils/surfaceGeometry.ts`
    for the actual point-classification + aggregation logic, shared with the
-   app). Re-run this whenever `zwift-data` adds new routes, or periodically
-   to catch any Zwift road-surface changes.
+   app). The same request also pulls the route's real `altitude` stream and
+   simplifies it into `elevationProfile` (see
+   `shared/utils/elevationGeometry.ts`) - the dynamic physics model
+   (`shared/utils/physics/routeGeometry.ts`) uses this real per-lap elevation
+   shape instead of its synthetic named-climb/rolling-lap approximation
+   whenever it's available. Re-run this whenever `zwift-data` adds new
+   routes, or periodically to catch any Zwift road-surface changes.
+
+   Entries generated before `elevationProfile` was added won't have it until
+   re-run with `--force` (see below) - existing routes are otherwise skipped.
 
    Routes without a `stravaSegmentId` (mostly event-only routes) can't be
    computed this way and are left out - `estimateSurface()` in

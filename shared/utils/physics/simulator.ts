@@ -1,7 +1,7 @@
 import type { RouteWithMeta, Wheelset } from '../../types/catalog'
 import type { PhysicsEquipment, PhysicsRider, PhysicsSimulationResult, PhysicsState, PhysicsSurface, RouteGeometry, RouteSurfaceSegment } from '../../types/physics'
 import { calculateForces } from './forces'
-import { equipmentPhysics, riderCdaM2 } from './equipment'
+import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 
 export interface SimulateRouteOptions {
   rider: PhysicsRider
@@ -54,8 +54,7 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   if (options.geometry.points.length < 2) throw new Error('Route geometry requires at least two points')
 
   const equipment = equipmentPhysics(options.frame, options.wheelset)
-  const riderCda = riderCdaM2(options.rider.heightCm ?? 183, options.rider.weightKg)
-  const physicsEquipment = { ...equipment, cdaM2: riderCda * (equipment.cdaM2 / 0.32) }
+  const physicsEquipment = { ...equipment, cdaM2: riderScaledCdaM2(equipment.cdaM2, options.rider.heightCm ?? 183, options.rider.weightKg) }
   const crrClass = options.wheelset?.crrClass ?? 'road'
   const state: PhysicsState = {
     distanceM: 0,

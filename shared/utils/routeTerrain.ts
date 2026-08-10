@@ -116,5 +116,5 @@ export function computeTerrain(route: Route): TerrainProfile {
     cobble: 0
   }
 
-  return { climbRatio, category, weights, climbs: getRouteClimbs(route) }
+  return { climbRatio, category, weights, climbs: getRouteClimbs(route), elevationProfile: getGeneratedRouteSurface(route.slug)?.elevationProfile }
 }

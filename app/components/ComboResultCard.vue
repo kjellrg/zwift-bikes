@@ -6,6 +6,7 @@ const props = defineProps<{
   rank: number;
   route?: RouteWithMeta;
   weightKg?: number;
+  heightCm?: number;
   wkg?: number;
   /** Lap count to assume for finish-time/distance display when computing a fallback client-side estimate (see `finishTimeSec` below) - the server already bakes laps into `combo.finishTimeSec` when a rider profile is set, so this is mostly a fallback/display concern. Defaults to 1. */
   laps?: number;
@@ -49,12 +50,13 @@ function toggleWheelOwned() {
 
 const finishTimeSec = computed(() => {
   if (props.combo.finishTimeSec !== undefined) return props.combo.finishTimeSec;
-  if (!props.route || !props.weightKg || !props.wkg) return undefined;
+  if (!props.route || !props.weightKg || !props.heightCm || !props.wkg) return undefined;
   return estimateFinishTimeSec(
     props.route,
     props.combo.frame,
     props.combo.wheelset,
     props.weightKg,
+    props.heightCm,
     props.wkg,
     props.laps ?? 1,
   );

@@ -86,7 +86,7 @@ export default defineEventHandler((event) => {
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, wkg, laps) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
 
@@ -104,7 +104,7 @@ export default defineEventHandler((event) => {
       // Already computed in the full-pool ranking pass above - reuse it
       // instead of recalculating the same closed-form estimate twice.
       const legacyFinishTimeSec = combo.finishTimeSec!
-      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, wkg, laps)
+      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps)
       if (physicsMode === 'legacy' || !geometry) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
@@ -129,11 +129,15 @@ export default defineEventHandler((event) => {
     physics: hasRiderProfile
       ? {
           mode: physicsMode,
-          geometry: route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility',
+          geometry: route.terrain.elevationProfile
+            ? 'measured'
+            : route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility',
           rider: { weightKg, heightCm, wkg },
-          note: route.terrain.climbs.length > 0
-            ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s named climb(s) use real length/gradient data, with the remaining unmapped distance still synthesized from aggregate elevation.'
-            : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.'
+          note: route.terrain.elevationProfile
+            ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s elevation profile is real, measured GPS data (not synthesized), so grade changes are modeled at their actual position along the route.'
+            : route.terrain.climbs.length > 0
+              ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s named climb(s) use real length/gradient data, with the remaining unmapped distance still synthesized from aggregate elevation.'
+              : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.'
         }
       : undefined,
     pagination: {

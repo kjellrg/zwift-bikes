@@ -1,4 +1,4 @@
-import type { RouteClimb, RouteWithMeta } from '../../types/catalog'
+import type { RouteClimb, RouteElevationPoint, RouteWithMeta } from '../../types/catalog'
 import type { PhysicsSurface, RouteGeometry, RouteGeometryPoint, RouteSurfaceSegment } from '../../types/physics'
 import { sliceSurfaceSegments } from '../surfaceGeometry'
 import { geometryFromRoute } from './simulator'
@@ -41,6 +41,38 @@ function appendRollingLap(
   }
 
   return { distanceM, elevationM }
+}
+
+/**
+ * Builds one lap's elevation profile from the route's real measured
+ * `elevationProfile` (see `shared/utils/elevationGeometry.ts`) instead of
+ * guessing - takes priority over both `appendKnownClimbsSegment` and
+ * `appendRollingLap` wherever it's available, since it's real data for the
+ * *whole* lap rather than an approximation anchored only around named
+ * climbs. `profile` distances are rescaled to land exactly on `lapDistanceM`
+ * (Strava's GPS-measured segment length can differ slightly from
+ * `zwift-data`'s official route distance) so lap/lead-in chaining stays
+ * consistent.
+ */
+function appendMeasuredLap(
+  points: RouteGeometryPoint[],
+  startDistanceM: number,
+  startElevationM: number,
+  lapDistanceM: number,
+  profile: RouteElevationPoint[]
+): { distanceM: number, elevationM: number } {
+  const measuredTotalM = profile[profile.length - 1]?.distanceM ?? lapDistanceM
+  const scale = measuredTotalM > 0 ? lapDistanceM / measuredTotalM : 1
+
+  // `profile[0]` is always `{ distanceM: 0, elevationM: 0 }` (see
+  // `computeElevationProfile`) - i.e. the current position, already the last
+  // point pushed by whatever came before this lap. Skip it to avoid a
+  // zero-length duplicate segment.
+  for (const point of profile.slice(1)) {
+    points.push({ distanceM: startDistanceM + point.distanceM * scale, elevationM: startElevationM + point.elevationM })
+  }
+
+  return { distanceM: startDistanceM + lapDistanceM, elevationM: startElevationM + (profile[profile.length - 1]?.elevationM ?? 0) }
 }
 
 /** A single straight-line segment at a uniform average grade. */
@@ -194,11 +226,14 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
     elevationM = result.elevationM
   }
 
+  const measuredProfile = route.terrain.elevationProfile
   for (let lap = 0; lap < lapCount; lap++) {
     surfaceSegments.push(...lapSurfaceSegments(route, distanceM, lapDistanceM, fallbackSurface))
-    const result = lapClimbs.length > 0
-      ? appendKnownClimbsSegment(points, distanceM, elevationM, lapDistanceM, lapElevationM, lapClimbs)
-      : appendRollingLap(points, distanceM, elevationM, lapDistanceM, lapElevationM)
+    const result = measuredProfile && measuredProfile.length > 1
+      ? appendMeasuredLap(points, distanceM, elevationM, lapDistanceM, measuredProfile)
+      : lapClimbs.length > 0
+        ? appendKnownClimbsSegment(points, distanceM, elevationM, lapDistanceM, lapElevationM, lapClimbs)
+        : appendRollingLap(points, distanceM, elevationM, lapDistanceM, lapElevationM)
     distanceM = result.distanceM
     elevationM = result.elevationM
   }

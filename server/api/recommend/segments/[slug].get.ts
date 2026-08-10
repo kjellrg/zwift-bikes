@@ -79,7 +79,7 @@ export default defineEventHandler((event) => {
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, wkg, 1) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
 
@@ -106,7 +106,7 @@ export default defineEventHandler((event) => {
     for (const combo of pageCombos) {
       // Already computed in the full-pool ranking pass above.
       const legacyFinishTimeSec = combo.finishTimeSec!
-      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(segmentRoute, combo.frame, combo.wheelset, weightKg, wkg, 1)
+      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1)
       if (physicsMode === 'legacy' || !warmedGeometry || !warmupOnlyGeometry) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {

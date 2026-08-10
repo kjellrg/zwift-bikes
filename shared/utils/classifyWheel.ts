@@ -1,6 +1,7 @@
 import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
 import type { ClassificationScores, ClassifiedWheel, WheelCategory } from '../types/catalog'
 import { WHEEL_SPEED_DATA } from '../data/wheelSpeedData'
+import { solveWheelEquipmentDelta } from './physics/equipment'
 
 /**
  * Classifier for Zwift wheels.
@@ -153,7 +154,8 @@ function classify(wheel: { id: number, name: string, imageName: string }): Class
       gravel,
       cobble
     }
-    return { ...wheel, category, crrClass, scores, confidence: 'measured' }
+    const physics = solveWheelEquipmentDelta({ flatGapSec: measured.flatGapSec, climbGapSec: measured.climbGapSec })
+    return { ...wheel, category, crrClass, scores, confidence: 'measured', physics }
   }
 
   const preset = scoresForCategory(category, depthMm)

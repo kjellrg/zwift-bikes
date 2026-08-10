@@ -38,6 +38,20 @@ export interface ClassificationScores {
 /** Whether `scores` come from real ZwiftInsider bot speed-test data or a name-based heuristic guess */
 export type ScoreConfidence = 'measured' | 'estimated'
 
+/**
+ * Absolute CdA/mass offsets from this equipment's own category baseline
+ * (standard/TT reference bike, or the reference wheel), solved directly from
+ * its real ZwiftInsider flat/climb gap-seconds via physics rather than
+ * derived from the abstract 0-100 `scores` - see
+ * `shared/utils/physics/equipment.ts`'s `solveFrameEquipmentDelta`/
+ * `solveWheelEquipmentDelta`. Only present when `confidence === 'measured'`;
+ * `scores` themselves are unaffected and keep powering ranking/UI display.
+ */
+export interface EquipmentPhysicsDelta {
+  cdaDeltaM2: number
+  bikeMassDeltaKg: number
+}
+
 export interface ClassifiedBikeFrame extends BikeFrame {
   category: BikeCategory
   style?: BikeStyle
@@ -47,6 +61,7 @@ export interface ClassifiedBikeFrame extends BikeFrame {
   hasFixedWheels: boolean
   /** Upgrade stage (0-5) these scores were computed at - see `classifyBikeFrame.ts`'s `level` param. */
   level: number
+  physics?: EquipmentPhysicsDelta
 }
 
 export interface ClassifiedWheel {
@@ -58,6 +73,7 @@ export interface ClassifiedWheel {
   crrClass: 'road' | 'gravel' | 'mountain'
   scores: ClassificationScores
   confidence: ScoreConfidence
+  physics?: EquipmentPhysicsDelta
 }
 
 /** A front+rear wheel pairing, as commonly ridden together in Zwift */
@@ -70,6 +86,7 @@ export interface Wheelset {
   crrClass: 'road' | 'gravel' | 'mountain'
   scores: ClassificationScores
   confidence: ScoreConfidence
+  physics?: EquipmentPhysicsDelta
 }
 
 /**
@@ -151,6 +168,16 @@ export interface RouteClimb {
   perLap: boolean
 }
 
+/**
+ * A point on a route's real measured elevation profile for one lap, relative
+ * to the lap's own start (`distanceM`/`elevationM` both `0` at the lap
+ * start) - see `shared/utils/elevationGeometry.ts`.
+ */
+export interface RouteElevationPoint {
+  distanceM: number
+  elevationM: number
+}
+
 export interface TerrainProfile {
   /** elevation gain per km, m/km */
   climbRatio: number
@@ -158,6 +185,14 @@ export interface TerrainProfile {
   weights: TerrainWeights
   /** Named climbs on this route with known length/gradient, ordered by position. Empty if none are mapped. */
   climbs: RouteClimb[]
+  /**
+   * Real per-lap elevation profile from the route's Strava GPS trace
+   * (simplified - see `computeElevationProfile`), when available. Lets the
+   * dynamic physics model use the route's actual measured shape instead of
+   * the synthetic named-climb/rolling-lap approximation - see
+   * `geometryForRouteLaps`. Undefined for routes with no Strava segment.
+   */
+  elevationProfile?: RouteElevationPoint[]
 }
 
 /**
