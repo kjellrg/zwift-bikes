@@ -37,6 +37,79 @@ function bandForGrade(gradePercent: number) {
   return GRADE_BANDS.find(band => gradePercent <= band.upTo) ?? GRADE_BANDS[GRADE_BANDS.length - 1]!
 }
 
+interface CurveSegment {
+  x0: number
+  y0: number
+  cp1x: number
+  cp1y: number
+  cp2x: number
+  cp2y: number
+  x1: number
+  y1: number
+}
+
+/**
+ * Monotone cubic Hermite interpolation (Fritsch-Carlson) between already pixel-scaled points, one
+ * segment per point-to-point step. Real road grade changes gradually - straight lines between the
+ * sparse, RDP-simplified elevation points read as artificial sharp "V" spikes even once the y-axis
+ * floor above keeps their height in check. "Monotone" means a segment's curve never overshoots past
+ * either endpoint's y-value, so it can't invent a dip/bump that isn't in the data. Always returns
+ * `points.length - 1` segments (never skips a pair), including a degenerate straight "segment" for
+ * any zero-width pair (e.g. a duplicate lap-boundary point), so callers can zip 1:1 by index.
+ */
+function monotoneCubicSegments(pts: { x: number, y: number }[]): CurveSegment[] {
+  const n = pts.length
+  if (n < 2) return []
+
+  const dx: number[] = []
+  const slope: number[] = []
+  for (let i = 0; i < n - 1; i++) {
+    const h = pts[i + 1]!.x - pts[i]!.x
+    dx.push(h)
+    slope.push(h === 0 ? 0 : (pts[i + 1]!.y - pts[i]!.y) / h)
+  }
+
+  const tangent: number[] = new Array(n).fill(0)
+  tangent[0] = slope[0] ?? 0
+  tangent[n - 1] = slope[n - 2] ?? 0
+  for (let i = 1; i < n - 1; i++) {
+    const s0 = slope[i - 1]!
+    const s1 = slope[i]!
+    tangent[i] = s0 * s1 <= 0 ? 0 : (s0 + s1) / 2
+  }
+  for (let i = 0; i < n - 1; i++) {
+    const s = slope[i]!
+    if (s === 0) {
+      tangent[i] = 0
+      tangent[i + 1] = 0
+      continue
+    }
+    const a = tangent[i]! / s
+    const b = tangent[i + 1]! / s
+    const sumSq = a * a + b * b
+    if (sumSq > 9) {
+      const tau = 3 / Math.sqrt(sumSq)
+      tangent[i] = tau * a * s
+      tangent[i + 1] = tau * b * s
+    }
+  }
+
+  return dx.map((h, i) => {
+    const p0 = pts[i]!
+    const p1 = pts[i + 1]!
+    return {
+      x0: p0.x,
+      y0: p0.y,
+      cp1x: p0.x + h / 3,
+      cp1y: p0.y + (tangent[i]! * h) / 3,
+      cp2x: p1.x - h / 3,
+      cp2y: p1.y - (tangent[i + 1]! * h) / 3,
+      x1: p1.x,
+      y1: p1.y
+    }
+  })
+}
+
 const lapCount = computed(() => Math.max(1, Math.floor(props.laps ?? 1)))
 
 /** Despite its doc comment, `terrain.elevationProfile` is measured `distanceM: 0` at the true ride
@@ -94,7 +167,11 @@ const minElevation = computed(() =>
 const maxElevation = computed(() =>
   points.value.reduce((max, p) => Math.max(max, p.elevationM), points.value[0]?.elevationM ?? 0)
 )
-const elevationRange = computed(() => Math.max(1, maxElevation.value - minElevation.value))
+/** Minimum span (in metres) the y-axis is allowed to zoom into. Without a floor, a near-flat
+ * route's few metres of real elevation change get stretched to fill the whole plot height,
+ * turning mild 1-2% rollers into what look like near-vertical cliffs. */
+const MIN_ELEVATION_RANGE_M = 50
+const elevationRange = computed(() => Math.max(MIN_ELEVATION_RANGE_M, maxElevation.value - minElevation.value))
 
 function scaleX(distanceM: number) {
   if (totalDistanceM.value === 0) return PAD_LEFT
@@ -106,10 +183,18 @@ function scaleY(elevationM: number) {
 }
 const baselineY = computed(() => scaleY(minElevation.value))
 
-/** One filled quad per point-to-point step, colored by that step's own grade -
+/** Curve segment for each point-to-point step, in the same order/indices as `points` - shared by
+ * `bands` and `linePath` below so the colored fill's top edge and the outline stroke always trace
+ * the exact same smoothed curve. */
+const curveSegments = computed(() =>
+  monotoneCubicSegments(points.value.map(p => ({ x: scaleX(p.distanceM), y: scaleY(p.elevationM) })))
+)
+
+/** One filled shape per point-to-point step, colored by that step's own grade -
  * gives the profile a Strava-style gradient "heatmap" instead of a flat block color. */
 const bands = computed(() => {
   const pts = points.value
+  const segments = curveSegments.value
   const result: { d: string, fillClass: string, title: string }[] = []
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i]!
@@ -117,12 +202,9 @@ const bands = computed(() => {
     const distM = b.distanceM - a.distanceM
     if (distM <= 0) continue
     const grade = ((b.elevationM - a.elevationM) / distM) * 100
-    const x1 = scaleX(a.distanceM)
-    const x2 = scaleX(b.distanceM)
-    const y1 = scaleY(a.elevationM)
-    const y2 = scaleY(b.elevationM)
+    const s = segments[i]!
     result.push({
-      d: `M${x1},${baselineY.value} L${x1},${y1} L${x2},${y2} L${x2},${baselineY.value} Z`,
+      d: `M${s.x0},${baselineY.value} L${s.x0},${s.y0} C${s.cp1x},${s.cp1y} ${s.cp2x},${s.cp2y} ${s.x1},${s.y1} L${s.x1},${baselineY.value} Z`,
       fillClass: bandForGrade(grade).fillClass,
       title: `${(a.distanceM / 1000).toFixed(1)}-${(b.distanceM / 1000).toFixed(1)} km · ${formatGrade(grade)}`
     })
@@ -131,9 +213,10 @@ const bands = computed(() => {
 })
 
 const linePath = computed(() => {
-  const pts = points.value
-  if (!pts.length) return ''
-  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${scaleX(p.distanceM)},${scaleY(p.elevationM)}`).join(' ')
+  const segments = curveSegments.value
+  if (!segments.length) return ''
+  const first = segments[0]!
+  return `M${first.x0},${first.y0} ` + segments.map(s => `C${s.cp1x},${s.cp1y} ${s.cp2x},${s.cp2y} ${s.x1},${s.y1}`).join(' ')
 })
 
 /** Dashed markers at each lap boundary (after the once-only lead-in, then every official lap length) so a
