@@ -22,6 +22,39 @@ attribution as ZwiftInsider's own bot-test results, publicly shared by them
 for exactly this kind of community use. No ZwiftInsider code is used - only
 the numeric test results.
 
+## zwift-data
+
+This project depends on the [zwift-data](https://github.com/andipaetzold/zwift-data)
+npm package for structured reference data on Zwift worlds, routes, segments,
+and bike frames (used throughout `shared/utils/` and `shared/data/`, e.g.
+`catalog.ts`, `routeClimbs.ts`, and `routeSegments.ts`). It is used as-is at
+runtime rather than vendored/copied, but its MIT license is reproduced below
+per its terms.
+
+```
+MIT License
+
+Copyright (c) 2021 Andi Pätzold
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## zwiftmap
 
 `shared/data/zwiftmapSurfaceZones.ts`, `shared/data/surfaceCrr.ts`, and
