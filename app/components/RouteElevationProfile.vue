@@ -212,167 +212,181 @@ const stats = computed(() => {
 
 <template>
   <UCard v-if="points.length > 1">
-    <template #header>
-      <div class="flex items-center gap-2">
-        <p class="font-semibold text-highlighted">
-          Elevation profile
-        </p>
-        <UTooltip
-          text="From this route's real GPS elevation trace. Each stretch is colored by its own grade - blue for descents, green through red as climbs get steeper."
+    <UCollapsible :ui="{ content: 'mt-3' }">
+      <template #default="{ open }">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-2 text-left"
         >
+          <span class="flex items-center gap-2">
+            <p class="font-semibold text-highlighted">
+              Elevation profile
+            </p>
+            <UTooltip
+              text="From this route's real GPS elevation trace. Each stretch is colored by its own grade - blue for descents, green through red as climbs get steeper."
+            >
+              <UIcon
+                name="i-lucide-info"
+                class="size-4 text-muted"
+                @click.stop
+              />
+            </UTooltip>
+          </span>
           <UIcon
-            name="i-lucide-info"
-            class="size-4 text-muted"
+            :name="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+            class="size-4 text-muted shrink-0"
           />
-        </UTooltip>
-      </div>
-    </template>
+        </button>
+      </template>
 
-    <svg
-      :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
-      class="w-full h-auto"
-      role="img"
-      aria-label="Elevation profile chart"
-    >
-      <line
-        :x1="PAD_LEFT"
-        :x2="VIEW_WIDTH - PAD_RIGHT"
-        :y1="baselineY"
-        :y2="baselineY"
-        stroke="currentColor"
-        class="text-default"
-        stroke-width="1"
-      />
-      <g
-        v-for="marker in markers"
-        :key="marker.key"
-      >
-        <rect
-          :x="scaleX(marker.fromM)"
-          :width="Math.max(1, scaleX(marker.toM) - scaleX(marker.fromM))"
-          :y="PAD_TOP"
-          :height="PLOT_HEIGHT"
-          :class="MARKER_STYLES[marker.kind].tintClass"
-          opacity="0.12"
+      <template #content>
+        <svg
+          :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
+          class="w-full h-auto"
+          role="img"
+          aria-label="Elevation profile chart"
         >
-          <title>{{ markerTitle(marker) }}</title>
-        </rect>
-        <rect
-          :x="scaleX(marker.fromM)"
-          :width="Math.max(1, scaleX(marker.toM) - scaleX(marker.fromM))"
-          :y="PAD_TOP"
-          height="3"
-          :class="MARKER_STYLES[marker.kind].barClass"
+          <line
+            :x1="PAD_LEFT"
+            :x2="VIEW_WIDTH - PAD_RIGHT"
+            :y1="baselineY"
+            :y2="baselineY"
+            stroke="currentColor"
+            class="text-default"
+            stroke-width="1"
+          />
+          <g
+            v-for="marker in markers"
+            :key="marker.key"
+          >
+            <rect
+              :x="scaleX(marker.fromM)"
+              :width="Math.max(1, scaleX(marker.toM) - scaleX(marker.fromM))"
+              :y="PAD_TOP"
+              :height="PLOT_HEIGHT"
+              :class="MARKER_STYLES[marker.kind].tintClass"
+              opacity="0.12"
+            >
+              <title>{{ markerTitle(marker) }}</title>
+            </rect>
+            <rect
+              :x="scaleX(marker.fromM)"
+              :width="Math.max(1, scaleX(marker.toM) - scaleX(marker.fromM))"
+              :y="PAD_TOP"
+              height="3"
+              :class="MARKER_STYLES[marker.kind].barClass"
+            >
+              <title>{{ markerTitle(marker) }}</title>
+            </rect>
+          </g>
+          <line
+            v-for="d in lapBoundaries"
+            :key="d"
+            :x1="scaleX(d)"
+            :x2="scaleX(d)"
+            :y1="PAD_TOP"
+            :y2="baselineY"
+            stroke="currentColor"
+            class="text-default"
+            stroke-width="1"
+            stroke-dasharray="3 3"
+          />
+          <path
+            v-for="(band, i) in bands"
+            :key="i"
+            :d="band.d"
+            :class="band.fillClass"
+            opacity="0.85"
+          >
+            <title>{{ band.title }}</title>
+          </path>
+          <path
+            :d="linePath"
+            fill="none"
+            stroke="currentColor"
+            class="text-highlighted"
+            stroke-width="1"
+            stroke-linejoin="round"
+          />
+          <text
+            :x="PAD_LEFT - 6"
+            :y="PAD_TOP + 4"
+            text-anchor="end"
+            fill="currentColor"
+            class="text-muted"
+            font-size="10"
+          >
+            {{ formatElevation(maxElevation) }}
+          </text>
+          <text
+            :x="PAD_LEFT - 6"
+            :y="baselineY"
+            text-anchor="end"
+            fill="currentColor"
+            class="text-muted"
+            font-size="10"
+          >
+            {{ formatElevation(minElevation) }}
+          </text>
+          <text
+            :x="PAD_LEFT"
+            :y="VIEW_HEIGHT - 8"
+            text-anchor="start"
+            fill="currentColor"
+            class="text-muted"
+            font-size="10"
+          >
+            0 km
+          </text>
+          <text
+            :x="VIEW_WIDTH - PAD_RIGHT"
+            :y="VIEW_HEIGHT - 8"
+            text-anchor="end"
+            fill="currentColor"
+            class="text-muted"
+            font-size="10"
+          >
+            {{ formatDistance(totalDistanceM / 1000) }}
+          </text>
+        </svg>
+
+        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+          <span><span class="font-medium text-highlighted">{{ formatElevation(stats.ascent) }}</span> ascent</span>
+          <span><span class="font-medium text-highlighted">{{ formatElevation(stats.descent) }}</span> descent</span>
+          <span>Max grade <span class="font-medium text-highlighted">{{ formatGrade(stats.maxGrade) }}</span></span>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span
+            v-for="band in GRADE_BANDS"
+            :key="band.label"
+            class="inline-flex items-center gap-1 text-[11px] text-muted"
+          >
+            <span
+              class="size-2 rounded-full inline-block"
+              :class="band.dotClass"
+            />
+            {{ band.label }}
+          </span>
+        </div>
+
+        <div
+          v-if="markers.length"
+          class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"
         >
-          <title>{{ markerTitle(marker) }}</title>
-        </rect>
-      </g>
-      <line
-        v-for="d in lapBoundaries"
-        :key="d"
-        :x1="scaleX(d)"
-        :x2="scaleX(d)"
-        :y1="PAD_TOP"
-        :y2="baselineY"
-        stroke="currentColor"
-        class="text-default"
-        stroke-width="1"
-        stroke-dasharray="3 3"
-      />
-      <path
-        v-for="(band, i) in bands"
-        :key="i"
-        :d="band.d"
-        :class="band.fillClass"
-        opacity="0.85"
-      >
-        <title>{{ band.title }}</title>
-      </path>
-      <path
-        :d="linePath"
-        fill="none"
-        stroke="currentColor"
-        class="text-highlighted"
-        stroke-width="1"
-        stroke-linejoin="round"
-      />
-      <text
-        :x="PAD_LEFT - 6"
-        :y="PAD_TOP + 4"
-        text-anchor="end"
-        fill="currentColor"
-        class="text-muted"
-        font-size="10"
-      >
-        {{ formatElevation(maxElevation) }}
-      </text>
-      <text
-        :x="PAD_LEFT - 6"
-        :y="baselineY"
-        text-anchor="end"
-        fill="currentColor"
-        class="text-muted"
-        font-size="10"
-      >
-        {{ formatElevation(minElevation) }}
-      </text>
-      <text
-        :x="PAD_LEFT"
-        :y="VIEW_HEIGHT - 8"
-        text-anchor="start"
-        fill="currentColor"
-        class="text-muted"
-        font-size="10"
-      >
-        0 km
-      </text>
-      <text
-        :x="VIEW_WIDTH - PAD_RIGHT"
-        :y="VIEW_HEIGHT - 8"
-        text-anchor="end"
-        fill="currentColor"
-        class="text-muted"
-        font-size="10"
-      >
-        {{ formatDistance(totalDistanceM / 1000) }}
-      </text>
-    </svg>
-
-    <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-      <span><span class="font-medium text-highlighted">{{ formatElevation(stats.ascent) }}</span> ascent</span>
-      <span><span class="font-medium text-highlighted">{{ formatElevation(stats.descent) }}</span> descent</span>
-      <span>Max grade <span class="font-medium text-highlighted">{{ formatGrade(stats.maxGrade) }}</span></span>
-    </div>
-
-    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span
-        v-for="band in GRADE_BANDS"
-        :key="band.label"
-        class="inline-flex items-center gap-1 text-[11px] text-muted"
-      >
-        <span
-          class="size-2 rounded-full inline-block"
-          :class="band.dotClass"
-        />
-        {{ band.label }}
-      </span>
-    </div>
-
-    <div
-      v-if="markers.length"
-      class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"
-    >
-      <span
-        v-for="kind in (['climb', 'sprint'] as const)"
-        :key="kind"
-        class="inline-flex items-center gap-1 text-[11px] text-muted"
-      >
-        <span
-          class="size-2 rounded-full inline-block"
-          :class="MARKER_STYLES[kind].dotClass"
-        />
-        {{ MARKER_STYLES[kind].label }}
-      </span>
-    </div>
+          <span
+            v-for="kind in (['climb', 'sprint'] as const)"
+            :key="kind"
+            class="inline-flex items-center gap-1 text-[11px] text-muted"
+          >
+            <span
+              class="size-2 rounded-full inline-block"
+              :class="MARKER_STYLES[kind].dotClass"
+            />
+            {{ MARKER_STYLES[kind].label }}
+          </span>
+        </div>
+      </template>
+    </UCollapsible>
   </UCard>
 </template>

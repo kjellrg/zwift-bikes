@@ -127,7 +127,6 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
     </div>
 
     <div v-if="routeData.terrain.elevationProfile && routeData.terrain.elevationProfile.length > 1">
-      <h2 class="text-lg font-semibold text-highlighted mb-3">Elevation profile</h2>
       <RouteElevationProfile :route="routeData" :laps="laps" :climbs="climbOccurrences" :sprints="sprintOccurrences" />
     </div>
 
@@ -149,7 +148,6 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
     </div>
 
     <UAlert v-if="physicsInfo" color="primary" variant="subtle" icon="i-lucide-atom" :title="physicsIsDynamic ? 'Dynamic physics model active' : 'Legacy finish-time model'" :description="physicsInfo.note" />
-    <UAlert color="neutral" variant="subtle" icon="i-lucide-info" title="How this recommendation works" description="Combos are ranked by an estimated finish time, computed from a simplified physics model (your weight, height &amp; power, the route's terrain/surface mix, and each combo's aerodynamic drag and weight) rather than the match score alone. Bike frame and wheelset aero/climb ratings come from real ZwiftInsider bot speed-test data where available (look for the 'verified' badge) - otherwise they're a name-based heuristic estimate. Route surface is also a best-effort estimate. None of this is official Zwift telemetry, so treat results as directionally useful, not exact." />
 
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">Best bike &amp; wheel combo for this route</h2>
