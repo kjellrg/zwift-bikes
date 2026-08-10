@@ -62,8 +62,10 @@ watch(recommendData, (data) => {
 }, { immediate: true });
 
 async function refreshFirstPage() {
-  loadedCombos.value = [];
-  hasMore.value = true;
+  // Keep the current results mounted while the new recommendation request is
+  // running. Clearing the cards first makes the page temporarily much shorter,
+  // which causes the browser to clamp scrollY back to the top. The refreshed
+  // results will replace these in-place once the request completes.
   await refreshRecommendations();
 }
 
