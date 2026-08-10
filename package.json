@@ -7,6 +7,7 @@
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "prepare": "husky",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
@@ -24,6 +25,7 @@
     "@nuxt/eslint": "^1.16.0",
     "esbuild": "^0.27.7",
     "eslint": "^10.8.0",
+    "husky": "^9.1.7",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.9"
   }

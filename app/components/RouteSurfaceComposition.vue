@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SurfaceEstimate, ZwiftSurfaceType } from '../../shared/types/catalog'
-import { SURFACE_CRR } from '../../shared/data/surfaceCrr'
+import { SURFACE_CRR } from '#shared/data/surfaceCrr'
 
 const props = defineProps<{
   surface: SurfaceEstimate
