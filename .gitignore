@@ -39,3 +39,9 @@ logs
 **/.claude/agent-memory-local
 **/.claude/first-run
 **/.claude/assistant-daemon-state.json
+
+# Skilld references (recreated by `skilld install`)
+.skilld
+.claude/skills/nuxtjs-*
+.claude/skills/skilld-*
+CLAUDE.md

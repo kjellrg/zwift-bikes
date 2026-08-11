@@ -17,6 +17,8 @@
     "@iconify-json/lucide": "^1.2.121",
     "@iconify-json/simple-icons": "^1.2.92",
     "@nuxt/ui": "^4.10.0",
+    "@nuxtjs/robots": "^6.1.4",
+    "@nuxtjs/sitemap": "^8.3.4",
     "nuxt": "^4.5.1",
     "tailwindcss": "^4.3.3",
     "zwift-data": "^1.50.0"

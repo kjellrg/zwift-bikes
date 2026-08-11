@@ -1,41 +1,4 @@
 {
-  "auth": {
-    "identityProviders": {
-      "customOpenIdConnectProviders": {
-        "google": {
-          "registration": {
-            "clientIdSettingName": "GOOGLE_PROVIDER_CLIENT_ID",
-            "clientCredential": {
-              "clientSecretSettingName": "GOOGLE_PROVIDER_SECRET"
-            },
-            "openIdConnectConfiguration": {
-              "wellKnownOpenIdConfiguration": "https://accounts.google.com/.well-known/openid-configuration"
-            }
-          },
-          "login": {
-            "nameClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-            "scopes": ["openid", "profile", "email"]
-          }
-        }
-      }
-    }
-  },
-  "routes": [
-    {
-      "route": "/*",
-      "allowedRoles": ["authenticated"]
-    }
-  ],
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/api/*", "/_nuxt/*", "/_fonts/*", "/*.{ico,png,json}"]
-  },
-  "responseOverrides": {
-    "401": {
-      "statusCode": 302,
-      "redirect": "/.auth/login/google?post_login_redirect_uri=.referrer"
-    }
-  },
   "globalHeaders": {
     "Referrer-Policy": "strict-origin-when-cross-origin"
   }

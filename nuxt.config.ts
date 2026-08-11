@@ -2,7 +2,9 @@
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@nuxtjs/sitemap',
+    '@nuxtjs/robots'
   ],
 
   devtools: {
@@ -10,6 +12,12 @@ export default defineNuxtConfig({
   },
 
   css: ['~/assets/css/main.css'],
+
+  site: {
+    name: 'Zwift Bikes',
+    description: 'Find the fastest Zwift bike for your needs. Compare weight, aerodynamics',
+    url: 'https://zwiftbikes.photic.net'
+  },
 
   routeRules: {
     '/': { prerender: true }
@@ -24,5 +32,9 @@ export default defineNuxtConfig({
         braceStyle: '1tbs'
       }
     }
+  },
+
+  sitemap: {
+    sources: ['/api/__sitemap__/urls']
   }
 })
