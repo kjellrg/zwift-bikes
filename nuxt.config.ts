@@ -25,6 +25,12 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-06-30',
 
+  nitro: {
+    prerender: {
+      routes: ['/robots.txt']
+    }
+  },
+
   eslint: {
     config: {
       stylistic: {
@@ -35,6 +41,7 @@ export default defineNuxtConfig({
   },
 
   sitemap: {
-    sources: ['/api/__sitemap__/urls']
+    sources: ['/api/__sitemap__/urls'],
+    zeroRuntime: true
   }
 })
