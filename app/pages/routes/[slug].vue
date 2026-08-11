@@ -126,6 +126,16 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
       </div>
     </div>
 
+    <RouteSurfaceSpeedProfile
+      v-if="topCombo"
+      :route="routeData"
+      :frame="topCombo.frame"
+      :wheelset="topCombo.wheelset"
+      :weight-kg="weightKg"
+      :height-cm="heightCm"
+      :wkg="wkg"
+    />
+
     <div v-if="routeData.terrain.elevationProfile && routeData.terrain.elevationProfile.length > 1">
       <RouteElevationProfile :route="routeData" :laps="laps" :climbs="climbOccurrences" :sprints="sprintOccurrences" />
     </div>
