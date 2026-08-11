@@ -10,6 +10,8 @@ export interface SimulateRouteOptions {
   geometry: RouteGeometry
   dtSec?: number
   initialSpeedMps?: number
+  /** Distances (m, ascending) to record cumulative elapsed time at as the simulation crosses them - see `boundaryCrossings` on the result. */
+  boundariesM?: number[]
 }
 
 /** Grade at `distanceM`, from the elevation profile (`geometry.points`). */
@@ -48,6 +50,35 @@ function surfaceAt(segments: RouteSurfaceSegment[], distanceM: number): PhysicsS
   return segments[low]!.surface
 }
 
+/**
+ * Records a crossing for every boundary in `boundariesM` that falls within
+ * `(fromDistanceM, toDistanceM]`, linearly interpolating its elapsed time
+ * between the two known (distance, time) points - a step can advance several
+ * metres, so a boundary rarely lands exactly on a step edge. `boundaryIndex`
+ * is a pointer into the ascending `boundariesM` array, threaded through calls
+ * so repeated crossings (main loop + the steady-state early-exit remainder)
+ * never re-check boundaries already passed.
+ */
+function crossBoundaries(
+  boundariesM: number[] | undefined,
+  boundaryIndex: number,
+  crossings: { distanceM: number, elapsedSec: number }[],
+  fromDistanceM: number,
+  fromElapsedSec: number,
+  toDistanceM: number,
+  toElapsedSec: number
+): number {
+  if (!boundariesM) return boundaryIndex
+  const span = toDistanceM - fromDistanceM
+  while (boundaryIndex < boundariesM.length && boundariesM[boundaryIndex]! <= toDistanceM) {
+    const boundaryM = boundariesM[boundaryIndex]!
+    const fraction = span > 0 ? (boundaryM - fromDistanceM) / span : 0
+    crossings.push({ distanceM: boundaryM, elapsedSec: fromElapsedSec + fraction * (toElapsedSec - fromElapsedSec) })
+    boundaryIndex++
+  }
+  return boundaryIndex
+}
+
 export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationResult {
   const dt = options.dtSec ?? 0.25
   if (dt <= 0) throw new Error('dtSec must be positive')
@@ -62,6 +93,8 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     velocityMps: Math.max(0, options.initialSpeedMps ?? 0),
     elapsedSec: 0
   }
+  const boundaryCrossings: { distanceM: number, elapsedSec: number }[] = []
+  let boundaryIndex = 0
 
   const maxSteps = 2_000_000
   let steps = 0
@@ -71,18 +104,23 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     const surface = surfaceAt(options.geometry.surfaceSegments, state.distanceM)
     const forces = calculateForces(state.velocityMps, segment.grade, options.rider, physicsEquipment, surface, crrClass)
     const previousDistance = state.distanceM
+    const previousElapsedSec = state.elapsedSec
     state.velocityMps = Math.max(0, state.velocityMps + forces.accelerationMps2 * dt)
     state.distanceM += state.velocityMps * dt
     if (state.distanceM > options.geometry.totalDistanceM) state.distanceM = options.geometry.totalDistanceM
     const distanceAdvanced = state.distanceM - previousDistance
     state.elevationM += segment.grade * distanceAdvanced
     state.elapsedSec += dt
+    boundaryIndex = crossBoundaries(options.boundariesM, boundaryIndex, boundaryCrossings, previousDistance, previousElapsedSec, state.distanceM, state.elapsedSec)
 
     if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM) {
+      const beforeRemainingDistance = state.distanceM
+      const beforeRemainingElapsedSec = state.elapsedSec
       const remainingM = options.geometry.totalDistanceM - state.distanceM
       state.elapsedSec += remainingM / state.velocityMps
       state.distanceM = options.geometry.totalDistanceM
       state.elevationM += segment.grade * remainingM
+      crossBoundaries(options.boundariesM, boundaryIndex, boundaryCrossings, beforeRemainingDistance, beforeRemainingElapsedSec, state.distanceM, state.elapsedSec)
       break
     }
 
@@ -94,7 +132,8 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     distanceM: state.distanceM,
     averageSpeedMps: state.elapsedSec > 0 ? state.distanceM / state.elapsedSec : 0,
     finalSpeedMps: state.velocityMps,
-    state
+    state,
+    boundaryCrossings: options.boundariesM ? boundaryCrossings : undefined
   }
 }
 

@@ -14,6 +14,19 @@ export function rollingResistanceCoefficient(
 }
 
 /**
+ * Power (W) required to hold a constant speed on a constant grade - the
+ * closed-form forward direction of the power/speed relationship (unlike its
+ * inverse, `speedForPower`, this needs no bisection since power is a direct,
+ * non-cyclic function of speed).
+ */
+export function powerForSpeed(velocityMps: number, massKg: number, grade: number, crr: number, cdaM2: number): number {
+  const cosTheta = Math.cos(Math.atan(grade))
+  const sinTheta = Math.sin(Math.atan(grade))
+  const rollingAndGravity = crr * massKg * GRAVITY * cosTheta + massKg * GRAVITY * sinTheta
+  return (rollingAndGravity * velocityMps + 0.5 * AIR_DENSITY * cdaM2 * velocityMps ** 3) / DRIVETRAIN_EFFICIENCY
+}
+
+/**
  * Steady-state speed (m/s) for constant power on a constant grade, solved via
  * bisection since the power/speed relationship has no closed-form inverse
  * (the aero term is cubic in `v`). Shared by the cheap average-grade finish
@@ -21,16 +34,11 @@ export function rollingResistanceCoefficient(
  * inversion - previously duplicated in both places.
  */
 export function speedForPower(powerW: number, massKg: number, grade: number, crr: number, cdaM2: number): number {
-  const cosTheta = Math.cos(Math.atan(grade))
-  const sinTheta = Math.sin(Math.atan(grade))
-  const rollingAndGravity = crr * massKg * GRAVITY * cosTheta + massKg * GRAVITY * sinTheta
-  const powerAtSpeed = (v: number) => (rollingAndGravity * v + 0.5 * AIR_DENSITY * cdaM2 * v ** 3) / DRIVETRAIN_EFFICIENCY
-
   let low = 0.1
   let high = 30 // m/s, ~108 km/h ceiling
   for (let i = 0; i < 40; i++) {
     const mid = (low + high) / 2
-    if (powerAtSpeed(mid) < powerW) low = mid
+    if (powerForSpeed(mid, massKg, grade, crr, cdaM2) < powerW) low = mid
     else high = mid
   }
   return (low + high) / 2
