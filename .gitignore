@@ -7,7 +7,7 @@
 dist
 
 # Auto-generated at repo root by the nitro azure preset on every build -
-# the real config lives in public/staticwebapp.config.json
+# the real config lives in the nitro.azure.config block in nuxt.config.ts
 /staticwebapp.config.json
 
 # Node dependencies
@@ -39,3 +39,9 @@ logs
 **/.claude/agent-memory-local
 **/.claude/first-run
 **/.claude/assistant-daemon-state.json
+
+# Skilld references (recreated by `skilld install`)
+.skilld
+.claude/skills/nuxtjs-*
+.claude/skills/skilld-*
+CLAUDE.md
