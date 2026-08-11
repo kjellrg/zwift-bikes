@@ -26,6 +26,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-30',
 
   nitro: {
+    preset: 'azure-swa',
+    azure: {
+      config: {
+        globalHeaders: {
+          'Referrer-Policy': 'strict-origin-when-cross-origin'
+        }
+      }
+    },
     prerender: {
       routes: ['/robots.txt']
     }
