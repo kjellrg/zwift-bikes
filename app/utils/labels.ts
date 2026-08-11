@@ -79,6 +79,19 @@ export const SURFACE_TYPE_COLORS: Record<ZwiftSurfaceType, string> = {
   gravel: 'bg-amber-500'
 }
 
+/** Same palette as `SURFACE_TYPE_COLORS`, as SVG `fill-*` utilities instead of `bg-*` - Tailwind's `background-color` utilities have no effect on SVG shapes, which paint via the `fill` property instead (see `RouteSurfaceSpeedProfile.vue`'s chart, `RouteElevationProfile.vue`'s `GRADE_BANDS.fillClass` for the existing precedent). */
+export const SURFACE_TYPE_FILL_COLORS: Record<ZwiftSurfaceType, string> = {
+  tarmac: 'fill-slate-400',
+  brick: 'fill-orange-600',
+  wood: 'fill-amber-700',
+  cobbles: 'fill-stone-500',
+  snow: 'fill-sky-300',
+  dirt: 'fill-yellow-800',
+  grass: 'fill-green-500',
+  sand: 'fill-yellow-300',
+  gravel: 'fill-amber-500'
+}
+
 export const SURFACE_TYPE_ICONS: Record<ZwiftSurfaceType, string> = {
   tarmac: 'i-lucide-road',
   brick: 'i-lucide-brick-wall',

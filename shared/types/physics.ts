@@ -85,4 +85,6 @@ export interface PhysicsSimulationResult {
   averageSpeedMps: number
   finalSpeedMps: number
   state: PhysicsState
+  /** Cumulative elapsed time at each `boundariesM` distance passed to `simulateRoute`, in the same order - only present when `boundariesM` was given. */
+  boundaryCrossings?: { distanceM: number, elapsedSec: number }[]
 }
