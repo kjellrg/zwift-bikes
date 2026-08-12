@@ -3,32 +3,10 @@ import type { BikeCategory } from "../../../shared/types/catalog";
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
-const { data: routeData, error: routeError } = await useFetch(() => `/api/routes/${slug.value}`);
-if (routeError.value) throw createError({ statusCode: 404, statusMessage: "Route not found", fatal: true });
-
-useSeoMeta({
-  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - Zwift Best Bike` : "Zwift Best Bike",
-  description: () => routeData.value
-    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}. Distance, elevation and surface-aware recommendations.`
-    : undefined,
-  ogTitle: () => routeData.value ? routeData.value.name : undefined,
-  ogDescription: () => routeData.value
-    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}.`
-    : undefined,
-  ogImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined,
-  twitterImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined
-});
 
 const { owned, ownedWheels, load: loadGarage } = useGarage();
 const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile();
 const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences();
-onMounted(() => {
-  loadGarage();
-  loadRiderProfile();
-  loadPreferences();
-  draftHeightCm.value = heightCm.value;
-  draftWkg.value = wkg.value;
-});
 
 const bikeSearch = ref("");
 const bikeSearchDebounced = ref("");
@@ -38,16 +16,6 @@ const categoryFilter = ref<BikeCategory | "all">("all");
 const pageSize = 9;
 const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
-const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
-const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : []);
-const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : []);
-
-const draftHeightCm = ref(heightCm.value);
-const draftWkg = ref(wkg.value);
-const commitHeight = () => setHeightCm(draftHeightCm.value);
-const commitWkg = () => setWkg(draftWkg.value);
-watch(heightCm, (value) => { draftHeightCm.value = value; });
-watch(wkg, (value) => { draftWkg.value = value; });
 
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
@@ -64,7 +32,46 @@ const recommendQuery = computed(() => ({
   wkg: wkg.value,
   laps: laps.value,
 }));
-const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false });
+
+// Fired together (not sequentially) - the recommend query only depends on `slug` plus rider
+// profile/garage/preference state above, none of which depends on the route lookup resolving first.
+const [{ data: routeData, error: routeError }, { data: recommendData, status, refresh: refreshRecommendations }] = await Promise.all([
+  useFetch(() => `/api/routes/${slug.value}`),
+  useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false }),
+]);
+if (routeError.value) throw createError({ statusCode: 404, statusMessage: "Route not found", fatal: true });
+
+useSeoMeta({
+  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - Zwift Best Bike` : "Zwift Best Bike",
+  description: () => routeData.value
+    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}. Distance, elevation and surface-aware recommendations.`
+    : undefined,
+  ogTitle: () => routeData.value ? routeData.value.name : undefined,
+  ogDescription: () => routeData.value
+    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}.`
+    : undefined,
+  ogImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined,
+  twitterImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined
+});
+
+onMounted(() => {
+  loadGarage();
+  loadRiderProfile();
+  loadPreferences();
+  draftHeightCm.value = heightCm.value;
+  draftWkg.value = wkg.value;
+});
+
+const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
+const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : []);
+const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : []);
+
+const draftHeightCm = ref(heightCm.value);
+const draftWkg = ref(wkg.value);
+const commitHeight = () => setHeightCm(draftHeightCm.value);
+const commitWkg = () => setWkg(draftWkg.value);
+watch(heightCm, (value) => { draftHeightCm.value = value; });
+watch(wkg, (value) => { draftWkg.value = value; });
 
 const loadedCombos = ref<any[]>([]);
 const hasMore = ref(true);

@@ -33,16 +33,40 @@ const STRIP_Y = BASELINE_Y + STRIP_GAP
  * meaningless wattage spike that isn't worth calling out as "the" penalty for the route. */
 const MIN_PENALTY_SEGMENT_KM = 0.2
 
+// Cheap, prop-only check - mirrors `computeRouteSurfaceSpeedProfile`'s own early-return guards, so
+// the card's visibility can be decided without running the (expensive) simulation below.
+const hasSurfaceData = computed(() =>
+  (props.route.terrain.elevationProfile?.length ?? 0) >= 2
+  && (props.route.surface.segments?.length ?? 0) > 0
+)
+
+// The simulation only runs once the panel has been expanded at least once - it's the same
+// `simulateRoute` the server already ran for `topCombo` to get its finish time, so running it again
+// eagerly (e.g. purely to populate the collapsed header's avg-speed badge) would duplicate that work
+// on every page load even for users who never open this panel.
+const hasOpened = ref(false)
+const isComputing = ref(false)
+
 // Always computed for one lap - see `computeRouteSurfaceSpeedProfile`'s own doc comment. The card title
 // gets a "(per lap)" qualifier below for lap-based routes so this scope stays clear to the reader.
-const profile = computed(() => computeRouteSurfaceSpeedProfile(
-  props.route,
-  props.frame,
-  props.wheelset,
-  props.weightKg,
-  props.heightCm,
-  props.wkg
-))
+const profile = computed(() => hasOpened.value
+  ? computeRouteSurfaceSpeedProfile(
+      props.route,
+      props.frame,
+      props.wheelset,
+      props.weightKg,
+      props.heightCm,
+      props.wkg
+    )
+  : undefined)
+
+async function handleOpenChange(open: boolean) {
+  if (!open || hasOpened.value) return
+  isComputing.value = true
+  await nextTick() // let the spinner paint before the synchronous simulation blocks the main thread
+  hasOpened.value = true
+  isComputing.value = false
+}
 const segments = computed(() => profile.value?.segments)
 const speedSamples = computed(() => profile.value?.speedSamples)
 
@@ -247,8 +271,11 @@ const summaryText = computed(() => {
 </script>
 
 <template>
-  <UCard v-if="profile && profile.segments.length">
-    <UCollapsible :ui="{ content: 'mt-3' }">
+  <UCard v-if="hasSurfaceData">
+    <UCollapsible
+      :ui="{ content: 'mt-3' }"
+      @update:open="handleOpenChange"
+    >
       <template #default="{ open }">
         <button
           type="button"
@@ -284,133 +311,144 @@ const summaryText = computed(() => {
       </template>
 
       <template #content>
-        <svg
-          :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
-          class="w-full h-auto"
-          role="img"
-          aria-label="Average speed by surface segment"
+        <div
+          v-if="isComputing"
+          class="flex justify-center py-10"
         >
-          <path
-            :d="elevationAreaPath"
-            fill="currentColor"
-            class="text-muted"
-            opacity="0.1"
+          <UIcon
+            name="i-lucide-loader-circle"
+            class="size-5 animate-spin text-muted"
           />
-          <line
-            v-if="profile"
-            :x1="PAD_LEFT"
-            :x2="VIEW_WIDTH - PAD_RIGHT"
-            :y1="avgSpeedY"
-            :y2="avgSpeedY"
-            stroke="currentColor"
-            class="text-muted"
-            stroke-width="1"
-            stroke-dasharray="1 3"
-            opacity="0.6"
-          >
-            <title>{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h average</title>
-          </line>
-          <path
-            :d="areaPath"
-            fill="currentColor"
-            class="text-primary"
-            opacity="0.18"
-          />
-          <path
-            :d="linePath"
-            fill="none"
-            stroke="currentColor"
-            class="text-primary"
-            stroke-width="1.5"
-            stroke-linejoin="round"
-            stroke-linecap="round"
-          />
-          <rect
-            v-for="bar in stripBars"
-            :key="`${bar.fromKm}-${bar.toKm}`"
-            :x="bar.x"
-            :y="STRIP_Y"
-            :width="bar.width"
-            :height="STRIP_HEIGHT"
-            :fill="bar.useCurrentColor ? 'currentColor' : undefined"
-            :class="bar.fillClass"
-          >
-            <title>{{ bar.title }}</title>
-          </rect>
-          <text
-            :x="PAD_LEFT - 6"
-            :y="PAD_TOP + 4"
-            text-anchor="end"
-            fill="currentColor"
-            class="text-muted"
-            font-size="10"
-          >
-            {{ maxSpeedKmh.toFixed(0) }} km/h
-          </text>
-          <text
-            :x="PAD_LEFT - 6"
-            :y="BASELINE_Y"
-            text-anchor="end"
-            fill="currentColor"
-            class="text-muted"
-            font-size="10"
-          >
-            {{ minSpeedKmh.toFixed(0) }}
-          </text>
-          <text
-            :x="PAD_LEFT"
-            :y="VIEW_HEIGHT - 6"
-            text-anchor="start"
-            fill="currentColor"
-            class="text-muted"
-            font-size="10"
-          >
-            0 km
-          </text>
-          <text
-            :x="VIEW_WIDTH - PAD_RIGHT"
-            :y="VIEW_HEIGHT - 6"
-            text-anchor="end"
-            fill="currentColor"
-            class="text-muted"
-            font-size="10"
-          >
-            {{ formatDistance(totalDistanceM / 1000) }}
-          </text>
-        </svg>
-
-        <p
-          v-if="summaryText"
-          class="mt-3 text-sm text-muted"
-        >
-          {{ summaryText }}
-        </p>
-
-        <div class="mt-4 space-y-1.5">
-          <div
-            v-for="segment in segments"
-            :key="`${segment.fromKm}-${segment.toKm}-row`"
-            class="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 text-sm"
-          >
-            <span class="inline-flex items-center gap-1.5 font-medium">
-              <span
-                class="size-2 rounded-full inline-block"
-                :class="SURFACE_TYPE_COLORS[segment.surface]"
-              />
-              <UIcon
-                :name="SURFACE_TYPE_ICONS[segment.surface]"
-                class="size-3.5 text-muted"
-              />
-              {{ SURFACE_TYPE_LABELS[segment.surface] }}
-              <span class="text-muted font-normal">{{ segment.fromKm.toFixed(1) }}-{{ segment.toKm.toFixed(1) }} km</span>
-            </span>
-            <span class="flex gap-x-3 text-xs text-muted">
-              <span>{{ segment.avgSpeedKmh.toFixed(1) }} km/h</span>
-              <span>{{ formatGrade(segment.avgGradePercent) }}</span>
-              <span v-if="segment.extraWattsVsTarmac > 0">+{{ segment.extraWattsVsTarmac }} W vs. tarmac</span>
-            </span>
-          </div>
         </div>
+        <template v-else-if="profile">
+          <svg
+            :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
+            class="w-full h-auto"
+            role="img"
+            aria-label="Average speed by surface segment"
+          >
+            <path
+              :d="elevationAreaPath"
+              fill="currentColor"
+              class="text-muted"
+              opacity="0.1"
+            />
+            <line
+              v-if="profile"
+              :x1="PAD_LEFT"
+              :x2="VIEW_WIDTH - PAD_RIGHT"
+              :y1="avgSpeedY"
+              :y2="avgSpeedY"
+              stroke="currentColor"
+              class="text-muted"
+              stroke-width="1"
+              stroke-dasharray="1 3"
+              opacity="0.6"
+            >
+              <title>{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h average</title>
+            </line>
+            <path
+              :d="areaPath"
+              fill="currentColor"
+              class="text-primary"
+              opacity="0.18"
+            />
+            <path
+              :d="linePath"
+              fill="none"
+              stroke="currentColor"
+              class="text-primary"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
+            <rect
+              v-for="bar in stripBars"
+              :key="`${bar.fromKm}-${bar.toKm}`"
+              :x="bar.x"
+              :y="STRIP_Y"
+              :width="bar.width"
+              :height="STRIP_HEIGHT"
+              :fill="bar.useCurrentColor ? 'currentColor' : undefined"
+              :class="bar.fillClass"
+            >
+              <title>{{ bar.title }}</title>
+            </rect>
+            <text
+              :x="PAD_LEFT - 6"
+              :y="PAD_TOP + 4"
+              text-anchor="end"
+              fill="currentColor"
+              class="text-muted"
+              font-size="10"
+            >
+              {{ maxSpeedKmh.toFixed(0) }} km/h
+            </text>
+            <text
+              :x="PAD_LEFT - 6"
+              :y="BASELINE_Y"
+              text-anchor="end"
+              fill="currentColor"
+              class="text-muted"
+              font-size="10"
+            >
+              {{ minSpeedKmh.toFixed(0) }}
+            </text>
+            <text
+              :x="PAD_LEFT"
+              :y="VIEW_HEIGHT - 6"
+              text-anchor="start"
+              fill="currentColor"
+              class="text-muted"
+              font-size="10"
+            >
+              0 km
+            </text>
+            <text
+              :x="VIEW_WIDTH - PAD_RIGHT"
+              :y="VIEW_HEIGHT - 6"
+              text-anchor="end"
+              fill="currentColor"
+              class="text-muted"
+              font-size="10"
+            >
+              {{ formatDistance(totalDistanceM / 1000) }}
+            </text>
+          </svg>
+
+          <p
+            v-if="summaryText"
+            class="mt-3 text-sm text-muted"
+          >
+            {{ summaryText }}
+          </p>
+
+          <div class="mt-4 space-y-1.5">
+            <div
+              v-for="segment in segments"
+              :key="`${segment.fromKm}-${segment.toKm}-row`"
+              class="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 text-sm"
+            >
+              <span class="inline-flex items-center gap-1.5 font-medium">
+                <span
+                  class="size-2 rounded-full inline-block"
+                  :class="SURFACE_TYPE_COLORS[segment.surface]"
+                />
+                <UIcon
+                  :name="SURFACE_TYPE_ICONS[segment.surface]"
+                  class="size-3.5 text-muted"
+                />
+                {{ SURFACE_TYPE_LABELS[segment.surface] }}
+                <span class="text-muted font-normal">{{ segment.fromKm.toFixed(1) }}-{{ segment.toKm.toFixed(1) }} km</span>
+              </span>
+              <span class="flex gap-x-3 text-xs text-muted">
+                <span>{{ segment.avgSpeedKmh.toFixed(1) }} km/h</span>
+                <span>{{ formatGrade(segment.avgGradePercent) }}</span>
+                <span v-if="segment.extraWattsVsTarmac > 0">+{{ segment.extraWattsVsTarmac }} W vs. tarmac</span>
+              </span>
+            </div>
+          </div>
+        </template>
       </template>
     </UCollapsible>
   </UCard>
