@@ -4,7 +4,7 @@ const DEFAULT_WEIGHT_KG = 75
 const DEFAULT_HEIGHT_CM = 183
 const DEFAULT_FTP_WATTS = 225
 const DEFAULT_WKG = DEFAULT_FTP_WATTS / DEFAULT_WEIGHT_KG
-const DEFAULT_UNOWNED_LEVEL = 0
+const DEFAULT_UNOWNED_LEVEL = 5
 
 /**
  * Tracks rider dimensions and power used by the route physics model.

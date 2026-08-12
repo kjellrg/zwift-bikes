@@ -4,9 +4,14 @@ import { classifyBikeFrame } from './classifyBikeFrame'
 import { computeTerrain, estimateSurface } from './routeTerrain'
 
 const worldNameBySlug = new Map<string, string>(worlds.map(w => [w.slug, w.name]))
+const worldImageUrlBySlug = new Map<string, string>(worlds.map(w => [w.slug, w.imageUrl]))
 
 export function getWorldName(slug: string): string {
   return worldNameBySlug.get(slug) ?? slug
+}
+
+export function getWorldImageUrl(slug: string): string | undefined {
+  return worldImageUrlBySlug.get(slug)
 }
 
 let cachedFrames: ClassifiedBikeFrame[] | undefined

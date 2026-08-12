@@ -7,6 +7,19 @@ const preferredRouteSlug = computed(() => typeof route.query.route === 'string' 
 const { data: segmentData, error: segmentError } = await useFetch(() => `/api/segments/${slug.value}`)
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
 
+useSeoMeta({
+  title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - Zwift Best Bike` : 'Zwift Best Bike',
+  description: () => segmentData.value
+    ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
+    : undefined,
+  ogTitle: () => segmentData.value ? segmentData.value.name : undefined,
+  ogDescription: () => segmentData.value
+    ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
+    : undefined,
+  ogImage: () => segmentData.value ? getWorldImageUrl(segmentData.value.world) : undefined,
+  twitterImage: () => segmentData.value ? getWorldImageUrl(segmentData.value.world) : undefined
+})
+
 const { owned, ownedWheels, load: loadGarage } = useGarage()
 const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile()
 const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences()
@@ -101,6 +114,45 @@ const restCombos = computed(() => combos.value.slice(1))
 const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number'); return times.length ? Math.min(...times) : undefined })
 const physicsInfo = computed(() => recommendData.value?.physics)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
+
+const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
+const faqAnswer = computed(() => {
+  if (!segmentData.value || !topCombo.value || typeof topCombo.value.finishTimeSec !== 'number') return undefined
+  const equipment = topCombo.value.wheelset ? `${topCombo.value.frame.name} with ${topCombo.value.wheelset.name}` : topCombo.value.frame.name
+  return `Based on our physics model, the ${equipment} is currently the fastest verified combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}, finishing in ${formatDuration(topCombo.value.finishTimeSec)} (~${formatSpeedKmh(segmentData.value.lengthKm, topCombo.value.finishTimeSec)}).`
+})
+
+const siteConfig = useSiteConfig()
+const requestUrl = useRequestURL()
+useHead(() => {
+  if (!segmentData.value) return {}
+  const scripts = [{
+    type: 'application/ld+json' as const,
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteConfig.url },
+        { '@type': 'ListItem', 'position': 2, 'name': segmentData.value.name, 'item': requestUrl.href }
+      ]
+    }).replace(/</g, '\\u003c')
+  }]
+  if (faqAnswer.value) {
+    scripts.push({
+      type: 'application/ld+json' as const,
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        'mainEntity': [{
+          '@type': 'Question',
+          'name': faqQuestion.value,
+          'acceptedAnswer': { '@type': 'Answer', 'text': faqAnswer.value }
+        }]
+      }).replace(/</g, '\\u003c')
+    })
+  }
+  return { script: scripts }
+})
 
 // Minimal `RouteWithMeta`-shaped stand-in so `ComboResultCard` can compute
 // the segment's own distance for the km/h display via `computeRouteTotals`
@@ -197,6 +249,15 @@ const segmentAsRoute = computed(() => segmentData.value
             class="text-primary underline"
           >{{ host.name }}</ULink><span v-if="index < segmentData.hostRoutes.length - 1">, </span>
         </template>
+      </p>
+    </div>
+
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        {{ faqQuestion }}
+      </h2>
+      <p class="text-muted">
+        {{ faqAnswer }}
       </p>
     </div>
 
