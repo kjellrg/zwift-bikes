@@ -19,20 +19,24 @@ export function useGarage() {
     localStorage.setItem(WHEELS_STORAGE_KEY, JSON.stringify(ownedWheels.value))
   }
 
+  function loadStored<T extends object>(key: string): T {
+    try {
+      const raw = localStorage.getItem(key)
+      return raw ? JSON.parse(raw) : ({} as T)
+    } catch {
+      return {} as T
+    }
+  }
+
+  /** Only reassigns when the stored content actually differs from current state - a fresh object
+   * reference on every call (even when the content is identical, e.g. an empty garage) would trigger
+   * any watcher on `owned`/`ownedWheels` needlessly on every mount. */
   function load() {
     if (!import.meta.client) return
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      owned.value = raw ? JSON.parse(raw) : {}
-    } catch {
-      owned.value = {}
-    }
-    try {
-      const raw = localStorage.getItem(WHEELS_STORAGE_KEY)
-      ownedWheels.value = raw ? JSON.parse(raw) : {}
-    } catch {
-      ownedWheels.value = {}
-    }
+    const nextOwned = loadStored<Record<number, number>>(STORAGE_KEY)
+    if (JSON.stringify(nextOwned) !== JSON.stringify(owned.value)) owned.value = nextOwned
+    const nextOwnedWheels = loadStored<Record<string, true>>(WHEELS_STORAGE_KEY)
+    if (JSON.stringify(nextOwnedWheels) !== JSON.stringify(ownedWheels.value)) ownedWheels.value = nextOwnedWheels
   }
 
   /** Marks a frame as owned at the given level (1-5), or removes it when `level` is null. */
