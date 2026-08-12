@@ -23,6 +23,15 @@ jobs:
     outputs:
       app: ${{ steps.filter.outputs.app }}
     steps:
+      # dorny/paths-filter only needs a checkout for non-PR triggers (push,
+      # in this workflow's case) - it uses git diff/merge-base locally there
+      # since there's no PR to query the GitHub API for instead. Omitting
+      # this made push-to-main runs fail with "fatal: not a git repository".
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 20
+          persist-credentials: false
       - name: Filter relevant paths
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
