@@ -61,6 +61,13 @@ watch(recommendData, (data) => {
   hasMore.value = data.pagination?.hasMore ?? false
 }, { immediate: true })
 
+// `recommendData` keeps its previous value while a refetch (filter/rider
+// profile change) is in flight, so `status === 'pending'` alone can't tell a
+// genuine first load (nothing to show yet) apart from a refresh of
+// already-visible results (show stale cards + a subtle "updating" hint).
+const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
+const isRefreshingCombos = computed(() => status.value === 'pending' && !!recommendData.value)
+
 async function refreshFirstPage() {
   await refreshRecommendations()
 }
@@ -289,34 +296,33 @@ const segmentAsRoute = computed(() => segmentData.value
       </div>
 
       <div
-        v-if="status === 'pending' && !recommendData"
-        class="text-center py-10 text-muted"
+        v-if="isFirstLoad"
+        class="space-y-4"
       >
-        Calculating best matches...
+        <ComboResultCardSkeleton class="mb-6" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ComboResultCardSkeleton />
+          <ComboResultCardSkeleton />
+        </div>
       </div>
       <template v-else>
-        <ComboResultCard
-          v-if="topCombo"
-          :combo="topCombo"
-          :rank="1"
-          :route="segmentAsRoute"
-          :weight-kg="weightKg"
-          :height-cm="heightCm"
-          :wkg="wkg"
-          :laps="1"
-          :fastest-time-sec="fastestTimeSec"
-          :owned="owned"
-          class="mb-6"
-        />
+        <p
+          v-if="isRefreshingCombos"
+          class="flex items-center gap-1.5 text-sm text-muted mb-3"
+        >
+          <UIcon
+            name="i-lucide-loader-circle"
+            class="size-4 animate-spin"
+          />Updating results…
+        </p>
         <div
-          v-if="restCombos.length"
-          class="grid grid-cols-1 md:grid-cols-2 gap-4"
+          class="transition-opacity"
+          :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
         >
           <ComboResultCard
-            v-for="(combo, index) in restCombos"
-            :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
-            :combo="combo"
-            :rank="index + 2"
+            v-if="topCombo"
+            :combo="topCombo"
+            :rank="1"
             :route="segmentAsRoute"
             :weight-kg="weightKg"
             :height-cm="heightCm"
@@ -324,14 +330,33 @@ const segmentAsRoute = computed(() => segmentData.value
             :laps="1"
             :fastest-time-sec="fastestTimeSec"
             :owned="owned"
+            class="mb-6"
           />
+          <div
+            v-if="restCombos.length"
+            class="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            <ComboResultCard
+              v-for="(combo, index) in restCombos"
+              :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
+              :combo="combo"
+              :rank="index + 2"
+              :route="segmentAsRoute"
+              :weight-kg="weightKg"
+              :height-cm="heightCm"
+              :wkg="wkg"
+              :laps="1"
+              :fastest-time-sec="fastestTimeSec"
+              :owned="owned"
+            />
+          </div>
+          <p
+            v-else-if="!topCombo"
+            class="text-muted text-center py-10"
+          >
+            No bikes match your filters.
+          </p>
         </div>
-        <p
-          v-else-if="!topCombo"
-          class="text-muted text-center py-10"
-        >
-          No bikes match your filters.
-        </p>
         <div
           v-if="hasMore"
           class="text-center mt-6"
