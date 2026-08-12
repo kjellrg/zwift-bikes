@@ -106,6 +106,8 @@ Zwift regularly releases new bikes and wheels. When that happens:
 
 So the app never blocks on new gear appearing, and its accuracy for that gear improves the moment real data becomes available, without a redesign.
 
+**Planned:** step 3 above is currently done by hand. Automating the ZwiftInsider data pull via a scheduled workflow is planned, so pulling in new real speed-test numbers no longer needs a manual update either.
+
 ## How this scales to new routes
 
 New Zwift routes work the same way, but with one extra manual step:
@@ -113,5 +115,7 @@ New Zwift routes work the same way, but with one extra manual step:
 1. The route appears automatically (name, distance, elevation) as soon as the catalog update is merged and the site rebuilds — the same automatic pipeline described above.
 2. Its exact surface breakdown (how much gravel or cobblestone it contains) and real elevation shape need a separate step that isn't part of the automatic rebuild: periodically replaying the route's real GPS trace (via Strava) against zwiftmap's surface data. This is run by hand, not on a schedule — as new routes appear, or to catch real-world road changes. Until it's been run for a given route, that route uses the coarser fallback described above.
 3. Once that trace is processed and committed, the route gets the same fully accurate, metre-by-metre treatment as every other route on the next rebuild — automatically, without touching the ranking or physics logic at all.
+
+**Planned:** step 2 above is also currently done by hand. Automating this Strava/zwiftmap trace step via a scheduled workflow is planned too, removing the last manual part of getting a route to full accuracy.
 
 In both cases, the design goal is the same: **new content should never be blocked from appearing, but it should also never silently pretend to be more accurate than it is** — the app always shows which numbers are real and which are best-effort estimates.
