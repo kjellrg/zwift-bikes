@@ -5,36 +5,42 @@ on:
     branches:
       - main
       - devel
-    paths:
-      - "app/**"
-      - "server/**"
-      - "shared/**"
-      - "public/staticwebapp.config.json"
-      - "nuxt.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
       - devel
-    paths:
-      - "app/**"
-      - "server/**"
-      - "shared/**"
-      - "public/staticwebapp.config.json"
-      - "nuxt.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml"
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - name: Filter relevant paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            app:
+              - "app/**"
+              - "server/**"
+              - "shared/**"
+              - "public/staticwebapp.config.json"
+              - "nuxt.config.ts"
+              - "package.json"
+              - "package-lock.json"
+              - ".github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml"
+
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    needs: changes
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     permissions:
@@ -42,11 +48,13 @@ jobs:
       pull-requests: write # required by repo_token below to comment/manage PR preview links
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        if: needs.changes.outputs.app == 'true'
         with:
           submodules: true
           lfs: false
           persist-credentials: false
       - name: Build And Deploy
+        if: needs.changes.outputs.app == 'true'
         id: builddeploy
         uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
         with:
