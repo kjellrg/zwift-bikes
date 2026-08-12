@@ -22,6 +22,8 @@ useSeoMeta({
 
 <template>
   <UApp>
+    <NuxtLoadingIndicator color="var(--ui-primary)" />
+
     <UHeader>
       <template #left>
         <NuxtLink to="/">
