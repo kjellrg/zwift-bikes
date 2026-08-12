@@ -18,6 +18,22 @@ useSeoMeta({
   ogDescription: description,
   twitterCard: "summary_large_image",
 });
+
+const siteConfig = useSiteConfig();
+useHead({
+  script: [
+    {
+      type: "application/ld+json",
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": siteConfig.name,
+        "description": siteConfig.description,
+        "url": siteConfig.url,
+      }).replace(/</g, "\\u003c"),
+    },
+  ],
+});
 </script>
 
 <template>

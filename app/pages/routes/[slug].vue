@@ -6,6 +6,19 @@ const slug = computed(() => route.params.slug as string);
 const { data: routeData, error: routeError } = await useFetch(() => `/api/routes/${slug.value}`);
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: "Route not found", fatal: true });
 
+useSeoMeta({
+  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - Zwift Best Bike` : "Zwift Best Bike",
+  description: () => routeData.value
+    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}. Distance, elevation and surface-aware recommendations.`
+    : undefined,
+  ogTitle: () => routeData.value ? routeData.value.name : undefined,
+  ogDescription: () => routeData.value
+    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}.`
+    : undefined,
+  ogImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined,
+  twitterImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined
+});
+
 const { owned, ownedWheels, load: loadGarage } = useGarage();
 const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile();
 const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences();
@@ -107,6 +120,46 @@ const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.fi
 const surfaceTimePenaltyText = computed(() => routeData.value ? formatSurfaceTimePenalty(routeData.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined);
 const physicsInfo = computed(() => recommendData.value?.physics);
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
+
+const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined);
+const faqAnswer = computed(() => {
+  if (!routeData.value || !topCombo.value || typeof topCombo.value.finishTimeSec !== "number") return undefined;
+  const equipment = topCombo.value.wheelset ? `${topCombo.value.frame.name} with ${topCombo.value.wheelset.name}` : topCombo.value.frame.name;
+  const distanceKm = routeTotals.value?.distanceKm ?? routeData.value.distance;
+  return `Based on our physics model, the ${equipment} is currently the fastest verified combo for ${routeData.value.name} in ${routeData.value.worldName}, finishing in ${formatDuration(topCombo.value.finishTimeSec)} (~${formatSpeedKmh(distanceKm, topCombo.value.finishTimeSec)}).`;
+});
+
+const siteConfig = useSiteConfig();
+const requestUrl = useRequestURL();
+useHead(() => {
+  if (!routeData.value) return {};
+  const scripts = [{
+    type: "application/ld+json" as const,
+    innerHTML: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteConfig.url },
+        { "@type": "ListItem", "position": 2, "name": routeData.value.name, "item": requestUrl.href }
+      ]
+    }).replace(/</g, "\\u003c")
+  }];
+  if (faqAnswer.value) {
+    scripts.push({
+      type: "application/ld+json" as const,
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [{
+          "@type": "Question",
+          "name": faqQuestion.value,
+          "acceptedAnswer": { "@type": "Answer", "text": faqAnswer.value }
+        }]
+      }).replace(/</g, "\\u003c")
+    });
+  }
+  return { script: scripts };
+});
 </script>
 
 <template>
@@ -131,6 +184,11 @@ const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
         <div v-if="routeData.lap" class="w-40"><label class="block text-xs font-medium text-muted mb-1">Laps</label><USelectMenu v-model="laps" value-key="value" :items="lapOptions" :search-input="false" /></div>
         <p v-if="routeTotals && routeTotals.leadInDistanceKm > 0" class="text-sm text-muted"><span class="font-medium text-highlighted">Lead-in:</span> {{ formatDistance(routeTotals.leadInDistanceKm) }}<template v-if="routeTotals.leadInElevationM > 0"> / {{ formatElevation(routeTotals.leadInElevationM) }}</template> (ridden once, not repeated per lap)</p>
       </div>
+    </div>
+
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">{{ faqQuestion }}</h2>
+      <p class="text-muted">{{ faqAnswer }}</p>
     </div>
 
     <RouteSurfaceSpeedProfile
