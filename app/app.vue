@@ -1,7 +1,11 @@
 <script setup>
 useHead({
   meta: [{ name: "viewport", content: "width=device-width, initial-scale=1" }],
-  link: [{ rel: "icon", href: "/favicon.ico" }],
+  link: [
+    { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+    { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
+    { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+  ],
   htmlAttrs: {
     lang: "en",
   },
@@ -11,15 +15,16 @@ const title = "Zwift Best Bike";
 const description =
   "Find the best bike and wheel combination for any Zwift route, based on distance, elevation and surface.";
 
+const siteConfig = useSiteConfig();
+
 useSeoMeta({
   title,
   description,
   ogTitle: title,
   ogDescription: description,
+  ogSiteName: siteConfig.name,
   twitterCard: "summary_large_image",
 });
-
-const siteConfig = useSiteConfig();
 useHead({
   script: [
     {
