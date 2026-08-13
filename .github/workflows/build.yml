@@ -35,6 +35,14 @@ jobs:
     name: npm run build
     needs: changes
     runs-on: ubuntu-latest
+    # Fork PRs only. `pull_request` runs from a fork don't get repository
+    # secrets, so the Azure SWA workflow's build-and-deploy job can't validate
+    # them - this is the only build coverage such a PR gets. For PRs from this
+    # repo, that workflow already runs the identical `npm run build` (via Oryx)
+    # on its way to deploying a preview, so building here as well would just
+    # run the same command twice - ~9 min a side now that route pages are
+    # prerendered.
+    if: github.event.pull_request.head.repo.fork
     permissions:
       contents: read
     steps:
