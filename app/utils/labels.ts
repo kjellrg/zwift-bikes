@@ -148,11 +148,21 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
   return `Due to increased rolling resistance, rough terrain adds ~${Math.round(penaltySec)}s to this route with the fastest combo below.`
 }
 
-/** Formats a time gap vs. the fastest combo on the route, e.g. `+45s slower` or `+1:23 slower`. */
+/**
+ * Formats a time gap vs. the fastest combo on the route, e.g. `+5.21s slower`
+ * or `+1:23 slower`. Sub-minute gaps keep two decimals on purpose: closely
+ * matched combos are routinely separated by fractions of a second, and rounding
+ * those to whole seconds collapsed genuinely different combos onto an identical
+ * label, making the ranking look arbitrary. From a minute up, hundredths are
+ * noise, so the `m:ss` form rounds to whole seconds as before.
+ */
 export function formatDurationDelta(seconds: number): string {
+  // Quantise to the precision we actually display first, so a gap that renders
+  // as `+0.00s` is reported as `fastest` rather than as a phantom gap.
+  const hundredths = Math.round(seconds * 100)
+  if (hundredths <= 0) return 'fastest'
+  if (hundredths < 60 * 100) return `+${(hundredths / 100).toFixed(2)}s slower`
   const totalSeconds = Math.round(seconds)
-  if (totalSeconds <= 0) return 'fastest'
-  if (totalSeconds < 60) return `+${totalSeconds}s slower`
   const minutes = Math.floor(totalSeconds / 60)
   const secs = totalSeconds % 60
   return `+${minutes}:${secs.toString().padStart(2, '0')} slower`

@@ -68,12 +68,16 @@ const totalDistanceKm = computed(() => {
   return computeRouteTotals(props.route, props.laps ?? 1).distanceKm;
 });
 
-/** Only the fastest combo shows its absolute time - every other card shows how far behind it is, per user request. */
+/**
+ * Only the fastest combo shows its absolute time - every other card shows how far behind it is, per user request.
+ * The tie check quantises the gap exactly the way `formatDurationDelta` does (hundredths of a second), so the two
+ * can never disagree: comparing at whole seconds used to mark two cards 0.4s apart as both `fastest`.
+ */
 const isFastest = computed(() => {
   return (
     finishTimeSec.value !== undefined &&
     props.fastestTimeSec !== undefined &&
-    Math.round(finishTimeSec.value) <= Math.round(props.fastestTimeSec)
+    Math.round((finishTimeSec.value - props.fastestTimeSec) * 100) <= 0
   );
 });
 </script>
