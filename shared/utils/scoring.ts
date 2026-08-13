@@ -195,6 +195,31 @@ export function rankCombos(route: RouteWithMeta, frames: ClassifiedBikeFrame[], 
  * comment) - so callers should skip this step entirely while a `search`
  * filter is active, to keep every real match reachable.
  */
+/**
+ * Applies a `search` term (already trimmed and lowercased by the caller) to an
+ * already-fully-ranked `combos` list: every row matching on either half of the
+ * combo is kept, but rows whose FRAME name matches are listed ahead of rows
+ * that only matched on the wheelset name. Each half keeps the order it already
+ * had - real finish time when a rider profile is known, otherwise `score`.
+ *
+ * Matching the wheelset name too is what lets someone look up a wheel by name,
+ * and that stays. But a wheelset name can also drag in frames that have
+ * nothing to do with what was typed, since a road-class wheelset fits nearly
+ * every road frame: the wheelset literally named "Zwift Concept" put 39
+ * unrelated climbing frames above the "Zwift Concept Z1" itself on a
+ * climb-heavy route (issue #25). Someone typing a bike's name almost always
+ * means the bike, so frame matches go first.
+ *
+ * Unlike `capWheelsetsPerFrame` this only reorders - no real match is ever
+ * dropped, and a pure wheel search (where no frame name matches the term at
+ * all) comes out exactly as it went in.
+ */
+export function searchCombos(combos: ComboScore[], search: string): ComboScore[] {
+  const matchesFrameName = (combo: ComboScore) => combo.frame.name.toLowerCase().includes(search)
+  const hits = combos.filter(combo => matchesFrameName(combo) || combo.wheelset?.name.toLowerCase().includes(search))
+  return [...hits.filter(matchesFrameName), ...hits.filter(combo => !matchesFrameName(combo))]
+}
+
 export function capWheelsetsPerFrame(combos: ComboScore[], valueOf: (combo: ComboScore) => number, maxPerFrame = MAX_WHEELSETS_PER_FRAME): ComboScore[] {
   const seenValuesByFrame = new Map<number, Set<number>>()
   const result: ComboScore[] = []

@@ -1,7 +1,7 @@
 import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
 import { getWheelsets } from '../../../shared/utils/wheelsets'
-import { capWheelsetsPerFrame, rankCombos } from '../../../shared/utils/scoring'
-import { classifyBikeFrame } from '../../../shared/utils/classifyBikeFrame'
+import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
+import { classifyBikeFrame, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
 import { geometryForRouteLaps, simulateRoute } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
@@ -45,7 +45,15 @@ export default defineEventHandler((event) => {
   const laps = clampLaps(route, Number(query.laps))
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
 
+  // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
+  // know whether a cosmetic re-skin was explicitly added before it earns a row.
+  const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
+
   let frames = getFrames().filter((frame) => {
+    // Never list the same bike twice: a cosmetic re-skin and the frame it
+    // re-skins are one bike, so only one of the pair is shown - the re-skin
+    // only when it's explicitly in the rider's garage.
+    if (isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
     if (category && frame.category !== category) return false
     if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
     return true
@@ -98,9 +106,10 @@ export default defineEventHandler((event) => {
 
   // `capWheelsetsPerFrame` must never run before `search` gets to look at
   // the full pool - see its doc comment - so it's skipped entirely while
-  // searching, in favor of showing every real match.
+  // searching, in favor of showing every real match, ordered frame-name
+  // matches first (see `searchCombos`).
   const filteredRankedCombos = search
-    ? orderedCombos.filter(c => c.frame.name.toLowerCase().includes(search) || c.wheelset?.name.toLowerCase().includes(search))
+    ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score)
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
