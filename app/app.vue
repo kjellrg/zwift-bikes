@@ -1,4 +1,18 @@
 <script setup>
+const isAboutOpen = ref(false);
+
+// The footer entry keeps a real `href="/about"` so crawlers can reach the
+// page version (the modal's content is never server-rendered) and so
+// cmd/ctrl-click still opens it in a new tab - but a plain left click shows
+// the modal instead of navigating away. A plain `<a>` rather than ULink:
+// vue-router's own click handler would run before this one, so `.prevent`
+// on a NuxtLink wouldn't reliably stop the navigation.
+function openAbout(event) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  isAboutOpen.value = true;
+}
+
 useHead({
   meta: [{ name: "viewport", content: "width=device-width, initial-scale=1" }],
   link: [
@@ -71,13 +85,11 @@ useHead({
           />
 
           <UButton
-            to="https://github.com/andipaetzold/zwift-data"
-            target="_blank"
-            icon="i-lucide-database"
-            label="zwift-data"
-            aria-label="zwift-data on GitHub"
+            icon="i-lucide-info"
+            label="About"
             color="neutral"
             variant="ghost"
+            @click="isAboutOpen = true"
           />
 
           <UButton
@@ -114,14 +126,12 @@ useHead({
           />
 
           <UButton
-            to="https://github.com/andipaetzold/zwift-data"
-            target="_blank"
-            icon="i-lucide-database"
-            label="zwift-data"
-            aria-label="zwift-data on GitHub"
+            icon="i-lucide-info"
+            label="About"
             color="neutral"
             variant="ghost"
             block
+            @click="isAboutOpen = true"
           />
 
           <UButton
@@ -138,6 +148,8 @@ useHead({
       </template>
     </UHeader>
 
+    <AboutModal v-model:open="isAboutOpen" />
+
     <UMain>
       <NuxtPage />
     </UMain>
@@ -147,30 +159,32 @@ useHead({
     <UFooter>
       <template #left>
         <p class="text-sm text-muted">
-          Route &amp; equipment catalog data from
+          Data from
           <ULink
             to="https://www.npmjs.com/package/zwift-data"
             target="_blank"
             class="underline"
             >zwift-data</ULink
-          >. Bike frame and wheelset aero/climb ratings use real bot speed-test
-          data from
+          >,
           <ULink
-            to="https://zwiftinsider.com/charts-wheels/"
+            to="https://zwiftinsider.com/"
             target="_blank"
             class="underline"
             >ZwiftInsider</ULink
           >
-          where available (look for the "verified" badge). Route surface and
-          elevation data is cross-referenced against
+          and
           <ULink
             to="https://zwiftmap.com"
             target="_blank"
             class="underline"
             >zwiftmap</ULink
-          >'s real GPS/world-surface mapping where available (look for the
-          "measured" badge) - otherwise these are heuristic estimates, not
-          official Zwift data.
+          >.
+          <a
+            href="/about"
+            class="underline transition-colors hover:text-default"
+            @click="openAbout"
+            >About this project</a
+          >
         </p>
       </template>
 

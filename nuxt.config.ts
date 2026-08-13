@@ -83,6 +83,11 @@ export default defineNuxtConfig({
 
   sitemap: {
     sources: ['/api/__sitemap__/urls'],
-    zeroRuntime: true
+    zeroRuntime: true,
+    // Static app routes are auto-discovered, which swept these two in. Both
+    // render purely from localStorage and are marked `noindex` in-page, so
+    // submitting them here would just ask Google to crawl a URL we then tell
+    // it to drop.
+    exclude: ['/profile', '/garage']
   }
 })
