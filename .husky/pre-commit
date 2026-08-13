@@ -1,1 +1,20 @@
-trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run typecheck && npm run build
+trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run typecheck
+
+# `npm run build` prerenders all 335 route pages and takes ~9 minutes, which
+# is a long time to wait to commit a workflow tweak or a docs change. Only run
+# it when something staged can actually affect the build output.
+#
+# The pattern mirrors the paths filter in
+# .github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml, minus
+# the workflow file itself (which can't change what the build produces).
+# scripts/ is included because `npm run build` runs scripts/trim-swa-config.mjs.
+#
+# Nothing committed depends on the build's output - staticwebapp.config.json,
+# its only tracked-adjacent artifact, is gitignored - so skipping it here only
+# ever costs us the check, never correctness of the commit.
+if git diff --cached --name-only \
+  | grep -qE '^(app|server|shared|scripts)/|^(nuxt\.config\.ts|package\.json|package-lock\.json)$'; then
+  npm run build
+else
+  echo "pre-commit: no build-affecting paths staged, skipping 'npm run build'"
+fi

@@ -41,7 +41,12 @@ jobs:
               - "app/**"
               - "server/**"
               - "shared/**"
-              - "public/staticwebapp.config.json"
+              # `public/staticwebapp.config.json` used to be listed here and
+              # could never match: that file is generated at build time by
+              # nitro's azure-swa preset, at the repo root, and is gitignored.
+              # Its real inputs are nuxt.config.ts (below) and scripts/**,
+              # which `npm run build` now runs via trim-swa-config.mjs.
+              - "scripts/**"
               - "nuxt.config.ts"
               - "package.json"
               - "package-lock.json"
