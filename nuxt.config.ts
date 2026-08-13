@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { getRoutesWithMeta } from './shared/utils/catalog'
+
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
@@ -31,11 +33,38 @@ export default defineNuxtConfig({
       config: {
         globalHeaders: {
           'Referrer-Policy': 'strict-origin-when-cross-origin'
-        }
+        },
+        // Without this, SWA serves /routes/x, /routes/x/ and
+        // /routes/x/index.html all as 200s - three URLs, one page. `never`
+        // 301s the latter two onto the first, which is the form every
+        // internal link and the sitemap already use, and the form the
+        // canonical tag in app.vue emits.
+        trailingSlash: 'never'
       }
     },
     prerender: {
-      routes: ['/robots.txt']
+      // Route pages are the site's landing pages and its slowest responses:
+      // served from the SSR function they measure ~1.7s TTFB (vs ~0.2s for
+      // the prerendered homepage), which puts them well past Google's 0.8s
+      // "good" threshold and eats most of the 2.5s LCP budget before a byte
+      // is rendered. They prerender cleanly because the server-rendered pass
+      // uses the default rider profile either way - the real profile lives in
+      // localStorage and is applied on hydration.
+      //
+      // Enumerated from the same catalog the sitemap source uses
+      // (server/api/__sitemap__/urls.ts) so the two can't drift.
+      //
+      // /segments/** is deliberately NOT prerendered: those pages take a
+      // `?route=` param that tailors the ranking to one route's surface data,
+      // and SWA matches static files by path only (ignoring the query), so a
+      // prerendered segment page would answer `?route=` requests with the
+      // generic ranking and - because the page fetches with `watch: false` -
+      // never correct itself on the client.
+      routes: [
+        '/robots.txt',
+        '/about',
+        ...getRoutesWithMeta().map(route => `/routes/${route.slug}`)
+      ]
     }
   },
 

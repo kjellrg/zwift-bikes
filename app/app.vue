@@ -31,15 +31,34 @@ const description =
 
 const siteConfig = useSiteConfig();
 
+// Canonical URL, built from the path alone so every query-string variant of
+// a page collapses onto the one URL we want indexed. This matters most for
+// /segments/[slug]: RouteClimbs/RouteSprints link each segment as
+// `?route=<slug>` once per route it appears on, so a segment like Alpe du
+// Zwift is reachable at dozens of near-identical URLs that would otherwise
+// compete with each other (and with the clean URL) in search results.
+//
+// Set here in app.vue rather than per-page so no future page can forget it.
+// Any page needing a different canonical can still override it with its own
+// `link: [{ rel: 'canonical' }]` - unhead dedupes by rel.
+const currentRoute = useRoute();
+const canonicalUrl = computed(() => {
+  const path = currentRoute.path.replace(/\/+$/, "");
+  return `${siteConfig.url.replace(/\/+$/, "")}${path || "/"}`;
+});
+
 useSeoMeta({
   title,
   description,
   ogTitle: title,
   ogDescription: description,
   ogSiteName: siteConfig.name,
+  ogType: "website",
+  ogUrl: () => canonicalUrl.value,
   twitterCard: "summary_large_image",
 });
 useHead({
+  link: [{ rel: "canonical", href: () => canonicalUrl.value }],
   script: [
     {
       type: "application/ld+json",
