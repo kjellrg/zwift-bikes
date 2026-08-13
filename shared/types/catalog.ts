@@ -57,7 +57,7 @@ export interface ClassifiedBikeFrame extends BikeFrame {
   style?: BikeStyle
   scores: ClassificationScores
   confidence: ScoreConfidence
-  /** True for a small number of special frames (Pinarello Espada, Zwift Concept Z1/Golden Concept Z1, Specialized PROJECT 74) that come with their own integrated/disc wheels which cannot be swapped in Zwift - see `classifyBikeFrame.ts`'s `FIXED_WHEEL_FRAMES`. */
+  /** True for a small number of special frames (Pinarello Espada, Zwift Concept Z1/Golden Concept Z1, Specialized PROJECT 74) that come with their own integrated wheels which cannot be swapped in Zwift - see `classifyBikeFrame.ts`'s `FIXED_WHEEL_FRAMES`. */
   hasFixedWheels: boolean
   /** Upgrade stage (0-5) these scores were computed at - see `classifyBikeFrame.ts`'s `level` param. */
   level: number

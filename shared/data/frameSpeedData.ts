@@ -23,6 +23,14 @@
  * `gravel`/`handbike`/`funbike` frames aren't covered by either table -
  * ZwiftInsider doesn't run the same comparative test for those categories,
  * so they keep using the fixed heuristic presets in `classifyBikeFrame.ts`.
+ * The sheet's "Halo" bikes (Concept Z1, PROJECT 74, Espada, ...) *are*
+ * tested and so do appear here, measured as one frame+integrated-wheel unit
+ * rather than as a bare frame - see `FIXED_WHEEL_FRAMES`.
+ *
+ * Note the source sheet holds two test rows per bike, one at 150W and one
+ * at 300W, with materially different gaps. Every value below is from the
+ * 300W row (verified against the baseline "Zwift Carbon" row: 0 -> 26.5
+ * flat, 0 -> 36.9 climb); mixing the two would silently corrupt the table.
  *
  * Frames not present in these tables (new releases, cosmetic team-edition
  * skins, a couple of rows in the source sheet with corrupted Stage 5 data,
@@ -38,6 +46,16 @@ export interface FrameSpeedSample {
   /** Seconds saved (+) or lost (-) per hour on a climb course at Stage 5 (fully unlocked) */
   climbGapSec5: number
 }
+
+// The Concept Z1 ("Tron") is listed on the source sheet as a Halo bike, with
+// its own integrated wheels in the `Wheels` column, so this sample covers the
+// whole frame+wheel unit (see `FIXED_WHEEL_FRAMES` in `classifyBikeFrame.ts`).
+// `Zwift Golden Concept Z1` is the same bike with a gold light scheme and is
+// not tested separately by ZwiftInsider, so both frames deliberately share
+// this one sample instead of carrying two copies of the numbers that could
+// drift apart. Only one of the two is ever listed in ranked results - see
+// `isRedundantCosmeticVariant`.
+const CONCEPT_Z1: FrameSpeedSample = { flatGapSec0: 114.6, flatGapSec5: 144, climbGapSec0: 31.1, climbGapSec5: 68 }
 
 export const FRAME_SPEED_DATA: Record<string, FrameSpeedSample> = {
   'Allied Able': { flatGapSec0: -136.7, flatGapSec5: -111.9, climbGapSec0: -138.4, climbGapSec5: -103.9 },
@@ -132,6 +150,8 @@ export const FRAME_SPEED_DATA: Record<string, FrameSpeedSample> = {
   'Wilier Filante SLR ID2 Team': { flatGapSec0: 62.9, flatGapSec5: 91.6, climbGapSec0: 42.5, climbGapSec5: 80.4 },
   'Zwift Aero': { flatGapSec0: 48.1, flatGapSec5: 75.9, climbGapSec0: 6.5, climbGapSec5: 43.1 },
   'Zwift Carbon': { flatGapSec0: 0, flatGapSec5: 26.5, climbGapSec0: 0, climbGapSec5: 36.9 },
+  'Zwift Concept Z1': CONCEPT_Z1,
+  'Zwift Golden Concept Z1': CONCEPT_Z1,
   'Zwift Steel': { flatGapSec0: -5.1, flatGapSec5: 21.6, climbGapSec0: -30, climbGapSec5: 5.8 }
 }
 

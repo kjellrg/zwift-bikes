@@ -2,7 +2,7 @@ import { getFrames } from '../../../../shared/utils/catalog'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../../../shared/utils/routeSegments'
 import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos } from '../../../../shared/utils/scoring'
-import { classifyBikeFrame } from '../../../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
 import { geometryForSegment, geometryForWarmup, prependWarmup, simulateRoute } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
@@ -53,7 +53,15 @@ export default defineEventHandler((event) => {
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
 
+  // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
+  // know whether a cosmetic re-skin was explicitly added before it earns a row.
+  const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
+
   let frames = getFrames().filter((frame) => {
+    // Never list the same bike twice: a cosmetic re-skin and the frame it
+    // re-skins are one bike, so only one of the pair is shown - the re-skin
+    // only when it's explicitly in the rider's garage.
+    if (isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
     if (category && frame.category !== category) return false
     if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
     return true

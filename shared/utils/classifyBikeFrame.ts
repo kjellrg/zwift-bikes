@@ -45,9 +45,9 @@ import { solveFrameEquipmentDelta } from './physics/equipment'
 // gap, so roughly half the fully-upgraded roster was clamped to the same
 // max score. Recalibrated to the real Stage-5 bulk max, excluding the
 // documented extreme outliers (Canyon Lux/Inflite, Allied Able - low end;
-// Specialized PROJECT 74 - a fixed-wheel frame scored as a whole aero unit,
-// see FIXED_WHEEL_FRAMES): flat max ~93 (Cervelo S5 92.6), climb range
-// widened both ends (Zwift Steel's -30 climb gap, Aethos S-Works' genuine
+// Specialized PROJECT 74 and Zwift Concept Z1 - fixed-wheel frames scored
+// as whole aero units, see FIXED_WHEEL_FRAMES): flat max ~93 (Cervelo S5
+// 92.6), climb range widened both ends (Zwift Steel's -30 climb gap, Aethos S-Works' genuine
 // 115.6 climb gap - a real, well-known ultralight climbing bike, not a
 // data error).
 const FLAT_GAP_RANGE: [number, number] = [-10, 93]
@@ -101,11 +101,15 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
 }
 
 // A handful of special/event-exclusive frames come with their own
-// integrated disc wheels that Zwift does not let you swap out - confirmed
-// via zwiftinsider.com/pinarello-espada/: "the Espada, like the Tron bike,
-// can only be tested with its disc wheels installed". The Specialized
-// PROJECT 74 is the same story - it's always paired with its own integrated
-// "Roval PROJECT 74" wheels (see `zwift-data`'s `bikeFrontWheels`/
+// integrated wheels that Zwift does not let you swap out - confirmed via
+// zwiftinsider.com/pinarello-espada/: "the Espada, like the Tron bike,
+// can only be tested with its disc wheels installed". Only the Espada
+// actually runs disc wheels; the Concept Z1's integrated wheels are its own
+// power-reactive lit wheels, not discs (zwiftinsider.com/halo-bikes/) - what
+// they share is that the wheel is welded to the frame choice, which is all
+// this set is about. The Specialized PROJECT 74 is the same story - it's
+// always paired with its own integrated "Roval PROJECT 74" wheels (see
+// `zwift-data`'s `bikeFrontWheels`/
 // `bikeRearWheels`), which aren't offered as a separate swappable wheelset.
 // Their `FRAME_SPEED_DATA`/`TT_FRAME_SPEED_DATA` measurements are for the
 // whole frame+wheel unit, so `scoreCombo`/`estimateFinishTimeSec` must
@@ -113,6 +117,47 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
 // blending it in on top (see both files' `hasFixedWheels` branches), and the
 // UI/API must not present a swappable wheel choice for them (see `rankCombos`).
 const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74'])
+
+// `Zwift Golden Concept Z1` is the plain `Zwift Concept Z1` with a gold light
+// scheme - the same frame, sharing one `FRAME_SPEED_DATA` sample - so a ranked
+// result list showing both would just repeat one bike in two adjacent rows.
+const COSMETIC_RESKIN = 'Zwift Golden Concept Z1'
+const RESKINNED_ORIGINAL = 'Zwift Concept Z1'
+
+/**
+ * True when `frame` is the redundant half of a cosmetic re-skin pair and
+ * should be left out of a ranked result list (both halves always stay in the
+ * catalog itself - `/api/bikes`/garage - so the re-skin can be owned in the
+ * first place).
+ *
+ * Exactly one of the pair is ever listed. The re-skin is pure noise for the
+ * vast majority of riders, who don't own it, so by default it's the one
+ * dropped. A rider who has explicitly added it to their garage clearly does
+ * want to see it, and it stands in for the original for them - carrying their
+ * real unlock level, which the original wouldn't have - so it's the original
+ * that drops out instead.
+ *
+ * `ownedFrameNames` is the rider's garage by frame name (`zwift-data` ids are
+ * what the garage actually stores, so the caller resolves them to names).
+ */
+export function isRedundantCosmeticVariant(frame: BikeFrame, ownedFrameNames: ReadonlySet<string>): boolean {
+  const ownsReskin = ownedFrameNames.has(COSMETIC_RESKIN)
+  if (frame.name === COSMETIC_RESKIN) return !ownsReskin
+  return frame.name === RESKINNED_ORIGINAL && ownsReskin
+}
+
+// The Concept Z1 ("Tron") frames match `FUNBIKE_RE` on name, but they are not
+// novelty bikes: ZwiftInsider bot-tests them like any road frame and
+// benchmarks them against the fastest road frame+wheel combos
+// (zwiftinsider.com/top-performers/, /tron-vs-top-performers-2024/), and they
+// have real `FRAME_SPEED_DATA` measurements - which only the `standard` branch
+// of `classifyBikeFrame` reads. Left in `funbike` they'd instead share the one
+// flat funbike preset with ~37 other novelty frames, tie with every one of
+// them on both `score` and the derived finish time, and stable-sort to the
+// very bottom of every route page (issue #25). `Specialized PROJECT 74` is the
+// same kind of bike and already resolves to `standard` simply because its name
+// doesn't happen to match `FUNBIKE_RE`.
+const ROAD_HALO_FRAMES = new Set(['Zwift Concept Z1', 'Zwift Golden Concept Z1'])
 
 const HANDBIKE_RE = /handcycle/i
 
@@ -126,7 +171,13 @@ const TT_NAME_RE = /\btt\b/i
 
 const ENDURANCE_RE = /roubaix|synapse|road\s*machine|endurance/i
 
-const AERO_RE = /aeroad|venge|system\s*six|\bfoil\b|madone|propel|speedmax|speed\s*concept|felt\s*ar\b|felt\s*fr\b|\bs5\b|dogma\s*f(?!.*gr)|time\s*machine|\bp5\b|\bshiv\b|plasma|\bslice\b|bolide|aerium|noah\s*fast|\bia\s*2?\.?0?\b/i
+// `concept\s*z1` covers the Tron bikes: the fastest flat frame in the game by
+// a clear margin (114.6s/hr saved at Stage 0 vs the Zwift Carbon baseline) but
+// only a middling climber, which is the aero preset's profile exactly. With
+// `FRAME_SPEED_DATA` present the preset only supplies their gravel/cobble
+// scores (inert in ranking - `OFFROAD_FRAME_WEIGHT` is 0) and the UI's style
+// label, so this is about labelling them honestly rather than "allrounder".
+const AERO_RE = /aeroad|venge|system\s*six|\bfoil\b|madone|propel|speedmax|speed\s*concept|concept\s*z1|felt\s*ar\b|felt\s*fr\b|\bs5\b|dogma\s*f(?!.*gr)|time\s*machine|\bp5\b|\bshiv\b|plasma|\bslice\b|bolide|aerium|noah\s*fast|\bia\s*2?\.?0?\b/i
 
 const CLIMB_RE = /aethos|emonda|scultura|super\s*six\s*evo|addict\s*rc|team\s*machine|izalco|\ballez\b|tarmac(?!.*sl7|.*sl8|.*sl9|.*sram)|\btcr\b|ultimate(?!.*cfr)|\bopus\b|\btoa\b|\bkoko\b|\brere\b|\btere\b|vamoots|mosaic|amira|dogma\s*(65\.1|f8|f10|f12)\b|litening/i
 
@@ -142,6 +193,7 @@ function classifyBikeCategory(frame: BikeFrame): BikeCategory {
 
   if (HANDBIKE_RE.test(name)) return 'handbike'
   if (frame.isTT || TT_NAME_RE.test(name)) return 'tt'
+  if (ROAD_HALO_FRAMES.has(name)) return 'standard'
   if (FUNBIKE_RE.test(name)) return 'funbike'
   if (GRAVEL_RE.test(name)) return 'gravel'
   return 'standard'
