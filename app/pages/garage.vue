@@ -15,6 +15,14 @@ onMounted(() => {
   load()
 })
 
+// Everything on this page renders from localStorage, so a crawler only ever
+// sees an empty shell - thin content with nothing to rank for. Keep it out
+// of the index, but still follow its links out. `useRobotsRule` (from
+// @nuxtjs/robots) rather than `useSeoMeta`, so this owns the single robots
+// meta tag the module manages instead of racing it, and sets the matching
+// X-Robots-Tag header too.
+useRobotsRule('noindex, follow')
+
 const search = ref('')
 const searchDebounced = ref('')
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined

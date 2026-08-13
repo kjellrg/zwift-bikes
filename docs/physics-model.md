@@ -26,7 +26,7 @@ This is the part that matters most for trustworthiness — every number is eithe
 | **zwiftmap's surface map data** (community project, MIT-licensed) | zwiftmap provides polygon maps of which areas of each Zwift world are gravel, cobbles, dirt, grass, wood, or snow (described by this app's own third-party notices as "hand-mapped," though that's not something independently verified against zwiftmap's own methodology). Overlaying a route's real GPS trace onto these maps gives the route's real, exact surface composition — precisely where it changes from tarmac to gravel and back, not just an overall percentage. |
 | **A published sports-science formula** (Faria et al., 2005) | Estimates a rider's own frontal area (and therefore air drag) from their height and weight — the same formula used by comparable Zwift tools. |
 
-When real test data exists for a bike or wheel, it's labelled **"measured."** When it doesn't yet exist, the app falls back to a reasonable estimate (based on the bike's real-world reputation, or the wheel's rim depth) and labels it **"estimated."** This distinction is visible in the app so nobody mistakes a guess for a fact.
+When real test data exists for a bike or wheel, it's badged **"verified"** in the app. When it doesn't yet exist, the app falls back to a reasonable estimate (based on the bike's real-world reputation, or the wheel's rim depth) and badges it **"estimated."** This distinction is visible on every result card so nobody mistakes a guess for a fact.
 
 ## How the calculation actually works
 
@@ -102,7 +102,7 @@ Zwift regularly releases new bikes and wheels. When that happens:
 
 1. The new item shows up in the app automatically. An automated bot watches for new versions of the data catalog and opens a pull request as soon as one is published; once that pull request is merged, the app's existing build pipeline automatically rebuilds and redeploys the live site — no manual deployment step needed beyond reviewing and merging that update.
 2. Until real speed-test data exists for it, it's scored using a reasonable estimate (based on its real-world category — aero, climbing, endurance, etc.) and clearly marked **"estimated."**
-3. Once ZwiftInsider — the independent site that runs these bot tests — publishes real numbers for it, that data gets added to the app's reference tables by hand, and the item then upgrades to **"measured"** the next time the site rebuilds — with no other changes needed anywhere else in the app.
+3. Once ZwiftInsider — the independent site that runs these bot tests — publishes real numbers for it, that data gets added to the app's reference tables by hand, and the item then upgrades to **"verified"** the next time the site rebuilds — with no other changes needed anywhere else in the app.
 
 So the app never blocks on new gear appearing, and its accuracy for that gear improves the moment real data becomes available, without a redesign.
 
