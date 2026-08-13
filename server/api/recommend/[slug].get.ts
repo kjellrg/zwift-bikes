@@ -1,6 +1,6 @@
 import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
 import { getWheelsets } from '../../../shared/utils/wheelsets'
-import { capWheelsetsPerFrame, rankCombos } from '../../../shared/utils/scoring'
+import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
 import { geometryForRouteLaps, simulateRoute } from '../../../shared/utils/physics'
@@ -106,9 +106,10 @@ export default defineEventHandler((event) => {
 
   // `capWheelsetsPerFrame` must never run before `search` gets to look at
   // the full pool - see its doc comment - so it's skipped entirely while
-  // searching, in favor of showing every real match.
+  // searching, in favor of showing every real match, ordered frame-name
+  // matches first (see `searchCombos`).
   const filteredRankedCombos = search
-    ? orderedCombos.filter(c => c.frame.name.toLowerCase().includes(search) || c.wheelset?.name.toLowerCase().includes(search))
+    ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score)
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
