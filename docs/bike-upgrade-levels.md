@@ -79,6 +79,126 @@ not an efficiency change.
 > few road frames) there are no per-stage numbers to apply, so level has no
 > effect and the UI says so rather than showing a control that does nothing.
 
+## Where the numbers come from: two ZwiftInsider sources
+
+The upgrade charts did not replace the pacing-bot speed tests. Both are used,
+for different jobs, and the bot tests remain the authority.
+
+| Source | What it provides | Granularity | Role |
+|---|---|---|---|
+| [Pacing bot speed tests](https://zwiftinsider.com/charts-frames/) → `frameSpeedData.ts` | Stage 0 and Stage 5 | **per frame** | The **anchors**. Sets each frame's absolute performance and everything the physics solver derives from it. |
+| [Upgrade charts](https://zwiftinsider.com/upgrade-charts/) → `frameUpgradeSchemes.ts` | All 5 stages | **per scheme** (9 curves) | The **shape** between those anchors, as a dimensionless ratio. |
+
+Which one decides the answer depends on the level:
+
+| Level | Bot test | Chart |
+|---|---|---|
+| 0 | **is** the answer (fraction 0) | contributes nothing |
+| 1–4 | sets the range | picks the position within it |
+| 5 | **is** the answer (fraction 1) | contributes nothing |
+
+That property is worth knowing when reviewing a change here: any edit that only
+touches intermediate stages **must** leave levels 0 and 5 bit-identical. It's
+the cheapest available regression check, and
+[`compare-deployments.mjs`](../scripts/upgrade-levels/compare-deployments.mjs)
+exists partly to run it.
+
+### Do the two sources agree?
+
+Each scheme's chart total should equal the measured Stage 0 → 5 gain of the
+frames using it. Signed difference (chart minus bot test; positive means the
+chart claims more gain than the bot found):
+
+| Scheme | Frames | Flat bias | Climb bias |
+|---|---|---|---|
+| distance-entry | 12 | +0.50 | −0.10 |
+| distance-mid | 34 | +0.60 | +0.40 |
+| distance-high | 44 | −0.30 | +0.70 |
+| duration-entry | 1 | +2.30 | +0.20 |
+| duration-mid | 5 | +2.10 | −0.90 |
+| duration-high | 18 | +2.20 | −0.50 |
+| elevation-entry | 1 | +0.30 | −0.30 |
+| elevation-mid | 2 | +2.40 | +0.60 |
+| elevation-high | 2 | +0.50 | +0.90 |
+| **all 119** | | **median +0.50** | **median +0.20** |
+
+Comfortably inside ZwiftInsider's own stated tolerance ("accurate within 1-2
+seconds"). There is a mild systematic bias — the charts read ~2.1–2.4 s/hr high
+on the flat for three schemes, plausibly because each chart comes from a single
+representative frame rather than a scheme average — but it cancels out, because
+a constant offset present in both `curve[level]` and `curve[5]` disappears in
+the division.
+
+This comparison is also what proves the two sources share a **unit basis**.
+Both are "seconds saved across 1 hour at 300 W" on the same two courses. If one
+were per-course instead, the Alpe (~50 min) and Tempus Fugit (~27 min) would
+produce 20–120% offsets, not sub-1 s/hr noise.
+
+**When they conflict, the per-frame measurement wins.** The Liv Langma example
+above is the extreme case: its own 41.3 s/hr is used, not its scheme's 49.3.
+
+### An internal consistency check that catches typos
+
+Stage 1 is an aero upgrade in all nine schemes, so seconds-saved per
+watt-saved should be roughly constant across them. It is:
+
+| Scheme | Stage-1 flat | Watts | s/W |
+|---|---|---|---|
+| distance-entry | 14.8 s | 3.3 W | 4.48 |
+| distance-mid | 11.5 s | 2.6 W | 4.42 |
+| distance-high | 11.6 s | 2.6 W | 4.46 |
+| duration-entry | 34.0 s | 7.7 W | 4.42 |
+| duration-mid | 8.7 s | 2.0 W | 4.35 |
+| duration-high | 9.1 s | 2.1 W | 4.33 |
+| elevation-entry | 7.4 s | 1.7 W | 4.35 |
+| elevation-mid | 4.9 s | 1.1 W | 4.45 |
+| elevation-high | 5.8 s | 1.3 W | 4.46 |
+
+A 1.03x spread across nine independently-read chart pairs. This is a genuinely
+useful guard: transcribing `elevation-high` stage 1 as 5.2 instead of 5.8 (an
+easy misread, and a mistake that was actually made once) drops its ratio to
+4.00 and widens the spread to 1.12x.
+[`verify-upgrade-data.mjs`](../scripts/upgrade-levels/verify-upgrade-data.mjs)
+fails the build on anything past 1.10x.
+
+### Counterintuitive but correct: less power saved on the climbs
+
+ZwiftInsider's power charts show something that looks backwards. For a
+`distance-entry` frame at stage 3, the upgrade saves **36.2 s/hr on the climb
+but only 27.8 s/hr on the flat** — yet the power saving is **3.3 W on the climb
+versus 6.3 W on the flat**. More time saved, less power saved.
+
+That's real, and it's their explanation: *"Power changes have a larger impact
+on speed when climbing than on flats."* On a climb you're fighting gravity, so
+speed is roughly linear in power and a small wattage saving buys a lot of time.
+On the flat you're fighting air, where speed scales with roughly the cube root
+of power, so it takes far more watts to buy the same time.
+
+This is also exactly the reasoning that identified the stage-3 "drivetrain"
+upgrade as a rolling-resistance change rather than an efficiency one — see
+[physics-pipeline.md](./physics-pipeline.md#upgrade-stages-feed-the-solve).
+
+### How the roster is distributed
+
+Not every scheme matters equally. Of the 119 frames with measured data:
+
+| Scheme | Frames | Share |
+|---|---|---|
+| distance-high | 44 | 37% |
+| distance-mid | 34 | 29% |
+| duration-high | 18 | 15% |
+| distance-entry | 12 | 10% |
+| duration-mid | 5 | 4% |
+| elevation-mid / elevation-high | 2 each | 2% each |
+| elevation-entry / duration-entry | 1 each | 1% each |
+
+Three-quarters of the roster is distance-based, which is why the
+`distance-high` and `distance-mid` curves do most of the work. The
+`elevation-*` and `duration-entry` schemes are represented by one or two frames
+each, so their curves rest on the thinnest evidence — worth remembering before
+trusting a mid-level number for, say, the Zwift TT or Trek Emonda SL to the
+nearest second.
+
 ## Worked example: TT frames
 
 **Canyon Speedmax CFR** and **Cadex Tri** are both `Duration, High-End`, so
@@ -269,4 +389,6 @@ it's the reason mid-level comparisons need the real curves.
 - All frames in a scheme are assumed to share one curve. That's ZwiftInsider's
   own assumption ("essentially the same for bikes within a scheme"), and it's
   the largest remaining uncertainty in this model. Only per-frame bot tests at
-  stages 1–4 would remove it.
+  stages 1–4 would remove it. It bites hardest on the schemes with only one or
+  two frames behind them — see
+  [how the roster is distributed](#how-the-roster-is-distributed).
