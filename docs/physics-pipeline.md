@@ -26,7 +26,7 @@ flowchart TD
         direction TB
         ROUTE["catalog.ts + routeTerrain.ts<br/>route, climb ratio, surface"]
         EQUIP["classifyBikeFrame.ts<br/>classifyWheel.ts<br/>scores + confidence"]
-        FILTER["Filter: variants, category,<br/>ownership, verifiedOnly"]
+        FILTER["Filter: variants, category,<br/>ownership, verifiedOnly, excludeTT"]
         ROUTE --> EQUIP --> FILTER
     end
 
@@ -72,6 +72,16 @@ flowchart TD
 Stage 4 only runs when the rider profile is complete and the `physics` mode is
 `dynamic` (the default); without a profile the pipeline stops after stage 3 and
 the 0-100 score is the only signal there is.
+
+Stage 1's filters are all "may this combo be shown", never "is it any good" —
+which is why `excludeTT` lives there rather than being expressed through
+`category`. Zwift disables TT frames outright for ZRL points and scratch races,
+so an event page for one of those has to rank only what a rider can legally
+start on; `category` can't say that, because it selects exactly one category
+and such a race still allows road *and* gravel frames. Being a stage 1 filter
+also means it shrinks the pool before `rankCombos` sees it, which is safe in a
+way that trimming later would not be — an excluded frame is ineligible, not
+merely uninteresting.
 
 Three ordering rules are load-bearing in that diagram, and each one exists
 because breaking it shipped a real bug:
