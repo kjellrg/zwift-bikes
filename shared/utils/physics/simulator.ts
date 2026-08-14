@@ -79,8 +79,20 @@ function crossBoundaries(
   return boundaryIndex
 }
 
+/**
+ * Integration step, in seconds. Benchmarked against the recommend endpoint
+ * (9-combo page) rather than the simulator alone: with the midpoint step
+ * below, 0.1s leaves ~0.2s of absolute error and ~0.05s of error in the gaps
+ * BETWEEN combos - the number the results list actually shows - for ~250ms
+ * of page simulation on the longest route (Gran Fondo, 97.5km). Halving it
+ * again roughly doubles that cost for far less than half the residual error,
+ * which is dominated by how finely the elevation profile is sampled rather
+ * than by the time step.
+ */
+const DEFAULT_DT_SEC = 0.1
+
 export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationResult {
-  const dt = options.dtSec ?? 0.25
+  const dt = options.dtSec ?? DEFAULT_DT_SEC
   if (dt <= 0) throw new Error('dtSec must be positive')
   if (options.geometry.points.length < 2) throw new Error('Route geometry requires at least two points')
 
@@ -96,21 +108,51 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   const boundaryCrossings: { distanceM: number, elapsedSec: number }[] = []
   let boundaryIndex = 0
 
-  const maxSteps = 2_000_000
+  // Guard against a simulation that never reaches the finish line. It has to
+  // scale with the route AND with `dt`, or a smaller `dt` silently truncates
+  // a long route and returns a plausible-looking wrong time instead of an
+  // error. The budget is the steps needed to cover the route at 0.1 m/s -
+  // slow enough that even an absurdly underpowered rider grinding up the
+  // Alpe still finishes, since a rider who genuinely stops instead exits via
+  // the `distanceAdvanced <= 0` break below. Exceeding it means the
+  // simulation is not converging, so fail loudly rather than returning a
+  // partial result.
+  const maxSteps = Math.ceil(options.geometry.totalDistanceM / (0.1 * dt)) + 1000
   let steps = 0
-  while (state.distanceM < options.geometry.totalDistanceM && steps++ < maxSteps) {
+  while (state.distanceM < options.geometry.totalDistanceM) {
+    if (steps++ >= maxSteps) {
+      throw new Error(`Route simulation did not finish within ${maxSteps} steps (dtSec=${dt}, route ${options.geometry.totalDistanceM}m) - reached ${state.distanceM.toFixed(1)}m in ${state.elapsedSec.toFixed(1)}s`)
+    }
     const segment = gradeSegmentAt(options.geometry, state.distanceM)
     if (!segment) break
     const surface = surfaceAt(options.geometry.surfaceSegments, state.distanceM)
     const forces = calculateForces(state.velocityMps, segment.grade, options.rider, physicsEquipment, surface, crrClass)
     const previousDistance = state.distanceM
     const previousElapsedSec = state.elapsedSec
-    state.velocityMps = Math.max(0, state.velocityMps + forces.accelerationMps2 * dt)
-    state.distanceM += state.velocityMps * dt
-    if (state.distanceM > options.geometry.totalDistanceM) state.distanceM = options.geometry.totalDistanceM
-    const distanceAdvanced = state.distanceM - previousDistance
+    // Midpoint (RK2) velocity step: acceleration is evaluated again at the
+    // half-step velocity rather than only at the start of the step. Plain
+    // forward Euler overshoots badly while the rider is still accelerating
+    // away from a standing start - drag grows with v^2, so holding the
+    // start-of-step acceleration for the whole step credits speed the rider
+    // never had. That overshoot cost a near-constant ~5.8s per route
+    // regardless of length (it's a start-transient error, not a distributed
+    // one); the midpoint step brings it to ~0.2s for one extra force
+    // evaluation. Distance advances at the midpoint velocity to match.
+    const previousVelocityMps = state.velocityMps
+    const midVelocityMps = Math.max(0, previousVelocityMps + forces.accelerationMps2 * dt / 2)
+    const midForces = calculateForces(midVelocityMps, segment.grade, options.rider, physicsEquipment, surface, crrClass)
+    state.velocityMps = Math.max(0, previousVelocityMps + midForces.accelerationMps2 * dt)
+    // On the step that crosses the finish line the rider only rides part of
+    // `dt` before finishing, so the clock advances by only that fraction -
+    // charging the full `dt` quantises every finish time up to the next `dt`
+    // boundary, which is the same order as the sub-second gaps between combos.
+    const remainingM = options.geometry.totalDistanceM - previousDistance
+    const stepDistanceM = midVelocityMps * dt
+    const stepSec = stepDistanceM > remainingM ? dt * (remainingM / stepDistanceM) : dt
+    const distanceAdvanced = Math.min(stepDistanceM, remainingM)
+    state.distanceM = previousDistance + distanceAdvanced
     state.elevationM += segment.grade * distanceAdvanced
-    state.elapsedSec += dt
+    state.elapsedSec += stepSec
     boundaryIndex = crossBoundaries(options.boundariesM, boundaryIndex, boundaryCrossings, previousDistance, previousElapsedSec, state.distanceM, state.elapsedSec)
 
     if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM) {

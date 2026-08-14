@@ -4,7 +4,7 @@ import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
-import { geometryForSegment, geometryForWarmup, prependWarmup, simulateRoute } from '../../../../shared/utils/physics'
+import { geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
 
@@ -88,6 +88,24 @@ export default defineEventHandler((event) => {
   // outside `score`'s view of "the best candidates" and never surface.
   const rankedCombos = rankCombos(segmentRoute, frames, wheelsets, frames.length * wheelsets.length)
 
+  const rider = { weightKg, heightCm, powerW: weightKg * wkg }
+  const segmentGeometry = hasRiderProfile && physicsMode !== 'legacy'
+    ? geometryForSegment(
+        segmentRoute.slug,
+        segmentRoute.distance,
+        segmentRoute.elevation,
+        sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')
+      )
+    : undefined
+  const warmedGeometry = segmentGeometry ? prependWarmup(segmentGeometry, WARMUP_DISTANCE_M) : undefined
+  const warmupOnlyGeometry = segmentGeometry ? geometryForWarmup(WARMUP_DISTANCE_M) : undefined
+
+  // Both sims must share the same time step for this subtraction to cancel
+  // cleanly - they use the simulator's default (see `DEFAULT_DT_SEC`).
+  const simulateSegmentSec = (combo: typeof rankedCombos[number]) =>
+    simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry! }).elapsedSec
+    - simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry! }).elapsedSec
+
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
@@ -98,23 +116,23 @@ export default defineEventHandler((event) => {
   // See the equivalent comment in `recommend/[slug].get.ts` - capping is
   // skipped entirely while searching, and matches are ordered frame-name
   // matches first (see `searchCombos`).
-  const filteredRankedCombos = search
+  let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score)
+
+  // See the equivalent comment in `recommend/[slug].get.ts` - the reachable
+  // window is re-ordered by real simulated time before pagination, because
+  // that's the signal this endpoint displays; paginating the cheap estimate's
+  // order instead let a combo the simulator ranks higher fall off the page.
+  const simulatedSec = new Map<typeof orderedCombos[number], number>()
+  if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic') {
+    const ordering = orderBySimulatedTime(filteredRankedCombos, offset + limit + SIMULATED_ORDER_MARGIN, simulateSegmentSec)
+    filteredRankedCombos = ordering.ordered
+    for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
+  }
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
   if (hasRiderProfile) {
-    const segmentGeometry = physicsMode === 'legacy'
-      ? undefined
-      : geometryForSegment(
-          segmentRoute.slug,
-          segmentRoute.distance,
-          segmentRoute.elevation,
-          sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')
-        )
-    const warmedGeometry = segmentGeometry ? prependWarmup(segmentGeometry, WARMUP_DISTANCE_M) : undefined
-    const warmupOnlyGeometry = segmentGeometry ? geometryForWarmup(WARMUP_DISTANCE_M) : undefined
-
     for (const combo of pageCombos) {
       // Already computed in the full-pool ranking pass above.
       const legacyFinishTimeSec = combo.finishTimeSec!
@@ -122,10 +140,7 @@ export default defineEventHandler((event) => {
       if (physicsMode === 'legacy' || !warmedGeometry || !warmupOnlyGeometry) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
-        const rider = { weightKg, heightCm, powerW: weightKg * wkg }
-        const warmupOnly = simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry, dtSec: 0.25 })
-        const warmedSegment = simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry, dtSec: 0.25 })
-        combo.finishTimeSec = warmedSegment.elapsedSec - warmupOnly.elapsedSec
+        combo.finishTimeSec = simulatedSec.get(combo) ?? simulateSegmentSec(combo)
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }

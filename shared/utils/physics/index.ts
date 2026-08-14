@@ -2,4 +2,6 @@ export { calculateForces, rollingResistanceCoefficient, GRAVITY, AIR_DENSITY, DR
 export { bikeMassFromScore, equipmentCdaFromScore, equipmentPhysics, riderCdaM2, riderScaledCdaM2, solveFrameEquipmentDelta, solveWheelEquipmentDelta, standardEquivalentClimbScore } from './equipment'
 export { geometryFromRoute, simulateRoute } from './simulator'
 export { geometryForRouteLaps, geometryForSegment, geometryForWarmup, prependWarmup } from './routeGeometry'
+export { orderBySimulatedTime, SIMULATED_ORDER_MARGIN } from './simulatedOrdering'
 export type { SimulateRouteOptions } from './simulator'
+export type { OrderableCombo } from './simulatedOrdering'

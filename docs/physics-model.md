@@ -42,20 +42,26 @@ The bike frame and wheels affect this tug-of-war in two ways: they add **weight*
 
 The app actually runs this calculation two different ways, depending on the situation:
 
-- **A quick estimate**, used to instantly rank dozens of combos against each other. It treats the whole route as one average slope, so it's fast but approximate.
-- **A full simulation**, used for the detailed result page. It walks through the route in tiny slices (every quarter-second), looking up the *real* gradient and *real* surface at that exact point, so climbs, descents, and surface changes are all accounted for individually rather than averaged away.
+- **A quick estimate**, used to sort thousands of combos into roughly the right order in a few milliseconds. It treats the whole route as one average slope, so it's fast but approximate.
+- **A full simulation**, used for every time actually shown to a rider. It walks through the route in tiny slices (every tenth of a second), looking up the *real* gradient and *real* surface at that exact point, so climbs, descents, and surface changes are all accounted for individually rather than averaged away.
 
-Both use the exact same underlying force calculation, so they never disagree about which combo is faster — one is just a cheaper approximation of the other.
+Both use the exact same underlying force calculation, but that does **not** make them interchangeable, and it's worth being precise about why. Treating a route as one average slope means charging a rider for climbing every metre of it while never handing back the speed of the descent on the other side — so the quick estimate overstates how much a heavy bike costs. Put a heavy-but-very-slippery time trial bike next to a light one and the two methods can genuinely disagree about which is faster.
+
+That's why the quick estimate is only ever used to *narrow the field*. Before any results are shown, the app really simulates the whole stretch of the ranking a rider can reach — the page in front of them plus a healthy margin beyond it — and re-sorts that by real simulated time. Otherwise a combo the simulation ranks near the top could sit just outside the first page, and turn up later under "Show more matches" faster than bikes listed above it.
 
 ### Acceleration, not just steady speeds
 
 Real riding isn't one constant speed — you slow down grinding up a steepening gradient and speed back up on the way down, and it takes a moment to get back up to speed after a corner or a change in slope. The full simulation models this directly: at each tiny time-step it works out the *net* force (pedalling power minus gravity, air drag and rolling resistance) and uses that to work out how much the rider is speeding up or slowing down right now, before moving on to the next slice of road. A route with several short, punchy ramps is treated differently from one long steady gradient with the same total elevation gain — even though both would look identical to the quick estimate.
 
+Getting this right takes a little care in *how* each step is taken, not just how small it is. Air drag grows with the square of speed, so a rider accelerating hard away from a standing start is slowing their own acceleration from one instant to the next. Reading the acceleration once at the start of a step and applying it for the whole step therefore credits the rider with speed they never actually had. The simulation instead re-reads the acceleration halfway through each step and uses that, which removes almost all of the error — worth about six seconds per route before the correction, on every route regardless of its length, because the mistake is concentrated in those first seconds of getting up to speed.
+
 The quick estimate skips this — it assumes the rider is already at one steady, unchanging speed for the whole ride, which is exactly why it's only used for fast ranking, never for the detailed result.
 
 ### How often the terrain is checked
 
-The full simulation re-checks the current gradient and surface every quarter of a second of simulated riding time — many times over even a short climb — so speed changes track the real shape of the road closely, rather than being averaged into one number for the whole route.
+The full simulation re-checks the current gradient and surface every tenth of a second of simulated riding time — many times over even a short climb — so speed changes track the real shape of the road closely, rather than being averaged into one number for the whole route.
+
+That interval is a deliberate trade, measured rather than guessed: a coarser step is faster to compute but drifts away from the true answer, and a finer one costs more time than the extra precision is worth. A tenth of a second lands within about a fifth of a second of the fully-converged answer, and — more importantly, since what riders actually read is the *gap* between two bikes — within a few hundredths of a second on those gaps for typical routes. The simulation also stops the clock at the exact moment the rider crosses the finish line rather than at the end of the step they cross it in; without that, every finish time would round up to the next step boundary, which alone was enough noise to swamp the sub-second gaps between closely-matched combos.
 
 The gradient and surface data itself isn't evenly sampled every few metres, though. Long, straight, flat stretches are deliberately reduced to just a couple of points (there's nothing changing to record), while every real climb, descent, and rolling section keeps its full detail — the model interpolates smoothly between whichever points exist. Surface changes (say, where tarmac turns to gravel) are recorded at their exact real position, so rolling resistance switches right at that point rather than at some rounded-off marker.
 
