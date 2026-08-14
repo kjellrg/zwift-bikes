@@ -3,7 +3,7 @@ import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { geometryForRouteLaps, simulateRoute } from '../../../shared/utils/physics'
+import { geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
@@ -97,6 +97,8 @@ export default defineEventHandler((event) => {
   // FULL pool by the cheap estimate up front - before search/pagination -
   // fixes that at the source instead of only patching what a page happens
   // to already contain.
+  const rider = { weightKg, heightCm, powerW: weightKg * wkg }
+  const geometry = hasRiderProfile && physicsMode !== 'legacy' ? geometryForRouteLaps(route, laps) : undefined
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
@@ -108,13 +110,34 @@ export default defineEventHandler((event) => {
   // the full pool - see its doc comment - so it's skipped entirely while
   // searching, in favor of showing every real match, ordered frame-name
   // matches first (see `searchCombos`).
-  const filteredRankedCombos = search
+  let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score)
+
+  // The cheap estimate got the pool into roughly the right order, but it is
+  // NOT the signal this endpoint displays: in `dynamic` mode every time a
+  // rider sees comes from `simulateRoute`, and the two models disagree about
+  // more than a constant offset (see `orderBySimulatedTime`). Paginating the
+  // estimate's order while displaying simulated times let a combo the
+  // simulator ranks 2nd sit on page two, turning up under "Show more matches"
+  // faster than bikes listed above it. So the window a rider can actually
+  // reach is re-ordered by real simulated time before it is paginated - and
+  // the page's own simulations come out of that same pass. `compare` mode
+  // keeps the estimate's ordering, since showing where the two models differ
+  // is its whole purpose.
+  const simulatedSec = new Map<typeof orderedCombos[number], number>()
+  if (geometry && physicsMode === 'dynamic') {
+    const ordering = orderBySimulatedTime(
+      filteredRankedCombos,
+      offset + limit + SIMULATED_ORDER_MARGIN,
+      combo => simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry }).elapsedSec
+    )
+    filteredRankedCombos = ordering.ordered
+    for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
+  }
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
   if (hasRiderProfile) {
-    const geometry = physicsMode === 'legacy' ? undefined : geometryForRouteLaps(route, laps)
     for (const combo of pageCombos) {
       // Already computed in the full-pool ranking pass above - reuse it
       // instead of recalculating the same closed-form estimate twice.
@@ -123,14 +146,8 @@ export default defineEventHandler((event) => {
       if (physicsMode === 'legacy' || !geometry) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
-        const simulation = simulateRoute({
-          rider: { weightKg, heightCm, powerW: weightKg * wkg },
-          frame: combo.frame,
-          wheelset: combo.wheelset,
-          geometry,
-          dtSec: 0.25
-        })
-        combo.finishTimeSec = simulation.elapsedSec
+        combo.finishTimeSec = simulatedSec.get(combo)
+          ?? simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry }).elapsedSec
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
