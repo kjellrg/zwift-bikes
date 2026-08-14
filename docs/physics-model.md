@@ -78,6 +78,8 @@ Each stage also upgrades a specific thing — aerodynamics, weight, or the drive
 
 Only frames with real bot-test data can be modelled this way. For frames ZwiftInsider hasn't tested (most gravel bikes, novelty bikes, and a handful of road frames), there are no per-stage numbers to apply, so the app says so plainly rather than showing a level control that quietly does nothing.
 
+For the full breakdown — worked examples with real bikes, why a time trial frame's final stage is worth more than its previous four combined, and the handful of routes where that stops being true — see [bike-upgrade-levels.md](bike-upgrade-levels.md).
+
 ## Diagram
 
 ```mermaid

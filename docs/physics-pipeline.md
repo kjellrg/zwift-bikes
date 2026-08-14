@@ -228,6 +228,11 @@ still reproduces both endpoints — but it stops a grade-independent effect from
 being laundered into two grade-dependent ones, which is what made it transfer
 incorrectly to routes with different gradients and surfaces.
 
+For the per-scheme curves themselves, worked examples, and the diagnostic
+scripts that verify this data, see
+[bike-upgrade-levels.md](bike-upgrade-levels.md) and
+[scripts/upgrade-levels/](../scripts/upgrade-levels/).
+
 ## 5. Where the data comes from, and when
 
 Only the right-hand column runs per request. Everything on the left is
