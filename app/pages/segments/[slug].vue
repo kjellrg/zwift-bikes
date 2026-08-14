@@ -21,14 +21,12 @@ useSeoMeta({
 })
 
 const { owned, ownedWheels, load: loadGarage } = useGarage()
-const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile()
-const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences()
+const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile } = useRiderProfile()
+const { verifiedOnly, myBikesOnly, load: loadPreferences } = usePreferences()
 onMounted(() => {
   loadGarage()
   loadRiderProfile()
   loadPreferences()
-  draftHeightCm.value = heightCm.value
-  draftWkg.value = wkg.value
 })
 
 const bikeSearch = ref('')
@@ -37,13 +35,6 @@ let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(bikeSearch, (value) => { clearTimeout(bikeSearchDebounceTimer); bikeSearchDebounceTimer = setTimeout(() => { bikeSearchDebounced.value = value }, 300) })
 const categoryFilter = ref<BikeCategory | 'all'>('all')
 const pageSize = 9
-
-const draftHeightCm = ref(heightCm.value)
-const draftWkg = ref(wkg.value)
-const commitHeight = () => setHeightCm(draftHeightCm.value)
-const commitWkg = () => setWkg(draftWkg.value)
-watch(heightCm, (value) => { draftHeightCm.value = value })
-watch(wkg, (value) => { draftWkg.value = value })
 
 // A ranking is always a single pass over the segment - there's no fatigue
 // model, so which lap a `perLap` segment falls on doesn't change its
@@ -103,11 +94,6 @@ watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, categoryFilter, bikeS
 watch(owned, () => { refreshFirstPage() }, { deep: true })
 watch(ownedWheels, () => { refreshFirstPage() }, { deep: true })
 
-const categoryOptions: { label: string, value: BikeCategory | 'all' }[] = [
-  { label: 'All categories', value: 'all' }, { label: BIKE_CATEGORY_LABELS.standard, value: 'standard' },
-  { label: BIKE_CATEGORY_LABELS.tt, value: 'tt' }, { label: BIKE_CATEGORY_LABELS.gravel, value: 'gravel' },
-  { label: BIKE_CATEGORY_LABELS.funbike, value: 'funbike' }, { label: BIKE_CATEGORY_LABELS.handbike, value: 'handbike' }
-]
 const combos = computed(() => loadedCombos.value)
 const topCombo = computed(() => combos.value[0])
 const restCombos = computed(() => combos.value.slice(1))
@@ -281,80 +267,12 @@ const segmentAsRoute = computed(() => segmentData.value
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this segment
       </h2>
-      <div class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4 mb-6">
-        <div class="min-w-48">
-          <label class="block text-xs font-medium text-muted mb-1">Bike category</label><USelectMenu
-            v-model="categoryFilter"
-            value-key="value"
-            :items="categoryOptions"
-            :search-input="false"
-            class="w-52"
-          />
-        </div>
-        <div class="min-w-56 flex-1">
-          <label class="block text-xs font-medium text-muted mb-1">Search bikes or wheels</label><UInput
-            v-model="bikeSearch"
-            icon="i-lucide-search"
-            placeholder="e.g. Tarmac, Aethos, Zipp, DICUT..."
-          />
-        </div>
-        <div class="flex items-center gap-2">
-          <USwitch
-            :model-value="verifiedOnly"
-            @update:model-value="(value: boolean) => setVerifiedOnly(value)"
-          /><span class="text-sm">Only show verified frames/wheels</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <USwitch
-            :model-value="myBikesOnly"
-            @update:model-value="(value: boolean) => setMyBikesOnly(value)"
-          /><span class="text-sm">Only show items in my garage</span><ULink
-            to="/garage"
-            class="text-sm text-primary underline"
-          >(edit garage)</ULink>
-        </div>
-      </div>
+      <BikeFilterControls
+        v-model:category="categoryFilter"
+        v-model:search="bikeSearch"
+      />
 
-      <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">
-        <div class="w-40">
-          <label class="block text-xs font-medium text-muted mb-1">Rider weight (kg)</label><UInput
-            :model-value="weightKg"
-            type="number"
-            min="30"
-            max="150"
-            step="1"
-            @update:model-value="(value: string | number) => setWeightKg(Number(value))"
-          />
-        </div>
-        <div class="w-full sm:w-56">
-          <label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm }} cm</label><input
-            v-model.number="draftHeightCm"
-            type="range"
-            min="100"
-            max="220"
-            step="1"
-            class="w-full cursor-pointer"
-            aria-label="Rider height"
-            @change="commitHeight"
-          >
-        </div>
-        <div class="min-w-64 flex-1">
-          <label class="block text-xs font-medium text-muted mb-1">Power: {{ draftWkg.toFixed(1) }} W/kg ({{ Math.round(draftWkg * weightKg) }} W)</label><input
-            v-model.number="draftWkg"
-            type="range"
-            min="1"
-            max="6.9"
-            step="0.1"
-            class="w-full cursor-pointer"
-            aria-label="Rider power in watts per kilogram"
-            @change="commitWkg"
-          >
-        </div>
-        <ULink
-          to="/profile"
-          class="text-sm text-primary underline self-center"
-        >(edit profile)</ULink>
-      </div>
+      <RiderProfileControls />
 
       <div
         v-if="isFirstLoad"

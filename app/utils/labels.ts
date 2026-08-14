@@ -1,4 +1,5 @@
 import type { BikeCategory, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import type { RaceFormat } from '../../shared/types/events'
 
 export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
   standard: 'Standard (Road)',
@@ -173,4 +174,44 @@ export function formatSpeedKmh(distanceKm: number, seconds: number): string {
   if (seconds <= 0) return '-'
   const kmh = distanceKm / (seconds / 3600)
   return `${kmh.toFixed(1)} km/h`
+}
+
+export const RACE_FORMAT_LABELS: Record<RaceFormat, string> = {
+  ttt: 'Team time trial',
+  points: 'Points race',
+  scratch: 'Scratch race'
+}
+
+export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warning'> = {
+  ttt: 'warning',
+  points: 'info',
+  scratch: 'primary'
+}
+
+/**
+ * Race day, e.g. `Tuesday 22 September 2026`.
+ *
+ * Locale and time zone are pinned rather than left to the runtime: these
+ * pages are prerendered, so a build machine formatting in one locale and a
+ * browser formatting in another produces a hydration mismatch. UTC also
+ * keeps the ISO date in the calendar data from sliding a day either way.
+ */
+export function formatRaceDate(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  })
+}
+
+/** Compact race day for dense listings, e.g. `Tue 22 Sep`. */
+export function formatRaceDateShort(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC'
+  })
 }

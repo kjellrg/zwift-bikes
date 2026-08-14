@@ -28,6 +28,12 @@ export default defineEventHandler((event) => {
   const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
   const verifiedOnly = query.verifiedOnly === 'true'
   const ownedOnly = query.ownedOnly === 'true'
+  // Zwift disables TT frames outright for ZRL points and scratch races (they
+  // are only legal, and only draft, in a team time trial), so an event page
+  // for one of those has to rank the bikes a rider can actually start on.
+  // `category` can't express this: it selects exactly one category, and a
+  // points race still allows road *and* gravel frames.
+  const excludeTT = query.excludeTT === 'true'
   const ownedLevels = parseOwnedLevels(query.owned)
   const ownedWheelKeys = parseOwnedWheelKeys(query.ownedWheels)
   // "Only show my garage items" only makes sense once the rider has actually
@@ -55,6 +61,7 @@ export default defineEventHandler((event) => {
     // only when it's explicitly in the rider's garage.
     if (isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
     if (category && frame.category !== category) return false
+    if (excludeTT && frame.category === 'tt') return false
     if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
     return true
   }).map((frame) => {

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && node scripts/trim-swa-config.mjs",
+    "build": "node scripts/validate-events.mjs && nuxt build && node scripts/trim-swa-config.mjs",
+    "validate:events": "node scripts/validate-events.mjs",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",

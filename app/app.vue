@@ -42,6 +42,12 @@ const siteConfig = useSiteConfig();
 // Any page needing a different canonical can still override it with its own
 // `link: [{ rel: 'canonical' }]` - unhead dedupes by rel.
 const currentRoute = useRoute();
+
+// Whether the header's "Events" item should read as the current section. The
+// event calendar is three levels deep (/events -> season -> race), and the
+// link's own active matching is exact, so without this it only highlights on
+// the hub itself.
+const isEventsSection = computed(() => currentRoute.path.startsWith("/events"));
 const canonicalUrl = computed(() => {
   const path = currentRoute.path.replace(/\/+$/, "");
   return `${siteConfig.url.replace(/\/+$/, "")}${path || "/"}`;
@@ -80,9 +86,39 @@ useHead({
 
     <UHeader>
       <template #left>
-        <NuxtLink to="/">
-          <AppLogo />
-        </NuxtLink>
+        <div class="flex items-center gap-2 sm:gap-4">
+          <NuxtLink to="/">
+            <AppLogo />
+          </NuxtLink>
+
+          <!--
+            Primary content navigation, so it sits with the brand rather than
+            in the right-hand cluster - everything over there (profile,
+            garage, about, source) is a personal or meta destination, and a
+            race calendar listed among them reads as another setting.
+
+            Deliberately not duplicated into the mobile `#body` menu the way
+            those are: it's visible at every breakpoint, so it needs no
+            hamburger fallback. `shrink-0` makes the logo's text absorb the
+            squeeze on narrow screens instead of this wrapping.
+
+            `active` is driven off the path rather than left to the link's
+            own matching, which only lights up on /events itself - leaving a
+            rider three levels deep in a season with no indication of which
+            section they're in.
+          -->
+          <UButton
+            to="/events"
+            icon="i-lucide-calendar-days"
+            label="Events"
+            color="neutral"
+            variant="ghost"
+            :active="isEventsSection"
+            active-color="primary"
+            active-variant="soft"
+            class="shrink-0"
+          />
+        </div>
       </template>
 
       <template #right>
