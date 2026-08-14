@@ -70,29 +70,35 @@ For routes that don't have this real trace data yet, the model falls back to a s
 ## Diagram
 
 ```mermaid
-%%{ init: { "flowchart": { "nodeSpacing": 45, "rankSpacing": 110 } } }%%
-flowchart LR
+%%{ init: { "flowchart": { "nodeSpacing": 20, "rankSpacing": 40 } } }%%
+flowchart TD
     RIDER(["Rider<br/>weight, height, power"])
 
     subgraph BIKE["Bike frame"]
         direction TB
-        BIKE_CATALOG["zwift-data catalog<br/>name &amp; category"]
-        BIKE_TESTS["ZwiftInsider speed tests<br/>real aero &amp; weight data"]
+        BIKE_CATALOG["zwift-data<br/>name &amp; category"]
+        BIKE_TESTS["ZwiftInsider tests<br/>real aero &amp; weight"]
     end
 
     subgraph WHEEL["Wheels"]
         direction TB
-        WHEEL_CATALOG["zwift-data catalog<br/>name &amp; category"]
-        WHEEL_TESTS["ZwiftInsider speed tests<br/>real aero &amp; weight data"]
-        WHEEL_CRR["ZwiftInsider Crr table<br/>rolling resistance by surface"]
+        WHEEL_CATALOG["zwift-data<br/>name &amp; category"]
+        WHEEL_TESTS["ZwiftInsider tests<br/>real aero &amp; weight"]
+        WHEEL_CRR["ZwiftInsider Crr table<br/>official Zwift values"]
     end
 
     subgraph ROUTE["Route"]
         direction TB
-        ROUTE_CATALOG["zwift-data catalog<br/>distance &amp; elevation"]
-        ROUTE_GPS["Real GPS traces (Strava)<br/>exact path &amp; elevation"]
-        ROUTE_ZWIFTMAP["zwiftmap surface map<br/>gravel/cobble/tarmac zones"]
+        ROUTE_CATALOG["zwift-data<br/>distance &amp; elevation"]
+        ROUTE_GPS["Strava GPS trace<br/>path &amp; elevation"]
+        ROUTE_ZWIFTMAP["zwiftmap surfaces<br/>gravel/cobble zones"]
     end
+
+    %% Invisible links only stack the input groups vertically, keeping the
+    %% diagram narrow enough to render at close to full size on GitHub.
+    BIKE_TESTS ~~~ WHEEL
+    WHEEL_CRR ~~~ ROUTE
+    ROUTE_ZWIFTMAP ~~~ RIDER
 
     RIDER --> MODEL
     BIKE --> MODEL
@@ -101,6 +107,11 @@ flowchart LR
 
     MODEL{{"Physics model<br/>power vs. gravity, air drag<br/>&amp; rolling resistance"}} --> RESULT(["Predicted finish time &amp;<br/>ranked recommendations"])
 ```
+
+For the code-level version of this — which module runs in what order when a
+request comes in, what happens inside the simulation loop, and which data is
+generated offline versus computed per request — see
+[physics-pipeline.md](physics-pipeline.md).
 
 ## How this scales to new bikes and wheels
 
