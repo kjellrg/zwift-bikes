@@ -39,7 +39,7 @@ export interface ClassificationScores {
 export type ScoreConfidence = 'measured' | 'estimated'
 
 /**
- * Absolute CdA/mass offsets from this equipment's own category baseline
+ * Absolute CdA/mass/Crr offsets from this equipment's own category baseline
  * (standard/TT reference bike, or the reference wheel), solved directly from
  * its real ZwiftInsider flat/climb gap-seconds via physics rather than
  * derived from the abstract 0-100 `scores` - see
@@ -50,6 +50,8 @@ export type ScoreConfidence = 'measured' | 'estimated'
 export interface EquipmentPhysicsDelta {
   cdaDeltaM2: number
   bikeMassDeltaKg: number
+  /** Rolling-resistance offset from Zwift's stage-3 "drivetrain" upgrade; 0 below that stage and for wheels. */
+  crrDelta: number
 }
 
 export interface ClassifiedBikeFrame extends BikeFrame {

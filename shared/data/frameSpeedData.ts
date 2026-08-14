@@ -11,8 +11,10 @@
  * are each frame's time saved/lost over one hour of riding at a fixed power,
  * at those two endpoints, separately for a flat course and a climb course.
  * Positive = faster than baseline, negative = slower. Stages 1-4 aren't
- * separately tested - `classifyBikeFrame.ts` linearly interpolates between
- * the Stage 0 and Stage 5 numbers for a requested intermediate level.
+ * separately tested per frame, but ZwiftInsider does publish the per-stage
+ * shape for each of the 9 upgrade schemes - see `frameUpgradeSchemes.ts`,
+ * which `classifyBikeFrame.ts` uses to place an intermediate level between
+ * these two endpoints instead of interpolating linearly.
  *
  * `FRAME_SPEED_DATA` (standard/road frames) is relative to the baseline
  * "Zwift Carbon" frame + "Zwift 32mm Carbon" wheels. `TT_FRAME_SPEED_DATA`
@@ -33,8 +35,14 @@
  * flat, 0 -> 36.9 climb); mixing the two would silently corrupt the table.
  *
  * Frames not present in these tables (new releases, cosmetic team-edition
- * skins, a couple of rows in the source sheet with corrupted Stage 5 data,
- * etc.) fall back to the existing name-based heuristic.
+ * skins, etc.) fall back to the existing name-based heuristic.
+ *
+ * A previous version of this note also blamed "a couple of rows in the
+ * source sheet with corrupted Stage 5 data". That was wrong for the rows
+ * still in this table: the odd-looking ones (Specialized Roubaix S-Works,
+ * Liv Langma Advanced SL 2021 - road frames with TT-shaped Stage 5 gains)
+ * are real, and are explained by Zwift assigning them the Duration upgrade
+ * scheme despite their Road type. See `frameUpgradeSchemes.ts`.
  */
 export interface FrameSpeedSample {
   /** Seconds saved (+) or lost (-) per hour on a flat course at Stage 0 (just purchased) */

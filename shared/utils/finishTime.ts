@@ -101,10 +101,10 @@ export function estimateFinishTimeSec(
   const powerW = wkg * weightKg
   const grade = route.terrain.climbRatio / 1000 // m/km -> m/m
 
-  const { cdaM2, bikeMassKg } = equipmentPhysics(frame, wheelset)
+  const { cdaM2, bikeMassKg, crrDelta } = equipmentPhysics(frame, wheelset)
   const cda = riderScaledCdaM2(cdaM2, heightCm, weightKg)
   const massKg = weightKg + bikeMassKg
-  const crr = blendedCrr(wheelset, route)
+  const crr = Math.max(0, blendedCrr(wheelset, route) + (crrDelta ?? 0))
 
   const lapSpeedMs = speedForPower(powerW, massKg, grade, crr, cda)
   const effectiveLaps = clampLaps(route, laps)

@@ -104,7 +104,7 @@ because breaking it shipped a real bug:
 |---|---|---|
 | [catalog.ts](../shared/utils/catalog.ts) | Route/frame lookup over `zwift-data`, cached | Both recommend endpoints |
 | [routeTerrain.ts](../shared/utils/routeTerrain.ts) | Climb ratio, terrain weights, surface composition + its confidence level | `catalog.ts` |
-| [classifyBikeFrame.ts](../shared/utils/classifyBikeFrame.ts) | Category/style, 0-100 scores, `confidence`, solved CdA/mass delta, garage-level interpolation | `catalog.ts` |
+| [classifyBikeFrame.ts](../shared/utils/classifyBikeFrame.ts) | Category/style, 0-100 scores, `confidence`, solved CdA/mass/Crr delta, per-scheme garage-level staging | `catalog.ts` |
 | [classifyWheel.ts](../shared/utils/classifyWheel.ts) | Wheel scores, `crrClass` (road/gravel/mountain), `confidence` | `wheelsets.ts` |
 | [wheelsets.ts](../shared/utils/wheelsets.ts) | Pairs front+rear into the wheelsets riders actually equip | Both recommend endpoints |
 | [scoring.ts](../shared/utils/scoring.ts) | The 0-100 heuristic score, frame/wheel compatibility, search, display capping | Both recommend endpoints |
@@ -172,7 +172,7 @@ flowchart TD
     subgraph MEASURED["Measured path"]
         direction TB
         BASE["Pick the baseline:<br/>standard, or the TT one<br/>anchored by the two<br/>TT multipliers"]
-        SOLVE["solveEquipmentDelta<br/>nested bisection<br/>flat + climb gap →<br/>CdA delta, mass delta"]
+        SOLVE["solveEquipmentDelta<br/>nested bisection<br/>flat + climb gap →<br/>CdA delta, mass delta<br/>(Crr delta held fixed)"]
         ADD["baseline + frame delta<br/>+ wheel delta<br/>+ TT/disc residual"]
     end
 
@@ -182,7 +182,7 @@ flowchart TD
         LINEAR["bikeMassFromScore +<br/>equipmentCdaFromScore<br/>flat linear sensitivity"]
     end
 
-    OUT["cdaM2, bikeMassKg"]
+    OUT["cdaM2, bikeMassKg,<br/>crrDelta"]
     SCALE["riderScaledCdaM2<br/>Faria et al. 2005<br/>frontal area from h + w"]
 
     IN --> HAS
@@ -200,6 +200,39 @@ delta on one side with a score-derived value on the other is a unit mismatch.
 Frames with fixed wheels are the exception: their measured data already covers
 the whole frame+wheel unit, so they never take a wheel-side delta at all.
 
+### Upgrade stages feed the solve
+
+Only Stage 0 and Stage 5 are bot-tested per frame, so an in-between garage
+level comes from `frameUpgradeSchemes.ts`, which stores ZwiftInsider's
+published per-stage curve for each of the 9 upgrade schemes (Distance /
+Duration / Elevation × Entry / Mid / High, with Halo sharing High). The curve
+only decides *where between the two measured endpoints* a level sits, so Stage
+0 and Stage 5 still reproduce the measured numbers exactly.
+
+This matters because the real curves are steep and uneven, not linear. An
+entry-level frame has all its performance by Stage 3 (Stages 4 and 5 are Drops
+and XP bonuses). A Duration/High-End TT frame gets over half its flat aero
+benefit at Stage 5 alone, and nothing at all on the flat at Stage 4.
+
+Stage 3 is a "Drivetrain" upgrade in every scheme, and it is *not* a drivetrain
+efficiency change despite the name — an efficiency multiplier would save the
+same wattage at any speed, whereas the charts show it saving ~2.6 W on the flat
+and ~1.0 W on the climb. That 2.6:1 ratio tracks the flat/climb speed ratio,
+which is the signature of a rolling-resistance change, so it is modelled as a
+fixed `crrDelta` of −0.0003 rather than being folded into CdA or mass. It is
+held fixed during the solve, not solved for: there are only two measurements,
+so a third free unknown would be underdetermined.
+
+Keeping it separate changes nothing on the two bot-test courses — the solve
+still reproduces both endpoints — but it stops a grade-independent effect from
+being laundered into two grade-dependent ones, which is what made it transfer
+incorrectly to routes with different gradients and surfaces.
+
+For the per-scheme curves themselves, worked examples, and the diagnostic
+scripts that verify this data, see
+[bike-upgrade-levels.md](bike-upgrade-levels.md) and
+[scripts/upgrade-levels/](../scripts/upgrade-levels/).
+
 ## 5. Where the data comes from, and when
 
 Only the right-hand column runs per request. Everything on the left is
@@ -211,6 +244,7 @@ flowchart TD
     ZM(["zwiftmap worldConfigs"])
     STRAVA(["Strava GPS + altitude streams"])
     ZI(["ZwiftInsider bot tests"])
+    ZIUP(["ZwiftInsider upgrade charts<br/>+ per-frame scheme table"])
     ZICRR(["ZwiftInsider Crr table<br/>official Zwift values"])
     ZD(["zwift-data · npm dependency"])
 
@@ -220,6 +254,7 @@ flowchart TD
     GEN["routeSurfaces.generated.json<br/>composition + elevationProfile"]
     POLYJSON["zwiftmapSurfacePolygons.json"]
     SPEED["frameSpeedData.ts<br/>wheelSpeedData.ts"]
+    UPGRADE["frameUpgradeSchemes.ts<br/>per-stage curves + drivetrain Crr"]
     CRR["surfaceCrr.ts"]
 
     TERRAIN{{"routeTerrain.ts<br/>climb ratio + surface"}}
@@ -229,12 +264,14 @@ flowchart TD
     ZM --> POLY --> POLYJSON --> COMPUTE
     STRAVA --> COMPUTE --> GEN
     ZI -- "by hand" --> SPEED
+    ZIUP -- "by hand" --> UPGRADE
     ZICRR -- "by hand" --> CRR
 
     GEN --> TERRAIN
     ZD --> TERRAIN
     ZD --> CLASSIFY
     SPEED --> CLASSIFY
+    UPGRADE --> CLASSIFY
     CRR --> PHYS
     TERRAIN --> PHYS
     CLASSIFY --> PHYS

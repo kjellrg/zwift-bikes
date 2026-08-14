@@ -31,7 +31,8 @@ function averagePhysics(a: ClassifiedWheel, b: ClassifiedWheel): EquipmentPhysic
   if (!a.physics || !b.physics) return undefined
   return {
     cdaDeltaM2: (a.physics.cdaDeltaM2 + b.physics.cdaDeltaM2) / 2,
-    bikeMassDeltaKg: (a.physics.bikeMassDeltaKg + b.physics.bikeMassDeltaKg) / 2
+    bikeMassDeltaKg: (a.physics.bikeMassDeltaKg + b.physics.bikeMassDeltaKg) / 2,
+    crrDelta: (a.physics.crrDelta + b.physics.crrDelta) / 2
   }
 }
 

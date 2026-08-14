@@ -1,6 +1,7 @@
 import type { BikeFrame } from 'zwift-data'
 import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame } from '../types/catalog'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
+import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor, type StageChart, type StageCurve } from '../data/frameUpgradeSchemes'
 import { solveFrameEquipmentDelta } from './physics/equipment'
 
 /**
@@ -78,12 +79,26 @@ function scoreFromGap(gapSec: number, [gapMin, gapMax]: [number, number]): numbe
 }
 
 // Zwift unlocks a frame's full performance gradually over 5 "stages" of
-// riding distance after purchase (Stage 0 = just bought, Stage 5 = fully
-// upgraded). ZwiftInsider only bot-tests the two endpoints, so an
-// intermediate level is linearly interpolated between them.
-function interpolateGap(gap0: number, gap5: number, level: number): number {
+// riding after purchase (Stage 0 = just bought, Stage 5 = fully upgraded).
+// ZwiftInsider only bot-tests the two endpoints for each individual frame,
+// but also separately publishes, per upgrade scheme, what fraction of the
+// total gain lands at each of the 5 stages (`frameUpgradeSchemes.ts`) - so an
+// intermediate level reproduces that real, non-linear shape instead of a
+// straight line between the endpoints. Frames without a known scheme (not
+// yet catalogued) fall back to the old linear interpolation.
+function interpolateGap(gap0: number, gap5: number, level: number, curve?: StageCurve): number {
   const clampedLevel = Math.min(5, Math.max(0, level))
-  return gap0 + (clampedLevel / 5) * (gap5 - gap0)
+  if (clampedLevel === 0) return gap0
+  if (!curve) return gap0 + (clampedLevel / 5) * (gap5 - gap0)
+  const total = curve[4]
+  const atLevel = curve[clampedLevel - 1] ?? total
+  const fraction = total === 0 ? clampedLevel / 5 : atLevel / total
+  return gap0 + fraction * (gap5 - gap0)
+}
+
+function frameStageChart(frameName: string): StageChart | undefined {
+  const scheme = FRAME_UPGRADE_SCHEMES[frameName]
+  return scheme && stageChartFor(scheme)
 }
 
 const STYLE_PRESETS: Record<BikeStyle, ClassificationScores> = {
@@ -210,15 +225,16 @@ export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFr
     const measured = FRAME_SPEED_DATA[frame.name]
 
     if (measured) {
-      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, level)
-      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, level)
+      const chart = frameStageChart(frame.name)
+      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, level, chart?.flat)
+      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, level, chart?.climb)
       const scores: ClassificationScores = {
         aero: scoreFromGap(flatGap, FLAT_GAP_RANGE),
         climb: scoreFromGap(climbGap, CLIMB_GAP_RANGE),
         gravel: preset.gravel,
         cobble: preset.cobble
       }
-      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, false)
+      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, false, drivetrainCrrDeltaForLevel(clampedLevel))
       return { ...frame, category, style, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
     }
 
@@ -230,15 +246,16 @@ export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFr
     const measured = TT_FRAME_SPEED_DATA[frame.name]
 
     if (measured) {
-      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, level)
-      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, level)
+      const chart = frameStageChart(frame.name)
+      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, level, chart?.flat)
+      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, level, chart?.climb)
       const scores: ClassificationScores = {
         aero: scoreFromGap(flatGap, TT_FLAT_GAP_RANGE),
         climb: scoreFromGap(climbGap, TT_CLIMB_GAP_RANGE),
         gravel: preset.gravel,
         cobble: preset.cobble
       }
-      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, true)
+      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, true, drivetrainCrrDeltaForLevel(clampedLevel))
       return { ...frame, category, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
     }
 
