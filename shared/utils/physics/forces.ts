@@ -57,7 +57,7 @@ export function calculateForces(
   const cosTheta = Math.cos(theta)
   const sinTheta = Math.sin(theta)
   const speed = Math.max(0, velocityMps)
-  const crr = rollingResistanceCoefficient(surface, crrClass)
+  const crr = Math.max(0, rollingResistanceCoefficient(surface, crrClass) + (parameters.crrDelta ?? 0))
 
   // Power/speed becomes singular at zero speed. Use a small startup speed so
   // a rider with positive power can accelerate away from rest, while retaining

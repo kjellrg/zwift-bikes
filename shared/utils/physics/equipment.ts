@@ -156,9 +156,9 @@ const TT_BASELINE_CDA_M2 = STANDARD_BASELINE_CDA_M2 * TT_CDA_MULTIPLIER
 const TT_BASELINE_BIKE_MASS_KG = STANDARD_BASELINE_BIKE_MASS_KG * TT_CLIMB_MASS_MULTIPLIER
 
 /** Steady-state speed for constant power on constant grade, via bisection on `calculateForces`' net force. */
-function steadyStateSpeedMps(powerW: number, bikeMassKg: number, grade: number, cdaM2: number): number {
+function steadyStateSpeedMps(powerW: number, bikeMassKg: number, grade: number, cdaM2: number, crrDelta = 0): number {
   const rider: PhysicsRider = { weightKg: BOT_RIDER_WEIGHT_KG, heightCm: BOT_RIDER_HEIGHT_CM, powerW }
-  const parameters: PhysicsParameters = { bikeMassKg, cdaM2 }
+  const parameters: PhysicsParameters = { bikeMassKg, cdaM2, crrDelta }
   let low = 0.1
   let high = 30 // m/s, ~108 km/h ceiling
   for (let i = 0; i < 60; i++) {
@@ -184,8 +184,18 @@ function speedFromGapSec(gapSec: number, baselineSpeedMps: number): number {
  * monotonically decreasing in mass) inside another (CdA, since flat speed is
  * monotonically decreasing in CdA once the inner mass solve keeps climb
  * speed pinned to its target).
+ *
+ * `crrDelta` is an already-known third lever (Zwift's stage-3 drivetrain
+ * upgrade), held FIXED rather than solved for - there are only two
+ * measurements, so a third free unknown would be underdetermined. The
+ * baseline keeps the stock Crr because `FRAME_SPEED_DATA`'s gaps are
+ * measured against a Stage-0 reference bike, which has no drivetrain
+ * upgrade. Because the solve still reproduces both measured endpoints
+ * exactly, this changes no bot-course result - it only stops a
+ * grade-independent, surface-scaling effect from being laundered into CdA
+ * and mass, which is what made it transfer wrongly to other routes.
  */
-function solveEquipmentDelta(gap: MeasuredEquipmentGap, baselineCdaM2: number, baselineBikeMassKg: number): EquipmentPhysicsDelta {
+function solveEquipmentDelta(gap: MeasuredEquipmentGap, baselineCdaM2: number, baselineBikeMassKg: number, crrDelta = 0): EquipmentPhysicsDelta {
   const baselineFlatSpeed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg, FLAT_TEST_GRADE, baselineCdaM2)
   const baselineClimbSpeed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg, CLIMB_TEST_GRADE, baselineCdaM2)
   const targetFlatSpeed = speedFromGapSec(gap.flatGapSec, baselineFlatSpeed)
@@ -196,7 +206,7 @@ function solveEquipmentDelta(gap: MeasuredEquipmentGap, baselineCdaM2: number, b
     let high = baselineBikeMassKg * 3
     for (let i = 0; i < 60; i++) {
       const mid = (low + high) / 2
-      const speed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg + mid, CLIMB_TEST_GRADE, baselineCdaM2 + cdaDeltaM2)
+      const speed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg + mid, CLIMB_TEST_GRADE, baselineCdaM2 + cdaDeltaM2, crrDelta)
       if (speed > targetClimbSpeed) low = mid
       else high = mid
     }
@@ -205,7 +215,7 @@ function solveEquipmentDelta(gap: MeasuredEquipmentGap, baselineCdaM2: number, b
 
   function flatResidual(cdaDeltaM2: number): number {
     const bikeMassDeltaKg = bikeMassDeltaForClimb(cdaDeltaM2)
-    return steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg + bikeMassDeltaKg, FLAT_TEST_GRADE, baselineCdaM2 + cdaDeltaM2) - targetFlatSpeed
+    return steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg + bikeMassDeltaKg, FLAT_TEST_GRADE, baselineCdaM2 + cdaDeltaM2, crrDelta) - targetFlatSpeed
   }
 
   let cdaLow = -baselineCdaM2 * 0.9
@@ -216,14 +226,14 @@ function solveEquipmentDelta(gap: MeasuredEquipmentGap, baselineCdaM2: number, b
     else cdaHigh = mid
   }
   const cdaDeltaM2 = (cdaLow + cdaHigh) / 2
-  return { cdaDeltaM2, bikeMassDeltaKg: bikeMassDeltaForClimb(cdaDeltaM2) }
+  return { cdaDeltaM2, bikeMassDeltaKg: bikeMassDeltaForClimb(cdaDeltaM2), crrDelta }
 }
 
 /** Solves a frame's own CdA/mass delta from its real gap-seconds, relative to its category's baseline. */
-export function solveFrameEquipmentDelta(gap: MeasuredEquipmentGap, isTT: boolean): EquipmentPhysicsDelta {
+export function solveFrameEquipmentDelta(gap: MeasuredEquipmentGap, isTT: boolean, crrDelta = 0): EquipmentPhysicsDelta {
   return isTT
-    ? solveEquipmentDelta(gap, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG)
-    : solveEquipmentDelta(gap, STANDARD_BASELINE_CDA_M2, STANDARD_BASELINE_BIKE_MASS_KG)
+    ? solveEquipmentDelta(gap, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG, crrDelta)
+    : solveEquipmentDelta(gap, STANDARD_BASELINE_CDA_M2, STANDARD_BASELINE_BIKE_MASS_KG, crrDelta)
 }
 
 /**
@@ -264,7 +274,8 @@ export function equipmentPhysics(frame: ClassifiedBikeFrame, wheelset?: Wheelset
     const baselineBikeMassKg = isTT ? TT_BASELINE_BIKE_MASS_KG : STANDARD_BASELINE_BIKE_MASS_KG
     return {
       cdaM2: baselineCdaM2 + frame.physics.cdaDeltaM2 + (wheelPhysics?.cdaDeltaM2 ?? 0) + (isTT && isDiscWheel ? TT_DISC_RESIDUAL_CDA_DELTA_M2 : 0),
-      bikeMassKg: baselineBikeMassKg + frame.physics.bikeMassDeltaKg + (wheelPhysics?.bikeMassDeltaKg ?? 0)
+      bikeMassKg: baselineBikeMassKg + frame.physics.bikeMassDeltaKg + (wheelPhysics?.bikeMassDeltaKg ?? 0),
+      crrDelta: frame.physics.crrDelta + (wheelPhysics?.crrDelta ?? 0)
     }
   }
 

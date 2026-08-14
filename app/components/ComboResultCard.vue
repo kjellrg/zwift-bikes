@@ -34,7 +34,7 @@ function toggleFrameOwned() {
   );
 }
 
-/** Lets riders adjust the owned upgrade level (1-5) right from the card, via the subtle level bar shown once a frame is owned. */
+/** Lets riders adjust the owned upgrade level (0-5) right from the card, via the subtle level bar shown once a frame is owned. */
 function setFrameLevel(level: number) {
   setOwned(props.combo.frame.id, level);
 }
@@ -122,12 +122,12 @@ const isFastest = computed(() => {
               />
             </UTooltip>
             <UTooltip
-              v-if="isOwnedFrame"
-              text="Your upgrade level for this bike (1 = just unlocked, 5 = fully upgraded)"
+              v-if="isOwnedFrame && combo.frame.confidence === 'measured'"
+              text="Your upgrade level for this bike (0 = stock, just purchased, 5 = fully upgraded)"
             >
               <div class="flex items-center gap-0.5">
                 <button
-                  v-for="level in 5"
+                  v-for="level in [0, 1, 2, 3, 4, 5]"
                   :key="level"
                   type="button"
                   class="flex size-4 items-center justify-center rounded text-[10px] font-medium transition-colors"
@@ -274,6 +274,7 @@ const isFastest = computed(() => {
         </UBadge>
       </UTooltip>
       <UTooltip
+        v-if="combo.frame.confidence === 'measured'"
         :text="
           isOwnedFrame
             ? `Scored at your owned upgrade level for this bike`

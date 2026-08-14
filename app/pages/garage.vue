@@ -45,13 +45,15 @@ const frames = computed<ClassifiedBikeFrame[]>(() => {
   return ownedFramesOnly.value ? all.filter(f => isOwned(f.id)) : all
 })
 
-const levelOptions = [1, 2, 3, 4, 5].map(level => ({
-  label: `Level ${level}`,
+const levelOptions = [0, 1, 2, 3, 4, 5].map(level => ({
+  label: level === 0 ? 'Level 0 (stock)' : `Level ${level}`,
   value: level
 }))
 
+// A bike you've just bought in Zwift is Stage 0, which is also what the
+// measured frame data is anchored to.
 function toggleOwned(frame: ClassifiedBikeFrame, value: boolean) {
-  setOwned(frame.id, value ? 1 : null)
+  setOwned(frame.id, value ? 0 : null)
 }
 
 function updateLevel(frameId: number, level: number) {
@@ -108,7 +110,7 @@ const activeTab = ref('bikes')
       </h1>
       <p class="text-muted mt-1">
         Mark which bike frames and wheels you own (and each frame's current
-        upgrade level - 1 = just unlocked, 5 = fully upgraded). Route
+        upgrade level - 0 = stock, just purchased, 5 = fully upgraded). Route
         recommendations can then be limited to just your equipment, using their
         real per-level performance.
       </p>
@@ -194,17 +196,26 @@ const activeTab = ref('bikes')
                 </div>
               </div>
 
-              <USelectMenu
+              <UTooltip
                 v-if="isOwned(frame.id)"
-                :model-value="owned[frame.id]"
-                value-key="value"
-                :items="levelOptions"
-                :search-input="false"
-                class="w-32"
-                @update:model-value="
-                  (level: number) => updateLevel(frame.id, level)
+                :text="
+                  frame.confidence === 'estimated'
+                    ? 'ZwiftInsider doesn\'t bot-test this frame, so there are no per-stage numbers to apply - its upgrade level can\'t change its estimate'
+                    : 'This bike\'s current upgrade level (0 = stock, just purchased, 5 = fully upgraded)'
                 "
-              />
+              >
+                <USelectMenu
+                  :model-value="owned[frame.id]"
+                  :disabled="frame.confidence === 'estimated'"
+                  value-key="value"
+                  :items="levelOptions"
+                  :search-input="false"
+                  class="w-32"
+                  @update:model-value="
+                    (level: number) => updateLevel(frame.id, level)
+                  "
+                />
+              </UTooltip>
             </div>
 
             <p

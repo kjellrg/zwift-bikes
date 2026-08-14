@@ -9,7 +9,7 @@ For a given route and a rider's real weight, height and power, the app predicts 
 Every prediction combines four things:
 
 - **The rider** — weight, height, and sustained power (in watts, or watts/kg)
-- **The bike frame** — how aerodynamic it is, and how much it weighs
+- **The bike frame** — how aerodynamic it is, how much it weighs, and how far it has been upgraded
 - **The wheels** — aerodynamics, weight, and how much rolling resistance they generate on different surfaces
 - **The route** — how hilly it is, how long it is, and what it's paved with (tarmac, gravel, cobbles, dirt, grass, snow, wood)
 
@@ -21,6 +21,7 @@ This is the part that matters most for trustworthiness — every number is eithe
 |---|---|
 | **A community-maintained Zwift data catalog** (`zwift-data`, third-party, MIT-licensed) | The list of every bike frame, wheel, and route in the game — names, categories, distances, elevation. Some of this is pulled automatically from Zwift's own public API; the rest is manually collected by the community from sources like Strava, What's on Zwift, and ZwiftPower. Not an official Zwift product, but a widely-used, actively-maintained reference. |
 | **ZwiftInsider real-world speed tests** | ZwiftInsider — an independent Zwift news/testing site — runs a "bot" at a fixed weight/height/power around a flat course and a climb course, for every bike and wheel, and publishes exactly how many seconds it saves or costs per hour versus a baseline. This is the closest thing to ground truth available. |
+| **ZwiftInsider's bike upgrade charts** | Zwift unlocks a frame's performance over five upgrade stages. ZwiftInsider publishes both which scheme each frame follows and how much of the benefit has arrived at each stage — which is what lets the app model a part-upgraded bike honestly instead of assuming the gain arrives evenly. |
 | **ZwiftInsider's rolling-resistance table** | Zwift's own official (not estimated) rolling-resistance values for every wheel type on every surface. |
 | **Real GPS route traces** (via Strava) | The exact path a rider's bike actually follows around each route, and the real elevation change along it, metre by metre. |
 | **zwiftmap's surface map data** (community project, MIT-licensed) | zwiftmap provides polygon maps of which areas of each Zwift world are gravel, cobbles, dirt, grass, wood, or snow (described by this app's own third-party notices as "hand-mapped," though that's not something independently verified against zwiftmap's own methodology). Overlaying a route's real GPS trace onto these maps gives the route's real, exact surface composition — precisely where it changes from tarmac to gravel and back, not just an overall percentage. |
@@ -38,7 +39,7 @@ Think of it as a tug-of-war. A rider's pedalling power has to overcome three thi
 
 A small amount of power (about 2.5%) is also lost in the drivetrain, exactly as it is on a real bike.
 
-The bike frame and wheels affect this tug-of-war in two ways: they add **weight** (making gravity fight harder on climbs) and they add or remove **aerodynamic drag** (making air resistance fight harder or softer). Both effects come straight from the ZwiftInsider measurements described above, wherever they exist.
+The bike frame and wheels affect this tug-of-war in three ways: they add **weight** (making gravity fight harder on climbs), they add or remove **aerodynamic drag** (making air resistance fight harder or softer), and a fully upgraded frame slightly reduces **rolling resistance**. All three come straight from the ZwiftInsider measurements described above, wherever they exist.
 
 The app actually runs this calculation two different ways, depending on the situation:
 
@@ -66,6 +67,16 @@ That interval is a deliberate trade, measured rather than guessed: a coarser ste
 The gradient and surface data itself isn't evenly sampled every few metres, though. Long, straight, flat stretches are deliberately reduced to just a couple of points (there's nothing changing to record), while every real climb, descent, and rolling section keeps its full detail — the model interpolates smoothly between whichever points exist. Surface changes (say, where tarmac turns to gravel) are recorded at their exact real position, so rolling resistance switches right at that point rather than at some rounded-off marker.
 
 For routes that don't have this real trace data yet, the model falls back to a simpler synthetic shape (built from any known named climbs, or a generic rolling profile). Its assumed surface still isn't a blind guess, though: it checks zwiftmap's coarser, world-level surface data first — if the route's world is known to contain gravel or cobbles anywhere, the route is flagged as **unverified** rather than confidently treated as 100% paved.
+
+## Bikes that aren't fully upgraded yet
+
+Zwift unlocks a frame's performance over five upgrade stages as you ride it, and the app models where a rider actually is on that ladder rather than assuming every bike is maxed out.
+
+This is worth doing properly because the real progression is neither even nor the same for every bike. Zwift assigns each frame one of nine upgrade schemes, and the schemes behave very differently: a cheap entry-level frame has *all* of its performance by stage 3 (stages 4 and 5 only pay out in-game currency and XP), while a high-end time trial frame saves its single biggest aerodynamic gain for stage 5 and gives nothing at all on the flat at stage 4. Assuming a straight line between "just bought" and "fully upgraded" would misplace a bike by tens of seconds over a race — and misplace it *differently* depending on the frame, so the error doesn't cancel out when comparing two bikes.
+
+Each stage also upgrades a specific thing — aerodynamics, weight, or the drivetrain — so the app applies the gain to the right one. A stage that improves aerodynamics does almost nothing for you on a climb, and a stage that cuts weight does almost nothing on the flat.
+
+Only frames with real bot-test data can be modelled this way. For frames ZwiftInsider hasn't tested (most gravel bikes, novelty bikes, and a handful of road frames), there are no per-stage numbers to apply, so the app says so plainly rather than showing a level control that quietly does nothing.
 
 ## Diagram
 

@@ -55,6 +55,8 @@ export interface PhysicsParameters {
   bikeMassKg: number
   /** Combined rider + equipment frontal area times drag coefficient. */
   cdaM2: number
+  /** Equipment's own offset to the surface's rolling-resistance coefficient - Zwift's "drivetrain" frame upgrade, which is surface-independent (see `frameUpgradeSchemes.ts`). */
+  crrDelta?: number
 }
 
 /** A frame/wheel's real ZwiftInsider bot-test gap, seconds saved (+) or lost (-) per hour vs. its baseline. */
