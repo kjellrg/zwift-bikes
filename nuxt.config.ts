@@ -16,8 +16,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   site: {
-    name: 'Zwift Best Bike',
-    description: 'Find the fastest Zwift bike for your needs. Compare weight, aerodynamics',
+    name: 'ZwiftBikes',
+    description: 'Find the fastest bike and wheelset for any Zwift route, ranked by predicted finish time for your rider profile.',
     url: 'https://zwiftbikes.com'
   },
 

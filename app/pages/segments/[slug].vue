@@ -9,7 +9,7 @@ const { data: segmentData, error: segmentError } = await useFetch(() => `/api/se
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
 
 useSeoMeta({
-  title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - Zwift Best Bike` : 'Zwift Best Bike',
+  title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - ZwiftBikes` : 'ZwiftBikes',
   description: () => segmentData.value
     ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
     : undefined,

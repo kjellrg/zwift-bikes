@@ -60,7 +60,7 @@ const [{ data: routeData, error: routeError }, { data: recommendData, status, re
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: "Route not found", fatal: true });
 
 useSeoMeta({
-  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - Zwift Best Bike` : "Zwift Best Bike",
+  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - ZwiftBikes` : "ZwiftBikes",
   description: () => routeData.value
     ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}. Distance, elevation and surface-aware recommendations.`
     : undefined,

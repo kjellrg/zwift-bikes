@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import type { RouteSummary, SegmentSummary } from '../../shared/types/catalog'
 
+// Without a page-level title the homepage inherits app.vue's bare
+// "ZwiftBikes", dropping the "best bike" phrase from the most-indexed page.
+const title = 'ZwiftBikes - Find the Best Bike for Any Zwift Route'
+useSeoMeta({
+  title,
+  ogTitle: title
+})
+
 const search = ref('')
 const searchDebounced = ref('')
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined

@@ -25,9 +25,11 @@ useHead({
   },
 });
 
-const title = "Zwift Best Bike";
+const title = "ZwiftBikes";
+// 150-220 chars: short enough not to be truncated in search results, long
+// enough to carry the keywords (Zwift, bike, wheelset, route, finish time).
 const description =
-  "Find the best bike and wheel combination for any Zwift route, based on distance, elevation and surface.";
+  "Find the fastest bike and wheelset for any Zwift route. ZwiftBikes ranks every frame and wheel combo in the game by predicted finish time for your weight, height and power, built on real ZwiftInsider speed-test data.";
 
 const siteConfig = useSiteConfig();
 
@@ -47,6 +49,13 @@ const canonicalUrl = computed(() => {
   return `${siteConfig.url.replace(/\/+$/, "")}${path || "/"}`;
 });
 
+// Default social-share image for pages that don't set their own (home,
+// about, garage, profile). Route/segment pages override og:image with their
+// world's artwork, which is why no og:image:width/height is set here - those
+// are separate meta keys that would NOT be overridden along with the image,
+// and would then misstate the world images' dimensions.
+const ogImageUrl = `${siteConfig.url.replace(/\/+$/, "")}/og-image.png`;
+
 useSeoMeta({
   title,
   description,
@@ -55,7 +64,9 @@ useSeoMeta({
   ogSiteName: siteConfig.name,
   ogType: "website",
   ogUrl: () => canonicalUrl.value,
+  ogImage: ogImageUrl,
   twitterCard: "summary_large_image",
+  twitterImage: ogImageUrl,
 });
 useHead({
   link: [{ rel: "canonical", href: () => canonicalUrl.value }],
