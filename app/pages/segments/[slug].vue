@@ -146,6 +146,16 @@ const fastestOverall = computed(() => recommendData.value?.fastestOverall)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
 const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }]
+// The draft controls sit behind a disclosure. Solo is the default and covers
+// almost every visit (a road race is not ridden as a paceline), so the
+// paceline inputs stay folded away until someone asks for them - but ANY
+// non-solo mode forces the section open, because a draft mode silently
+// shifting every finish time on the page with no visible control is worse
+// than one extra dropdown. That rule is deliberately written against
+// `!== 'solo'` rather than `=== 'ttt'` so a future race/pack-draft mode
+// (see `shared/utils/physics/draft.ts`) inherits it for free.
+const showDraftControls = ref(false)
+const draftControlsOpen = computed(() => showDraftControls.value || draftMode.value !== 'solo')
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
 const faqAnswer = computed(() => {
@@ -357,7 +367,8 @@ const segmentAsRoute = computed(() => segmentData.value
       <!-- Two fixed rows rather than one wrapping one: the rider's own numbers stay
            on the first, everything about the group on the second. Switching draft
            mode then only fills in the second row's spare width instead of pushing a
-           control onto a new line, so the page below barely moves. -->
+           control onto a new line, so the page below barely moves. Collapsed, that
+           second row is a single opt-in button - see `draftControlsOpen`. -->
       <div class="rounded-lg border border-default p-4 mb-6 space-y-4">
         <div class="flex flex-wrap items-end gap-6">
           <div class="w-full sm:w-44">
@@ -398,7 +409,20 @@ const segmentAsRoute = computed(() => segmentData.value
           </div>
         </div>
         <div class="flex flex-wrap items-end gap-6">
-          <div class="w-44">
+          <UButton
+            v-if="!draftControlsOpen"
+            color="neutral"
+            variant="subtle"
+            size="xs"
+            icon="i-lucide-users"
+            @click="showDraftControls = true"
+          >
+            Riding this in a group? Add draft
+          </UButton>
+          <div
+            v-if="draftControlsOpen"
+            class="w-44"
+          >
             <label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon
               name="i-lucide-info"
               class="size-3 text-muted align-text-bottom"
