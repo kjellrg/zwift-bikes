@@ -4,7 +4,7 @@ The app exposes its route catalog and its bike-ranking pipeline over the
 [Model Context Protocol](https://modelcontextprotocol.io), so an LLM client can
 answer "which bike is fastest for me on this route?" directly.
 
-- **Endpoint:** `POST https://zwiftbikes.photic.net/api/mcp`
+- **Endpoint:** `POST https://zwiftbikes.com/api/mcp`
 - **Transport:** Streamable HTTP, JSON responses only (no SSE)
 - **Auth:** none - the same public, read-only data the website serves
 
@@ -171,7 +171,7 @@ Claude Desktop / Claude Code, via `mcp-remote`:
   "mcpServers": {
     "zwift-bikes": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://zwiftbikes.photic.net/api/mcp"]
+      "args": ["-y", "mcp-remote", "https://zwiftbikes.com/api/mcp"]
     }
   }
 }
