@@ -23,7 +23,9 @@ useSeoMeta({
 
 const { owned, ownedWheels, load: loadGarage } = useGarage()
 const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
-const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences()
+// `bikeCategory` is bound straight to the control below rather than mirrored
+// into a page-local ref - see the equivalent comment in `routes/[slug].vue`.
+const { verifiedOnly, myBikesOnly, bikeCategory, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory } = usePreferences()
 onMounted(() => {
   loadGarage()
   loadRiderProfile()
@@ -39,7 +41,6 @@ const bikeSearch = ref('')
 const bikeSearchDebounced = ref('')
 let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(bikeSearch, (value) => { clearTimeout(bikeSearchDebounceTimer); bikeSearchDebounceTimer = setTimeout(() => { bikeSearchDebounced.value = value }, 300) })
-const categoryFilter = ref<BikeCategory | 'all'>('all')
 const pageSize = 9
 
 const pendingWeightKg = ref(weightKg.value)
@@ -70,7 +71,8 @@ watch(tttRiders, (value) => { pendingRiders.value = value })
 // physics, unlike a whole route where lap count changes total distance.
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
-  category: categoryFilter.value !== 'all' ? categoryFilter.value : undefined,
+  // Omitted rather than sent as `all` - see the equivalent comment in `routes/[slug].vue`.
+  category: bikeCategory.value !== 'all' ? bikeCategory.value : undefined,
   route: preferredRouteSlug.value,
   limit: pageSize,
   offset: 0,
@@ -124,7 +126,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => { refreshFirstPage() })
+watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => { refreshFirstPage() })
 watch(owned, () => { refreshFirstPage() }, { deep: true })
 watch(ownedWheels, () => { refreshFirstPage() }, { deep: true })
 
@@ -138,6 +140,9 @@ const topCombo = computed(() => combos.value[0])
 const restCombos = computed(() => combos.value.slice(1))
 const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number'); return times.length ? Math.min(...times) : undefined })
 const physicsInfo = computed(() => recommendData.value?.physics)
+// Present only when the category filter is hiding a faster combo - see
+// `FastestOverallNote` and the endpoint's `fastestOverall` block.
+const fastestOverall = computed(() => recommendData.value?.fastestOverall)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
 const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }]
@@ -317,11 +322,12 @@ const segmentAsRoute = computed(() => segmentData.value
       <div class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4 mb-6">
         <div class="min-w-48">
           <label class="block text-xs font-medium text-muted mb-1">Bike category</label><USelectMenu
-            v-model="categoryFilter"
+            :model-value="bikeCategory"
             value-key="value"
             :items="categoryOptions"
             :search-input="false"
             class="w-52"
+            @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)"
           />
         </div>
         <div class="min-w-56 flex-1">
@@ -467,6 +473,11 @@ const segmentAsRoute = computed(() => segmentData.value
             class="size-4 animate-spin"
           />Updating results…
         </p>
+        <FastestOverallNote
+          v-if="fastestOverall"
+          :fastest-overall="fastestOverall"
+          @show-all="setBikeCategory('all')"
+        />
         <div
           class="transition-opacity"
           :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
