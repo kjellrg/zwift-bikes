@@ -50,11 +50,21 @@ const canonicalUrl = computed(() => {
 });
 
 // Default social-share image for pages that don't set their own (home,
-// about, garage, profile). Route/segment pages override og:image with their
-// world's artwork, which is why no og:image:width/height is set here - those
-// are separate meta keys that would NOT be overridden along with the image,
-// and would then misstate the world images' dimensions.
+// about, garage, profile). Route/segment pages override it with their
+// world's artwork - as full objects with their own width/height/alt,
+// because unhead dedupes og:image:width etc. per-tag, independently of
+// og:image itself, so a page that replaced only the URL would inherit
+// these dimensions and misstate its image's size. Declaring dimensions at
+// all is what lets scrapers render a card on the very first share of a
+// URL, before the image is processed (Facebook's debugger says exactly
+// this when they're missing).
 const ogImageUrl = `${siteConfig.url.replace(/\/+$/, "")}/og-image.png`;
+const ogImage = {
+  url: ogImageUrl,
+  width: 1200,
+  height: 630,
+  alt: "ZwiftBikes - find the fastest bike for any Zwift route",
+};
 
 useSeoMeta({
   title,
@@ -64,7 +74,7 @@ useSeoMeta({
   ogSiteName: siteConfig.name,
   ogType: "website",
   ogUrl: () => canonicalUrl.value,
-  ogImage: ogImageUrl,
+  ogImage,
   twitterCard: "summary_large_image",
   twitterImage: ogImageUrl,
 });
