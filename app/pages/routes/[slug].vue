@@ -22,7 +22,9 @@ const recommendQuery = computed(() => ({
   category: categoryFilter.value !== "all" ? categoryFilter.value : undefined,
   limit: pageSize,
   offset: 0,
-  verifiedOnly: verifiedOnly.value ? "true" : undefined,
+  // Always sent, never omitted: the endpoint now defaults this to on, so
+  // leaving it out when the switch is off would silently keep filtering.
+  verifiedOnly: verifiedOnly.value ? 'true' : 'false',
   ownedOnly: myBikesOnly.value ? "true" : undefined,
   owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
   ownedWheels: Object.keys(ownedWheels.value).length ? JSON.stringify(Object.keys(ownedWheels.value)) : undefined,

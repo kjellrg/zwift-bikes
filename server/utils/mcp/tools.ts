@@ -99,6 +99,36 @@ function resolveProfile(args: Record<string, unknown>, context: RpcContext): { p
   return { error: NO_PROFILE_MESSAGE }
 }
 
+/**
+ * Whether this call ranks verified equipment only. Defaults to `true`: an
+ * `estimated` score is a name/style heuristic, and presenting a finish time
+ * built on one as a prediction overstates what is known. Opting out is one
+ * argument away, and `VERIFIED_FILTER_NOTE` tells the model when it needs to.
+ */
+function isVerifiedOnly(args: Record<string, unknown>): boolean {
+  return args.verifiedOnly !== false
+}
+
+/**
+ * Carried on every verified-filtered response. Gravel and fun frames have no
+ * bot-test data at all, so the default silently removes both categories
+ * outright - a model that doesn't know that would report "no bikes match"
+ * on an off-road route instead of widening the search.
+ */
+const VERIFIED_FILTER_NOTE = 'Ranking verified equipment only (real ZwiftInsider bot-test data). '
+  + 'Pass `verifiedOnly: false` to include heuristic estimates - required for gravel and fun bikes, which have no bot-test data at all.'
+
+/**
+ * Returned instead of an empty table when the verified filter is what emptied
+ * it. A bare "no results" would read as "no such bike exists" and end the
+ * model's attempt; naming the retry keeps the answer one call away.
+ */
+function emptyVerifiedMessage(): string {
+  return 'No verified frame/wheel combinations matched.\n\n'
+    + `${VERIFIED_FILTER_NOTE}\n\n`
+    + 'If the user asked about gravel, a fun bike, or a specific frame by name, retry this call with `verifiedOnly: false`.'
+}
+
 /** Query params shared by both recommend endpoints. */
 function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): Record<string, unknown> {
   const upgradeLevel = Number(args.upgradeLevel)
@@ -110,7 +140,9 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): R
     // keeps this adapter from owning a second copy of that bound.
     defaultUnownedLevel: Number.isFinite(upgradeLevel) ? upgradeLevel : 0,
     category: typeof args.category === 'string' ? args.category : undefined,
-    verifiedOnly: args.verifiedOnly === true ? 'true' : undefined,
+    // Sent explicitly either way rather than relying on the endpoint default,
+    // so this adapter's behaviour can't drift if that default changes.
+    verifiedOnly: isVerifiedOnly(args) ? 'true' : 'false',
     search: typeof args.search === 'string' && args.search ? args.search : undefined,
     limit: Number.isFinite(Number(args.limit)) ? Number(args.limit) : 9,
     offset: Number.isFinite(Number(args.offset)) ? Number(args.offset) : 0
@@ -124,7 +156,7 @@ const RECOMMEND_FILTER_PROPERTIES = {
   wkg: { type: 'number', description: 'Sustained power in watts per kilogram for an effort of this length. Pass together with weightKg and heightCm.' },
   upgradeLevel: { type: 'number', description: 'Assume every bike is at this Zwift upgrade stage, 0-5 (0 = stock, the default; 5 = fully upgraded). Upgrades change a frame\'s real weight and aerodynamics, so this shifts the ranking.' },
   category: { type: 'string', enum: ['standard', 'tt', 'gravel', 'handbike', 'funbike'], description: 'Restrict to one Zwift garage category. Note Zwift only lets gravel frames take gravel/mountain wheels and road/TT frames take road wheels, so this also changes which wheelsets appear.' },
-  verifiedOnly: { type: 'boolean', description: 'Only include frames and wheels whose performance comes from real ZwiftInsider bot-test data, excluding heuristic estimates. Use when the user asks for reliable or verified numbers.' },
+  verifiedOnly: { type: 'boolean', description: 'Defaults to true: rank only frames and wheels whose performance comes from real ZwiftInsider bot-test data. Set to false to also include heuristic estimates - necessary for gravel and fun bikes, which have no bot-test data and are therefore absent by default, and worth doing if the user asks about a specific bike that returns no results.' },
   search: { type: 'string', description: 'Only include combos whose frame or wheelset name matches this text. Use to answer "how fast would MY bike be" without ranking the whole catalog.' },
   limit: { type: 'number', description: 'How many combos to return, 1-9. Defaults to 9.' },
   offset: { type: 'number', description: 'Skip this many ranks, for paging past the first page of results.' }
@@ -415,6 +447,9 @@ const TOOLS: ToolDefinition[] = [
       })
 
       const { combos, physics, pagination } = response
+      const verifiedOnly = isVerifiedOnly(args)
+      if (combos.length === 0 && verifiedOnly) return failure(emptyVerifiedMessage())
+
       const lapNote = laps === 1 && !route.lap ? '1 lap (point-to-point route)' : `${laps} lap(s)`
 
       const header = [
@@ -422,6 +457,7 @@ const TOOLS: ToolDefinition[] = [
         '',
         `- ${lapNote}: ${totals.distanceKm.toFixed(1)} km, ${Math.round(totals.elevationM)} m total (lead-in included)`,
         `- Surface: ${formatSurface(route.surface)}`,
+        verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
         physics ? `- Physics: ${physics.mode}, geometry ${physics.geometry}` : undefined,
         args.upgradeLevel !== undefined ? `- All bikes assumed at upgrade stage ${Number(args.upgradeLevel)}` : '- All bikes assumed stock (upgrade stage 0)'
@@ -434,6 +470,7 @@ const TOOLS: ToolDefinition[] = [
         '',
         formatPagination(pagination),
         CONFIDENCE_NOTE,
+        verifiedOnly ? VERIFIED_FILTER_NOTE : '',
         physics ? `\n${physics.note}` : ''
       ].join('\n'))
     }
@@ -473,10 +510,14 @@ const TOOLS: ToolDefinition[] = [
       }
 
       const { segment, combos, physics, pagination } = response
+      const verifiedOnly = isVerifiedOnly(args)
+      if (combos.length === 0 && verifiedOnly) return failure(emptyVerifiedMessage())
+
       const header = [
         `# Fastest bikes on ${segment.name} (${segment.worldName})`,
         '',
         `- ${segment.type}: ${segment.lengthKm.toFixed(1)} km, ${Math.round(segment.elevationM)} m, ${segment.avgGradePercent.toFixed(1)}% avg${segment.climbType ? `, category ${segment.climbType}` : ''}`,
+        verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
         args.upgradeLevel !== undefined ? `- All bikes assumed at upgrade stage ${Number(args.upgradeLevel)}` : '- All bikes assumed stock (upgrade stage 0)'
       ].filter(Boolean)
@@ -488,6 +529,7 @@ const TOOLS: ToolDefinition[] = [
         '',
         formatPagination(pagination),
         CONFIDENCE_NOTE,
+        verifiedOnly ? VERIFIED_FILTER_NOTE : '',
         physics ? `\n${physics.note}` : ''
       ].join('\n'))
     }

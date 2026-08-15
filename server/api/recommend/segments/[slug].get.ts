@@ -37,7 +37,8 @@ export default defineEventHandler((event) => {
   const category = typeof query.category === 'string' && query.category ? (query.category as BikeCategory) : undefined
   const limit = query.limit ? Math.min(9, Math.max(1, Number(query.limit))) : 9
   const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
-  const verifiedOnly = query.verifiedOnly === 'true'
+  // Defaults to on - see the equivalent comment in `recommend/[slug].get.ts`.
+  const verifiedOnly = query.verifiedOnly !== 'false'
   const ownedOnly = query.ownedOnly === 'true'
   const ownedLevels = parseOwnedLevels(query.owned)
   const ownedWheelKeys = parseOwnedWheelKeys(query.ownedWheels)

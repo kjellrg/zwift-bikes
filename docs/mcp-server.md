@@ -90,6 +90,43 @@ prediction to a rider needs to be able to say which it has, so the distinction
 is a table column rather than a footnote, and a combo is reported at the
 confidence of its weaker half.
 
+## Verified by default
+
+`verifiedOnly` defaults to **true** on both recommend tools, matching what
+`usePreferences` has always defaulted to in the web UI. A finish time built on
+a name/style heuristic is a much weaker claim than one built on a bot test, and
+presenting the two identically overstates what is known.
+
+The cost is not evenly distributed, because the measured data is not:
+
+| Category | Measured frames |
+| --- | --- |
+| tt | 24 / 25 |
+| standard | 95 / 108 |
+| gravel | **0 / 18** |
+| funbike | **0 / 14** |
+| handbike | 0 / 1 |
+
+**No gravel or fun frame has bot-test data at all**, so the default removes
+both categories outright. Since Zwift only lets gravel frames take
+gravel/mountain wheels, that takes the entire off-road branch of the answer
+with it. Filtering also has a real accuracy cost where it bites: on Road to
+Sky the fastest verified bike is ~35 s slower than the fastest known bike, so
+the default trades some predicted speed for a claim that can actually be
+defended.
+
+Two things keep that from becoming a silent wrong answer:
+
+- Every verified-filtered response says so, and says how to widen.
+- If the filter empties the result, the tools return an **error** naming
+  `verifiedOnly: false` as the retry rather than an empty table - a bare "no
+  results" would read as "no such bike exists" and end the model's attempt.
+
+The HTTP endpoints default the same way (`verifiedOnly !== 'false'`), so an
+unspecified call means verified everywhere. The rider-facing pages send the
+flag explicitly in both directions rather than relying on omission, so the
+endpoint default and the composable default cannot drift apart unnoticed.
+
 ## Connecting a client
 
 Claude Desktop / Claude Code, via `mcp-remote`:

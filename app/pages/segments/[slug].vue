@@ -54,7 +54,8 @@ const recommendQuery = computed(() => ({
   route: preferredRouteSlug.value,
   limit: pageSize,
   offset: 0,
-  verifiedOnly: verifiedOnly.value ? 'true' : undefined,
+  // Always sent, never omitted - see the equivalent comment in `routes/[slug].vue`.
+  verifiedOnly: verifiedOnly.value ? 'true' : 'false',
   ownedOnly: myBikesOnly.value ? 'true' : undefined,
   owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
   ownedWheels: Object.keys(ownedWheels.value).length ? JSON.stringify(Object.keys(ownedWheels.value)) : undefined,
