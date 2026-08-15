@@ -1,7 +1,7 @@
 import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
 import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
-import { classifyBikeFrame, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
 import { geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
@@ -26,7 +26,20 @@ export default defineEventHandler((event) => {
   const category = typeof query.category === 'string' && query.category ? (query.category as BikeCategory) : undefined
   const limit = query.limit ? Math.min(9, Math.max(1, Number(query.limit))) : 9
   const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
-  const verifiedOnly = query.verifiedOnly === 'true'
+  // Defaults to on: an `estimated` score is a name/style heuristic, and a
+  // finish time built on one is a much weaker claim than one built on real
+  // bot-test data. Callers opt out with `verifiedOnly=false` - which the
+  // rider-facing pages send explicitly, so this default and
+  // `usePreferences`'s can't drift apart unnoticed. Note it removes the
+  // gravel and fun categories entirely, since neither has any measured frame.
+  const verifiedOnly = query.verifiedOnly !== 'false'
+  // How many wheelsets a single frame may occupy in the results. Undefined
+  // keeps `capWheelsetsPerFrame`'s own default; a client that wants one row
+  // per frame (the fastest wheelset for this route) passes 1. Only ever
+  // narrows what is *displayed* - it is applied after ranking, never before,
+  // so it can't remove a candidate from consideration.
+  const rawMaxWheelsets = Number(query.maxWheelsetsPerFrame)
+  const maxWheelsetsPerFrame = Number.isFinite(rawMaxWheelsets) ? Math.max(1, Math.round(rawMaxWheelsets)) : undefined
   const ownedOnly = query.ownedOnly === 'true'
   const ownedLevels = parseOwnedLevels(query.owned)
   const ownedWheelKeys = parseOwnedWheelKeys(query.ownedWheels)
@@ -37,7 +50,11 @@ export default defineEventHandler((event) => {
   const filterFramesByOwnership = ownedOnly && Object.keys(ownedLevels).length > 0
   const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
   const rawDefaultUnownedLevel = Number(query.defaultUnownedLevel)
-  const defaultUnownedLevel = Number.isFinite(rawDefaultUnownedLevel) ? Math.min(5, Math.max(0, rawDefaultUnownedLevel)) : 0
+  // Falls back to the shared constant rather than a local 0, so an
+  // unspecified call assumes the same stage the site does - see
+  // `DEFAULT_UNOWNED_LEVEL`. The stage changes the ranking, not just the
+  // times, so two surfaces disagreeing here recommend different bikes.
+  const defaultUnownedLevel = Number.isFinite(rawDefaultUnownedLevel) ? Math.min(5, Math.max(0, rawDefaultUnownedLevel)) : DEFAULT_UNOWNED_LEVEL
   const weightKg = Number(query.weightKg)
   const heightCm = Number(query.heightCm)
   const wkg = Number(query.wkg)
@@ -112,7 +129,7 @@ export default defineEventHandler((event) => {
   // matches first (see `searchCombos`).
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
-    : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score)
+    : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
 
   // The cheap estimate got the pool into roughly the right order, but it is
   // NOT the signal this endpoint displays: in `dynamic` mode every time a

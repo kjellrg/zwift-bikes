@@ -121,17 +121,9 @@ export function formatElevation(m: number): string {
   return `${Math.round(m)} m`
 }
 
-export function formatDuration(seconds: number): string {
-  const totalSeconds = Math.round(seconds)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const secs = totalSeconds % 60
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`
-}
+// `formatDuration` now lives in `shared/utils/duration.ts` so the MCP tools
+// can format times the same way these pages do; it is auto-imported here and
+// used unchanged.
 
 /**
  * Describes how much time a route's non-tarmac sections cost vs. an
@@ -157,15 +149,8 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
  * noise, so the `m:ss` form rounds to whole seconds as before.
  */
 export function formatDurationDelta(seconds: number): string {
-  // Quantise to the precision we actually display first, so a gap that renders
-  // as `+0.00s` is reported as `fastest` rather than as a phantom gap.
-  const hundredths = Math.round(seconds * 100)
-  if (hundredths <= 0) return 'fastest'
-  if (hundredths < 60 * 100) return `+${(hundredths / 100).toFixed(2)}s slower`
-  const totalSeconds = Math.round(seconds)
-  const minutes = Math.floor(totalSeconds / 60)
-  const secs = totalSeconds % 60
-  return `+${minutes}:${secs.toString().padStart(2, '0')} slower`
+  const gap = formatDurationGap(seconds)
+  return gap === 'fastest' ? gap : `${gap} slower`
 }
 
 /** Formats an average speed (route distance in km over a finish time in seconds), e.g. `32.4 km/h`. */

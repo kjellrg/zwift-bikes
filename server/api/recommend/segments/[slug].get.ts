@@ -2,7 +2,7 @@ import { getFrames } from '../../../../shared/utils/catalog'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../../../shared/utils/routeSegments'
 import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
-import { classifyBikeFrame, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
 import { geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
@@ -37,7 +37,11 @@ export default defineEventHandler((event) => {
   const category = typeof query.category === 'string' && query.category ? (query.category as BikeCategory) : undefined
   const limit = query.limit ? Math.min(9, Math.max(1, Number(query.limit))) : 9
   const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
-  const verifiedOnly = query.verifiedOnly === 'true'
+  // Defaults to on - see the equivalent comment in `recommend/[slug].get.ts`.
+  const verifiedOnly = query.verifiedOnly !== 'false'
+  // See the equivalent comment in `recommend/[slug].get.ts`.
+  const rawMaxWheelsets = Number(query.maxWheelsetsPerFrame)
+  const maxWheelsetsPerFrame = Number.isFinite(rawMaxWheelsets) ? Math.max(1, Math.round(rawMaxWheelsets)) : undefined
   const ownedOnly = query.ownedOnly === 'true'
   const ownedLevels = parseOwnedLevels(query.owned)
   const ownedWheelKeys = parseOwnedWheelKeys(query.ownedWheels)
@@ -46,7 +50,9 @@ export default defineEventHandler((event) => {
   const filterFramesByOwnership = ownedOnly && Object.keys(ownedLevels).length > 0
   const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
   const rawDefaultUnownedLevel = Number(query.defaultUnownedLevel)
-  const defaultUnownedLevel = Number.isFinite(rawDefaultUnownedLevel) ? Math.min(5, Math.max(0, rawDefaultUnownedLevel)) : 0
+  // Falls back to the shared constant - see the equivalent comment in
+  // `recommend/[slug].get.ts`.
+  const defaultUnownedLevel = Number.isFinite(rawDefaultUnownedLevel) ? Math.min(5, Math.max(0, rawDefaultUnownedLevel)) : DEFAULT_UNOWNED_LEVEL
   const weightKg = Number(query.weightKg)
   const heightCm = Number(query.heightCm)
   const wkg = Number(query.wkg)
@@ -118,7 +124,7 @@ export default defineEventHandler((event) => {
   // matches first (see `searchCombos`).
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
-    : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score)
+    : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
 
   // See the equivalent comment in `recommend/[slug].get.ts` - the reachable
   // window is re-ordered by real simulated time before pagination, because

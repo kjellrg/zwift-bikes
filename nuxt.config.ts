@@ -34,6 +34,17 @@ export default defineNuxtConfig({
         globalHeaders: {
           'Referrer-Policy': 'strict-origin-when-cross-origin'
         },
+        platform: {
+          // Pinned explicitly because the preset can't pick this itself: it
+          // only recognizes node 16/18/20 (see `writeSWARoutes` in
+          // nitropack's azure preset), matched against `engines.node` or the
+          // local node version, and falls back to `node:18` when neither is
+          // in that set - which is what it was writing here. Azure ended
+          // support for `node:18` on 2025-05-31; `node:22` is supported with
+          // no announced end-of-support date, and is the current Node LTS.
+          // The preset spreads this object last, so it wins over that default.
+          apiRuntime: 'node:22'
+        },
         // Without this, SWA serves /routes/x, /routes/x/ and
         // /routes/x/index.html all as 200s - three URLs, one page. `never`
         // 301s the latter two onto the first, which is the form every
