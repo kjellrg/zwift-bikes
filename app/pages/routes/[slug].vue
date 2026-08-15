@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { BikeCategory } from "../../../shared/types/catalog";
-import { TTT_MAX_RIDERS, TTT_MIN_RIDERS } from "#shared/utils/physics/draft";
+import { TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from "#shared/utils/physics/draft";
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
@@ -67,20 +67,41 @@ onMounted(() => {
   loadGarage();
   loadRiderProfile();
   loadPreferences();
+  pendingWeightKg.value = weightKg.value;
   pendingHeightCm.value = heightCm.value;
   pendingWkg.value = wkg.value;
+  pendingRiders.value = tttRiders.value;
+  pendingClimbWkg.value = tttClimbWkg.value ?? wkg.value;
 });
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
 const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : []);
 const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : []);
 
+const pendingWeightKg = ref(weightKg.value);
 const pendingHeightCm = ref(heightCm.value);
 const pendingWkg = ref(wkg.value);
+// Committing weight holds FTP constant and re-derives W/kg (see `setWeightKg`),
+// so the power slider follows through its own `watch` below.
+const commitWeight = () => setWeightKg(pendingWeightKg.value);
 const commitHeight = () => setHeightCm(pendingHeightCm.value);
 const commitWkg = () => setWkg(pendingWkg.value);
+watch(weightKg, (value) => { pendingWeightKg.value = value; });
 watch(heightCm, (value) => { pendingHeightCm.value = value; });
 watch(wkg, (value) => { pendingWkg.value = value; });
+
+// Seeded from the rider's normal power, then left alone: there is deliberately
+// no `watch(wkg, ...)` here, so moving the Power slider never drags the team's
+// climb pace with it. Until it is committed the profile keeps it `undefined`
+// and the query omits it entirely, which is what makes "not set" mean "ride
+// the climbs at your normal power" rather than "ride them at this number".
+const pendingClimbWkg = ref(tttClimbWkg.value ?? wkg.value);
+const commitClimbWkg = () => setTttClimbWkg(pendingClimbWkg.value);
+watch(tttClimbWkg, (value) => { if (value !== undefined) pendingClimbWkg.value = value; });
+
+const pendingRiders = ref(tttRiders.value);
+const commitRiders = () => setTttRiders(pendingRiders.value);
+watch(tttRiders, (value) => { pendingRiders.value = value; });
 
 const loadedCombos = ref<any[]>([]);
 const hasMore = ref(true);
@@ -138,7 +159,6 @@ const physicsInfo = computed(() => recommendData.value?.physics);
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt));
 const draftModeOptions = [{ label: "Solo (no draft)", value: "solo" }, { label: "TTT (paceline)", value: "ttt" }] as const;
-const tttRiderOptions = Array.from({ length: TTT_MAX_RIDERS - TTT_MIN_RIDERS + 1 }, (_, i) => ({ label: `${TTT_MIN_RIDERS + i} riders`, value: TTT_MIN_RIDERS + i }));
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined);
 const faqAnswer = computed(() => {
@@ -268,14 +288,22 @@ useHead(() => {
         <div class="flex items-center gap-2"><USwitch :model-value="myBikesOnly" @update:model-value="(value: boolean) => setMyBikesOnly(value)" /><span class="text-sm">Only show items in my garage</span><ULink to="/garage" class="text-sm text-primary underline">(edit garage)</ULink></div>
       </div>
 
-      <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">
-        <div class="w-40"><label class="block text-xs font-medium text-muted mb-1">Rider weight (kg)</label><UInput :model-value="weightKg" type="number" min="30" max="150" step="1" @update:model-value="(value: string | number) => setWeightKg(Number(value))" /></div>
-        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ pendingHeightCm }} cm</label><input v-model.number="pendingHeightCm" type="range" min="100" max="220" step="1" class="w-full cursor-pointer" aria-label="Rider height" @change="commitHeight" /></div>
-        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === "ttt" ? " average" : "" }}</label><input v-model.number="pendingWkg" type="range" min="1" max="6.9" step="0.1" class="w-full cursor-pointer" aria-label="Rider power in watts per kilogram" @change="commitWkg" /></div>
-        <div class="w-44"><label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="draftMode" value-key="value" :items="[...draftModeOptions]" :search-input="false" @update:model-value="(value: 'solo' | 'ttt') => setDraftMode(value)" /></div>
-        <div v-if="draftMode === 'ttt'" class="w-32"><label class="block text-xs font-medium text-muted mb-1">Riders <UTooltip text="Team size in the rotation. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="tttRiders" value-key="value" :items="tttRiderOptions" :search-input="false" @update:model-value="(value: number) => setTttRiders(value)" /></div>
-        <div v-if="draftMode === 'ttt'" class="w-36"><label class="block text-xs font-medium text-muted mb-1">Climb W/kg <UTooltip text="Average team W/kg on climbs over ~3.5 minutes, where the paceline breaks up. Leave empty to ride climbs at your front watts too."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><UInput :model-value="tttClimbWkg" type="number" min="0.5" max="8" step="0.1" placeholder="optional" @update:model-value="(value: string | number) => setTttClimbWkg(value === '' || value === null ? undefined : Number(value))" /></div>
-        <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
+      <!-- Two fixed rows rather than one wrapping one: the rider's own numbers stay
+           on the first, everything about the group on the second. Switching draft
+           mode then only fills in the second row's spare width instead of pushing a
+           control onto a new line, so the page below barely moves. -->
+      <div class="rounded-lg border border-default p-4 mb-6 space-y-4">
+        <div class="flex flex-wrap items-end gap-6">
+          <div class="w-full sm:w-44"><label class="block text-xs font-medium text-muted mb-1">Rider weight: {{ pendingWeightKg }} kg</label><input v-model.number="pendingWeightKg" type="range" min="40" max="130" step="1" class="w-full cursor-pointer" aria-label="Rider weight in kilograms" @change="commitWeight" /></div>
+          <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ pendingHeightCm }} cm</label><input v-model.number="pendingHeightCm" type="range" min="100" max="220" step="1" class="w-full cursor-pointer" aria-label="Rider height" @change="commitHeight" /></div>
+          <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === "ttt" ? " average" : "" }}</label><input v-model.number="pendingWkg" type="range" min="1" max="6.9" step="0.1" class="w-full cursor-pointer" aria-label="Rider power in watts per kilogram" @change="commitWkg" /></div>
+        </div>
+        <div class="flex flex-wrap items-end gap-6">
+          <div class="w-44"><label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="draftMode" value-key="value" :items="[...draftModeOptions]" :search-input="false" @update:model-value="(value: 'solo' | 'ttt') => setDraftMode(value)" /></div>
+          <div v-if="draftMode === 'ttt'" class="w-full sm:w-40"><label class="block text-xs font-medium text-muted mb-1">Riders: {{ pendingRiders }} <UTooltip text="Team size in the rotation. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><input v-model.number="pendingRiders" type="range" :min="TTT_MIN_RIDERS" :max="TTT_MAX_RIDERS" step="1" class="w-full cursor-pointer" aria-label="Number of riders in the paceline" @change="commitRiders" /></div>
+          <div v-if="draftMode === 'ttt'" class="w-full sm:w-64"><label class="block text-xs font-medium text-muted mb-1">Team climb power: {{ pendingClimbWkg.toFixed(1) }} W/kg ({{ Math.round(pendingClimbWkg * weightKg) }} W) <UTooltip text="What the team averages on climbs steeper than 3% lasting over ~3.5 minutes, where a paceline breaks up and everyone rides their own pace. Starts at your normal power and stays where you put it - changing the Power slider above never moves it."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><input v-model.number="pendingClimbWkg" type="range" :min="TTT_MIN_CLIMB_WKG" :max="TTT_MAX_CLIMB_WKG" step="0.1" class="w-full cursor-pointer" aria-label="Team average power on long climbs in watts per kilogram" @change="commitClimbWkg" /></div>
+          <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
+        </div>
       </div>
 
       <div v-if="isFirstLoad" class="space-y-4">

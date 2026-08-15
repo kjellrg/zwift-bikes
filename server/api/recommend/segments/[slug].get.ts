@@ -4,7 +4,7 @@ import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
-import { clampTttRiders, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
 
@@ -59,13 +59,10 @@ export default defineEventHandler((event) => {
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
   // TTT draft mode - see the equivalent comment in `recommend/[slug].get.ts`
-  // and `physics/draft.ts` for the frontal-watts semantics.
+  // and `physics/draft.ts` for what the rider's power means here.
   const draftMode = query.draftMode === 'ttt' ? 'ttt' : 'solo'
   const tttRiders = clampTttRiders(Number(query.tttRiders))
-  const rawTttClimbWkg = Number(query.tttClimbWkg)
-  const tttClimbWkg = draftMode === 'ttt' && Number.isFinite(rawTttClimbWkg) && rawTttClimbWkg > 0
-    ? Math.min(8, Math.max(0.5, rawTttClimbWkg))
-    : undefined
+  const tttClimbWkg = draftMode === 'ttt' ? clampTttClimbWkg(Number(query.tttClimbWkg)) : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
@@ -117,9 +114,12 @@ export default defineEventHandler((event) => {
   // TTT power plan, built ONCE per request in the segment's own coordinates
   // (legacy mode has no `segmentGeometry`, so build an equivalent throwaway
   // one - cheap, it's a 2-point line), then offset by the warmup distance
-  // into warmed coordinates for the sims. The warmup-only sim gets NO
-  // overrides: the flat warmup can never be a climb block, so both sims ride
-  // it identically at front watts and the subtraction stays exact.
+  // into warmed coordinates for the sims. The warmup-only sim gets no climb
+  // overrides - a flat warmup can never contain a climb block - but it DOES
+  // get the same draft scaling, so both runs cross the warmup under identical
+  // conditions. (That subtraction is very slightly inexact for a reason that
+  // predates draft mode: the steady-state early exit fires in the warmup-only
+  // run but not in the warmed one. See the note in the TTT PR.)
   const tttPlan = hasRiderProfile && tttClimbWkg
     ? tttPowerPlan(
         segmentGeometry ?? geometryForSegment(segmentRoute.slug, segmentRoute.distance, segmentRoute.elevation, sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')),

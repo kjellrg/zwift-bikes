@@ -186,7 +186,7 @@ const RECOMMEND_FILTER_PROPERTIES = {
   offset: { type: 'number', description: 'Skip this many ranks, for paging past the first page of results.' },
   draftMode: { type: 'string', enum: ['solo', 'ttt'], description: 'Defaults to solo (a lone rider, no draft - how ZwiftInsider\'s bot tests ride). "ttt" models a rotating Team Time Trial paceline. The rider\'s wkg still means their OWN average over a full rotation (what they can sustain), and the group rides at the speed that combined effort produces - roughly the speed of a solo rider at 1.38x their power for an 8-rider team. The response gains a physics.ttt block with the pull/last-wheel watts and a simulated "saves vs riding this alone at the same effort" comparison.' },
   tttRiders: { type: 'number', description: 'TTT mode only: riders in the rotation, 2-8. Defaults to 8. Bigger teams are faster for the same per-rider effort, because each rider spends a smaller share of the time on the front.' },
-  tttClimbWkg: { type: 'number', description: 'TTT mode only, optional: the team\'s average W/kg on climbs over ~3.5 minutes, where the paceline breaks up. Applied instead of the rider\'s flat-effort wkg on those climbs. Omit to ride climbs at the same wkg.' }
+  tttClimbWkg: { type: 'number', description: 'TTT mode only, optional: the team\'s average W/kg on climbs over ~3.5 minutes, where the paceline breaks up (2-9). Applied instead of the rider\'s flat-effort wkg on those climbs. Omit to ride climbs at the same wkg.' }
 } as const
 
 const TOOLS: ToolDefinition[] = [

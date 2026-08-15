@@ -128,7 +128,7 @@ export const CONFIDENCE_NOTE = '`measured` = frame/wheel performance solved from
 
 /**
  * The TTT assumption line for the recommend tools' headers - present only
- * when the request ran in TTT draft mode. Spells out the frontal-watts
+ * when the request ran in TTT draft mode. Spells out the rotation-average
  * semantics compactly; the endpoint's own `physics.note` carries the full
  * explanation.
  */

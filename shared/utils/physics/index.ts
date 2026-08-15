@@ -1,5 +1,5 @@
 export { calculateForces, rollingResistanceCoefficient, GRAVITY, AIR_DENSITY, DRIVETRAIN_EFFICIENCY } from './forces'
-export { clampTttRiders, detectLongClimbBlocks, draftSavingsSpeedScale, tttAveragePowerFactor, tttAveragePowerFactorAtSpeed, tttFrontPullPowerW, tttGroupSpeedMps, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, TTT_DEFAULT_RIDERS, TTT_MAX_RIDERS, TTT_MIN_RIDERS, TTT_POSITION_POWER_SAVINGS } from './draft'
+export { clampTttClimbWkg, clampTttRiders, detectLongClimbBlocks, draftSavingsSpeedScale, tttAveragePowerFactor, tttAveragePowerFactorAtSpeed, tttFrontPullPowerW, tttGroupSpeedMps, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, TTT_DEFAULT_RIDERS, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS, TTT_POSITION_POWER_SAVINGS } from './draft'
 export type { DraftMode, PowerSegmentW, TttClimbBlock, TttPowerPlan } from './draft'
 export { buildRacePlan } from './racePlan'
 export type { RacePlanItem, RacePlanOptions } from './racePlan'

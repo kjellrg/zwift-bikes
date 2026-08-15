@@ -3,7 +3,7 @@ import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { clampTttRiders, geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
@@ -67,10 +67,7 @@ export default defineEventHandler((event) => {
   // the flat for an 8-rider team.
   const draftMode = query.draftMode === 'ttt' ? 'ttt' : 'solo'
   const tttRiders = clampTttRiders(Number(query.tttRiders))
-  const rawTttClimbWkg = Number(query.tttClimbWkg)
-  const tttClimbWkg = draftMode === 'ttt' && Number.isFinite(rawTttClimbWkg) && rawTttClimbWkg > 0
-    ? Math.min(8, Math.max(0.5, rawTttClimbWkg))
-    : undefined
+  const tttClimbWkg = draftMode === 'ttt' ? clampTttClimbWkg(Number(query.tttClimbWkg)) : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.

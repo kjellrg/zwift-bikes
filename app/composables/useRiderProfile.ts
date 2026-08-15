@@ -1,9 +1,17 @@
 import type { DraftMode } from '../../shared/utils/physics/draft'
-import { clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
+import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
 
 const STORAGE_KEY = 'zwift-bikes:rider-profile'
 
 const DEFAULT_WEIGHT_KG = 75
+/**
+ * Weight bounds, matching the sliders on the route/segment pages. Kept wide
+ * enough to cover any realistic Zwift rider but not so wide that a stray digit
+ * (7 kg, 750 kg) silently produces nonsense finish times.
+ */
+const MIN_WEIGHT_KG = 40
+const MAX_WEIGHT_KG = 130
+const clampWeightKg = (value: number) => Math.min(MAX_WEIGHT_KG, Math.max(MIN_WEIGHT_KG, Math.round(value)))
 const DEFAULT_HEIGHT_CM = 183
 const DEFAULT_FTP_WATTS = 225
 const DEFAULT_WKG = DEFAULT_FTP_WATTS / DEFAULT_WEIGHT_KG
@@ -21,12 +29,12 @@ export function useRiderProfile() {
   const wkg = useState<number>('rider-wkg', () => DEFAULT_WKG)
   const ftpWatts = useState<number>('rider-ftp-watts', () => DEFAULT_FTP_WATTS)
   const defaultUnownedLevel = useState<number>('rider-default-unowned-level', () => DEFAULT_UNOWNED_LEVEL)
-  // Draft mode (see `shared/utils/physics/draft.ts`): 'solo' is today's
-  // behavior; 'ttt' treats the entered watts as the paceline's front rider.
+  // Draft mode (see `shared/utils/physics/draft.ts`): 'solo' is a lone rider;
+  // 'ttt' reads the entered watts as each rider's own rotation average.
   const draftMode = useState<DraftMode>('rider-draft-mode', () => 'solo')
   const tttRiders = useState<number>('rider-ttt-riders', () => TTT_DEFAULT_RIDERS)
   // Optional "avg W/kg on climbs over 3-4 min" (TTT only) - undefined means
-  // the front watts apply everywhere, climbs included.
+  // the rider's normal power applies everywhere, climbs included.
   const tttClimbWkg = useState<number | undefined>('rider-ttt-climb-wkg', () => undefined)
 
   function persist() {
@@ -49,22 +57,24 @@ export function useRiderProfile() {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return
       const parsed = JSON.parse(raw)
-      if (typeof parsed.weightKg === 'number') weightKg.value = parsed.weightKg
+      if (typeof parsed.weightKg === 'number') weightKg.value = clampWeightKg(parsed.weightKg)
       if (typeof parsed.heightCm === 'number') heightCm.value = Math.min(220, Math.max(100, parsed.heightCm))
       if (typeof parsed.wkg === 'number') wkg.value = parsed.wkg
       if (typeof parsed.ftpWatts === 'number') ftpWatts.value = parsed.ftpWatts
       if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = parsed.defaultUnownedLevel
       if (parsed.draftMode === 'ttt' || parsed.draftMode === 'solo') draftMode.value = parsed.draftMode
       if (typeof parsed.tttRiders === 'number') tttRiders.value = clampTttRiders(parsed.tttRiders)
-      if (typeof parsed.tttClimbWkg === 'number') tttClimbWkg.value = Math.min(8, Math.max(0.5, parsed.tttClimbWkg))
+      if (typeof parsed.tttClimbWkg === 'number') tttClimbWkg.value = clampTttClimbWkg(parsed.tttClimbWkg)
     } catch {
       // ignore corrupted storage
     }
   }
 
   function setWeightKg(value: number) {
-    weightKg.value = value
-    wkg.value = ftpWatts.value / value
+    weightKg.value = clampWeightKg(value)
+    // FTP is the fixed quantity here - a rider who corrects their weight has
+    // not changed how many watts they can push, so W/kg is what moves.
+    wkg.value = ftpWatts.value / weightKg.value
     persist()
   }
 
@@ -99,8 +109,11 @@ export function useRiderProfile() {
     persist()
   }
 
+  // Deliberately independent of `wkg`: the pages seed the control from the
+  // rider's normal power the first time it is shown, but once a team climb
+  // pace exists it is never dragged along by later power changes.
   function setTttClimbWkg(value: number | undefined) {
-    tttClimbWkg.value = typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.min(8, Math.max(0.5, value)) : undefined
+    tttClimbWkg.value = clampTttClimbWkg(value)
     persist()
   }
 

@@ -99,7 +99,7 @@ export function buildRacePlan(geometry: RouteGeometry, options: RacePlanOptions)
   const items: RacePlanItem[] = []
 
   // When no team climb W/kg is set the blocks are still worth flagging -
-  // estimate their duration at the front watts instead.
+  // estimate their duration at the rider's normal power instead.
   const climbPowerW = options.climbWkg ? options.climbWkg * options.weightKg : options.riderPowerW
   for (const block of detectLongClimbBlocks(geometry, climbPowerW, options.weightKg)) {
     items.push({

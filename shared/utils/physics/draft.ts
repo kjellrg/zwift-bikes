@@ -43,6 +43,27 @@ export function clampTttRiders(riders: number): number {
 }
 
 /**
+ * Bounds for the optional team climb pace. A paceline that has broken up on a
+ * long climb is riding at each rider's own sustainable climbing effort, which
+ * realistically sits somewhere between a steady tempo and a hard sustained
+ * effort - hence 2 W/kg at the low end and 9 at the high end, in 0.1 steps.
+ */
+export const TTT_MIN_CLIMB_WKG = 2
+export const TTT_MAX_CLIMB_WKG = 9
+
+/**
+ * Clamps a team climb pace to the supported range, or returns `undefined` for
+ * "not set" (climbs ridden at the rider's normal power). Snapped to the 0.1
+ * the controls step in: a slider that accumulates `min + n * step` in binary
+ * floating point hands back values like 4.300000000000001, which would show up
+ * verbatim in the query string and defeat response caching for no reason.
+ */
+export function clampTttClimbWkg(climbWkg: number | undefined): number | undefined {
+  if (typeof climbWkg !== 'number' || !Number.isFinite(climbWkg) || climbWkg <= 0) return undefined
+  return Math.round(Math.min(TTT_MAX_CLIMB_WKG, Math.max(TTT_MIN_CLIMB_WKG, climbWkg)) * 10) / 10
+}
+
+/**
  * Power saved vs the front rider, by paceline position (index 0 = front),
  * at flat TTT speeds. Measured by ZwiftInsider's 4-bot single-file TTT test
  * on TT bikes under **Pack Dynamics 4.1**, the current pack model
