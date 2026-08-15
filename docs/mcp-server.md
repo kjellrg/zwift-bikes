@@ -86,6 +86,21 @@ the times. On Road to Sky, stage 0 puts the Tarmac SL9 on top and stage 5 puts
 the Aethos S-Works there. Pass `upgradeLevel: 0` for bikes as they come out of
 the drop shop.
 
+Both recommend tools also take `draftMode` (`solo` | `ttt`), `tttRiders` (2-8,
+default 8) and `tttClimbWkg` (optional). The default `solo` is a lone rider
+with no draft - exactly how ZwiftInsider's bot tests ride, and byte-identical
+to requests from before the option existed. `ttt` models a rotating Team Time
+Trial paceline: the profile's `wkg` still means the rider's **own average over
+a full rotation**, and the group rides at the speed that combined effort
+produces (~1.38x a solo rider's power for an 8-rider team on the flat).
+`tttClimbWkg` optionally paces climbs over ~3.5 minutes, where the paceline
+breaks up, at a separate team climb W/kg. The response's `physics.ttt` block
+carries the rider count, the rider's own watts, their pull and last-wheel
+watts, and - on the first page - a simulated "saves X vs riding this alone at
+the same effort" comparison, which the tools surface as an assumption line in
+the header. See `shared/utils/physics/draft.ts` for the Pack Dynamics 4.1 data
+behind it.
+
 They return at most 9 combos per call - the same cap the HTTP endpoint
 enforces - with `offset` for paging, and **one row per frame**, paired with
 that frame's fastest wheelset for the route. The web UI can afford to show a

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { BikeCategory } from "../../../shared/types/catalog";
+import { TTT_MAX_RIDERS, TTT_MIN_RIDERS } from "#shared/utils/physics/draft";
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
 const { owned, ownedWheels, load: loadGarage } = useGarage();
-const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile();
+const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile();
 const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences();
 
 const bikeSearch = ref("");
@@ -33,6 +34,12 @@ const recommendQuery = computed(() => ({
   heightCm: heightCm.value,
   wkg: wkg.value,
   laps: laps.value,
+  // Omitted entirely in solo mode so SSR/prerendered payloads stay
+  // byte-identical to before draft mode existed (localStorage loads
+  // onMounted, then the watch below refetches if the persisted mode is TTT).
+  draftMode: draftMode.value === "ttt" ? "ttt" : undefined,
+  tttRiders: draftMode.value === "ttt" ? tttRiders.value : undefined,
+  tttClimbWkg: draftMode.value === "ttt" ? tttClimbWkg.value : undefined,
 }));
 
 // Fired together (not sequentially) - the recommend query only depends on `slug` plus rider
@@ -60,20 +67,20 @@ onMounted(() => {
   loadGarage();
   loadRiderProfile();
   loadPreferences();
-  draftHeightCm.value = heightCm.value;
-  draftWkg.value = wkg.value;
+  pendingHeightCm.value = heightCm.value;
+  pendingWkg.value = wkg.value;
 });
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
 const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : []);
 const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : []);
 
-const draftHeightCm = ref(heightCm.value);
-const draftWkg = ref(wkg.value);
-const commitHeight = () => setHeightCm(draftHeightCm.value);
-const commitWkg = () => setWkg(draftWkg.value);
-watch(heightCm, (value) => { draftHeightCm.value = value; });
-watch(wkg, (value) => { draftWkg.value = value; });
+const pendingHeightCm = ref(heightCm.value);
+const pendingWkg = ref(wkg.value);
+const commitHeight = () => setHeightCm(pendingHeightCm.value);
+const commitWkg = () => setWkg(pendingWkg.value);
+watch(heightCm, (value) => { pendingHeightCm.value = value; });
+watch(wkg, (value) => { pendingWkg.value = value; });
 
 const loadedCombos = ref<any[]>([]);
 const hasMore = ref(true);
@@ -113,7 +120,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced], () => { refreshFirstPage(); });
+watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => { refreshFirstPage(); });
 watch(owned, () => { refreshFirstPage(); }, { deep: true });
 watch(ownedWheels, () => { refreshFirstPage(); }, { deep: true });
 
@@ -129,6 +136,9 @@ const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.fi
 const surfaceTimePenaltyText = computed(() => routeData.value ? formatSurfaceTimePenalty(routeData.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined);
 const physicsInfo = computed(() => recommendData.value?.physics);
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
+const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt));
+const draftModeOptions = [{ label: "Solo (no draft)", value: "solo" }, { label: "TTT (paceline)", value: "ttt" }] as const;
+const tttRiderOptions = Array.from({ length: TTT_MAX_RIDERS - TTT_MIN_RIDERS + 1 }, (_, i) => ({ label: `${TTT_MIN_RIDERS + i} riders`, value: TTT_MIN_RIDERS + i }));
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined);
 const faqAnswer = computed(() => {
@@ -181,7 +191,7 @@ useHead(() => {
           <TerrainBadge :terrain="routeData.terrain" /><SurfaceBadges :surface="routeData.surface" />
           <UBadge v-if="physicsIsDynamic" color="primary" variant="subtle" icon="i-lucide-atom">Dynamic physics</UBadge>
           <UBadge v-if="routeData.eventOnly" color="error" variant="subtle" icon="i-lucide-calendar-clock">Event only</UBadge>
-        </div><p v-if="surfaceTimePenaltyText" class="text-xs text-muted sm:text-right">{{ surfaceTimePenaltyText }}</p></div>
+        </div><p v-if="surfaceTimePenaltyText" class="text-xs text-muted sm:text-right">{{ surfaceTimePenaltyText }}</p><p v-if="tttSavingText" class="text-xs text-muted sm:text-right">{{ tttSavingText }}</p></div>
       </div>
       <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs text-muted uppercase tracking-wide">Distance</p><p class="text-xl font-bold">{{ formatDistance(routeTotals?.distanceKm ?? routeData.distance) }}</p></UCard>
@@ -208,6 +218,22 @@ useHead(() => {
       :weight-kg="weightKg"
       :height-cm="heightCm"
       :wkg="wkg"
+      :draft-mode="draftMode"
+      :ttt-riders="tttRiders"
+      :ttt-climb-wkg="tttClimbWkg"
+    />
+
+    <RacePlanPanel
+      v-if="draftMode === 'ttt' && topCombo"
+      :route="routeData"
+      :laps="laps"
+      :weight-kg="weightKg"
+      :height-cm="heightCm"
+      :wkg="wkg"
+      :frame="topCombo.frame"
+      :wheelset="topCombo.wheelset"
+      :ttt-riders="tttRiders"
+      :ttt-climb-wkg="tttClimbWkg"
     />
 
     <div v-if="routeData.terrain.elevationProfile && routeData.terrain.elevationProfile.length > 1">
@@ -244,8 +270,11 @@ useHead(() => {
 
       <div class="flex flex-wrap items-end gap-6 rounded-lg border border-default p-4 mb-6">
         <div class="w-40"><label class="block text-xs font-medium text-muted mb-1">Rider weight (kg)</label><UInput :model-value="weightKg" type="number" min="30" max="150" step="1" @update:model-value="(value: string | number) => setWeightKg(Number(value))" /></div>
-        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm }} cm</label><input v-model.number="draftHeightCm" type="range" min="100" max="220" step="1" class="w-full cursor-pointer" aria-label="Rider height" @change="commitHeight" /></div>
-        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ draftWkg.toFixed(1) }} W/kg ({{ Math.round(draftWkg * weightKg) }} W)</label><input v-model.number="draftWkg" type="range" min="1" max="6.9" step="0.1" class="w-full cursor-pointer" aria-label="Rider power in watts per kilogram" @change="commitWkg" /></div>
+        <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ pendingHeightCm }} cm</label><input v-model.number="pendingHeightCm" type="range" min="100" max="220" step="1" class="w-full cursor-pointer" aria-label="Rider height" @change="commitHeight" /></div>
+        <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === "ttt" ? " average" : "" }}</label><input v-model.number="pendingWkg" type="range" min="1" max="6.9" step="0.1" class="w-full cursor-pointer" aria-label="Rider power in watts per kilogram" @change="commitWkg" /></div>
+        <div class="w-44"><label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="draftMode" value-key="value" :items="[...draftModeOptions]" :search-input="false" @update:model-value="(value: 'solo' | 'ttt') => setDraftMode(value)" /></div>
+        <div v-if="draftMode === 'ttt'" class="w-32"><label class="block text-xs font-medium text-muted mb-1">Riders <UTooltip text="Team size in the rotation. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="tttRiders" value-key="value" :items="tttRiderOptions" :search-input="false" @update:model-value="(value: number) => setTttRiders(value)" /></div>
+        <div v-if="draftMode === 'ttt'" class="w-36"><label class="block text-xs font-medium text-muted mb-1">Climb W/kg <UTooltip text="Average team W/kg on climbs over ~3.5 minutes, where the paceline breaks up. Leave empty to ride climbs at your front watts too."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><UInput :model-value="tttClimbWkg" type="number" min="0.5" max="8" step="0.1" placeholder="optional" @update:model-value="(value: string | number) => setTttClimbWkg(value === '' || value === null ? undefined : Number(value))" /></div>
         <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
       </div>
 
@@ -256,8 +285,8 @@ useHead(() => {
       <template v-else>
         <p v-if="isRefreshingCombos" class="flex items-center gap-1.5 text-sm text-muted mb-3"><UIcon name="i-lucide-loader-circle" class="size-4 animate-spin" />Updating results…</p>
         <div class="transition-opacity" :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }">
-          <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" class="mb-6" />
-          <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" /></div>
+          <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" class="mb-6" />
+          <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" /></div>
           <p v-else-if="!topCombo" class="text-muted text-center py-10">No bikes match your filters.</p>
         </div>
         <div v-if="hasMore" class="text-center mt-6"><UButton color="neutral" variant="subtle" :loading="loadingMore" @click="showMore">Show more matches</UButton></div>

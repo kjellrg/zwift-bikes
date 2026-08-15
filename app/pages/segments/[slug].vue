@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BikeCategory, RouteWithMeta } from '../../../shared/types/catalog'
+import { TTT_MAX_RIDERS, TTT_MIN_RIDERS } from '#shared/utils/physics/draft'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -21,14 +22,14 @@ useSeoMeta({
 })
 
 const { owned, ownedWheels, load: loadGarage } = useGarage()
-const { weightKg, heightCm, wkg, defaultUnownedLevel, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm } = useRiderProfile()
+const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences()
 onMounted(() => {
   loadGarage()
   loadRiderProfile()
   loadPreferences()
-  draftHeightCm.value = heightCm.value
-  draftWkg.value = wkg.value
+  pendingHeightCm.value = heightCm.value
+  pendingWkg.value = wkg.value
 })
 
 const bikeSearch = ref('')
@@ -38,12 +39,12 @@ watch(bikeSearch, (value) => { clearTimeout(bikeSearchDebounceTimer); bikeSearch
 const categoryFilter = ref<BikeCategory | 'all'>('all')
 const pageSize = 9
 
-const draftHeightCm = ref(heightCm.value)
-const draftWkg = ref(wkg.value)
-const commitHeight = () => setHeightCm(draftHeightCm.value)
-const commitWkg = () => setWkg(draftWkg.value)
-watch(heightCm, (value) => { draftHeightCm.value = value })
-watch(wkg, (value) => { draftWkg.value = value })
+const pendingHeightCm = ref(heightCm.value)
+const pendingWkg = ref(wkg.value)
+const commitHeight = () => setHeightCm(pendingHeightCm.value)
+const commitWkg = () => setWkg(pendingWkg.value)
+watch(heightCm, (value) => { pendingHeightCm.value = value })
+watch(wkg, (value) => { pendingWkg.value = value })
 
 // A ranking is always a single pass over the segment - there's no fatigue
 // model, so which lap a `perLap` segment falls on doesn't change its
@@ -62,7 +63,11 @@ const recommendQuery = computed(() => ({
   defaultUnownedLevel: defaultUnownedLevel.value,
   weightKg: weightKg.value,
   heightCm: heightCm.value,
-  wkg: wkg.value
+  wkg: wkg.value,
+  // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
+  draftMode: draftMode.value === 'ttt' ? 'ttt' : undefined,
+  tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
+  tttClimbWkg: draftMode.value === 'ttt' ? tttClimbWkg.value : undefined
 }))
 const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/segments/${slug.value}`, { query: recommendQuery, watch: false })
 
@@ -100,7 +105,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced], () => { refreshFirstPage() })
+watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => { refreshFirstPage() })
 watch(owned, () => { refreshFirstPage() }, { deep: true })
 watch(ownedWheels, () => { refreshFirstPage() }, { deep: true })
 
@@ -115,6 +120,9 @@ const restCombos = computed(() => combos.value.slice(1))
 const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number'); return times.length ? Math.min(...times) : undefined })
 const physicsInfo = computed(() => recommendData.value?.physics)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
+const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
+const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }]
+const tttRiderOptions = Array.from({ length: TTT_MAX_RIDERS - TTT_MIN_RIDERS + 1 }, (_, i) => ({ label: `${TTT_MIN_RIDERS + i} riders`, value: TTT_MIN_RIDERS + i }))
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
 const faqAnswer = computed(() => {
@@ -211,6 +219,12 @@ const segmentAsRoute = computed(() => segmentData.value
               Dynamic physics
             </UBadge>
           </div>
+          <p
+            v-if="tttSavingText"
+            class="text-xs text-muted sm:text-right"
+          >
+            {{ tttSavingText }}
+          </p>
         </div>
       </div>
       <div class="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -328,8 +342,8 @@ const segmentAsRoute = computed(() => segmentData.value
           />
         </div>
         <div class="w-full sm:w-56">
-          <label class="block text-xs font-medium text-muted mb-1">Height: {{ draftHeightCm }} cm</label><input
-            v-model.number="draftHeightCm"
+          <label class="block text-xs font-medium text-muted mb-1">Height: {{ pendingHeightCm }} cm</label><input
+            v-model.number="pendingHeightCm"
             type="range"
             min="100"
             max="220"
@@ -340,8 +354,8 @@ const segmentAsRoute = computed(() => segmentData.value
           >
         </div>
         <div class="min-w-64 flex-1">
-          <label class="block text-xs font-medium text-muted mb-1">Power: {{ draftWkg.toFixed(1) }} W/kg ({{ Math.round(draftWkg * weightKg) }} W)</label><input
-            v-model.number="draftWkg"
+          <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === "ttt" ? " average" : "" }}</label><input
+            v-model.number="pendingWkg"
             type="range"
             min="1"
             max="6.9"
@@ -350,6 +364,50 @@ const segmentAsRoute = computed(() => segmentData.value
             aria-label="Rider power in watts per kilogram"
             @change="commitWkg"
           >
+        </div>
+        <div class="w-44">
+          <label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon
+            name="i-lucide-info"
+            class="size-3 text-muted align-text-bottom"
+          /></UTooltip></label><USelectMenu
+            :model-value="draftMode"
+            value-key="value"
+            :items="draftModeOptions"
+            :search-input="false"
+            @update:model-value="(value: string) => setDraftMode(value === 'ttt' ? 'ttt' : 'solo')"
+          />
+        </div>
+        <div
+          v-if="draftMode === 'ttt'"
+          class="w-32"
+        >
+          <label class="block text-xs font-medium text-muted mb-1">Riders <UTooltip text="Team size in the rotation. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is."><UIcon
+            name="i-lucide-info"
+            class="size-3 text-muted align-text-bottom"
+          /></UTooltip></label><USelectMenu
+            :model-value="tttRiders"
+            value-key="value"
+            :items="tttRiderOptions"
+            :search-input="false"
+            @update:model-value="(value: number) => setTttRiders(value)"
+          />
+        </div>
+        <div
+          v-if="draftMode === 'ttt'"
+          class="w-36"
+        >
+          <label class="block text-xs font-medium text-muted mb-1">Climb W/kg <UTooltip text="Average team W/kg on climbs over ~3.5 minutes, where the paceline breaks up. Leave empty to ride climbs at your front watts too."><UIcon
+            name="i-lucide-info"
+            class="size-3 text-muted align-text-bottom"
+          /></UTooltip></label><UInput
+            :model-value="tttClimbWkg"
+            type="number"
+            min="0.5"
+            max="8"
+            step="0.1"
+            placeholder="optional"
+            @update:model-value="(value: string | number) => setTttClimbWkg(value === '' || value === null ? undefined : Number(value))"
+          />
         </div>
         <ULink
           to="/profile"

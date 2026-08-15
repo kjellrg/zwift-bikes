@@ -3,7 +3,7 @@ import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN } from '../../../shared/utils/physics'
+import { clampTttRiders, geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
@@ -61,6 +61,16 @@ export default defineEventHandler((event) => {
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
   const laps = clampLaps(route, Number(query.laps))
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
+  // TTT draft mode (see `physics/draft.ts`): the rider's `wkg` is their own
+  // average over the rotation, and the paceline moves at the speed that
+  // combined effort produces - roughly a solo rider at 1.38x their power on
+  // the flat for an 8-rider team.
+  const draftMode = query.draftMode === 'ttt' ? 'ttt' : 'solo'
+  const tttRiders = clampTttRiders(Number(query.tttRiders))
+  const rawTttClimbWkg = Number(query.tttClimbWkg)
+  const tttClimbWkg = draftMode === 'ttt' && Number.isFinite(rawTttClimbWkg) && rawTttClimbWkg > 0
+    ? Math.min(8, Math.max(0.5, rawTttClimbWkg))
+    : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
@@ -116,10 +126,24 @@ export default defineEventHandler((event) => {
   // to already contain.
   const rider = { weightKg, heightCm, powerW: weightKg * wkg }
   const geometry = hasRiderProfile && physicsMode !== 'legacy' ? geometryForRouteLaps(route, laps) : undefined
+  // Computed ONCE per request and shared by every combo - a per-combo plan
+  // would poison `orderBySimulatedTime`'s physics-keyed dedupe cache (see
+  // `physics/draft.ts`). Legacy mode has no geometry but still needs the plan
+  // for the estimate's two-phase split, so build one just for it (geometry
+  // construction is cheap; simulation is the expensive part).
+  const tttPlan = hasRiderProfile && tttClimbWkg
+    ? tttPowerPlan(geometry ?? geometryForRouteLaps(route, laps), tttClimbWkg, weightKg)
+    : undefined
+  // The one object every TTT-aware call site threads through: the draft
+  // scaling for the simulator, and its closed-form twin for the estimate.
+  const tttEstimate = draftMode === 'ttt'
+    ? { riders: tttRiders, climb: tttPlan ? { distanceM: tttPlan.climbDistanceM, elevationM: tttPlan.climbElevationM, powerW: tttPlan.climbPowerW } : undefined }
+    : undefined
+  const powerScaleAtSpeed = draftMode === 'ttt' ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps) : undefined
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, tttEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
 
@@ -147,7 +171,7 @@ export default defineEventHandler((event) => {
     const ordering = orderBySimulatedTime(
       filteredRankedCombos,
       offset + limit + SIMULATED_ORDER_MARGIN,
-      combo => simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry }).elapsedSec
+      combo => simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
     )
     filteredRankedCombos = ordering.ordered
     for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
@@ -164,7 +188,7 @@ export default defineEventHandler((event) => {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
         combo.finishTimeSec = simulatedSec.get(combo)
-          ?? simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry }).elapsedSec
+          ?? simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
@@ -172,21 +196,50 @@ export default defineEventHandler((event) => {
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
 
+  // "Riding as a TTT saves X vs solo": ONE extra simulation per request (top
+  // combo, first page, dynamic mode only) of the same rider at the same
+  // power and the same pacing plan, with the draft scaling removed. The only
+  // difference between the two rides is the draft itself, so the gap is
+  // exactly what the paceline is worth.
+  let ttt: { riders: number, riderPowerW: number, frontPullPowerW: number, lastWheelPowerW: number, climbWkg?: number, soloFinishTimeSec?: number, tttSavedSec?: number } | undefined
+  if (hasRiderProfile && draftMode === 'ttt') {
+    const topCombo = pageCombos[0]
+    let soloFinishTimeSec: number | undefined
+    let tttSavedSec: number | undefined
+    if (geometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW }).elapsedSec
+      tttSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
+    }
+    ttt = {
+      riders: tttRiders,
+      riderPowerW: Math.round(rider.powerW),
+      frontPullPowerW: Math.round(tttFrontPullPowerW(rider.powerW, tttRiders)),
+      lastWheelPowerW: Math.round(tttLastWheelPowerW(rider.powerW, tttRiders)),
+      climbWkg: tttClimbWkg,
+      soloFinishTimeSec,
+      tttSavedSec
+    }
+  }
+  const tttNote = ttt
+    ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
+    : ''
+
   return {
     route: toRouteSummary(route),
     combos: pageCombos,
     physics: hasRiderProfile
       ? {
           mode: physicsMode,
+          ttt,
           geometry: route.terrain.elevationProfile
             ? 'measured'
             : route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility',
           rider: { weightKg, heightCm, wkg },
-          note: route.terrain.elevationProfile
+          note: (route.terrain.elevationProfile
             ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s elevation profile is real, measured GPS data (not synthesized), so grade changes are modeled at their actual position along the route.'
             : route.terrain.climbs.length > 0
               ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s named climb(s) use real length/gradient data, with the remaining unmapped distance still synthesized from aggregate elevation.'
-              : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.'
+              : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.') + tttNote
         }
       : undefined,
     pagination: {

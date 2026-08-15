@@ -12,6 +12,26 @@ export interface SimulateRouteOptions {
   initialSpeedMps?: number
   /** Distances (m, ascending) to record cumulative elapsed time at as the simulation crosses them - see `boundaryCrossings` on the result. */
   boundariesM?: number[]
+  /**
+   * Optional power overrides by position (m, ascending, non-overlapping):
+   * inside `[fromM, toM)` the rider produces `powerW` instead of
+   * `rider.powerW`; outside every segment the base power applies. Used by the
+   * TTT draft mode to ride long climbs at a team climb power (see
+   * `physics/draft.ts`) and for the solo-equivalent comparison. Absent means
+   * exactly today's behavior.
+   */
+  powerSegmentsW?: { fromM: number, toM: number, powerW: number }[]
+  /**
+   * Optional multiplier on the rider's power as a function of the CURRENT
+   * speed, applied on top of `powerSegmentsW`. Used by the TTT draft mode:
+   * a paceline whose riders each average `rider.powerW` drives itself at
+   * `powerW / averagePowerFactor(speed)`, and that factor depends on how
+   * fast the group is actually moving (see `tttPowerScaleAtSpeed`), so the
+   * benefit fades on climbs and grows on descents with no per-grade
+   * bookkeeping here. Evaluated at both midpoint-integration velocities.
+   * Absent means exactly today's behavior.
+   */
+  powerScaleAtSpeed?: (speedMps: number) => number
 }
 
 /** Grade at `distanceM`, from the elevation profile (`geometry.points`). */
@@ -108,6 +128,29 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   const boundaryCrossings: { distanceM: number, elapsedSec: number }[] = []
   let boundaryIndex = 0
 
+  // One rider object per power override segment, built once - the inner loop
+  // only swaps references. `powerSegmentIndex` advances monotonically with
+  // distance; the whole step uses the power at the step's START position (a
+  // step is ≤ a few metres, far finer than any override segment).
+  const powerSegments = options.powerSegmentsW
+  const segmentRiders = powerSegments?.map(segment => ({ ...options.rider, powerW: segment.powerW }))
+  let powerSegmentIndex = 0
+  // Speed-dependent power (TTT draft) needs a fresh power value at every
+  // force evaluation, twice per step. One reusable scratch object rather
+  // than an allocation per evaluation - `calculateForces` only reads it, and
+  // never retains it. `options.rider` itself is never mutated.
+  const powerScaleAtSpeed = options.powerScaleAtSpeed
+  const scaledRider = powerScaleAtSpeed ? { ...options.rider } : undefined
+  const riderAtSpeed = (baseRider: PhysicsRider, speedMps: number) => {
+    if (!powerScaleAtSpeed) return baseRider
+    scaledRider!.powerW = baseRider.powerW * powerScaleAtSpeed(speedMps)
+    return scaledRider!
+  }
+  // The steady-state early exit below extrapolates a constant speed to the
+  // finish, which would silently skip any power change still ahead - never
+  // take it before the last override boundary is behind us.
+  const lastPowerBoundaryM = powerSegments?.length ? powerSegments[powerSegments.length - 1]!.toM : 0
+
   // Guard against a simulation that never reaches the finish line. It has to
   // scale with the route AND with `dt`, or a smaller `dt` silently truncates
   // a long route and returns a plausible-looking wrong time instead of an
@@ -126,7 +169,13 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     const segment = gradeSegmentAt(options.geometry, state.distanceM)
     if (!segment) break
     const surface = surfaceAt(options.geometry.surfaceSegments, state.distanceM)
-    const forces = calculateForces(state.velocityMps, segment.grade, options.rider, physicsEquipment, surface, crrClass)
+    let stepRider = options.rider
+    if (powerSegments) {
+      while (powerSegmentIndex < powerSegments.length && powerSegments[powerSegmentIndex]!.toM <= state.distanceM) powerSegmentIndex++
+      const powerSegment = powerSegments[powerSegmentIndex]
+      if (powerSegment && powerSegment.fromM <= state.distanceM) stepRider = segmentRiders![powerSegmentIndex]!
+    }
+    const forces = calculateForces(state.velocityMps, segment.grade, riderAtSpeed(stepRider, state.velocityMps), physicsEquipment, surface, crrClass)
     const previousDistance = state.distanceM
     const previousElapsedSec = state.elapsedSec
     // Midpoint (RK2) velocity step: acceleration is evaluated again at the
@@ -140,7 +189,7 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     // evaluation. Distance advances at the midpoint velocity to match.
     const previousVelocityMps = state.velocityMps
     const midVelocityMps = Math.max(0, previousVelocityMps + forces.accelerationMps2 * dt / 2)
-    const midForces = calculateForces(midVelocityMps, segment.grade, options.rider, physicsEquipment, surface, crrClass)
+    const midForces = calculateForces(midVelocityMps, segment.grade, riderAtSpeed(stepRider, midVelocityMps), physicsEquipment, surface, crrClass)
     state.velocityMps = Math.max(0, previousVelocityMps + midForces.accelerationMps2 * dt)
     // On the step that crosses the finish line the rider only rides part of
     // `dt` before finishing, so the clock advances by only that fraction -
@@ -155,7 +204,7 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     state.elapsedSec += stepSec
     boundaryIndex = crossBoundaries(options.boundariesM, boundaryIndex, boundaryCrossings, previousDistance, previousElapsedSec, state.distanceM, state.elapsedSec)
 
-    if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM) {
+    if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM && state.distanceM >= lastPowerBoundaryM) {
       const beforeRemainingDistance = state.distanceM
       const beforeRemainingElapsedSec = state.elapsedSec
       const remainingM = options.geometry.totalDistanceM - state.distanceM

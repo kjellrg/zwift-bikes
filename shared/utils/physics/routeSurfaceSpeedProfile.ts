@@ -1,6 +1,7 @@
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset, ZwiftSurfaceType } from '../../types/catalog'
 import type { RouteGeometryPoint } from '../../types/physics'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
+import { tttFrontPullPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from './draft'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { powerForSpeed } from './forces'
 import { geometryForRouteLaps } from './routeGeometry'
@@ -65,6 +66,18 @@ export interface RouteSurfaceSpeedProfile {
    * impossible to disagree.
    */
   elevationPoints: RouteGeometryPoint[]
+  /**
+   * TTT draft mode only: the same rider, same power, same pacing, riding the
+   * route alone with no draft - the dashed "if you rode this solo" overlay.
+   * `speedSamples` share the main series' bucket positions so the two lines
+   * are directly comparable, and the gap between them IS the draft benefit.
+   */
+  soloComparison?: {
+    speedSamples: RouteSurfaceSpeedSample[]
+    overallAvgSpeedKmh: number
+    /** What the rider holds while pulling on the front - the concrete number a TTT calculator would give them. */
+    frontPullPowerW: number
+  }
 }
 
 /** Elevation at `distanceM`, linearly interpolated between the two bracketing `points` - mirrors `gradeSegmentAt` in `simulator.ts` but returns elevation instead of local grade, since a surface segment can span several grade points. */
@@ -152,7 +165,8 @@ export function computeRouteSurfaceSpeedProfile(
   wheelset: Wheelset | undefined,
   weightKg: number,
   heightCm: number,
-  wkg: number
+  wkg: number,
+  ttt?: { riders: number, climbWkg?: number }
 ): RouteSurfaceSpeedProfile | undefined {
   if (!route.terrain.elevationProfile || route.terrain.elevationProfile.length < 2) return undefined
   if (!route.surface.segments || route.surface.segments.length === 0) return undefined
@@ -167,13 +181,14 @@ export function computeRouteSurfaceSpeedProfile(
   const boundariesM = Array.from(new Set([...gradeBoundariesM, ...surfaceBoundariesM])).sort((a, b) => a - b)
 
   const rider = { weightKg, heightCm, powerW: wkg * weightKg }
-  const result = simulateRoute({ rider, frame, wheelset, geometry, boundariesM })
+  // Chart is per-lap (single lap geometry), so the TTT plan here is built on
+  // that same single-lap geometry - independent of the endpoints' per-request
+  // plans, which cover the full laps+lead-in ride.
+  const tttPlan = ttt?.climbWkg ? tttPowerPlan(geometry, ttt.climbWkg, weightKg) : undefined
+  const powerScaleAtSpeed = ttt ? (speedMps: number) => tttPowerScaleAtSpeed(ttt.riders, speedMps) : undefined
+  const result = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed })
 
-  const timeAtDistanceSec = new Map<number, number>()
-  timeAtDistanceSec.set(0, 0)
-  for (const crossing of result.boundaryCrossings ?? []) timeAtDistanceSec.set(crossing.distanceM, crossing.elapsedSec)
-  timeAtDistanceSec.set(totalDistanceM, result.elapsedSec)
-  const timePoints = [0, ...boundariesM, totalDistanceM].map(distanceM => ({ distanceM, elapsedSec: timeAtDistanceSec.get(distanceM)! }))
+  const timePoints = buildTimePoints(result, boundariesM, totalDistanceM)
 
   const equipment = equipmentPhysics(frame, wheelset)
   const cdaM2 = riderScaledCdaM2(equipment.cdaM2, heightCm, weightKg)
@@ -214,6 +229,41 @@ export function computeRouteSurfaceSpeedProfile(
     })
   }
 
+  const speedSamples = resampleSpeedSamples(timePoints, totalDistanceM)
+
+  // One extra simulation, only while the chart is open in TTT mode: the same
+  // ride with the draft scaling removed, so the gap between the two lines is
+  // exactly what the paceline is worth at each point on the route.
+  let soloComparison: RouteSurfaceSpeedProfile['soloComparison']
+  if (ttt) {
+    const soloResult = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: tttPlan?.powerSegmentsW })
+    soloComparison = {
+      speedSamples: resampleSpeedSamples(buildTimePoints(soloResult, boundariesM, totalDistanceM), totalDistanceM),
+      overallAvgSpeedKmh: Math.round(soloResult.averageSpeedMps * 3.6 * 10) / 10,
+      frontPullPowerW: Math.round(tttFrontPullPowerW(rider.powerW, ttt.riders))
+    }
+  }
+
+  return {
+    segments,
+    overallAvgSpeedKmh: Math.round(result.averageSpeedMps * 3.6 * 10) / 10,
+    speedSamples,
+    elevationPoints: geometry.points,
+    soloComparison
+  }
+}
+
+/** The simulated elapsed time at every requested boundary (plus start/finish), as `interpolateTimeAt` inputs. */
+function buildTimePoints(result: ReturnType<typeof simulateRoute>, boundariesM: number[], totalDistanceM: number): { distanceM: number, elapsedSec: number }[] {
+  const timeAtDistanceSec = new Map<number, number>()
+  timeAtDistanceSec.set(0, 0)
+  for (const crossing of result.boundaryCrossings ?? []) timeAtDistanceSec.set(crossing.distanceM, crossing.elapsedSec)
+  timeAtDistanceSec.set(totalDistanceM, result.elapsedSec)
+  return [0, ...boundariesM, totalDistanceM].map(distanceM => ({ distanceM, elapsedSec: timeAtDistanceSec.get(distanceM)! }))
+}
+
+/** Distance/time-weighted resampling to `TARGET_SAMPLE_COUNT` even buckets - see `speedSamples`' doc comment. Bucket positions depend only on the route, so two series resampled here are directly comparable. */
+function resampleSpeedSamples(timePoints: { distanceM: number, elapsedSec: number }[], totalDistanceM: number): RouteSurfaceSpeedSample[] {
   const bucketWidthM = Math.max(MIN_SAMPLE_BUCKET_M, totalDistanceM / TARGET_SAMPLE_COUNT)
   const speedSamples: RouteSurfaceSpeedSample[] = []
   for (let fromM = 0; fromM < totalDistanceM; fromM += bucketWidthM) {
@@ -227,11 +277,5 @@ export function computeRouteSurfaceSpeedProfile(
       avgSpeedKmh: Math.round((distanceM / elapsedSec) * 3.6 * 10) / 10
     })
   }
-
-  return {
-    segments,
-    overallAvgSpeedKmh: Math.round(result.averageSpeedMps * 3.6 * 10) / 10,
-    speedSamples,
-    elevationPoints: geometry.points
-  }
+  return speedSamples
 }

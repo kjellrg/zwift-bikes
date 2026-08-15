@@ -3,6 +3,7 @@ import { SURFACE_CRR } from '../data/surfaceCrr'
 import { clampLaps } from './routeLaps'
 import { equipmentPhysics, riderScaledCdaM2 } from './physics/equipment'
 import { speedForPower } from './physics/forces'
+import { tttGroupSpeedMps } from './physics/draft'
 
 /**
  * Rough physics-based estimate of how long a rider would take to finish a
@@ -11,8 +12,10 @@ import { speedForPower } from './physics/forces'
  * about their own effort).
  *
  * This is a simplified constant-power/constant-speed model - it does NOT
- * simulate draft, pack dynamics, coasting on descents, or Zwift's exact
- * physics engine. It exists to give a *relative* "which combo is faster for
+ * simulate pack dynamics, coasting on descents, or Zwift's exact physics
+ * engine. Draft enters only through the optional `ttt` argument below, which
+ * mirrors what the real simulator does for a Team Time Trial (see
+ * `physics/draft.ts`). It exists to give a *relative* "which combo is faster for
  * me on this route" comparison, not a precise real-world time prediction.
  *
  * Method: for a rider sustaining `wkg * weightKg` watts, solve the standard
@@ -88,6 +91,23 @@ function blendedCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): numbe
  * grade is computed separately from its own elevation/distance rather than
  * reusing the lap's grade, since a short lead-in can have a very different
  * gradient than the lap itself.
+ *
+ * `ttt` (TTT draft mode only) mirrors what `simulateRoute` does for a
+ * paceline, so the cheap estimate (the full-pool ranking key) keeps tracking
+ * the simulator (the displayed times) and the `orderBySimulatedTime` window
+ * still catches every real contender:
+ *
+ * - `riders` makes every speed solve a `tttGroupSpeedMps` fixed point rather
+ *   than a plain `speedForPower` - each rider averages `wkg`, and the group
+ *   moves at the speed their combined effort produces.
+ * - `climb` (the aggregate of `tttPowerPlan`'s blocks over the WHOLE ride,
+ *   laps and lead-in included) additionally splits the estimate into two
+ *   closed-form phases: the plan's climb distance at the team climb power on
+ *   the climbs' own average grade, the remainder at `wkg` on the remaining
+ *   average grade.
+ *
+ * When `ttt` is unset this function is unchanged, so solo-mode ordering
+ * cannot drift by construction.
  */
 export function estimateFinishTimeSec(
   route: RouteWithMeta,
@@ -96,7 +116,8 @@ export function estimateFinishTimeSec(
   weightKg: number,
   heightCm: number,
   wkg: number,
-  laps = 1
+  laps = 1,
+  ttt?: { riders: number, climb?: { distanceM: number, elevationM: number, powerW: number } }
 ): number {
   const powerW = wkg * weightKg
   const grade = route.terrain.climbRatio / 1000 // m/km -> m/m
@@ -106,14 +127,38 @@ export function estimateFinishTimeSec(
   const massKg = weightKg + bikeMassKg
   const crr = Math.max(0, blendedCrr(wheelset, route) + (crrDelta ?? 0))
 
-  const lapSpeedMs = speedForPower(powerW, massKg, grade, crr, cda)
   const effectiveLaps = clampLaps(route, laps)
+  // One speed solver for both modes, so the TTT path can never drift from the
+  // solo path in anything except the draft benefit itself.
+  const solveSpeedMs = (atPowerW: number, atGrade: number) => ttt
+    ? tttGroupSpeedMps(atPowerW, ttt.riders, massKg, atGrade, crr, cda)
+    : speedForPower(atPowerW, massKg, atGrade, crr, cda)
+
+  const tttClimb = ttt?.climb
+  if (tttClimb && tttClimb.distanceM > 0) {
+    const lapDistanceM = route.distance * 1000 * effectiveLaps
+    const leadInDistanceM = (route.leadInDistance ?? 0) * 1000
+    const leadInElevationM = route.leadInDistance ? (route.leadInElevation ?? 0) : 0
+    const totalDistanceM = lapDistanceM + leadInDistanceM
+    // The same "uniform average grade" simplification as the solo path, with
+    // the modeled total ascent (lap climb ratio × distance, plus the lead-in's
+    // own gain) split between the climb phase and everything else.
+    const modeledAscentM = grade * lapDistanceM + leadInElevationM
+    const climbDistanceM = Math.min(tttClimb.distanceM, totalDistanceM)
+    const climbGrade = tttClimb.elevationM / climbDistanceM
+    const remainderDistanceM = totalDistanceM - climbDistanceM
+    const remainderGrade = remainderDistanceM > 0 ? Math.max(0, modeledAscentM - tttClimb.elevationM) / remainderDistanceM : 0
+    let totalTimeSec = climbDistanceM / solveSpeedMs(tttClimb.powerW, climbGrade)
+    if (remainderDistanceM > 0) totalTimeSec += remainderDistanceM / solveSpeedMs(powerW, remainderGrade)
+    return totalTimeSec
+  }
+
+  const lapSpeedMs = solveSpeedMs(powerW, grade)
   let totalTimeSec = (route.distance * 1000 / lapSpeedMs) * effectiveLaps
 
   if (route.leadInDistance) {
     const leadInGrade = (route.leadInElevation ?? 0) / (route.leadInDistance * 1000)
-    const leadInSpeedMs = speedForPower(powerW, massKg, leadInGrade, crr, cda)
-    totalTimeSec += (route.leadInDistance * 1000) / leadInSpeedMs
+    totalTimeSec += (route.leadInDistance * 1000) / solveSpeedMs(powerW, leadInGrade)
   }
 
   return totalTimeSec
@@ -128,6 +173,8 @@ export function estimateFinishTimeSec(
  * Returns `0` for routes with no known gravel/cobble (`estimateSurface`'s
  * `'unverified'`/`'heuristic'` confidence levels always have `gravel`/`cobble`
  * at 0, so this is a no-op for them too - see `routeTerrain.ts`).
+ * Deliberately draft-free even in TTT mode: it's a Crr-isolation delta, and
+ * both compared rides would share the same draft benefit anyway.
  */
 export function estimateSurfaceTimePenaltySec(
   route: RouteWithMeta,

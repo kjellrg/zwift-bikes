@@ -149,3 +149,43 @@ New Zwift routes work the same way, but with one extra manual step:
 **Planned:** step 2 above is also currently done by hand. Automating this Strava/zwiftmap trace step via a scheduled workflow is planned too, removing the last manual part of getting a route to full accuracy.
 
 In both cases, the design goal is the same: **new content should never be blocked from appearing, but it should also never silently pretend to be more accurate than it is** — the app always shows which numbers are real and which are best-effort estimates.
+
+## Team Time Trial draft mode
+
+By default every prediction models a **lone rider** — no draft, which is also
+exactly how ZwiftInsider's bot tests (the source of all equipment data) are
+ridden. Switching the draft mode to **TTT (paceline)** models a rotating team:
+
+- **Your power still means your own average.** In a rotation you push well
+  above it while pulling on the front and sit well below it in the wheels; it
+  averages back out to what you entered. The app shows both numbers — for an
+  8-rider team, an entered 240 W means roughly 331 W on your pulls and 219 W
+  in the last wheel.
+- **The group goes as fast as that combined effort makes it.** With everyone
+  averaging their own sustainable power, an 8-rider paceline covers ground
+  like a solo rider at about 1.38× that power. That is the whole point of a
+  TTT, and it is why TTT and solo now show genuinely different times.
+- **Team size matters even though the draft plateaus.** ZwiftInsider only
+  measures a benefit improvement out to the 4th wheel, but a bigger team still
+  goes faster: in an 8-rider rotation you spend 1/8 of the time on the front
+  instead of 1/4, and the front is where all the cost is.
+- **The draft fades on climbs.** Drafting is an aerodynamic effect, so it is
+  worth almost nothing at steep-climb speeds and more than usual on descents.
+  The model tracks this continuously from the group's actual speed.
+- **Optionally, a team climb pace** (W/kg) applies on climbs longer than ~3.5
+  minutes at ≥3%, where a real paceline breaks up and everyone climbs at their
+  own sustainable pace.
+- **The "saves X vs riding alone" line** simulates the identical rider, power
+  and pacing with the draft switched off, so the gap is purely what the
+  paceline buys.
+- **The race plan panel** lists where the paceline is in danger: long climbs
+  and sustained rough-surface sectors (extra rolling resistance and reduced
+  draft), ignoring stretches too short to matter.
+
+Full writeup — the data, the maths, the validation and the limits — is in
+[ttt-drafting.md](ttt-drafting.md).
+
+Data: ZwiftInsider's Pack Dynamics 4.1 TTT test on TT bikes (positions 2–4
+measured at 22%, 28.7% and 34% power savings; deeper positions assumed to
+plateau) and their draft-savings-by-speed measurements. See
+`shared/utils/physics/draft.ts` for the constants and every citation.

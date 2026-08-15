@@ -7,6 +7,7 @@ import {
   formatComboTable,
   formatPagination,
   formatSurface,
+  formatTttAssumption,
   type RecommendRouteResponse,
   type RecommendSegmentResponse
 } from './format'
@@ -163,7 +164,12 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): R
     verifiedOnly: isVerifiedOnly(args) ? 'true' : 'false',
     search: typeof args.search === 'string' && args.search ? args.search : undefined,
     limit: Number.isFinite(Number(args.limit)) ? Number(args.limit) : 9,
-    offset: Number.isFinite(Number(args.offset)) ? Number(args.offset) : 0
+    offset: Number.isFinite(Number(args.offset)) ? Number(args.offset) : 0,
+    // Omitted entirely outside TTT mode, matching the web pages - a solo
+    // request is byte-identical to one from before draft mode existed.
+    draftMode: args.draftMode === 'ttt' ? 'ttt' : undefined,
+    tttRiders: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? Number(args.tttRiders) : undefined,
+    tttClimbWkg: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? Number(args.tttClimbWkg) : undefined
   }
 }
 
@@ -177,7 +183,10 @@ const RECOMMEND_FILTER_PROPERTIES = {
   verifiedOnly: { type: 'boolean', description: 'Defaults to true: rank only frames and wheels whose performance comes from real ZwiftInsider bot-test data. Set to false to also include heuristic estimates - necessary for gravel and fun bikes, which have no bot-test data and are therefore absent by default, and worth doing if the user asks about a specific bike that returns no results.' },
   search: { type: 'string', description: 'Only include combos whose frame or wheelset name matches this text. Use to answer "how fast would MY bike be" without ranking the whole catalog.' },
   limit: { type: 'number', description: 'How many combos to return, 1-9. Defaults to 9.' },
-  offset: { type: 'number', description: 'Skip this many ranks, for paging past the first page of results.' }
+  offset: { type: 'number', description: 'Skip this many ranks, for paging past the first page of results.' },
+  draftMode: { type: 'string', enum: ['solo', 'ttt'], description: 'Defaults to solo (a lone rider, no draft - how ZwiftInsider\'s bot tests ride). "ttt" models a rotating Team Time Trial paceline. The rider\'s wkg still means their OWN average over a full rotation (what they can sustain), and the group rides at the speed that combined effort produces - roughly the speed of a solo rider at 1.38x their power for an 8-rider team. The response gains a physics.ttt block with the pull/last-wheel watts and a simulated "saves vs riding this alone at the same effort" comparison.' },
+  tttRiders: { type: 'number', description: 'TTT mode only: riders in the rotation, 2-8. Defaults to 8. Bigger teams are faster for the same per-rider effort, because each rider spends a smaller share of the time on the front.' },
+  tttClimbWkg: { type: 'number', description: 'TTT mode only, optional: the team\'s average W/kg on climbs over ~3.5 minutes, where the paceline breaks up. Applied instead of the rider\'s flat-effort wkg on those climbs. Omit to ride climbs at the same wkg.' }
 } as const
 
 const TOOLS: ToolDefinition[] = [
@@ -478,6 +487,7 @@ const TOOLS: ToolDefinition[] = [
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
         physics ? `- Physics: ${physics.mode}, geometry ${physics.geometry}` : undefined,
+        formatTttAssumption(physics),
         `- All bikes assumed at upgrade stage ${upgradeLevelFor(args)}${upgradeLevelFor(args) === 5 ? ' (fully upgraded)' : upgradeLevelFor(args) === 0 ? ' (stock)' : ''}`,
         '- One row per frame, paired with its fastest wheelset for this route'
       ].filter(Boolean)
@@ -538,6 +548,7 @@ const TOOLS: ToolDefinition[] = [
         `- ${segment.type}: ${segment.lengthKm.toFixed(1)} km, ${Math.round(segment.elevationM)} m, ${segment.avgGradePercent.toFixed(1)}% avg${segment.climbType ? `, category ${segment.climbType}` : ''}`,
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
+        formatTttAssumption(physics),
         `- All bikes assumed at upgrade stage ${upgradeLevelFor(args)}${upgradeLevelFor(args) === 5 ? ' (fully upgraded)' : upgradeLevelFor(args) === 0 ? ' (stock)' : ''}`,
         '- One row per frame, paired with its fastest wheelset for this route'
       ].filter(Boolean)
