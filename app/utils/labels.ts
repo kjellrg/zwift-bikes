@@ -159,3 +159,21 @@ export function formatSpeedKmh(distanceKm: number, seconds: number): string {
   const kmh = distanceKm / (seconds / 3600)
   return `${kmh.toFixed(1)} km/h`
 }
+
+/**
+ * The "riding as a TTT saves X vs solo" line for TTT draft mode - see the
+ * recommend endpoints' `physics.ttt` block. Both rides are the same rider at
+ * the same power with the same pacing; only the draft differs, so the gap is
+ * exactly what the paceline buys. Returns `undefined` when no solo
+ * comparison was simulated.
+ */
+export function formatTttTimeSaving(ttt: { riders: number, frontPullPowerW: number, tttSavedSec?: number } | undefined): string | undefined {
+  if (!ttt || typeof ttt.tttSavedSec !== 'number') return undefined
+  const savedSec = ttt.tttSavedSec
+  const magnitude = Math.abs(savedSec)
+  if (magnitude < 0.5) return undefined
+  const formatted = magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
+  return savedSec >= 0
+    ? `A ${ttt.riders}-rider paceline saves ~${formatted} vs riding this alone at the same effort (~${ttt.frontPullPowerW} W on your pulls).`
+    : `A ${ttt.riders}-rider paceline is ~${formatted} slower here than riding alone at the same effort - the draft can't offset your team's climb pace on this route.`
+}

@@ -347,3 +347,59 @@ packed the field is, **not** on route length — those are different things.
 Gran Fondo's combos are 10–210 s apart and stayed inversion-free at a margin of
 18; Canopies and Coastlines' combos are fractions of a second apart, and that
 same 18 put a 1.6 s inversion back on page one.
+
+## 9. TTT draft mode
+
+`draftMode=ttt` (with `tttRiders` 2–8 and optional `tttClimbWkg`) threads a
+Team Time Trial through the whole pipeline without touching any equipment
+physics. The rider's entered power still means **their own average over a full
+rotation** — the same thing it means in solo mode — and the paceline rides at
+the speed that combined effort produces. No CdA changes anywhere, and the
+solvers in `equipment.ts` (which invert ZwiftInsider's no-draft bot protocol)
+stay draft-free by construction.
+
+An earlier iteration treated the entered watts as the *front rider's* power.
+That is defensible physics — Zwift gives the front no draft — but useless as a
+tool, because it makes TTT and solo produce identical times by definition. Real
+TTT calculators (ZwiftInsider's own, Target Watts) take each rider's
+sustainable effort and *derive* the pull watts, which is what this now does.
+
+Everything lives in `shared/utils/physics/draft.ts`, and the full reasoning
+and validation evidence is in [ttt-drafting.md](ttt-drafting.md):
+
+- **Per-position power savings** come from ZwiftInsider's **Pack Dynamics 4.1**
+  single-file TTT test on TT bikes: 22% / 28.7% / 34% behind the front for
+  wheels 2–4, with positions 5–8 assumed to plateau at 34%. Their published
+  equal-pulls figure (300 W front → "each rider would average 237 W")
+  reproduces exactly from those numbers, which is the cross-check that they
+  were read correctly.
+- **Team size still matters past the 4th wheel**, despite the plateau: a
+  4-rider team spends 1/4 of its time on the front, an 8-rider team 1/8, so
+  the rotation average drops from 0.788 to 0.724 of the front rider's power —
+  about 9% of sustained effort.
+- **`tttPowerScaleAtSpeed`** is the multiplier that makes this real:
+  `1 / averagePowerFactor(speed)`. The simulator applies it at both midpoint
+  velocities each step (`SimulateRouteOptions.powerScaleAtSpeed`), so the
+  benefit fades as the group slows on a climb and grows on a descent with no
+  per-grade bookkeeping. It is a feedback loop but a stable one — the scale
+  saturates while drag keeps growing with v³.
+- **Savings scale with speed** (`draftSavingsSpeedScale`): a clamped power-law
+  fit to ZwiftInsider's measured 25% (flat), ~10% (moderate climb), 2–3%
+  (steep climb) and up-to-46% (descent) single-rider numbers.
+- **`tttPowerPlan`** detects long climbs (≥3% average for ≥3.5 estimated
+  minutes, short gaps merged) and paces them at `tttClimbWkg × weight` via
+  `powerSegmentsW`. The plan is computed **once per request** and shared by
+  every combo — a per-combo plan would poison `orderBySimulatedTime`'s
+  physics-keyed dedupe cache. The cheap estimate mirrors the same physics:
+  `tttGroupSpeedMps` is a 4-iteration fixed point (draft depends on speed,
+  speed depends on draft), plus the same two-phase climb split, so ranking
+  keeps tracking the simulator. With `draftMode=solo` neither model changes
+  at all.
+- **The "saves X vs solo" comparison** simulates one extra ride (top combo,
+  first page only): the same rider, same power, same pacing plan, with the
+  draft scaling removed. The only difference between the two rides is the
+  draft, so the gap is exactly what the paceline is worth.
+
+A future mass-start `race` draft mode should extend this module — the speed
+dependence and the scale-as-power-multiplier plumbing are the reusable core;
+only the position/rotation model differs.

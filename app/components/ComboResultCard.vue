@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { ComboScore, RouteWithMeta } from "../../shared/types/catalog";
+import type { DraftMode } from "../../shared/utils/physics/draft";
+import { TTT_DEFAULT_RIDERS, tttPowerPlan } from "#shared/utils/physics/draft";
+import { geometryForRouteLaps } from "#shared/utils/physics/routeGeometry";
 
 const props = defineProps<{
   combo: ComboScore;
@@ -14,6 +17,10 @@ const props = defineProps<{
   fastestTimeSec?: number;
   /** Frames the rider owns, keyed by frame id, mapped to their upgrade level - used to label whether `combo.frame.level` is an owned level or the rider's assumed default for unowned bikes. */
   owned?: Record<number, number>;
+  /** TTT draft mode context, so the fallback estimate below applies the same climb power plan the server did - see `physics/draft.ts`. */
+  draftMode?: DraftMode;
+  tttRiders?: number;
+  tttClimbWkg?: number;
 }>();
 
 const isOwnedFrame = computed(
@@ -48,6 +55,15 @@ function toggleWheelOwned() {
   setWheelOwned(props.combo.wheelset.key, !isOwnedWheel.value);
 }
 
+/** Same TTT context the server's estimate uses, so a fallback time can't disagree with server-computed ones. The climb plan is guarded on `route.terrain`: the segment page passes a minimal `RouteWithMeta` stand-in without it. */
+const tttEstimate = computed(() => {
+  if (props.draftMode !== "ttt") return undefined;
+  const riders = props.tttRiders ?? TTT_DEFAULT_RIDERS;
+  if (!props.tttClimbWkg || !props.weightKg || !props.route?.terrain) return { riders, climb: undefined };
+  const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg);
+  return { riders, climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined };
+});
+
 const finishTimeSec = computed(() => {
   if (props.combo.finishTimeSec !== undefined) return props.combo.finishTimeSec;
   if (!props.route || !props.weightKg || !props.heightCm || !props.wkg) return undefined;
@@ -59,6 +75,7 @@ const finishTimeSec = computed(() => {
     props.heightCm,
     props.wkg,
     props.laps ?? 1,
+    tttEstimate.value,
   );
 });
 

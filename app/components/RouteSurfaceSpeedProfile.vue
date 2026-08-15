@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from '../../shared/types/catalog'
+import type { DraftMode } from '../../shared/utils/physics/draft'
+import { TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
 import { computeRouteSurfaceSpeedProfile } from '#shared/utils/physics/routeSurfaceSpeedProfile'
 
 const props = defineProps<{
@@ -9,6 +11,9 @@ const props = defineProps<{
   weightKg: number
   heightCm: number
   wkg: number
+  draftMode?: DraftMode
+  tttRiders?: number
+  tttClimbWkg?: number
 }>()
 
 const VIEW_WIDTH = 800
@@ -56,7 +61,10 @@ const profile = computed(() => hasOpened.value
       props.wheelset,
       props.weightKg,
       props.heightCm,
-      props.wkg
+      props.wkg,
+      props.draftMode === 'ttt'
+        ? { riders: props.tttRiders ?? TTT_DEFAULT_RIDERS, climbWkg: props.tttClimbWkg }
+        : undefined
     )
   : undefined)
 
@@ -71,11 +79,15 @@ const segments = computed(() => profile.value?.segments)
 const speedSamples = computed(() => profile.value?.speedSamples)
 
 const totalDistanceM = computed(() => (segments.value?.at(-1)?.toKm ?? 0) * 1000)
+const soloComparison = computed(() => profile.value?.soloComparison)
 // Both the curve's knots and its y-axis range come from the fine-grained `speedSamples`, not the
 // coarser per-surface-segment `segments` - a real climb/descent inside a long uniform-surface stretch
-// only shows up at that finer resolution (see `RouteSurfaceSpeedProfile`'s own doc comment).
-const maxSpeedKmh = computed(() => speedSamples.value?.reduce((max, s) => Math.max(max, s.avgSpeedKmh), 0) ?? 0)
-const minSpeedKmh = computed(() => speedSamples.value?.reduce((min, s) => Math.min(min, s.avgSpeedKmh), Infinity) ?? 0)
+// only shows up at that finer resolution (see `RouteSurfaceSpeedProfile`'s own doc comment). The TTT
+// solo-comparison series folds into the same range, or its (slower) dashed line would clip below the
+// chart's zoomed-in floor.
+const allSpeedSamples = computed(() => [...(speedSamples.value ?? []), ...(soloComparison.value?.speedSamples ?? [])])
+const maxSpeedKmh = computed(() => allSpeedSamples.value.reduce((max, s) => Math.max(max, s.avgSpeedKmh), 0))
+const minSpeedKmh = computed(() => allSpeedSamples.value.length ? allSpeedSamples.value.reduce((min, s) => Math.min(min, s.avgSpeedKmh), Infinity) : 0)
 /** Minimum visible speed span (km/h) the curve is allowed to zoom into - without a floor, a route with
  * almost no speed variation (e.g. flat, all-tarmac) would stretch a trivial ±1 km/h wobble to fill the
  * whole chart height, reading as far more dramatic than it really is. */
@@ -238,6 +250,21 @@ const areaPath = computed(() => {
   return `${top} L${last.x1},${BASELINE_Y} L${first.x0},${BASELINE_Y} Z`
 })
 
+/** Dashed, muted "if you rode this solo" overlay line - TTT draft mode only (see `soloComparison`). Same knot/curve treatment as the main series, no area fill. */
+const soloLinePath = computed(() => {
+  const samples = soloComparison.value?.speedSamples
+  if (!samples || samples.length === 0) return ''
+  const soloKnots = [
+    { distanceM: 0, speedKmh: samples[0]!.avgSpeedKmh },
+    ...samples.map(s => ({ distanceM: s.distanceM, speedKmh: s.avgSpeedKmh })),
+    { distanceM: totalDistanceM.value, speedKmh: samples[samples.length - 1]!.avgSpeedKmh }
+  ]
+  const segs = monotoneCubicSegments(soloKnots.map(k => ({ x: scaleX(k.distanceM), y: scaleYSpeed(k.speedKmh) })))
+  if (!segs.length) return ''
+  const first = segs[0]!
+  return `M${first.x0},${first.y0} ` + segs.map(s => `C${s.cp1x},${s.cp1y} ${s.cp2x},${s.cp2y} ${s.x1},${s.y1}`).join(' ')
+})
+
 /** The strip below the curve marks each real surface segment's exact position/color - tarmac uses the
  * app's theme-adaptive `text-muted` token (via `currentColor`) rather than a fixed gray Tailwind shade,
  * so it recedes into the background in both themes instead of standing out as a bright, "in your face"
@@ -362,6 +389,20 @@ const summaryText = computed(() => {
               stroke-linejoin="round"
               stroke-linecap="round"
             />
+            <path
+              v-if="soloLinePath"
+              :d="soloLinePath"
+              fill="none"
+              stroke="currentColor"
+              class="text-muted"
+              stroke-width="1.5"
+              stroke-dasharray="5 4"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+              opacity="0.8"
+            >
+              <title>Solo at equivalent average power</title>
+            </path>
             <rect
               v-for="bar in stripBars"
               :key="`${bar.fromKm}-${bar.toKm}`"
@@ -415,6 +456,18 @@ const summaryText = computed(() => {
               {{ formatDistance(totalDistanceM / 1000) }}
             </text>
           </svg>
+
+          <div
+            v-if="soloComparison"
+            class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted"
+          >
+            <span class="inline-flex items-center gap-1.5">
+              <span class="inline-block w-5 border-t-2 border-primary" />In the paceline (~{{ soloComparison.frontPullPowerW }} W on your pulls)
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <span class="inline-block w-5 border-t-2 border-dashed border-current" />Same effort solo, no draft ({{ soloComparison.overallAvgSpeedKmh.toFixed(1) }} km/h avg)
+            </span>
+          </div>
 
           <p
             v-if="summaryText"

@@ -12,6 +12,16 @@ export interface RecommendPhysics {
   geometry?: 'measured' | 'known-climbs-compatibility' | 'aggregate-compatibility'
   rider: { weightKg: number, heightCm: number, wkg: number }
   note: string
+  /** Present only in TTT draft mode - see `shared/utils/physics/draft.ts`. `riderPowerW` is each rider's own rotation average; the pull/last-wheel figures are what that swings between. */
+  ttt?: {
+    riders: number
+    riderPowerW: number
+    frontPullPowerW: number
+    lastWheelPowerW: number
+    climbWkg?: number
+    soloFinishTimeSec?: number
+    tttSavedSec?: number
+  }
 }
 
 export interface RecommendPagination {
@@ -115,3 +125,22 @@ export function formatPagination(pagination: RecommendPagination, total?: number
  * can be appended to each recommendation without swamping the table.
  */
 export const CONFIDENCE_NOTE = '`measured` = frame/wheel performance solved from real ZwiftInsider bot-test data; `estimated` = name/style heuristic, treat as a rough guide.'
+
+/**
+ * The TTT assumption line for the recommend tools' headers - present only
+ * when the request ran in TTT draft mode. Spells out the rotation-average
+ * semantics compactly; the endpoint's own `physics.note` carries the full
+ * explanation.
+ */
+export function formatTttAssumption(physics: RecommendPhysics | undefined): string | undefined {
+  const ttt = physics?.ttt
+  if (!ttt) return undefined
+  const parts = [`- TTT draft mode: ${ttt.riders}-rider paceline; the rider's ${ttt.riderPowerW} W is their own rotation average, swinging between ~${ttt.frontPullPowerW} W on the front and ~${ttt.lastWheelPowerW} W in the last wheel`]
+  if (ttt.climbWkg !== undefined) parts.push(`long climbs at ${ttt.climbWkg} W/kg`)
+  if (typeof ttt.tttSavedSec === 'number') {
+    parts.push(ttt.tttSavedSec >= 0
+      ? `saves ~${formatDuration(Math.abs(ttt.tttSavedSec))} vs riding solo`
+      : `~${formatDuration(Math.abs(ttt.tttSavedSec))} SLOWER than riding solo`)
+  }
+  return parts.join('; ')
+}

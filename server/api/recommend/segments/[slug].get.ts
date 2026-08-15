@@ -4,7 +4,7 @@ import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
-import { geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN } from '../../../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
 
@@ -58,6 +58,11 @@ export default defineEventHandler((event) => {
   const wkg = Number(query.wkg)
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
+  // TTT draft mode - see the equivalent comment in `recommend/[slug].get.ts`
+  // and `physics/draft.ts` for what the rider's power means here.
+  const draftMode = query.draftMode === 'ttt' ? 'ttt' : 'solo'
+  const tttRiders = clampTttRiders(Number(query.tttRiders))
+  const tttClimbWkg = draftMode === 'ttt' ? clampTttClimbWkg(Number(query.tttClimbWkg)) : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
@@ -106,16 +111,41 @@ export default defineEventHandler((event) => {
   const warmedGeometry = segmentGeometry ? prependWarmup(segmentGeometry, WARMUP_DISTANCE_M) : undefined
   const warmupOnlyGeometry = segmentGeometry ? geometryForWarmup(WARMUP_DISTANCE_M) : undefined
 
+  // TTT power plan, built ONCE per request in the segment's own coordinates
+  // (legacy mode has no `segmentGeometry`, so build an equivalent throwaway
+  // one - cheap, it's a 2-point line), then offset by the warmup distance
+  // into warmed coordinates for the sims. The warmup-only sim gets no climb
+  // overrides - a flat warmup can never contain a climb block - but it DOES
+  // get the same draft scaling, so both runs cross the warmup under identical
+  // conditions. (That subtraction is very slightly inexact for a reason that
+  // predates draft mode: the steady-state early exit fires in the warmup-only
+  // run but not in the warmed one. See the note in the TTT PR.)
+  const tttPlan = hasRiderProfile && tttClimbWkg
+    ? tttPowerPlan(
+        segmentGeometry ?? geometryForSegment(segmentRoute.slug, segmentRoute.distance, segmentRoute.elevation, sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')),
+        tttClimbWkg,
+        weightKg
+      )
+    : undefined
+  const warmedPowerSegmentsW = tttPlan?.powerSegmentsW.map(segment => ({ ...segment, fromM: segment.fromM + WARMUP_DISTANCE_M, toM: segment.toM + WARMUP_DISTANCE_M }))
+  const tttEstimate = draftMode === 'ttt'
+    ? { riders: tttRiders, climb: tttPlan ? { distanceM: tttPlan.climbDistanceM, elevationM: tttPlan.climbElevationM, powerW: tttPlan.climbPowerW } : undefined }
+    : undefined
+  // Applied to BOTH the warmed and the warmup-only run, so the group enters
+  // the segment at its own drafted steady-state speed and the subtraction
+  // still cancels exactly.
+  const powerScaleAtSpeed = draftMode === 'ttt' ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps) : undefined
+
   // Both sims must share the same time step for this subtraction to cancel
   // cleanly - they use the simulator's default (see `DEFAULT_DT_SEC`).
   const simulateSegmentSec = (combo: typeof rankedCombos[number]) =>
-    simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry! }).elapsedSec
-    - simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry! }).elapsedSec
+    simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry!, powerSegmentsW: warmedPowerSegmentsW, powerScaleAtSpeed }).elapsedSec
+    - simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry!, powerScaleAtSpeed }).elapsedSec
 
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, tttEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
 
@@ -154,16 +184,44 @@ export default defineEventHandler((event) => {
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
 
+  // "TTT saves X vs solo" - the same rider at the same power and pacing, with
+  // the draft scaling removed from both halves of the subtraction, so the
+  // gap isolates the draft itself. See `recommend/[slug].get.ts`.
+  let ttt: { riders: number, riderPowerW: number, frontPullPowerW: number, lastWheelPowerW: number, climbWkg?: number, soloFinishTimeSec?: number, tttSavedSec?: number } | undefined
+  if (hasRiderProfile && draftMode === 'ttt') {
+    const topCombo = pageCombos[0]
+    let soloFinishTimeSec: number | undefined
+    let tttSavedSec: number | undefined
+    if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry, powerSegmentsW: warmedPowerSegmentsW }).elapsedSec
+        - simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
+      tttSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
+    }
+    ttt = {
+      riders: tttRiders,
+      riderPowerW: Math.round(rider.powerW),
+      frontPullPowerW: Math.round(tttFrontPullPowerW(rider.powerW, tttRiders)),
+      lastWheelPowerW: Math.round(tttLastWheelPowerW(rider.powerW, tttRiders)),
+      climbWkg: tttClimbWkg,
+      soloFinishTimeSec,
+      tttSavedSec
+    }
+  }
+  const tttNote = ttt
+    ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
+    : ''
+
   return {
     segment: summary,
     combos: pageCombos,
     physics: hasRiderProfile
       ? {
           mode: physicsMode,
+          ttt,
           rider: { weightKg, heightCm, wkg },
-          note: physicsMode === 'legacy'
+          note: (physicsMode === 'legacy'
             ? 'Legacy finish-time model active - a constant-speed estimate at this segment’s own average grade.'
-            : 'Dynamic physics is active. The segment is simulated after a 2km flat warmup so the timed portion starts at realistic speed, matching how a Zwift/Strava segment is actually entered (never from a standing start).'
+            : 'Dynamic physics is active. The segment is simulated after a 2km flat warmup so the timed portion starts at realistic speed, matching how a Zwift/Strava segment is actually entered (never from a standing start).') + tttNote
         }
       : undefined,
     pagination: {
