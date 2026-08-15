@@ -77,10 +77,30 @@ so the two can never disagree about what counts as a valid profile.
 | `recommend_for_route` | Rank frame + wheelset combos by predicted finish time over a whole route |
 | `recommend_for_segment` | Same, for a single climb or sprint, simulated after a flat run-up |
 
-Both recommend tools take `upgradeLevel` (0-5), since Zwift's per-stage
-upgrades change a frame's real weight and aerodynamics and therefore the
-ranking. They return at most 9 combos per call - the same cap the HTTP endpoint
-enforces - with `offset` for paging.
+Both recommend tools take `upgradeLevel` (0-5), defaulting to
+`DEFAULT_UNOWNED_LEVEL` (5, fully upgraded) - the same constant
+`useRiderProfile` and the endpoints read, so all three surfaces assume the same
+stage. That matters more than a display detail: frames upgrade along different
+per-stage schemes, so the assumed stage changes *which frame wins*, not just
+the times. On Road to Sky, stage 0 puts the Tarmac SL9 on top and stage 5 puts
+the Aethos S-Works there. Pass `upgradeLevel: 0` for bikes as they come out of
+the drop shop.
+
+They return at most 9 combos per call - the same cap the HTTP endpoint
+enforces - with `offset` for paging, and **one row per frame**, paired with
+that frame's fastest wheelset for the route. The web UI can afford to show a
+frame's top few wheelsets side by side; in a chat answer those extra rows push
+distinct *bikes* off the page, which is what was actually asked about. The cap
+is applied after ranking (via `maxWheelsetsPerFrame`, which the endpoints now
+accept) so it only narrows what is displayed, and is skipped entirely while
+searching - a directed search should always be able to surface any real combo.
+
+Times and gaps are formatted by `shared/utils/duration.ts`, the same code the
+rider-facing pages use. Gaps keep two decimals below a minute: combos are
+routinely separated by hundredths of a second, and rounding those to whole
+seconds collapses genuinely different bikes onto one label (issue #61).
+Absolute times stay rounded to the second, because hundredths on an hour-long
+ride are noise.
 
 Every ranked row carries a `measured` / `estimated` flag, mirroring the
 "verified" badge in the web UI. This is not decoration: `measured` means the

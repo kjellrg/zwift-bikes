@@ -1,4 +1,5 @@
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
+import { DEFAULT_UNOWNED_LEVEL } from '../../../shared/utils/classifyBikeFrame'
 import { clampLaps, computeRouteTotals, MAX_LAPS } from '../../../shared/utils/routeLaps'
 import type { RpcContext } from './protocol'
 import {
@@ -129,16 +130,33 @@ function emptyVerifiedMessage(): string {
     + 'If the user asked about gravel, a fun bike, or a specific frame by name, retry this call with `verifiedOnly: false`.'
 }
 
+/**
+ * The upgrade stage this call assumes. Clamped here as well as in the
+ * endpoints - the duplication buys a header that reports the stage actually
+ * used, rather than echoing an out-of-range number back at the model.
+ */
+function upgradeLevelFor(args: Record<string, unknown>): number {
+  const level = Number(args.upgradeLevel)
+  return Number.isFinite(level) ? Math.min(5, Math.max(0, level)) : DEFAULT_UNOWNED_LEVEL
+}
+
 /** Query params shared by both recommend endpoints. */
 function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): Record<string, unknown> {
-  const upgradeLevel = Number(args.upgradeLevel)
   return {
     weightKg: profile.weightKg,
     heightCm: profile.heightCm,
     wkg: profile.wkg,
-    // The endpoints clamp this to 0-5 themselves; passing it through unchanged
-    // keeps this adapter from owning a second copy of that bound.
-    defaultUnownedLevel: Number.isFinite(upgradeLevel) ? upgradeLevel : 0,
+    // Falls back to the shared constant, not a local 0: the assumed stage
+    // changes which frame wins, so an adapter picking its own default would
+    // answer the same question differently from the site.
+    defaultUnownedLevel: upgradeLevelFor(args),
+    // One row per frame, carrying that frame's fastest wheelset for this
+    // route. The web UI can afford to show a frame's top few wheelsets side by
+    // side; in a chat answer those extra rows push distinct *bikes* off the
+    // page, which is the thing actually being asked about. Applied after
+    // ranking, so nothing is removed from consideration - and skipped
+    // entirely while searching, where every real match should surface.
+    maxWheelsetsPerFrame: 1,
     category: typeof args.category === 'string' ? args.category : undefined,
     // Sent explicitly either way rather than relying on the endpoint default,
     // so this adapter's behaviour can't drift if that default changes.
@@ -154,7 +172,7 @@ const RECOMMEND_FILTER_PROPERTIES = {
   weightKg: { type: 'number', description: 'Rider weight in kilograms. Only needed to override (or stand in for) the session profile set by `set_rider_profile`.' },
   heightCm: { type: 'number', description: 'Rider height in centimetres (100-220). Affects aerodynamic drag. Pass together with weightKg and wkg.' },
   wkg: { type: 'number', description: 'Sustained power in watts per kilogram for an effort of this length. Pass together with weightKg and heightCm.' },
-  upgradeLevel: { type: 'number', description: 'Assume every bike is at this Zwift upgrade stage, 0-5 (0 = stock, the default; 5 = fully upgraded). Upgrades change a frame\'s real weight and aerodynamics, so this shifts the ranking.' },
+  upgradeLevel: { type: 'number', description: `Assume every bike is at this Zwift upgrade stage, 0-5 (0 = stock, just unlocked; 5 = fully upgraded). Defaults to ${DEFAULT_UNOWNED_LEVEL}. Frames upgrade along different per-stage schemes, so this changes which bike wins, not just the times - pass 0 if the user is asking about bikes as they come out of the drop shop.` },
   category: { type: 'string', enum: ['standard', 'tt', 'gravel', 'handbike', 'funbike'], description: 'Restrict to one Zwift garage category. Note Zwift only lets gravel frames take gravel/mountain wheels and road/TT frames take road wheels, so this also changes which wheelsets appear.' },
   verifiedOnly: { type: 'boolean', description: 'Defaults to true: rank only frames and wheels whose performance comes from real ZwiftInsider bot-test data. Set to false to also include heuristic estimates - necessary for gravel and fun bikes, which have no bot-test data and are therefore absent by default, and worth doing if the user asks about a specific bike that returns no results.' },
   search: { type: 'string', description: 'Only include combos whose frame or wheelset name matches this text. Use to answer "how fast would MY bike be" without ranking the whole catalog.' },
@@ -460,7 +478,8 @@ const TOOLS: ToolDefinition[] = [
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
         physics ? `- Physics: ${physics.mode}, geometry ${physics.geometry}` : undefined,
-        args.upgradeLevel !== undefined ? `- All bikes assumed at upgrade stage ${Number(args.upgradeLevel)}` : '- All bikes assumed stock (upgrade stage 0)'
+        `- All bikes assumed at upgrade stage ${upgradeLevelFor(args)}${upgradeLevelFor(args) === 5 ? ' (fully upgraded)' : upgradeLevelFor(args) === 0 ? ' (stock)' : ''}`,
+        '- One row per frame, paired with its fastest wheelset for this route'
       ].filter(Boolean)
 
       return text([
@@ -519,7 +538,8 @@ const TOOLS: ToolDefinition[] = [
         `- ${segment.type}: ${segment.lengthKm.toFixed(1)} km, ${Math.round(segment.elevationM)} m, ${segment.avgGradePercent.toFixed(1)}% avg${segment.climbType ? `, category ${segment.climbType}` : ''}`,
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
-        args.upgradeLevel !== undefined ? `- All bikes assumed at upgrade stage ${Number(args.upgradeLevel)}` : '- All bikes assumed stock (upgrade stage 0)'
+        `- All bikes assumed at upgrade stage ${upgradeLevelFor(args)}${upgradeLevelFor(args) === 5 ? ' (fully upgraded)' : upgradeLevelFor(args) === 0 ? ' (stock)' : ''}`,
+        '- One row per frame, paired with its fastest wheelset for this route'
       ].filter(Boolean)
 
       return text([

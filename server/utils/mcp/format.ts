@@ -1,4 +1,5 @@
 import type { ComboScore, RouteSummary, SegmentSummary, SurfaceEstimate } from '../../../shared/types/catalog'
+import { formatDuration, formatDurationGap } from '../../../shared/utils/duration'
 
 /**
  * The shape the recommend endpoints return. Declared here rather than inferred
@@ -34,29 +35,15 @@ export interface RecommendSegmentResponse {
   pagination: RecommendPagination
 }
 
-/** `h:mm:ss` past an hour, `m:ss` below it. */
-export function formatDuration(seconds: number): string {
-  const total = Math.round(seconds)
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  const secs = total % 60
-  const paddedSecs = String(secs).padStart(2, '0')
-  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${paddedSecs}`
-  return `${minutes}:${paddedSecs}`
-}
-
 /**
- * Gap to the fastest combo on the page. Sub-minute gaps read better in plain
- * seconds, and a gap that rounds to zero is shown as `+<1s` rather than `—`:
- * combos routinely land within a fraction of a second of each other, and a
- * column of `—` would read as several joint-fastest bikes instead of one
- * winner and some near-ties.
+ * Gap to the fastest combo on the page, formatted exactly as the rider-facing
+ * pages format it - two decimals under a minute. That precision is the point:
+ * closely matched combos are routinely separated by hundredths of a second,
+ * and rounding them to whole seconds collapses genuinely different combos onto
+ * one label, which is what makes a ranking look arbitrary (issue #61).
  */
 function formatGap(seconds: number): string {
-  if (seconds <= 0) return '—'
-  const rounded = Math.round(seconds)
-  if (rounded === 0) return '+<1s'
-  return rounded < 60 ? `+${rounded}s` : `+${formatDuration(rounded)}`
+  return formatDurationGap(seconds, '—')
 }
 
 export function formatSurface(surface: SurfaceEstimate): string {
@@ -85,9 +72,8 @@ export function formatComboTable(combos: ComboScore[], startRank: number): strin
   // Only worth a column when this route actually has non-tarmac sections.
   const hasSurfaceCost = combos.some(combo => (combo.surfaceTimePenaltySec ?? 0) > 0)
 
-  const header = ['#', 'Frame', 'Wheelset', hasTimes ? 'Time' : 'Score', hasTimes ? 'Gap' : '', hasSurfaceCost ? 'Off-road cost' : '', 'Data'].filter(Boolean)
+  const header = ['#', 'Frame', 'Level', 'Wheelset', hasTimes ? 'Time' : 'Score', hasTimes ? 'Gap' : '', hasSurfaceCost ? 'Off-road cost' : '', 'Data'].filter(Boolean)
   const rows = combos.map((combo, index) => {
-    const level = combo.frame.level > 0 ? ` (lvl ${combo.frame.level})` : ''
     // Frames with integrated, non-swappable wheels come back without a
     // wheelset at all - see `hasFixedWheels` in `classifyBikeFrame.ts`.
     const wheelset = combo.wheelset?.name ?? '_fixed wheels_'
@@ -96,7 +82,8 @@ export function formatComboTable(combos: ComboScore[], startRank: number): strin
 
     const cells = [
       String(startRank + index),
-      `${combo.frame.name}${level}`,
+      combo.frame.name,
+      String(combo.frame.level),
       wheelset,
       hasTimes ? formatDuration(combo.finishTimeSec!) : String(combo.score)
     ]

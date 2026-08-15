@@ -36,6 +36,24 @@ import { solveFrameEquipmentDelta } from './physics/equipment'
  * Stage 0 (just-purchased) baseline - see `interpolateGap`.
  */
 
+/**
+ * What upgrade stage to assume for a frame the rider hasn't put in their
+ * garage. Lives here, next to the `level` semantics it refers to, so that
+ * every surface that has to pick a stage - `useRiderProfile`, the recommend
+ * endpoints, the MCP tools - reads the same number.
+ *
+ * That matters more than it looks: frames upgrade along different per-stage
+ * schemes, so the assumed stage changes the *ranking*, not just the times.
+ * On Road to Sky a stage-0 assumption puts the Tarmac SL9 on top while a
+ * stage-5 one puts the Aethos S-Works there, 74s apart - so two surfaces
+ * disagreeing on this default answer the same question with different bikes.
+ *
+ * 5 (fully upgraded) rather than 0: it is what the site has always shown, and
+ * an unowned frame is being considered as something to work towards, which
+ * makes its end state the fair comparison against everything else.
+ */
+export const DEFAULT_UNOWNED_LEVEL = 5
+
 // Calibration bounds for converting a raw "seconds saved/lost per hour at
 // 300W vs. baseline" gap into a 0-100 score. Chosen from the bulk of the
 // measured `standard` frame distribution, clamping the small number of

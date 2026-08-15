@@ -4,7 +4,9 @@ const DEFAULT_WEIGHT_KG = 75
 const DEFAULT_HEIGHT_CM = 183
 const DEFAULT_FTP_WATTS = 225
 const DEFAULT_WKG = DEFAULT_FTP_WATTS / DEFAULT_WEIGHT_KG
-const DEFAULT_UNOWNED_LEVEL = 5
+// `DEFAULT_UNOWNED_LEVEL` deliberately isn't defined here: the recommend
+// endpoints and the MCP tools have to assume the same stage, so it lives in
+// `shared/utils/classifyBikeFrame.ts` alongside the level semantics.
 
 /**
  * Tracks rider dimensions and power used by the route physics model.
