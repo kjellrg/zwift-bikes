@@ -1,6 +1,6 @@
 # Security Policy
 
-Zwift Best Bike is a small hobby project. There's no user authentication and
+ZwiftBikes is a small hobby project. There's no user authentication and
 no sensitive user data - rider profile and "garage" data are stored client-side
 in the browser only. Still, if you find a security issue (e.g. XSS, dependency
 vulnerability with real impact, etc.), please report it responsibly.

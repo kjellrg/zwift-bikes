@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const title = "About - Zwift Best Bike";
+const title = "About - ZwiftBikes";
 const description
-  = "Zwift Best Bike is an unofficial fan project that ranks every bike frame and wheelset by predicted finish time for a given Zwift route. Built on zwift-data, ZwiftInsider bot speed tests, zwiftmap and real GPS route traces.";
+  = "ZwiftBikes is an unofficial fan project that ranks every bike frame and wheelset by predicted finish time for a given Zwift route. Built on zwift-data, ZwiftInsider bot speed tests, zwiftmap and real GPS route traces.";
 
 useSeoMeta({
   title,
@@ -15,7 +15,7 @@ useSeoMeta({
   <UContainer class="py-10 space-y-8">
     <div>
       <h1 class="text-3xl font-bold text-highlighted">
-        About Zwift Best Bike
+        About ZwiftBikes
       </h1>
       <p class="text-muted mt-1">
         What this project is, where its numbers come from, and what it does

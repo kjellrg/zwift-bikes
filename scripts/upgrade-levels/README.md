@@ -82,7 +82,7 @@ rather than silently falling back if a name has no measured data.
 
 ```sh
 node scripts/upgrade-levels/compare-deployments.mjs \
-  --old=https://zwiftbikes.photic.net \
+  --old=https://zwiftbikes.com \
   --new=https://<pr-preview>.azurestaticapps.net \
   --level=3
 ```

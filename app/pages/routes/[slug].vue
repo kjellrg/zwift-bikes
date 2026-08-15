@@ -60,7 +60,7 @@ const [{ data: routeData, error: routeError }, { data: recommendData, status, re
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: "Route not found", fatal: true });
 
 useSeoMeta({
-  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - Zwift Best Bike` : "Zwift Best Bike",
+  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - ZwiftBikes` : "ZwiftBikes",
   description: () => routeData.value
     ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}. Distance, elevation and surface-aware recommendations.`
     : undefined,
@@ -68,7 +68,15 @@ useSeoMeta({
   ogDescription: () => routeData.value
     ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}.`
     : undefined,
-  ogImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined,
+  // Full object, not just the URL: the app-level default in app.vue emits
+  // og:image:width/height/alt, which unhead dedupes per-tag, so replacing
+  // only og:image would leave the default image's dimensions attached to
+  // this page's world artwork.
+  ogImage: () => {
+    if (!routeData.value) return undefined;
+    const img = getWorldImage(routeData.value.world);
+    return img ? { ...img, alt: `${routeData.value.worldName} route map` } : undefined;
+  },
   twitterImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined
 });
 

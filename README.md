@@ -1,4 +1,4 @@
-# Zwift Best Bike
+# ZwiftBikes
 
 A Nuxt 4 + Nuxt UI 4 app that recommends the best bike frame / wheelset combo
 for a given [Zwift](https://www.zwift.com/) route, based on your rider

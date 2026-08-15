@@ -4,6 +4,6 @@
       name="i-lucide-bike"
       class="size-6 text-primary shrink-0"
     />
-    <span>Zwift Best Bike</span>
+    <span>ZwiftBikes</span>
   </div>
 </template>

@@ -10,7 +10,7 @@ export const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26']
 
 export const SERVER_INFO = {
   name: 'zwift-bikes',
-  title: 'Zwift Best Bike',
+  title: 'ZwiftBikes',
   version: '1.0.0'
 }
 

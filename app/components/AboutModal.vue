@@ -5,7 +5,7 @@ const open = defineModel<boolean>("open", { default: false });
 <template>
   <UModal
     v-model:open="open"
-    title="About Zwift Best Bike"
+    title="About ZwiftBikes"
     :ui="{ content: 'sm:max-w-xl' }"
   >
     <template #body>

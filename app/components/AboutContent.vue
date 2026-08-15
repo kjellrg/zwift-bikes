@@ -9,7 +9,7 @@
 <template>
   <div class="flex flex-col gap-5 text-sm">
     <p>
-      Tell it your weight, height and power, and Zwift Best Bike ranks every
+      Tell it your weight, height and power, and ZwiftBikes ranks every
       frame and wheelset in the game by predicted finish time for the exact
       route you're about to ride - not by a one-size-fits-all "best bike"
       list.

@@ -9,7 +9,7 @@ const { data: segmentData, error: segmentError } = await useFetch(() => `/api/se
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
 
 useSeoMeta({
-  title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - Zwift Best Bike` : 'Zwift Best Bike',
+  title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - ZwiftBikes` : 'ZwiftBikes',
   description: () => segmentData.value
     ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
     : undefined,
@@ -17,7 +17,15 @@ useSeoMeta({
   ogDescription: () => segmentData.value
     ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
     : undefined,
-  ogImage: () => segmentData.value ? getWorldImageUrl(segmentData.value.world) : undefined,
+  // Full object, not just the URL: the app-level default in app.vue emits
+  // og:image:width/height/alt, which unhead dedupes per-tag, so replacing
+  // only og:image would leave the default image's dimensions attached to
+  // this page's world artwork.
+  ogImage: () => {
+    if (!segmentData.value) return undefined
+    const img = getWorldImage(segmentData.value.world)
+    return img ? { ...img, alt: `${segmentData.value.worldName} route map` } : undefined
+  },
   twitterImage: () => segmentData.value ? getWorldImageUrl(segmentData.value.world) : undefined
 })
 
