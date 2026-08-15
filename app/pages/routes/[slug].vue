@@ -7,20 +7,26 @@ const slug = computed(() => route.params.slug as string);
 
 const { owned, ownedWheels, load: loadGarage } = useGarage();
 const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile();
-const { verifiedOnly, myBikesOnly, load: loadPreferences, setVerifiedOnly, setMyBikesOnly } = usePreferences();
+// `bikeCategory` is bound straight to the control below rather than mirrored
+// into a page-local ref: it is one shared value with the profile page, so
+// changing the category here persists it, and there is no second ref to keep
+// in sync (which is where a spurious refetch loop would come from).
+const { verifiedOnly, myBikesOnly, bikeCategory, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory } = usePreferences();
 
 const bikeSearch = ref("");
 const bikeSearchDebounced = ref("");
 let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 watch(bikeSearch, (value) => { clearTimeout(bikeSearchDebounceTimer); bikeSearchDebounceTimer = setTimeout(() => { bikeSearchDebounced.value = value; }, 300); });
-const categoryFilter = ref<BikeCategory | "all">("all");
 const pageSize = 9;
 const laps = ref(1);
 const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? "" : "s"}`, value: i + 1 }));
 
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
-  category: categoryFilter.value !== "all" ? categoryFilter.value : undefined,
+  // Omitted rather than sent as `all`: the endpoint reads any non-empty
+  // `category` as a value to match against, so `all` would match no frame at
+  // all. "Absent" is the API's own spelling of "every category".
+  category: bikeCategory.value !== "all" ? bikeCategory.value : undefined,
   limit: pageSize,
   offset: 0,
   // Always sent, never omitted: the endpoint now defaults this to on, so
@@ -34,9 +40,12 @@ const recommendQuery = computed(() => ({
   heightCm: heightCm.value,
   wkg: wkg.value,
   laps: laps.value,
-  // Omitted entirely in solo mode so SSR/prerendered payloads stay
-  // byte-identical to before draft mode existed (localStorage loads
-  // onMounted, then the watch below refetches if the persisted mode is TTT).
+  // Omitted entirely in solo mode, which is also the default: everything in
+  // this query renders server-side from the DEFAULT rider profile and
+  // preferences, since localStorage only loads onMounted. That default query
+  // is what gets prerendered and what crawlers see. The watch below then
+  // refetches after hydration, but only for a rider whose stored settings
+  // actually differ from the defaults.
   draftMode: draftMode.value === "ttt" ? "ttt" : undefined,
   tttRiders: draftMode.value === "ttt" ? tttRiders.value : undefined,
   tttClimbWkg: draftMode.value === "ttt" ? tttClimbWkg.value : undefined,
@@ -141,7 +150,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, categoryFilter, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => { refreshFirstPage(); });
+watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => { refreshFirstPage(); });
 watch(owned, () => { refreshFirstPage(); }, { deep: true });
 watch(ownedWheels, () => { refreshFirstPage(); }, { deep: true });
 
@@ -156,6 +165,9 @@ const restCombos = computed(() => combos.value.slice(1));
 const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === "number"); return times.length ? Math.min(...times) : undefined; });
 const surfaceTimePenaltyText = computed(() => routeData.value ? formatSurfaceTimePenalty(routeData.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined);
 const physicsInfo = computed(() => recommendData.value?.physics);
+// Present only when the category filter is hiding a faster combo - see
+// `FastestOverallNote` and the endpoint's `fastestOverall` block.
+const fastestOverall = computed(() => recommendData.value?.fastestOverall);
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt));
 const draftModeOptions = [{ label: "Solo (no draft)", value: "solo" }, { label: "TTT (paceline)", value: "ttt" }] as const;
@@ -282,7 +294,7 @@ useHead(() => {
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">Best bike &amp; wheel combo for this route</h2>
       <div class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4 mb-6">
-        <div class="min-w-48"><label class="block text-xs font-medium text-muted mb-1">Bike category</label><USelectMenu v-model="categoryFilter" value-key="value" :items="categoryOptions" :search-input="false" class="w-52" /></div>
+        <div class="min-w-48"><label class="block text-xs font-medium text-muted mb-1">Bike category</label><USelectMenu :model-value="bikeCategory" value-key="value" :items="categoryOptions" :search-input="false" class="w-52" @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)" /></div>
         <div class="min-w-56 flex-1"><label class="block text-xs font-medium text-muted mb-1">Search bikes or wheels</label><UInput v-model="bikeSearch" icon="i-lucide-search" placeholder="e.g. Tarmac, Aethos, Zipp, DICUT..." /></div>
         <div class="flex items-center gap-2"><USwitch :model-value="verifiedOnly" @update:model-value="(value: boolean) => setVerifiedOnly(value)" /><span class="text-sm">Only show verified frames/wheels</span></div>
         <div class="flex items-center gap-2"><USwitch :model-value="myBikesOnly" @update:model-value="(value: boolean) => setMyBikesOnly(value)" /><span class="text-sm">Only show items in my garage</span><ULink to="/garage" class="text-sm text-primary underline">(edit garage)</ULink></div>
@@ -312,6 +324,7 @@ useHead(() => {
       </div>
       <template v-else>
         <p v-if="isRefreshingCombos" class="flex items-center gap-1.5 text-sm text-muted mb-3"><UIcon name="i-lucide-loader-circle" class="size-4 animate-spin" />Updating results…</p>
+        <FastestOverallNote v-if="fastestOverall" :fastest-overall="fastestOverall" @show-all="setBikeCategory('all')" />
         <div class="transition-opacity" :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }">
           <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" class="mb-6" />
           <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" /></div>

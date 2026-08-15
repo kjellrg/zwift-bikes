@@ -37,6 +37,28 @@ export interface OrderableCombo {
 export const SIMULATED_ORDER_MARGIN = 45
 
 /**
+ * The same idea as `SIMULATED_ORDER_MARGIN`, but for the recommend endpoints'
+ * `fastestOverall` lookup - the "a bike outside your category is faster"
+ * line - which has to identify exactly ONE combo rather than order a whole
+ * displayed page.
+ *
+ * Much smaller than the page margin, for two reasons. The estimate only
+ * mis-orders badly across a mixed field (its uniform-average-grade
+ * approximation misprices mass, which bites hardest when comparing bikes with
+ * very different weights); the out-of-category pool is usually a single
+ * category, so it arrives nearly correctly ordered. And nothing downstream
+ * paginates it - a combo that loses the top spot is simply not mentioned.
+ *
+ * Measured over 14 routes spanning flat/rolling/mountainous and mixed
+ * surfaces, windows of 46, 16, 6 and 3 all selected the identical combo, so
+ * no divergence was observed anywhere near this value. 15 keeps a wide margin
+ * over that while cutting the block's cost from roughly 85% of a request's
+ * simulation budget to under a third of it - which matters because the route
+ * pages are prerendered, so this is build time on ~150 pages.
+ */
+export const FASTEST_OVERALL_ORDER_MARGIN = 15
+
+/**
  * Re-orders the head of `combos` by real simulated finish time, returning the
  * new ordering along with every time it computed so callers don't simulate
  * the same combo twice.

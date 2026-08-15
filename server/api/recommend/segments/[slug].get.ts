@@ -4,7 +4,7 @@ import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
-import { clampTttClimbWkg, clampTttRiders, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
 
@@ -68,12 +68,14 @@ export default defineEventHandler((event) => {
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
   const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
 
-  let frames = getFrames().filter((frame) => {
+  // Built WITHOUT the category filter - see the equivalent comment in
+  // `recommend/[slug].get.ts`; every other filter applies to both the ranked
+  // results and the `fastestOverall` comparison at the end.
+  let allFrames = getFrames().filter((frame) => {
     // Never list the same bike twice: a cosmetic re-skin and the frame it
     // re-skins are one bike, so only one of the pair is shown - the re-skin
     // only when it's explicitly in the rider's garage.
     if (isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
-    if (category && frame.category !== category) return false
     if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
     return true
   }).map((frame) => {
@@ -86,9 +88,10 @@ export default defineEventHandler((event) => {
     return true
   })
   if (verifiedOnly) {
-    frames = frames.filter(f => f.confidence === 'measured')
+    allFrames = allFrames.filter(f => f.confidence === 'measured')
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
+  const frames = category ? allFrames.filter(f => f.category === category) : allFrames
 
   // See the equivalent comments in `recommend/[slug].get.ts` - `rankCombos`
   // scores every candidate internally regardless of `limit`, so it's always
@@ -207,6 +210,39 @@ export default defineEventHandler((event) => {
       tttSavedSec
     }
   }
+  // "A bike outside your category is faster" - see the equivalent block in
+  // `recommend/[slug].get.ts` for why this is computed server-side, why only
+  // the out-of-category frames are ranked, and why it is gated this narrowly.
+  let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
+  const pageTopCombo = pageCombos[0]
+  if (category && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
+    const outsideCategoryFrames = allFrames.filter(f => f.category !== category)
+    if (outsideCategoryFrames.length) {
+      let candidates = rankCombos(segmentRoute, outsideCategoryFrames, wheelsets, outsideCategoryFrames.length * wheelsets.length)
+        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, tttEstimate) }))
+        .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
+      let overallTopSec = candidates[0]?.finishTimeSec
+      if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic') {
+        // `simulateSegmentSec` is the same warmed-minus-warmup subtraction the
+        // ranked results use, so this time is directly comparable to theirs.
+        const ordering = orderBySimulatedTime(candidates, 1 + FASTEST_OVERALL_ORDER_MARGIN, simulateSegmentSec)
+        candidates = ordering.ordered
+        overallTopSec = candidates[0] ? ordering.simulatedSec.get(candidates[0]) : undefined
+      }
+      const overallTop = candidates[0]
+      if (overallTop && typeof overallTopSec === 'number' && overallTopSec < pageTopCombo.finishTimeSec) {
+        fastestOverall = {
+          frameId: overallTop.frame.id,
+          frameName: overallTop.frame.name,
+          category: overallTop.frame.category,
+          wheelsetName: overallTop.wheelset?.name,
+          finishTimeSec: overallTopSec,
+          deltaSec: pageTopCombo.finishTimeSec - overallTopSec
+        }
+      }
+    }
+  }
+
   const tttNote = ttt
     ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
     : ''
@@ -214,6 +250,7 @@ export default defineEventHandler((event) => {
   return {
     segment: summary,
     combos: pageCombos,
+    fastestOverall,
     physics: hasRiderProfile
       ? {
           mode: physicsMode,

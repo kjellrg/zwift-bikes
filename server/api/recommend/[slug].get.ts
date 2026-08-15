@@ -3,7 +3,7 @@ import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { clampTttClimbWkg, clampTttRiders, geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
@@ -73,12 +73,15 @@ export default defineEventHandler((event) => {
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
   const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
 
-  let frames = getFrames().filter((frame) => {
+  // Built WITHOUT the category filter, which is applied separately below.
+  // Every other filter - cosmetic dedupe, ownership, verified - belongs to
+  // both the ranked results and the `fastestOverall` comparison at the end,
+  // so the two can only ever differ by the category itself.
+  let allFrames = getFrames().filter((frame) => {
     // Never list the same bike twice: a cosmetic re-skin and the frame it
     // re-skins are one bike, so only one of the pair is shown - the re-skin
     // only when it's explicitly in the rider's garage.
     if (isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
-    if (category && frame.category !== category) return false
     if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
     return true
   }).map((frame) => {
@@ -91,9 +94,10 @@ export default defineEventHandler((event) => {
     return true
   })
   if (verifiedOnly) {
-    frames = frames.filter(f => f.confidence === 'measured')
+    allFrames = allFrames.filter(f => f.confidence === 'measured')
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
+  const frames = category ? allFrames.filter(f => f.category === category) : allFrames
 
   // `rankCombos` scores every frame x wheelset pair internally regardless of
   // the `limit` passed in - it only truncates the *returned* array at the
@@ -217,6 +221,59 @@ export default defineEventHandler((event) => {
       tttSavedSec
     }
   }
+  // "A bike outside your category is faster": the fastest combo once the
+  // category filter is lifted. The rider-facing pages default to `standard`
+  // (TT frames win outright on most routes but are restricted in a lot of
+  // events), and this is what keeps that default honest - the genuinely
+  // quickest bike is never silently hidden, just moved one click away. It is
+  // returned from the endpoint rather than fetched separately by the client
+  // so it lands in the server-rendered HTML, where crawlers and a first paint
+  // both see it.
+  //
+  // Only the frames OUTSIDE the current category are ranked here, not the
+  // full pool: if the overall winner were in-category there would be nothing
+  // to disclose, so the two formulations give the same answer and this one
+  // ranks a strictly smaller pool.
+  //
+  // Gated to the first page of an unsearched request with a rider profile -
+  // the only render that shows the line - because it costs a second ranking
+  // pass and its own simulation window (see `SIMULATED_ORDER_MARGIN`).
+  let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
+  const pageTopCombo = pageCombos[0]
+  if (category && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
+    const outsideCategoryFrames = allFrames.filter(f => f.category !== category)
+    if (outsideCategoryFrames.length) {
+      let candidates = rankCombos(route, outsideCategoryFrames, wheelsets, outsideCategoryFrames.length * wheelsets.length)
+        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, tttEstimate) }))
+        .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
+      let overallTopSec = candidates[0]?.finishTimeSec
+      // Same estimate-then-simulate discipline as the main path: the estimate
+      // gets the pool roughly ordered, but the number displayed next to the
+      // page's own simulated times has to come from the simulator too, or the
+      // gap would be comparing two different models.
+      if (geometry && physicsMode === 'dynamic') {
+        const ordering = orderBySimulatedTime(
+          candidates,
+          1 + FASTEST_OVERALL_ORDER_MARGIN,
+          combo => simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
+        )
+        candidates = ordering.ordered
+        overallTopSec = candidates[0] ? ordering.simulatedSec.get(candidates[0]) : undefined
+      }
+      const overallTop = candidates[0]
+      if (overallTop && typeof overallTopSec === 'number' && overallTopSec < pageTopCombo.finishTimeSec) {
+        fastestOverall = {
+          frameId: overallTop.frame.id,
+          frameName: overallTop.frame.name,
+          category: overallTop.frame.category,
+          wheelsetName: overallTop.wheelset?.name,
+          finishTimeSec: overallTopSec,
+          deltaSec: pageTopCombo.finishTimeSec - overallTopSec
+        }
+      }
+    }
+  }
+
   const tttNote = ttt
     ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
     : ''
@@ -224,6 +281,7 @@ export default defineEventHandler((event) => {
   return {
     route: toRouteSummary(route),
     combos: pageCombos,
+    fastestOverall,
     physics: hasRiderProfile
       ? {
           mode: physicsMode,

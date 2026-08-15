@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import type { BikeCategory } from '../../shared/types/catalog'
 import { clampTttClimbWkg, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '#shared/utils/physics/draft'
 
 const { weightKg, heightCm, ftpWatts, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load, setWeightKg, setHeightCm, setFtpWatts, setDefaultUnownedLevel, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
-onMounted(() => { load() })
+// Bike category is a display filter rather than a rider attribute, so it
+// lives in `usePreferences` alongside the other filters - but it's set here,
+// because it's a default the rider picks once, not a per-route toggle.
+const { bikeCategory, load: loadPreferences, setBikeCategory } = usePreferences()
+onMounted(() => { load(); loadPreferences() })
 
 // Everything on this page renders from localStorage, so a crawler only ever
 // sees an empty shell - thin content with nothing to rank for. Keep it out
@@ -13,6 +18,11 @@ onMounted(() => { load() })
 useRobotsRule('noindex, follow')
 const defaultUnownedLevelOptions = [0, 1, 2, 3, 4, 5].map(level => ({ label: level === 0 ? 'Level 0 (stock, just unlocked)' : `Level ${level}`, value: level }))
 const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }]
+const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = [
+  { label: 'All categories', value: 'all' }, { label: BIKE_CATEGORY_LABELS.standard, value: 'standard' },
+  { label: BIKE_CATEGORY_LABELS.tt, value: 'tt' }, { label: BIKE_CATEGORY_LABELS.gravel, value: 'gravel' },
+  { label: BIKE_CATEGORY_LABELS.funbike, value: 'funbike' }, { label: BIKE_CATEGORY_LABELS.handbike, value: 'handbike' }
+]
 // Where the climb slider sits. Once a team pace is stored that is what it
 // shows; until then it tracks the rider's normal power, so the control starts
 // at a sensible place without the profile actually claiming a value - which is
@@ -59,6 +69,12 @@ const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(wkg.
         <label class="block text-xs font-medium text-muted mb-1">Assumed upgrade level for bikes you don't own</label>
         <USelectMenu :model-value="defaultUnownedLevel" value-key="value" :items="defaultUnownedLevelOptions" :search-input="false" @update:model-value="(level: number) => setDefaultUnownedLevel(level)" />
         <p class="text-sm text-muted mt-1">Your garage bikes use their actual upgrade level; other bikes use this assumed level.</p>
+      </div>
+
+      <div class="max-w-xs">
+        <label class="block text-xs font-medium text-muted mb-1">Default bike category</label>
+        <USelectMenu :model-value="bikeCategory" value-key="value" :items="bikeCategoryOptions" :search-input="false" @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)" />
+        <p class="text-sm text-muted mt-1">Which category route and segment pages rank by. Standard is the default: TT bikes are usually fastest outright, but they're restricted in a lot of group rides and races. Whichever you pick, pages still tell you when a bike outside it would be faster.</p>
       </div>
 
       <div class="max-w-xs">
