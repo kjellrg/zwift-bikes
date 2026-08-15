@@ -171,6 +171,16 @@ const fastestOverall = computed(() => recommendData.value?.fastestOverall);
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt));
 const draftModeOptions = [{ label: "Solo (no draft)", value: "solo" }, { label: "TTT (paceline)", value: "ttt" }] as const;
+// The draft controls sit behind a disclosure. Solo is the default and covers
+// almost every visit (a road race is not ridden as a paceline), so the
+// paceline inputs stay folded away until someone asks for them - but ANY
+// non-solo mode forces the section open, because a draft mode silently
+// shifting every finish time on the page with no visible control is worse
+// than one extra dropdown. That rule is deliberately written against
+// `!== 'solo'` rather than `=== 'ttt'` so a future race/pack-draft mode
+// (see `shared/utils/physics/draft.ts`) inherits it for free.
+const showDraftControls = ref(false);
+const draftControlsOpen = computed(() => showDraftControls.value || draftMode.value !== "solo");
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined);
 const faqAnswer = computed(() => {
@@ -303,7 +313,8 @@ useHead(() => {
       <!-- Two fixed rows rather than one wrapping one: the rider's own numbers stay
            on the first, everything about the group on the second. Switching draft
            mode then only fills in the second row's spare width instead of pushing a
-           control onto a new line, so the page below barely moves. -->
+           control onto a new line, so the page below barely moves. Collapsed, that
+           second row is a single opt-in button - see `draftControlsOpen`. -->
       <div class="rounded-lg border border-default p-4 mb-6 space-y-4">
         <div class="flex flex-wrap items-end gap-6">
           <div class="w-full sm:w-44"><label class="block text-xs font-medium text-muted mb-1">Rider weight: {{ pendingWeightKg }} kg</label><input v-model.number="pendingWeightKg" type="range" min="40" max="130" step="1" class="w-full cursor-pointer" aria-label="Rider weight in kilograms" @change="commitWeight" /></div>
@@ -311,7 +322,8 @@ useHead(() => {
           <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === "ttt" ? " average" : "" }}</label><input v-model.number="pendingWkg" type="range" min="1" max="6.9" step="0.1" class="w-full cursor-pointer" aria-label="Rider power in watts per kilogram" @change="commitWkg" /></div>
         </div>
         <div class="flex flex-wrap items-end gap-6">
-          <div class="w-44"><label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="draftMode" value-key="value" :items="[...draftModeOptions]" :search-input="false" @update:model-value="(value: 'solo' | 'ttt') => setDraftMode(value)" /></div>
+          <UButton v-if="!draftControlsOpen" color="neutral" variant="subtle" size="xs" icon="i-lucide-users" @click="showDraftControls = true">Riding this in a group? Add draft</UButton>
+          <div v-if="draftControlsOpen" class="w-44"><label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="draftMode" value-key="value" :items="[...draftModeOptions]" :search-input="false" @update:model-value="(value: 'solo' | 'ttt') => setDraftMode(value)" /></div>
           <div v-if="draftMode === 'ttt'" class="w-full sm:w-40"><label class="block text-xs font-medium text-muted mb-1">Riders: {{ pendingRiders }} <UTooltip text="Team size in the rotation. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><input v-model.number="pendingRiders" type="range" :min="TTT_MIN_RIDERS" :max="TTT_MAX_RIDERS" step="1" class="w-full cursor-pointer" aria-label="Number of riders in the paceline" @change="commitRiders" /></div>
           <div v-if="draftMode === 'ttt'" class="w-full sm:w-64"><label class="block text-xs font-medium text-muted mb-1">Team climb power: {{ pendingClimbWkg.toFixed(1) }} W/kg ({{ Math.round(pendingClimbWkg * weightKg) }} W) <UTooltip text="What the team averages on climbs steeper than 3% lasting over ~3.5 minutes, where a paceline breaks up and everyone rides their own pace. Starts at your normal power and stays where you put it - changing the Power slider above never moves it."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><input v-model.number="pendingClimbWkg" type="range" :min="TTT_MIN_CLIMB_WKG" :max="TTT_MAX_CLIMB_WKG" step="0.1" class="w-full cursor-pointer" aria-label="Team average power on long climbs in watts per kilogram" @change="commitClimbWkg" /></div>
           <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
