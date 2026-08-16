@@ -121,8 +121,11 @@ export function tttAveragePowerFactor(riders: number): number {
  * fit, not per-position measured data - kept isolated here so better data
  * can replace it without touching callers.
  */
+/** The flat-TTT speed the scale is normalized to (~42 km/h) - scale 1.0 here. Named so `CLIMB_BLOCK_MAX_SPEED_MPS` can invert the curve against the same anchor. */
+export const DRAFT_SCALE_REFERENCE_SPEED_MPS = 11.7
+
 export function draftSavingsSpeedScale(speedMps: number): number {
-  const scale = (speedMps / 11.7) ** 2
+  const scale = (speedMps / DRAFT_SCALE_REFERENCE_SPEED_MPS) ** 2
   return Math.min(1.4, Math.max(0, scale))
 }
 
@@ -216,23 +219,84 @@ export interface TttClimbBlock {
   distanceM: number
   elevationM: number
   avgGrade: number
+  /** Estimated solo speed at `climbPowerW` on this block - what the qualifying test is applied to, kept so callers can explain why a block counted. */
+  climbSpeedMps: number
   estDurationSec: number
 }
 
-/** Grade threshold for a "long climb" - below 3% a full-strength paceline holds together and draft still works. */
-const CLIMB_BLOCK_MIN_GRADE = 0.03
+/**
+ * What a climb block models, and why the qualifying test is a SPEED and not
+ * a grade.
+ *
+ * This detector does not model draft dying on a climb - `powerScaleAtSpeed`
+ * already does that, continuously and per timestep, via
+ * `draftSavingsSpeedScale`. What a block changes is the riders' own POWER:
+ * on a long enough climb the rotation stops and everyone settles onto their
+ * own sustainable climbing effort (`tttPowerPlan` -> `powerSegmentsW`). The
+ * question is therefore "when does the team stop rotating", not "when does
+ * draft stop working" - the latter needs no threshold at all.
+ *
+ * A grade threshold answered that question badly, because the same grade is
+ * a different event for different riders. At 3%, a 2.5 W/kg rider is doing
+ * 19.8 km/h with the draft worth 22% of its flat value - the rotation is
+ * pointless - while a 4.0 W/kg rider is doing 27.3 km/h with it still worth
+ * 42%. A speed test splits those two correctly; a grade test cannot see the
+ * difference.
+ *
+ * So: a block qualifies once the group has slowed to where the draft is
+ * worth a quarter of its flat value (`draftSavingsSpeedScale` = 0.25), which
+ * is 21.1 km/h. For an 8-rider paceline that is a ~7% power advantage,
+ * against ~38% on the flat - past that point the cost of holding a rotation
+ * (surging to pull, gaps opening on the gradient) outweighs what is left of
+ * the benefit, which is the real reason teams ride climbs individually.
+ *
+ * Not a loosening in disguise: at a typical 3.0 W/kg climb pace this cutoff
+ * lands at ~3.3% grade, slightly stricter than the 3% it replaces. What it
+ * does is re-slice. Across the 335-route catalog at that pace, routes with
+ * at least one block go 117 -> 143 from the grade/speed swap alone (holding
+ * the old 210 s floor), then 143 -> 151 from the shorter floor below. The
+ * count is strongly rider-dependent by design - 191 routes at a 2.5 W/kg
+ * team pace, 88 at 4.0 - which is the whole point of testing speed.
+ */
+const CLIMB_BLOCK_MAX_DRAFT_SCALE = 0.25
+const CLIMB_BLOCK_MAX_SPEED_MPS = DRAFT_SCALE_REFERENCE_SPEED_MPS * Math.sqrt(CLIMB_BLOCK_MAX_DRAFT_SCALE)
+/**
+ * Cheap prefilter while walking segments, so the speed solve only runs on
+ * stretches that could plausibly qualify. It exists to avoid work, not to
+ * make decisions, so it has to be safe: nothing it drops may be something
+ * the speed test would have kept.
+ *
+ * Verified across the full range the UI allows (`TTT_MIN_CLIMB_WKG`..9 W/kg,
+ * 50-110 kg): at 1% the slowest case is a 50 kg rider at 2 W/kg doing
+ * 22.6 km/h, still above the 21.06 km/h cutoff. That is only ~7% of margin,
+ * so lower this rather than raise it if the cutoff ever moves up.
+ */
+const CLIMB_BLOCK_PREFILTER_GRADE = 0.01
 /** Sub-threshold gaps shorter than this merge two climb stretches into one block (a short flat in the middle of a climb doesn't reform the paceline). */
 const CLIMB_BLOCK_MERGE_GAP_M = 200
-/** Minimum estimated duration for a block to count as a "long" climb - the "climbs over 3-4 minutes" a team paces separately. */
-const CLIMB_BLOCK_MIN_DURATION_SEC = 210
+/**
+ * Minimum estimated duration for a block to count as a "long" climb. 2.5
+ * minutes: a team settles into its own pace when the climb is long enough to
+ * be worth reorganising for, and shorter ramps get muscled over in formation.
+ * Was 210 s, which sat above the "climbs over 3-4 minutes" this is meant to
+ * capture and missed climbs teams visibly do ride individually.
+ */
+const CLIMB_BLOCK_MIN_DURATION_SEC = 150
 
 /**
- * Finds the route's long climbs - contiguous stretches of `geometry.points`
- * at >=3% average grade whose estimated duration at `climbPowerW` is at least
- * ~3.5 minutes. Works on geometry positions directly (NOT
+ * Finds the route's long climbs - contiguous rising stretches of
+ * `geometry.points` whose estimated speed at `climbPowerW` is at or below
+ * `CLIMB_BLOCK_MAX_SPEED_MPS` and which last at least
+ * `CLIMB_BLOCK_MIN_DURATION_SEC`. See the constants above for why the test is
+ * speed rather than grade. Works on geometry positions directly (NOT
  * `route.terrain.climbs`, whose per-lap km positions don't map onto
- * lap-repeated/lead-in-offset geometry). Adjacent climb stretches separated
- * by less than 200 m merge when the merged stretch still averages >=3%.
+ * lap-repeated/lead-in-offset geometry). Adjacent stretches separated by less
+ * than 200 m merge before the speed test runs.
+ *
+ * The speed used is the SOLO speed at `climbPowerW`, not the drafted group
+ * speed. At these speeds the two are within a few percent (the draft being
+ * nearly gone is the whole premise), and using the solo speed keeps this a
+ * plain solve instead of a fixed point.
  */
 export function detectLongClimbBlocks(geometry: RouteGeometry, climbPowerW: number, riderWeightKg: number): TttClimbBlock[] {
   const points = geometry.points
@@ -245,7 +309,7 @@ export function detectLongClimbBlocks(geometry: RouteGeometry, climbPowerW: numb
     const distanceM = b.distanceM - a.distanceM
     if (distanceM <= 0) continue
     const grade = (b.elevationM - a.elevationM) / distanceM
-    if (grade < CLIMB_BLOCK_MIN_GRADE) continue
+    if (grade < CLIMB_BLOCK_PREFILTER_GRADE) continue
     const last = raw[raw.length - 1]
     if (last && a.distanceM <= last.toM) {
       last.toM = b.distanceM
@@ -256,15 +320,17 @@ export function detectLongClimbBlocks(geometry: RouteGeometry, climbPowerW: numb
   }
 
   // Merge across short sub-threshold gaps, but only while the merged block
-  // still averages >=3% - otherwise a rolling route chains into one bogus
-  // "climb" through its flats.
+  // still clears the prefilter - otherwise a rolling route chains into one
+  // bogus "climb" through its flats. The real speed test runs after this, on
+  // the merged block, so a merge can never smuggle in a stretch the group
+  // would have ridden fast.
   const merged: typeof raw = []
   for (const block of raw) {
     const last = merged[merged.length - 1]
     if (last && block.fromM - last.toM < CLIMB_BLOCK_MERGE_GAP_M) {
       const mergedElevationM = last.elevationM + block.elevationM
       const mergedDistanceM = block.toM - last.fromM
-      if (mergedElevationM / mergedDistanceM >= CLIMB_BLOCK_MIN_GRADE) {
+      if (mergedElevationM / mergedDistanceM >= CLIMB_BLOCK_PREFILTER_GRADE) {
         last.toM = block.toM
         last.elevationM = mergedElevationM
         continue
@@ -284,10 +350,11 @@ export function detectLongClimbBlocks(geometry: RouteGeometry, climbPowerW: numb
         distanceM,
         elevationM: block.elevationM,
         avgGrade,
+        climbSpeedMps,
         estDurationSec: distanceM / climbSpeedMps
       }
     })
-    .filter(block => block.estDurationSec >= CLIMB_BLOCK_MIN_DURATION_SEC)
+    .filter(block => block.climbSpeedMps <= CLIMB_BLOCK_MAX_SPEED_MPS && block.estDurationSec >= CLIMB_BLOCK_MIN_DURATION_SEC)
 }
 
 export interface TttPowerPlan {

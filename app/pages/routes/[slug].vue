@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { PublishableRace } from "../../../shared/utils/events";
+import { detectLongClimbBlocks } from "#shared/utils/physics/draft";
+import { geometryForRouteLaps } from "#shared/utils/physics/routeGeometry";
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
@@ -109,6 +111,15 @@ watch(recommendData, (data) => {
   resultsLaps.value = laps.value;
 }, { immediate: true });
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined);
+
+// Whether the team climb pace control is worth showing at all - see the
+// `hasLongClimb` prop on `RiderProfileControls`. Deliberately keyed on the
+// rider's NORMAL power, never on `tttClimbWkg`: the climb pace must not
+// decide its own slider's visibility, or the control vanishes under the
+// user's cursor as they drag it.
+const hasLongClimb = computed(() => routeData.value
+  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), wkg.value * weightKg.value, weightKg.value).length > 0
+  : true);
 
 // `recommendData` keeps its previous value while a refetch (filter/rider
 // profile/laps change) is in flight, so `status === 'pending'` alone can't
@@ -299,7 +310,10 @@ useHead(() => {
       <h2 class="text-xl font-semibold text-highlighted mb-4">Best bike &amp; wheel combo for this route</h2>
       <BikeFilterControls v-model:search="bikeSearch" class="mb-6" />
 
-      <RiderProfileControls class="mb-6" />
+      <RiderProfileControls
+        :has-long-climb="hasLongClimb"
+        class="mb-6"
+      />
 
       <div v-if="isFirstLoad" class="space-y-4">
         <ComboResultCardSkeleton class="mb-6" />
