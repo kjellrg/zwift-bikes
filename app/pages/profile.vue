@@ -6,7 +6,7 @@ const { weightKg, heightCm, ftpWatts, wkg, defaultUnownedLevel, draftMode, tttRi
 // Bike category is a display filter rather than a rider attribute, so it
 // lives in `usePreferences` alongside the other filters - but it's set here,
 // because it's a default the rider picks once, not a per-route toggle.
-const { bikeCategory, load: loadPreferences, setBikeCategory } = usePreferences()
+const { bikeCategory, showUpcomingRaces, load: loadPreferences, setBikeCategory, setShowUpcomingRaces } = usePreferences()
 onMounted(() => { load(); loadPreferences() })
 
 // Everything on this page renders from localStorage, so a crawler only ever
@@ -75,6 +75,14 @@ const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(wkg.
         <label class="block text-xs font-medium text-muted mb-1">Default bike category</label>
         <USelectMenu :model-value="bikeCategory" value-key="value" :items="bikeCategoryOptions" :search-input="false" @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)" />
         <p class="text-sm text-muted mt-1">Which category route and segment pages rank by. Standard is the default: TT bikes are usually fastest outright, but they're restricted in a lot of group rides and races. Whichever you pick, pages still tell you when a bike outside it would be faster.</p>
+      </div>
+
+      <div class="max-w-md">
+        <div class="flex items-center gap-2">
+          <USwitch :model-value="showUpcomingRaces" @update:model-value="(value: boolean) => setShowUpcomingRaces(value)" />
+          <span class="text-sm">Show upcoming races</span>
+        </div>
+        <p class="text-sm text-muted mt-1">Surfaces the next race on the homepage and a "featured in upcoming races" note on route pages. The Events calendar itself stays in the menu either way.</p>
       </div>
 
       <div class="max-w-xs">

@@ -109,6 +109,14 @@ useHead({
       <template #right>
         <div class="hidden items-center gap-1.5 lg:flex">
           <UButton
+            to="/events"
+            icon="i-lucide-calendar-days"
+            label="Events"
+            color="neutral"
+            variant="ghost"
+          />
+
+          <UButton
             to="/profile"
             icon="i-lucide-user"
             label="My Profile"
@@ -147,6 +155,15 @@ useHead({
 
       <template #body>
         <div class="flex flex-col gap-1.5">
+          <UButton
+            to="/events"
+            icon="i-lucide-calendar-days"
+            label="Events"
+            color="neutral"
+            variant="ghost"
+            block
+          />
+
           <UButton
             to="/profile"
             icon="i-lucide-user"

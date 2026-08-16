@@ -119,6 +119,8 @@ watch([query, kindFilter], () => {
       />
     </div>
 
+    <NextRaceCard class="max-w-2xl mx-auto" />
+
     <div
       class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4"
     >

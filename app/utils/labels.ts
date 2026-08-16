@@ -1,4 +1,5 @@
 import type { BikeCategory, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import type { Powerup, RaceFormat } from '../../shared/utils/events'
 
 export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
   standard: 'Standard (Road)',
@@ -176,4 +177,81 @@ export function formatTttTimeSaving(ttt: { riders: number, frontPullPowerW: numb
   return savedSec >= 0
     ? `A ${ttt.riders}-rider paceline saves ~${formatted} vs riding this alone at the same effort (~${ttt.frontPullPowerW} W on your pulls).`
     : `A ${ttt.riders}-rider paceline is ~${formatted} slower here than riding alone at the same effort - the draft can't offset your team's climb pace on this route.`
+}
+
+export const RACE_FORMAT_LABELS: Record<RaceFormat, string> = {
+  ttt: 'Team time trial',
+  points: 'Points race',
+  scratch: 'Scratch race'
+}
+
+export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warning'> = {
+  ttt: 'warning',
+  points: 'info',
+  scratch: 'primary'
+}
+
+/**
+ * Race day, e.g. `Tuesday 22 September 2026`.
+ *
+ * Locale and time zone are pinned rather than left to the runtime: these
+ * pages are prerendered, so a build machine formatting in one locale and a
+ * browser formatting in another produces a hydration mismatch. UTC also
+ * keeps the ISO date in the calendar data from sliding a day either way.
+ */
+export function formatRaceDate(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  })
+}
+
+/** Compact race day for dense listings, e.g. `Tue 22 Sep`. */
+export function formatRaceDateShort(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC'
+  })
+}
+
+/**
+ * A race window for week-long stages (ZRacing), e.g. `10-16 Aug` or
+ * `31 Aug - 6 Sep` across a month boundary. Single-day races just get their
+ * short date. Same pinned-locale/UTC rules as `formatRaceDate`.
+ */
+export function formatRaceDateRange(isoDate: string, isoEndDate?: string): string {
+  if (!isoEndDate || isoEndDate === isoDate) return formatRaceDateShort(isoDate)
+  const from = new Date(`${isoDate}T12:00:00Z`)
+  const to = new Date(`${isoEndDate}T12:00:00Z`)
+  const sameMonth = from.getUTCMonth() === to.getUTCMonth() && from.getUTCFullYear() === to.getUTCFullYear()
+  const day = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' })
+  const dayMonth = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+  return sameMonth ? `${day(from)}-${dayMonth(to)}` : `${dayMonth(from)} - ${dayMonth(to)}`
+}
+
+/** Zwift's race powerups, as spelled in event listings. */
+export const POWERUP_LABELS: Record<Powerup, string> = {
+  feather: 'Feather',
+  aero: 'Aero',
+  draft: 'Draft',
+  ghost: 'Ghost',
+  anvil: 'Anvil',
+  steamroller: 'Steamroller',
+  burrito: 'Burrito'
+}
+
+/** Icons referenced only via this lookup - they're added to `icon.clientBundle` in `nuxt.config.ts` by hand, since the scanner can't see them here. */
+export const POWERUP_ICONS: Record<Powerup, string> = {
+  feather: 'i-lucide-feather',
+  aero: 'i-lucide-wind',
+  draft: 'i-lucide-truck',
+  ghost: 'i-lucide-ghost',
+  anvil: 'i-lucide-anvil',
+  steamroller: 'i-lucide-tractor',
+  burrito: 'i-lucide-sandwich'
 }

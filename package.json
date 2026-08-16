@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && node scripts/trim-swa-config.mjs",
+    "build": "node scripts/events/validate-events.mjs && nuxt build && node scripts/trim-swa-config.mjs",
+    "validate:events": "node scripts/events/validate-events.mjs",
+    "events:add": "node scripts/events/add-race.mjs",
+    "events:find-route": "node scripts/events/find-route.mjs",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -21,6 +24,7 @@
     "@nuxtjs/sitemap": "^8.3.4",
     "nuxt": "^4.5.2",
     "tailwindcss": "^4.3.3",
+    "zod": "^4.4.3",
     "zwift-data": "^1.50.0"
   },
   "devDependencies": {

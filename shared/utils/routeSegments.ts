@@ -92,9 +92,52 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
         lengthKm: placement.lengthKm,
         elevationM: placement.elevationM,
         avgGradePercent: placement.avgGradePercent,
+        placement: 'positional',
         hostRoutes: [{ slug: route.slug, name: route.name }]
       })
     }
+  }
+
+  // Second pass: segments no route places positionally. 51 of 335 routes
+  // don't publish `segmentsOnRoute` at all, so 39 real sprint/climb segments
+  // (Makuri 40's five scoring sprints among them) would otherwise not exist
+  // here - but 38 of them do appear in some route's non-positional `segments`
+  // membership array, which is enough to know *that* they're on the route,
+  // just not where. Their length/grade come from the segment's own record;
+  // the same sprint-vs-climb asymmetry as above applies (sprints without
+  // gradient data stay flat, climbs without any elevation signal are skipped,
+  // matching `routeClimbs.ts`). The one segment with no host at all (`prime`)
+  // is skipped by the empty-`hostRoutes` guard.
+  for (const segment of segments) {
+    if (segment.type !== 'sprint' && segment.type !== 'climb') continue
+    if (bySlug.has(segment.slug)) continue
+
+    const hostRoutes = getRoutesWithMeta()
+      .filter(route => route.segments?.includes(segment.slug))
+      .map(route => ({ slug: route.slug, name: route.name }))
+    if (!hostRoutes.length) continue
+
+    const lengthKm = segment.distance
+    if (!lengthKm || lengthKm <= 0) continue
+    const elevationM = Math.max(0, segment.avgIncline !== undefined
+      ? (segment.avgIncline / 100) * lengthKm * 1000
+      : (segment.elevation ?? 0))
+    if (segment.type === 'climb' && elevationM <= 0) continue
+    const avgGradePercent = segment.avgIncline ?? (elevationM > 0 ? (elevationM / (lengthKm * 1000)) * 100 : 0)
+
+    const world = getRoutesWithMeta().find(route => route.slug === hostRoutes[0]!.slug)!.world
+    bySlug.set(segment.slug, {
+      slug: segment.slug,
+      name: segment.name,
+      type: segment.type,
+      world,
+      worldName: getWorldName(world),
+      lengthKm,
+      elevationM,
+      avgGradePercent,
+      placement: 'membership',
+      hostRoutes
+    })
   }
 
   cachedSummaries = [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name))
@@ -144,7 +187,7 @@ export function routeWithMetaForSegment(summary: SegmentSummary, preferredRouteS
   }))
   const composition = slicedM ? normalizeSurfaceComposition(surfaceCompositionFromSegments(slicedM)) : hostRoute?.surface.composition
 
-  const surface = composition
+  let surface = composition
     ? {
         ...coarsenSurfaceComposition(composition),
         composition,
@@ -152,6 +195,16 @@ export function routeWithMetaForSegment(summary: SegmentSummary, preferredRouteS
         confidence: (placement && hostRoute?.surface.segments) ? 'measured' as const : (hostRoute?.surface.confidence ?? 'heuristic' as const)
       }
     : (hostRoute?.surface ?? { road: 100, gravel: 0, cobble: 0, confidence: 'heuristic' as const })
+
+  // A membership-only segment (`placement: 'membership'`) has no positional
+  // data on any route, so the composition above is the host route's
+  // whole-route mix standing in for one short stretch of it. However the
+  // route itself was measured, that stand-in is a guess for the segment -
+  // and a guess must never wear the measured/curated badge (see the
+  // recommendation-accuracy rules), so it's capped at 'unverified'.
+  if (summary.placement === 'membership' && (surface.confidence === 'measured' || surface.confidence === 'curated')) {
+    surface = { ...surface, segments: undefined, confidence: 'unverified' as const }
+  }
 
   return {
     slug: summary.slug,
