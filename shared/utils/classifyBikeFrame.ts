@@ -169,9 +169,13 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
 // ignore whatever wheelset they'd otherwise be paired with rather than
 // blending it in on top (see both files' `hasFixedWheels` branches), and the
 // UI/API must not present a swappable wheel choice for them (see `rankCombos`).
+// The Cannondale R4000 Roller Blade is the same story again: a Halo bike the
+// sheet tests with its own integrated wheels (its Wheels column names the
+// bike itself), which `zwift-data` also lists as a standalone front/rear
+// wheel - excluded from the swappable pool in `wheelsets.ts`.
 // Exported for `scripts/validate-speed-data.mjs`, which checks every name
 // against the catalog at build time.
-export const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74'])
+export const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade'])
 
 // `Zwift Golden Concept Z1` is the plain `Zwift Concept Z1` with a gold light
 // scheme - the same frame, sharing one `FRAME_SPEED_DATA` sample - so a ranked
@@ -211,9 +215,12 @@ export function isRedundantCosmeticVariant(frame: BikeFrame, ownedFrameNames: Re
 // them on both `score` and the derived finish time, and stable-sort to the
 // very bottom of every route page (issue #25). `Specialized PROJECT 74` is the
 // same kind of bike and already resolves to `standard` simply because its name
-// doesn't happen to match `FUNBIKE_RE`.
+// doesn't happen to match `FUNBIKE_RE`. The `Cannondale R4000 Roller Blade`
+// is the same defect one bike later (issue #72, the Concept Z1 fix was #25):
+// a bot-tested Halo bike - the sheet's fastest flat frame - whose name
+// matches `FUNBIKE_RE`'s `roller blade` term.
 // Exported for `scripts/validate-speed-data.mjs`.
-export const ROAD_HALO_FRAMES = new Set(['Zwift Concept Z1', 'Zwift Golden Concept Z1'])
+export const ROAD_HALO_FRAMES = new Set(['Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Cannondale R4000 Roller Blade'])
 
 const HANDBIKE_RE = /handcycle/i
 
@@ -233,7 +240,9 @@ const ENDURANCE_RE = /roubaix|synapse|road\s*machine|endurance/i
 // `FRAME_SPEED_DATA` present the preset only supplies their gravel/cobble
 // scores (inert in ranking - `OFFROAD_FRAME_WEIGHT` is 0) and the UI's style
 // label, so this is about labelling them honestly rather than "allrounder".
-const AERO_RE = /aeroad|venge|system\s*six|\bfoil\b|madone|propel|speedmax|speed\s*concept|concept\s*z1|felt\s*ar\b|felt\s*fr\b|\bs5\b|dogma\s*f(?!.*gr)|time\s*machine|\bp5\b|\bshiv\b|plasma|\bslice\b|bolide|aerium|noah\s*fast|\bia\s*2?\.?0?\b/i
+// `roller\s*blade` is the same reasoning for the R4000 (flat 120.8 vs climb
+// 7.7 at Stage 0 - a flat-dominant Halo profile).
+const AERO_RE = /aeroad|venge|system\s*six|\bfoil\b|madone|propel|speedmax|speed\s*concept|concept\s*z1|roller\s*blade|felt\s*ar\b|felt\s*fr\b|\bs5\b|dogma\s*f(?!.*gr)|time\s*machine|\bp5\b|\bshiv\b|plasma|\bslice\b|bolide|aerium|noah\s*fast|\bia\s*2?\.?0?\b/i
 
 const CLIMB_RE = /aethos|emonda|scultura|super\s*six\s*evo|addict\s*rc|team\s*machine|izalco|\ballez\b|tarmac(?!.*sl7|.*sl8|.*sl9|.*sram)|\btcr\b|ultimate(?!.*cfr)|\bopus\b|\btoa\b|\bkoko\b|\brere\b|\btere\b|vamoots|mosaic|amira|dogma\s*(65\.1|f8|f10|f12)\b|litening/i
 

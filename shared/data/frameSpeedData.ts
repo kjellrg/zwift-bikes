@@ -74,6 +74,10 @@ export const FRAME_SPEED_DATA: Record<string, FrameSpeedSample> = {
   'Cannondale CAAD12': { flatGapSec0: 6.8, flatGapSec5: 34, climbGapSec0: -0.4, climbGapSec5: 35.9 },
   'Cannondale CAAD13': { flatGapSec0: 58.4, flatGapSec5: 86.3, climbGapSec0: 29.9, climbGapSec5: 67.3 },
   'Cannondale EVO': { flatGapSec0: 9.3, flatGapSec5: 36.7, climbGapSec0: 43.5, climbGapSec5: 80.4 },
+  // Halo bike measured as one frame+integrated-wheel unit (the sheet's Wheels
+  // column names the bike itself) - see FIXED_WHEEL_FRAMES. The fastest flat
+  // frame in the sheet, ahead of the Concept Z1's 114.6 at Stage 0.
+  'Cannondale R4000 Roller Blade': { flatGapSec0: 120.8, flatGapSec5: 150.8, climbGapSec0: 7.7, climbGapSec5: 43.2 },
   'Cannondale Super Six Evo': { flatGapSec0: 45.4, flatGapSec5: 73.5, climbGapSec0: 42.3, climbGapSec5: 79.4 },
   'Cannondale SuperSix Evo LAB71': { flatGapSec0: 61.4, flatGapSec5: 89.4, climbGapSec0: 53.5, climbGapSec5: 90.8 },
   'Cannondale SuperSix EVO LAB71 Team': { flatGapSec0: 62.6, flatGapSec5: 91, climbGapSec0: 55.4, climbGapSec5: 93.4 },

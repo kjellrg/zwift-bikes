@@ -107,6 +107,9 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   'Cannondale CAAD12': { axis: 'distance', tier: 'entry' },
   'Cannondale CAAD13': { axis: 'distance', tier: 'mid' },
   'Cannondale EVO': { axis: 'distance', tier: 'mid' },
+  // Halo (tier: high per the header note). The sheet's own per-stage gaps
+  // (flat +12.4/13.6/25.8/29.8/30.0) match the distance-high chart.
+  'Cannondale R4000 Roller Blade': { axis: 'distance', tier: 'high' },
   'Cannondale Super Six Evo': { axis: 'distance', tier: 'high' },
   'Cannondale SuperSix Evo LAB71': { axis: 'distance', tier: 'high' },
   'Cannondale SuperSix EVO LAB71 Team': { axis: 'distance', tier: 'high' },
