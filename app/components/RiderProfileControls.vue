@@ -74,6 +74,14 @@ const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 
 // (see `shared/utils/physics/draft.ts`) inherits it for free.
 const showDraftControls = ref(false)
 const draftControlsOpen = computed(() => showDraftControls.value || draftMode.value !== 'solo')
+
+// "(edit profile)" opens the profile modal over this page rather than
+// navigating away from the route the rider is looking at - its edits are
+// written straight through `useRiderProfile`, so the ranking below refreshes
+// underneath the modal. A plain `<a href="/profile">` rather than a ULink:
+// deep links and modifier-click still reach the real page, and vue-router's
+// own click handler would otherwise run before `preventDefault`.
+const { openProfile } = useOverlays()
 </script>
 
 <template>
@@ -189,12 +197,13 @@ const draftControlsOpen = computed(() => showDraftControls.value || draftMode.va
           @change="commitClimbWkg"
         >
       </div>
-      <ULink
-        to="/profile"
+      <a
+        href="/profile"
         class="text-sm text-primary underline self-center"
+        @click="openProfile"
       >
         (edit profile)
-      </ULink>
+      </a>
     </div>
   </div>
 </template>

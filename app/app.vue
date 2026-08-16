@@ -13,6 +13,33 @@ function openAbout(event) {
   isAboutOpen.value = true;
 }
 
+// Same deal for My Profile / My Garage, except their openers are shared with
+// the "(edit profile)" / "(edit garage)" links buried in the route, segment
+// and event pages - so the open state and the handlers live in a composable.
+// Both nav entries render as real `<a href>`s for the same reasons as About.
+const { isGarageOpen, isProfileOpen, openGarage, openProfile } = useOverlays();
+
+// UHeader's mobile panel closes itself when an entry navigates. These
+// entries deliberately don't navigate any more, so close it by hand - but
+// only when a modal actually opened: a modifier-click falls through to the
+// real href, and the panel going away under a new tab is just noise.
+const isMenuOpen = ref(false);
+
+function openProfileFromMenu(event) {
+  openProfile(event);
+  if (event.defaultPrevented) isMenuOpen.value = false;
+}
+
+function openGarageFromMenu(event) {
+  openGarage(event);
+  if (event.defaultPrevented) isMenuOpen.value = false;
+}
+
+function openAboutFromMenu() {
+  isAboutOpen.value = true;
+  isMenuOpen.value = false;
+}
+
 useHead({
   meta: [{ name: "viewport", content: "width=device-width, initial-scale=1" }],
   link: [
@@ -89,7 +116,7 @@ useHead({
   <UApp>
     <NuxtLoadingIndicator color="var(--ui-primary)" />
 
-    <UHeader>
+    <UHeader v-model:open="isMenuOpen">
       <template #left>
         <NuxtLink to="/">
           <AppLogo />
@@ -107,19 +134,23 @@ useHead({
           />
 
           <UButton
-            to="/profile"
+            as="a"
+            href="/profile"
             icon="i-lucide-user"
             label="My Profile"
             color="neutral"
             variant="ghost"
+            @click="openProfile"
           />
 
           <UButton
-            to="/garage"
+            as="a"
+            href="/garage"
             icon="i-lucide-warehouse"
             label="My Garage"
             color="neutral"
             variant="ghost"
+            @click="openGarage"
           />
 
           <UButton
@@ -155,21 +186,25 @@ useHead({
           />
 
           <UButton
-            to="/profile"
+            as="a"
+            href="/profile"
             icon="i-lucide-user"
             label="My Profile"
             color="neutral"
             variant="ghost"
             block
+            @click="openProfileFromMenu"
           />
 
           <UButton
-            to="/garage"
+            as="a"
+            href="/garage"
             icon="i-lucide-warehouse"
             label="My Garage"
             color="neutral"
             variant="ghost"
             block
+            @click="openGarageFromMenu"
           />
 
           <UButton
@@ -178,7 +213,7 @@ useHead({
             color="neutral"
             variant="ghost"
             block
-            @click="isAboutOpen = true"
+            @click="openAboutFromMenu"
           />
 
           <UButton
@@ -196,6 +231,8 @@ useHead({
     </UHeader>
 
     <AboutModal v-model:open="isAboutOpen" />
+    <GarageModal v-model:open="isGarageOpen" />
+    <ProfileModal v-model:open="isProfileOpen" />
 
     <UMain>
       <NuxtPage />

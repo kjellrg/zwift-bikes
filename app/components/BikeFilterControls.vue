@@ -41,6 +41,14 @@ const categoryOptions = computed<{ label: string, value: BikeCategory | 'all' }[
 // preference (the race page's query makes the same substitution), so their
 // stored choice survives for the pages where TT is legal.
 const displayCategory = computed(() => props.hideTtCategory && bikeCategory.value === 'tt' ? 'all' : bikeCategory.value)
+
+// "(edit garage)" opens the garage modal over this page rather than
+// navigating away from the route the rider is looking at - toggling a bike
+// writes straight through `useGarage`, so the ranking below refreshes
+// underneath the modal. A plain `<a href="/garage">` rather than a ULink:
+// deep links and modifier-click still reach the real page, and vue-router's
+// own click handler would otherwise run before `preventDefault`.
+const { openGarage } = useOverlays()
 </script>
 
 <template>
@@ -74,10 +82,11 @@ const displayCategory = computed(() => props.hideTtCategory && bikeCategory.valu
       <USwitch
         :model-value="myBikesOnly"
         @update:model-value="(value: boolean) => setMyBikesOnly(value)"
-      /><span class="text-sm">Only show items in my garage</span><ULink
-        to="/garage"
+      /><span class="text-sm">Only show items in my garage</span><a
+        href="/garage"
         class="text-sm text-primary underline"
-      >(edit garage)</ULink>
+        @click="openGarage"
+      >(edit garage)</a>
     </div>
   </div>
 </template>
