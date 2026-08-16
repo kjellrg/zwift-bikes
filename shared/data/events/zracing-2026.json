@@ -1,0 +1,121 @@
+{
+  "slug": "zracing-2026",
+  "label": "2026",
+  "seriesSlug": "zracing",
+  "seriesName": "ZRacing",
+  "organizer": "Zwift",
+  "organizerUrl": "https://www.zwift.com/racing",
+  "description": "Zwift's own monthly race series - a themed set of week-long stages each month, open to everyone. Every stage's route and the fastest bike and wheel combo for it.",
+  "note": "August is Makuri Madness: four week-long stages around the Makuri Islands. Entry is by racing score - Women-Only, Range 1, Range 2 and Advanced - and every category rides the same course, so there is one bike answer per stage. Later months are added when Zwift announces each theme.",
+  "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. The four stage routes are event-only zwift-data routes without generated surface data, so their rankings run on the heuristic 100%-tarmac fallback and the pages show 'unverified' surface confidence - do not write surface claims into stage notes that the data can't back.",
+  "sources": [
+    { "url": "https://zwiftinsider.com/makuri-madness-2026/", "checkedAt": "2026-08-16" }
+  ],
+  "rounds": [
+    {
+      "number": 8,
+      "name": "August: Makuri Madness",
+      "startDate": "2026-08-10",
+      "endDate": "2026-09-06",
+      "races": [
+        {
+          "slug": "stage-1",
+          "round": 8,
+          "week": 1,
+          "date": "2026-08-10",
+          "endDate": "2026-08-16",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "2919739330",
+              "routeName": "Mech Isle Mayhem",
+              "laps": 1,
+              "officialDistanceKm": 20.4,
+              "officialElevationM": 121,
+              "curatorNote": "zwift-data's slug for Mech Isle Mayhem is the bare numeric id. ZwiftInsider's published distance (20.4 km) runs about 2 km over route + lead-in (18.4 km), consistent with an event-pen lead-in; the same overshoot shows on stages 2 and 4."
+            }
+          ],
+          "note": "The month opens with a single lap of Mech Isle Mayhem - about 20 km with only 121 m of climbing, so expect a fast, draft-heavy race that stays together. Feather and Ghost are the powerups on offer.",
+          "powerups": { "allowed": ["feather", "ghost"] },
+          "curatorNote": "ZwiftInsider notes Zwift disabled racing-score changes for this stage due to finish line inaccuracies - a results detail, not an equipment one, so it stays out of the rider-facing note.",
+          "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
+          "updatedAt": "2026-08-16"
+        },
+        {
+          "slug": "stage-2",
+          "round": 8,
+          "week": 2,
+          "date": "2026-08-17",
+          "endDate": "2026-08-23",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "4092230492",
+              "routeName": "Urumaze",
+              "laps": 1,
+              "officialDistanceKm": 26.8,
+              "officialElevationM": 202,
+              "curatorNote": "Same route ZRL 2026/27 R1W3 gives C/D - zwift-data's numeric id is the real slug."
+            }
+          ],
+          "note": "Urumaze is a clean, rolling lap where ordinary road aero wins - the 202 m of climbing never bites hard enough to hand the race to a lightweight build. Feather and Aero powerups.",
+          "powerups": { "allowed": ["feather", "aero"] },
+          "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
+          "updatedAt": "2026-08-16"
+        },
+        {
+          "slug": "stage-3",
+          "round": 8,
+          "week": 3,
+          "date": "2026-08-24",
+          "endDate": "2026-08-30",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "811898717",
+              "routeName": "WhatYumeziWereLost",
+              "laps": 1,
+              "officialDistanceKm": 17.6,
+              "officialElevationM": 288,
+              "curatorNote": "ZwiftInsider styles the name \"WhatYumeziWe'reLost?\"; zwift-data (and the game) spell it WhatYumeziWereLost. Published figures match route + lead-in within 1%."
+            }
+          ],
+          "note": "The hilliest stage of the month: 288 m of climbing packed into under 18 km, over twice the gradient density of the other three stages. This is the week where climbing performance genuinely matters, and the Feather powerup doubles down on it. Draft is the other powerup.",
+          "powerups": { "allowed": ["feather", "draft"] },
+          "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
+          "updatedAt": "2026-08-16"
+        },
+        {
+          "slug": "stage-4",
+          "round": 8,
+          "week": 4,
+          "date": "2026-08-31",
+          "endDate": "2026-09-06",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "362278484",
+              "routeName": "Twilight Crit",
+              "laps": 5,
+              "officialDistanceKm": 21.2,
+              "officialElevationM": 116,
+              "curatorNote": "zwift-data's numeric id is the real slug; the route is a 3.9 km lap circuit, and 5 laps + lead-in comes to 19.6 km against ZwiftInsider's published 21.2 km - the same ~2 km event-pen overshoot as stages 1 and 2."
+            }
+          ],
+          "note": "The month closes with a crit: five laps of the 3.9 km Twilight Crit circuit, near-flat and relentlessly fast. Pure aero race - and with Draft and Aero as the powerups, the equipment and the powerups are pulling in the same direction.",
+          "powerups": { "allowed": ["draft", "aero"] },
+          "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
+          "updatedAt": "2026-08-16"
+        }
+      ]
+    }
+  ]
+}

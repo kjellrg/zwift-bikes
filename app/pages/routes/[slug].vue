@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import type { BikeCategory } from "../../../shared/types/catalog";
-import { TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from "#shared/utils/physics/draft";
+import type { PublishableRace } from "../../../shared/utils/events";
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
 const { owned, ownedWheels, load: loadGarage } = useGarage();
-const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile();
-// `bikeCategory` is bound straight to the control below rather than mirrored
-// into a page-local ref: it is one shared value with the profile page, so
-// changing the category here persists it, and there is no second ref to keep
-// in sync (which is where a spurious refetch loop would come from).
-const { verifiedOnly, myBikesOnly, bikeCategory, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory } = usePreferences();
+// Read-only here: the controls themselves (sliders, draft disclosure,
+// category/search/switches) live in `RiderProfileControls` /
+// `BikeFilterControls`, which bind and persist this same `useState`-backed
+// state - so the query and watchers below keep firing exactly as before.
+const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile();
+const { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, setBikeCategory } = usePreferences();
 
 const bikeSearch = ref("");
 const bikeSearchDebounced = ref("");
@@ -82,52 +81,34 @@ useSeoMeta({
 
 onMounted(() => {
   loadGarage();
-  loadRiderProfile();
-  loadPreferences();
-  pendingWeightKg.value = weightKg.value;
-  pendingHeightCm.value = heightCm.value;
-  pendingWkg.value = wkg.value;
-  pendingRiders.value = tttRiders.value;
-  pendingClimbWkg.value = tttClimbWkg.value ?? wkg.value;
+  // "Featured in" cross-links - client-only: this page is prerendered, so
+  // "upcoming" resolved at render time would bake the build date into the
+  // shipped HTML. The row simply never appears when nothing is coming up.
+  upcomingEvents.value = getUpcomingEventsForRoute(slug.value, new Date().toISOString().slice(0, 10));
 });
+const upcomingEvents = ref<PublishableRace[]>([]);
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined);
 const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : []);
 const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : []);
 
-const pendingWeightKg = ref(weightKg.value);
-const pendingHeightCm = ref(heightCm.value);
-const pendingWkg = ref(wkg.value);
-// Committing weight holds FTP constant and re-derives W/kg (see `setWeightKg`),
-// so the power slider follows through its own `watch` below.
-const commitWeight = () => setWeightKg(pendingWeightKg.value);
-const commitHeight = () => setHeightCm(pendingHeightCm.value);
-const commitWkg = () => setWkg(pendingWkg.value);
-watch(weightKg, (value) => { pendingWeightKg.value = value; });
-watch(heightCm, (value) => { pendingHeightCm.value = value; });
-watch(wkg, (value) => { pendingWkg.value = value; });
-
-// Seeded from the rider's normal power, then left alone: there is deliberately
-// no `watch(wkg, ...)` here, so moving the Power slider never drags the team's
-// climb pace with it. Until it is committed the profile keeps it `undefined`
-// and the query omits it entirely, which is what makes "not set" mean "ride
-// the climbs at your normal power" rather than "ride them at this number".
-const pendingClimbWkg = ref(tttClimbWkg.value ?? wkg.value);
-const commitClimbWkg = () => setTttClimbWkg(pendingClimbWkg.value);
-watch(tttClimbWkg, (value) => { if (value !== undefined) pendingClimbWkg.value = value; });
-
-const pendingRiders = ref(tttRiders.value);
-const commitRiders = () => setTttRiders(pendingRiders.value);
-watch(tttRiders, (value) => { pendingRiders.value = value; });
-
 const loadedCombos = ref<any[]>([]);
 const hasMore = ref(true);
 const loadingMore = ref(false);
+// The lap count the currently displayed combos were computed for. `laps`
+// itself moves the header stats immediately, which is right - but every speed
+// readout divides a distance by a `finishTimeSec` from the last response, and
+// pairing the NEW distance with the OLD time shows a wrong km/h until the
+// refetch lands. The FAQ text and the result cards read this lagged value
+// instead, which catches up exactly when the recomputed times do.
+const resultsLaps = ref(laps.value);
 watch(recommendData, (data) => {
   if (!data) return;
   loadedCombos.value = data.combos ?? [];
   hasMore.value = data.pagination?.hasMore ?? false;
+  resultsLaps.value = laps.value;
 }, { immediate: true });
+const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined);
 
 // `recommendData` keeps its previous value while a refetch (filter/rider
 // profile/laps change) is in flight, so `status === 'pending'` alone can't
@@ -162,11 +143,6 @@ watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, bikeCategory, b
 watch(owned, () => { refreshFirstPage(); }, { deep: true });
 watch(ownedWheels, () => { refreshFirstPage(); }, { deep: true });
 
-const categoryOptions: { label: string; value: BikeCategory | "all" }[] = [
-  { label: "All categories", value: "all" }, { label: BIKE_CATEGORY_LABELS.standard, value: "standard" },
-  { label: BIKE_CATEGORY_LABELS.tt, value: "tt" }, { label: BIKE_CATEGORY_LABELS.gravel, value: "gravel" },
-  { label: BIKE_CATEGORY_LABELS.funbike, value: "funbike" }, { label: BIKE_CATEGORY_LABELS.handbike, value: "handbike" },
-];
 const combos = computed(() => loadedCombos.value);
 const topCombo = computed(() => combos.value[0]);
 const restCombos = computed(() => combos.value.slice(1));
@@ -178,28 +154,17 @@ const physicsInfo = computed(() => recommendData.value?.physics);
 const fastestOverall = computed(() => recommendData.value?.fastestOverall);
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt));
-const draftModeOptions = [{ label: "Solo (no draft)", value: "solo" }, { label: "TTT (paceline)", value: "ttt" }] as const;
-// The draft controls sit behind a disclosure. Solo is the default and covers
-// almost every visit (a road race is not ridden as a paceline), so the
-// paceline inputs stay folded away until someone asks for them - but ANY
-// non-solo mode forces the section open, because a draft mode silently
-// shifting every finish time on the page with no visible control is worse
-// than one extra dropdown. That rule is deliberately written against
-// `!== 'solo'` rather than `=== 'ttt'` so a future race/pack-draft mode
-// (see `shared/utils/physics/draft.ts`) inherits it for free.
-const showDraftControls = ref(false);
-const draftControlsOpen = computed(() => showDraftControls.value || draftMode.value !== "solo");
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined);
 const faqAnswer = computed(() => {
   if (!routeData.value || !topCombo.value || typeof topCombo.value.finishTimeSec !== "number") return undefined;
   const equipment = topCombo.value.wheelset ? `${topCombo.value.frame.name} with ${topCombo.value.wheelset.name}` : topCombo.value.frame.name;
-  const distanceKm = routeTotals.value?.distanceKm ?? routeData.value.distance;
+  const distanceKm = resultsTotals.value?.distanceKm ?? routeData.value.distance;
   return `Based on our physics model, the ${equipment} is currently the fastest verified combo for ${routeData.value.name} in ${routeData.value.worldName}, finishing in ${formatDuration(topCombo.value.finishTimeSec)} (~${formatSpeedKmh(distanceKm, topCombo.value.finishTimeSec)}).`;
 });
 
 const siteConfig = useSiteConfig();
-const requestUrl = useRequestURL();
+const canonicalUrl = useCanonicalUrl();
 useHead(() => {
   if (!routeData.value) return {};
   const scripts = [{
@@ -209,7 +174,7 @@ useHead(() => {
       "@type": "BreadcrumbList",
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Home", "item": siteConfig.url },
-        { "@type": "ListItem", "position": 2, "name": routeData.value.name, "item": requestUrl.href }
+        { "@type": "ListItem", "position": 2, "name": routeData.value.name, "item": canonicalUrl.value }
       ]
     }).replace(/</g, "\\u003c")
   }];
@@ -254,6 +219,27 @@ useHead(() => {
         <p v-if="routeTotals && routeTotals.leadInDistanceKm > 0" class="text-sm text-muted"><span class="font-medium text-highlighted">Lead-in:</span> {{ formatDistance(routeTotals.leadInDistanceKm) }}<template v-if="routeTotals.leadInElevationM > 0"> / {{ formatElevation(routeTotals.leadInElevationM) }}</template> (ridden once, not repeated per lap)</p>
       </div>
     </div>
+
+    <UAlert
+      v-if="showUpcomingRaces && upcomingEvents.length"
+      color="info"
+      variant="subtle"
+      icon="i-lucide-calendar-days"
+      title="This route features in upcoming races"
+    >
+      <template #description>
+        <span
+          v-for="(entry, index) in upcomingEvents"
+          :key="entry.path"
+        >
+          <ULink
+            :to="entry.path"
+            class="text-primary underline"
+          >{{ entry.season.seriesName }} {{ entry.season.label }} {{ raceDisplayName(entry.race) }}</ULink>
+          ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
+        </span>
+      </template>
+    </UAlert>
 
     <div v-if="faqAnswer">
       <h2 class="text-lg font-semibold text-highlighted mb-2">{{ faqQuestion }}</h2>
@@ -311,32 +297,9 @@ useHead(() => {
 
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">Best bike &amp; wheel combo for this route</h2>
-      <div class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4 mb-6">
-        <div class="min-w-48"><label class="block text-xs font-medium text-muted mb-1">Bike category</label><USelectMenu :model-value="bikeCategory" value-key="value" :items="categoryOptions" :search-input="false" class="w-52" @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)" /></div>
-        <div class="min-w-56 flex-1"><label class="block text-xs font-medium text-muted mb-1">Search bikes or wheels</label><UInput v-model="bikeSearch" icon="i-lucide-search" placeholder="e.g. Tarmac, Aethos, Zipp, DICUT..." /></div>
-        <div class="flex items-center gap-2"><USwitch :model-value="verifiedOnly" @update:model-value="(value: boolean) => setVerifiedOnly(value)" /><span class="text-sm">Only show verified frames/wheels</span></div>
-        <div class="flex items-center gap-2"><USwitch :model-value="myBikesOnly" @update:model-value="(value: boolean) => setMyBikesOnly(value)" /><span class="text-sm">Only show items in my garage</span><ULink to="/garage" class="text-sm text-primary underline">(edit garage)</ULink></div>
-      </div>
+      <BikeFilterControls v-model:search="bikeSearch" class="mb-6" />
 
-      <!-- Two fixed rows rather than one wrapping one: the rider's own numbers stay
-           on the first, everything about the group on the second. Switching draft
-           mode then only fills in the second row's spare width instead of pushing a
-           control onto a new line, so the page below barely moves. Collapsed, that
-           second row is a single opt-in button - see `draftControlsOpen`. -->
-      <div class="rounded-lg border border-default p-4 mb-6 space-y-4">
-        <div class="flex flex-wrap items-end gap-6">
-          <div class="w-full sm:w-44"><label class="block text-xs font-medium text-muted mb-1">Rider weight: {{ pendingWeightKg }} kg</label><input v-model.number="pendingWeightKg" type="range" min="40" max="130" step="1" class="w-full cursor-pointer" aria-label="Rider weight in kilograms" @change="commitWeight" /></div>
-          <div class="w-full sm:w-56"><label class="block text-xs font-medium text-muted mb-1">Height: {{ pendingHeightCm }} cm</label><input v-model.number="pendingHeightCm" type="range" min="100" max="220" step="1" class="w-full cursor-pointer" aria-label="Rider height" @change="commitHeight" /></div>
-          <div class="min-w-64 flex-1"><label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === "ttt" ? " average" : "" }}</label><input v-model.number="pendingWkg" type="range" min="1" max="6.9" step="0.1" class="w-full cursor-pointer" aria-label="Rider power in watts per kilogram" @change="commitWkg" /></div>
-        </div>
-        <div class="flex flex-wrap items-end gap-6">
-          <UButton v-if="!draftControlsOpen" color="neutral" variant="subtle" size="xs" icon="i-lucide-users" @click="showDraftControls = true">Riding this in a group? Add draft</UButton>
-          <div v-if="draftControlsOpen" class="w-44"><label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><USelectMenu :model-value="draftMode" value-key="value" :items="[...draftModeOptions]" :search-input="false" @update:model-value="(value: 'solo' | 'ttt') => setDraftMode(value)" /></div>
-          <div v-if="draftMode === 'ttt'" class="w-full sm:w-40"><label class="block text-xs font-medium text-muted mb-1">Riders: {{ pendingRiders }} <UTooltip text="Team size in the rotation. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><input v-model.number="pendingRiders" type="range" :min="TTT_MIN_RIDERS" :max="TTT_MAX_RIDERS" step="1" class="w-full cursor-pointer" aria-label="Number of riders in the paceline" @change="commitRiders" /></div>
-          <div v-if="draftMode === 'ttt'" class="w-full sm:w-64"><label class="block text-xs font-medium text-muted mb-1">Team climb power: {{ pendingClimbWkg.toFixed(1) }} W/kg ({{ Math.round(pendingClimbWkg * weightKg) }} W) <UTooltip text="What the team averages on climbs steeper than 3% lasting over ~3.5 minutes, where a paceline breaks up and everyone rides their own pace. Starts at your normal power and stays where you put it - changing the Power slider above never moves it."><UIcon name="i-lucide-info" class="size-3 text-muted align-text-bottom" /></UTooltip></label><input v-model.number="pendingClimbWkg" type="range" :min="TTT_MIN_CLIMB_WKG" :max="TTT_MAX_CLIMB_WKG" step="0.1" class="w-full cursor-pointer" aria-label="Team average power on long climbs in watts per kilogram" @change="commitClimbWkg" /></div>
-          <ULink to="/profile" class="text-sm text-primary underline self-center">(edit profile)</ULink>
-        </div>
-      </div>
+      <RiderProfileControls class="mb-6" />
 
       <div v-if="isFirstLoad" class="space-y-4">
         <ComboResultCardSkeleton class="mb-6" />
@@ -346,8 +309,8 @@ useHead(() => {
         <p v-if="isRefreshingCombos" class="flex items-center gap-1.5 text-sm text-muted mb-3"><UIcon name="i-lucide-loader-circle" class="size-4 animate-spin" />Updating results…</p>
         <FastestOverallNote v-if="fastestOverall" :fastest-overall="fastestOverall" @show-all="setBikeCategory('all')" />
         <div class="transition-opacity" :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }">
-          <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" class="mb-6" />
-          <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="laps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" /></div>
+          <ComboResultCard v-if="topCombo" :combo="topCombo" :rank="1" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="resultsLaps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" class="mb-6" />
+          <div v-if="restCombos.length" class="grid grid-cols-1 md:grid-cols-2 gap-4"><ComboResultCard v-for="(combo, index) in restCombos" :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`" :combo="combo" :rank="index + 2" :route="routeData" :weight-kg="weightKg" :height-cm="heightCm" :wkg="wkg" :laps="resultsLaps" :fastest-time-sec="fastestTimeSec" :owned="owned" :draft-mode="draftMode" :ttt-riders="tttRiders" :ttt-climb-wkg="tttClimbWkg" /></div>
           <p v-else-if="!topCombo" class="text-muted text-center py-10">No bikes match your filters.</p>
         </div>
         <div v-if="hasMore" class="text-center mt-6"><UButton color="neutral" variant="subtle" :loading="loadingMore" @click="showMore">Show more matches</UButton></div>

@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { getRoutesWithMeta } from './shared/utils/catalog'
+import { getPublishableRaces, getSeasons } from './shared/utils/events'
 
 export default defineNuxtConfig({
   modules: [
@@ -71,9 +72,18 @@ export default defineNuxtConfig({
       // prerendered segment page would answer `?route=` requests with the
       // generic ranking and - because the page fetches with `watch: false` -
       // never correct itself on the client.
+      //
+      // Event pages prerender for the same reasons and with the same caveat
+      // handled: they take no query parameters at all, so the `?route=`
+      // problem that keeps /segments/** dynamic can't arise. Only races whose
+      // route, format and lap counts the organiser has actually published get
+      // a page - `getPublishableRaces()` is the same source the sitemap uses.
       routes: [
         '/robots.txt',
         '/about',
+        '/events',
+        ...getSeasons().map(season => `/events/${season.slug}`),
+        ...getPublishableRaces().map(race => race.path),
         ...getRoutesWithMeta().map(route => `/routes/${route.slug}`)
       ]
     }
@@ -116,7 +126,16 @@ export default defineNuxtConfig({
         'lucide:sprout',
         'lucide:waves',
         'lucide:stone',
-        'lucide:mountain-snow'
+        'lucide:mountain-snow',
+        // `POWERUP_ICONS` in app/utils/labels.ts - object lookup, invisible
+        // to `scan`, rendered by the event race pages' powerup badges.
+        'lucide:feather',
+        'lucide:wind',
+        'lucide:truck',
+        'lucide:ghost',
+        'lucide:anvil',
+        'lucide:tractor',
+        'lucide:sandwich'
       ]
     }
   },

@@ -234,6 +234,15 @@ export interface SegmentSummary {
   lengthKm: number
   elevationM: number
   avgGradePercent: number
+  /**
+   * How this segment was tied to its host routes: `'positional'` when at
+   * least one route publishes a measured `segmentsOnRoute` placement for it,
+   * `'membership'` when it only appears in routes' non-positional `segments`
+   * arrays - then length/grade come from the segment's own `zwift-data`
+   * record, and no route can say *where* along it the segment sits. The
+   * segment page uses this to caption the ranking honestly.
+   */
+  placement: 'positional' | 'membership'
   /** Every route this segment appears on. */
   hostRoutes: { slug: string, name: string }[]
 }

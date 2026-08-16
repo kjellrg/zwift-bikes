@@ -38,13 +38,23 @@ export function usePreferences() {
    * the prerendered HTML.
    */
   const bikeCategory = useState<BikeCategory | 'all'>('pref-bike-category', () => 'standard')
+  /**
+   * Whether the race-calendar teasers appear outside the events section: the
+   * homepage's "Next race" card and the route pages' "Featured in upcoming
+   * races" row. Defaults to on - the events pages themselves are always
+   * reachable from the nav regardless. Same SSR rule as `bikeCategory`
+   * above: the default is what a crawler and a fresh visitor both see, and
+   * the teasers only ever appear post-mount anyway.
+   */
+  const showUpcomingRaces = useState<boolean>('pref-show-upcoming-races', () => true)
 
   function persist() {
     if (!import.meta.client) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       verifiedOnly: verifiedOnly.value,
       myBikesOnly: myBikesOnly.value,
-      bikeCategory: bikeCategory.value
+      bikeCategory: bikeCategory.value,
+      showUpcomingRaces: showUpcomingRaces.value
     }))
   }
 
@@ -57,6 +67,7 @@ export function usePreferences() {
       if (typeof parsed.verifiedOnly === 'boolean') verifiedOnly.value = parsed.verifiedOnly
       if (typeof parsed.myBikesOnly === 'boolean') myBikesOnly.value = parsed.myBikesOnly
       if (typeof parsed.bikeCategory === 'string' && BIKE_CATEGORY_VALUES.has(parsed.bikeCategory)) bikeCategory.value = parsed.bikeCategory as BikeCategory | 'all'
+      if (typeof parsed.showUpcomingRaces === 'boolean') showUpcomingRaces.value = parsed.showUpcomingRaces
     } catch {
       // ignore corrupted storage
     }
@@ -83,5 +94,10 @@ export function usePreferences() {
     persist()
   }
 
-  return { verifiedOnly, myBikesOnly, bikeCategory, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory }
+  function setShowUpcomingRaces(value: boolean) {
+    showUpcomingRaces.value = value
+    persist()
+  }
+
+  return { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, setShowUpcomingRaces }
 }

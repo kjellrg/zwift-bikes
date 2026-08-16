@@ -33,6 +33,15 @@ export default defineEventHandler((event) => {
   // `usePreferences`'s can't drift apart unnoticed. Note it removes the
   // gravel and fun categories entirely, since neither has any measured frame.
   const verifiedOnly = query.verifiedOnly !== 'false'
+  // Event race pages send this when the race format outlaws TT frames (Zwift
+  // disables them for points and scratch races - see `ttBikesAllowed` in
+  // `shared/utils/events.ts`). It's a LEGALITY filter like ownership, not a
+  // display trim, and `category` can't express it: a points race allows road
+  // AND gravel frames, just never TT. So it must run in the stage-1
+  // `allFrames` filter below, before anything selects from the pool - that
+  // same pool also feeds the `fastestOverall` disclosure, which would
+  // otherwise advertise a TT bike that's illegal in the race.
+  const excludeTT = query.excludeTT === 'true'
   // How many wheelsets a single frame may occupy in the results. Undefined
   // keeps `capWheelsetsPerFrame`'s own default; a client that wants one row
   // per frame (the fastest wheelset for this route) passes 1. Only ever
@@ -97,6 +106,7 @@ export default defineEventHandler((event) => {
     allFrames = allFrames.filter(f => f.confidence === 'measured')
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
+  if (excludeTT) allFrames = allFrames.filter(f => f.category !== 'tt')
   const frames = category ? allFrames.filter(f => f.category === category) : allFrames
 
   // `rankCombos` scores every frame x wheelset pair internally regardless of

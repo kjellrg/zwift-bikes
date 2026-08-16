@@ -33,21 +33,11 @@ const description =
 
 const siteConfig = useSiteConfig();
 
-// Canonical URL, built from the path alone so every query-string variant of
-// a page collapses onto the one URL we want indexed. This matters most for
-// /segments/[slug]: RouteClimbs/RouteSprints link each segment as
-// `?route=<slug>` once per route it appears on, so a segment like Alpe du
-// Zwift is reachable at dozens of near-identical URLs that would otherwise
-// compete with each other (and with the clean URL) in search results.
-//
 // Set here in app.vue rather than per-page so no future page can forget it.
 // Any page needing a different canonical can still override it with its own
-// `link: [{ rel: 'canonical' }]` - unhead dedupes by rel.
-const currentRoute = useRoute();
-const canonicalUrl = computed(() => {
-  const path = currentRoute.path.replace(/\/+$/, "");
-  return `${siteConfig.url.replace(/\/+$/, "")}${path || "/"}`;
-});
+// `link: [{ rel: 'canonical' }]` - unhead dedupes by rel. See
+// `useCanonicalUrl` for why this ignores the request URL.
+const canonicalUrl = useCanonicalUrl();
 
 // Default social-share image for pages that don't set their own (home,
 // about, garage, profile). Route/segment pages override it with their
@@ -109,6 +99,14 @@ useHead({
       <template #right>
         <div class="hidden items-center gap-1.5 lg:flex">
           <UButton
+            to="/events"
+            icon="i-lucide-calendar-days"
+            label="Events"
+            color="neutral"
+            variant="ghost"
+          />
+
+          <UButton
             to="/profile"
             icon="i-lucide-user"
             label="My Profile"
@@ -147,6 +145,15 @@ useHead({
 
       <template #body>
         <div class="flex flex-col gap-1.5">
+          <UButton
+            to="/events"
+            icon="i-lucide-calendar-days"
+            label="Events"
+            color="neutral"
+            variant="ghost"
+            block
+          />
+
           <UButton
             to="/profile"
             icon="i-lucide-user"
