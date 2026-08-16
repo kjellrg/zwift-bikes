@@ -119,15 +119,35 @@ function frameStageChart(frameName: string): StageChart | undefined {
   return scheme && stageChartFor(scheme)
 }
 
+// Presets only apply to frames WITHOUT a speed-data row, and being unmeasured
+// must never be an advantage: a preset above what measured frames of the same
+// class can score makes the guess outrank the data because it's a guess.
+// Ceilings derived from the measured level-5 distribution (2026-08-16):
+// - climb style: the old 94 sat above every measured climb-style frame except
+//   the Aethos S-Works (96), so five unmeasured climb frames beat the whole
+//   measured climb roster uphill (issue #85). Measured climb-style frames
+//   span 45-96 with the bulk at 66+; 64 sits below that bulk. It can't go
+//   lower without breaking the style presets' internal ordering - an
+//   estimated climb bike must still out-climb an estimated allrounder (62)
+//   and endurance (55) bike, or the labels lie relative to each other.
+// - aero style (88) stays below the measured flat maximum (96) - fine as-is.
 const STYLE_PRESETS: Record<BikeStyle, ClassificationScores> = {
   aero: { aero: 88, climb: 42, gravel: 8, cobble: 18 },
-  climb: { aero: 42, climb: 94, gravel: 15, cobble: 25 },
+  climb: { aero: 42, climb: 64, gravel: 15, cobble: 25 },
   endurance: { aero: 52, climb: 55, gravel: 40, cobble: 78 },
   allrounder: { aero: 62, climb: 62, gravel: 22, cobble: 38 }
 }
 
 const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, ClassificationScores> = {
-  tt: { aero: 96, climb: 15, gravel: 0, cobble: 5 },
+  // The TT aero preset was 96 - above every measured TT frame except the
+  // clamped range maximum, so the one unmeasured TT frame outranked the
+  // whole measured TT roster (issue #86). Unlike the wheel-disc rule
+  // (below the slowest measured member), TT frames spread wide (measured
+  // level-5 aero scores run 53-96), and the honest claim for an unknown TT
+  // frame is "a typical TT frame", not "slower than the worst one ever
+  // measured" - so it sits at the measured median (72), well below the
+  // measured Speedmax CFR/Cadex Tri at the top.
+  tt: { aero: 72, climb: 15, gravel: 0, cobble: 5 },
   gravel: { aero: 28, climb: 48, gravel: 96, cobble: 82 },
   handbike: { aero: 20, climb: 20, gravel: 15, cobble: 20 },
   funbike: { aero: 20, climb: 20, gravel: 20, cobble: 20 }
@@ -149,7 +169,9 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
 // ignore whatever wheelset they'd otherwise be paired with rather than
 // blending it in on top (see both files' `hasFixedWheels` branches), and the
 // UI/API must not present a swappable wheel choice for them (see `rankCombos`).
-const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74'])
+// Exported for `scripts/validate-speed-data.mjs`, which checks every name
+// against the catalog at build time.
+export const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74'])
 
 // `Zwift Golden Concept Z1` is the plain `Zwift Concept Z1` with a gold light
 // scheme - the same frame, sharing one `FRAME_SPEED_DATA` sample - so a ranked
@@ -190,7 +212,8 @@ export function isRedundantCosmeticVariant(frame: BikeFrame, ownedFrameNames: Re
 // very bottom of every route page (issue #25). `Specialized PROJECT 74` is the
 // same kind of bike and already resolves to `standard` simply because its name
 // doesn't happen to match `FUNBIKE_RE`.
-const ROAD_HALO_FRAMES = new Set(['Zwift Concept Z1', 'Zwift Golden Concept Z1'])
+// Exported for `scripts/validate-speed-data.mjs`.
+export const ROAD_HALO_FRAMES = new Set(['Zwift Concept Z1', 'Zwift Golden Concept Z1'])
 
 const HANDBIKE_RE = /handcycle/i
 

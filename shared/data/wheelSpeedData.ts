@@ -42,7 +42,11 @@ export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
   'HED Vanquish RC6 Pro': { flatGapSec: 14.2, climbGapSec: -3.1 },
   'Lightweight Lightweight Meilenstein': { flatGapSec: 11.8, climbGapSec: 9.7 },
   'Miche Deva RD 62': { flatGapSec: 43.1, climbGapSec: 7.2 },
-  'Princeton  Mach TSV2/Blur Disc ': { flatGapSec: 47.4, climbGapSec: -23.4 },
+  // The catalog name really does have a double space after "Princeton" and
+  // end in a non-breaking space (U+00A0) - written as an escape so the key
+  // visibly matches zwift-data's exact bytes. A plain trailing space here
+  // silently misses the lookup and drops the wheel to the estimated preset.
+  'Princeton  Mach TSV2/Blur Disc\u00A0': { flatGapSec: 47.4, climbGapSec: -23.4 },
   'Princeton Alta 3532': { flatGapSec: 26.8, climbGapSec: 14.1 },
   'Princeton Wake 6560 White': { flatGapSec: 44.3, climbGapSec: 12.3 },
   'Princeton Wake 6560 Lava': { flatGapSec: 44.3, climbGapSec: 12.3 },

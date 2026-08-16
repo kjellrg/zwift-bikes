@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/events/validate-events.mjs && nuxt build && node scripts/trim-swa-config.mjs",
+    "build": "node scripts/events/validate-events.mjs && node scripts/validate-speed-data.mjs && nuxt build && node scripts/trim-swa-config.mjs",
     "validate:events": "node scripts/events/validate-events.mjs",
+    "validate:speed-data": "node scripts/validate-speed-data.mjs",
     "events:add": "node scripts/events/add-race.mjs",
     "events:find-route": "node scripts/events/find-route.mjs",
     "dev": "nuxt dev",

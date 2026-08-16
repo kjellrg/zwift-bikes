@@ -36,13 +36,23 @@ function averagePhysics(a: ClassifiedWheel, b: ClassifiedWheel): EquipmentPhysic
   }
 }
 
+// Integrated wheels that only exist welded to their frame - Zwift never
+// offers them as a separate, swappable wheelset (see `FIXED_WHEEL_FRAMES` in
+// `classifyBikeFrame.ts`: the frame's speed measurement already covers the
+// whole frame+wheel unit). `zwift-data` still lists them in the front/rear
+// wheel catalogs, so without this they'd be offered to ANY frame at an
+// estimated score no measured wheel can beat (issue #87).
+// Exported for `scripts/validate-speed-data.mjs`, which checks every name
+// against the catalog at build time.
+export const INTEGRATED_ONLY_WHEELS = new Set(['Roval PROJECT 74'])
+
 let cachedWheelsets: Wheelset[] | undefined
 
 export function getWheelsets(): Wheelset[] {
   if (cachedWheelsets) return cachedWheelsets
 
-  const classifiedFront = bikeFrontWheels.map(classifyFrontWheel)
-  const classifiedRear = bikeRearWheels.map(classifyRearWheel)
+  const classifiedFront = bikeFrontWheels.filter(w => !INTEGRATED_ONLY_WHEELS.has(w.name)).map(classifyFrontWheel)
+  const classifiedRear = bikeRearWheels.filter(w => !INTEGRATED_ONLY_WHEELS.has(w.name)).map(classifyRearWheel)
 
   const frontByName = new Map(classifiedFront.map(w => [w.name, w]))
   const rearByName = new Map(classifiedRear.map(w => [w.name, w]))
