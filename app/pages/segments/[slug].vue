@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { RouteWithMeta } from '../../../shared/types/catalog'
+import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
+import { geometryForSegment } from '#shared/utils/physics/routeGeometry'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -117,6 +119,16 @@ const physicsInfo = computed(() => recommendData.value?.physics)
 const fastestOverall = computed(() => recommendData.value?.fastestOverall)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
+
+// Whether the team climb pace control is worth showing - see the
+// `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
+// power, never on `tttClimbWkg`, so the climb pace can't decide its own
+// slider's visibility. The empty surface list is deliberate: it only feeds
+// the simulator's Crr, and climb detection reads nothing but the geometry's
+// points - this is the same 2-point line the endpoint builds.
+const hasLongClimb = computed(() => segmentData.value
+  ? detectLongClimbBlocks(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, []), wkg.value * weightKg.value, weightKg.value).length > 0
+  : true)
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
 const faqAnswer = computed(() => {
@@ -301,7 +313,10 @@ const segmentAsRoute = computed(() => segmentData.value
         class="mb-6"
       />
 
-      <RiderProfileControls class="mb-6" />
+      <RiderProfileControls
+        :has-long-climb="hasLongClimb"
+        class="mb-6"
+      />
 
       <div
         v-if="isFirstLoad"

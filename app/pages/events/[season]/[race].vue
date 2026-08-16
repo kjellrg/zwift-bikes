@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
+import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
+
 /**
  * One race. Everything a route page can't know lives here: the date, the
  * lap count for the rider's category group, and the equipment rules - Zwift
@@ -281,6 +284,14 @@ watch(recommendData, (data) => {
   resultsLaps.value = laps.value
 }, { immediate: true })
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
+
+// Whether the team climb pace control is worth showing - see the
+// `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
+// power, never on `tttClimbWkg`, so the climb pace can't decide its own
+// slider's visibility.
+const hasLongClimb = computed(() => routeData.value
+  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), wkg.value * weightKg.value, weightKg.value).length > 0
+  : true)
 
 const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
 const isRefreshingCombos = computed(() => status.value === 'pending' && !!recommendData.value)
@@ -912,7 +923,10 @@ useHead(() => {
           class="mb-6"
         />
 
-        <RiderProfileControls class="mb-6" />
+        <RiderProfileControls
+          :has-long-climb="hasLongClimb"
+          class="mb-6"
+        />
 
         <div
           v-if="isFirstLoad"

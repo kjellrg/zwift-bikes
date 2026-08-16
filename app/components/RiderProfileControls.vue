@@ -4,10 +4,14 @@ import { TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } 
 /**
  * The rider box: weight/height/power sliders plus the draft disclosure and
  * its TTT controls, shared verbatim by the route, segment and event race
- * pages. No props or emits - everything reads `useRiderProfile()` directly,
- * whose state is `useState`-backed, so the host page's own
- * `watch([weightKg, ...])` refetch wiring keeps firing exactly as it did
- * when this markup lived inline.
+ * pages. Everything reads `useRiderProfile()` directly, whose state is
+ * `useState`-backed, so the host page's own `watch([weightKg, ...])` refetch
+ * wiring keeps firing exactly as it did when this markup lived inline.
+ *
+ * The one exception to "no props" is `hasLongClimb`: whether the team climb
+ * pace applies at all is a property of the ROUTE, not the rider, and this
+ * component deliberately knows nothing about the route. The host page owns
+ * the geometry, so it decides - see the prop's own comment below.
  *
  * `loadRiderProfile()` runs here (child `onMounted` fires before the
  * parent's), immediately followed by the pending-slider seeding, preserving
@@ -16,6 +20,22 @@ import { TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } 
  * committed team climb pace still seeds `pendingClimbWkg` from the loaded
  * power, not the default.
  */
+const props = withDefaults(defineProps<{
+  /**
+   * Whether this route has a climb long enough for the team climb pace to do
+   * anything - i.e. whether `detectLongClimbBlocks` finds one. The climb
+   * slider hides when it doesn't: `tttPowerPlan` returns `undefined` with no
+   * qualifying block, so
+   * the setting would change no ranking and no displayed time, and roughly
+   * two thirds of the route catalog is in that state.
+   *
+   * Defaults to `true` so a caller that hasn't got geometry to hand (or a
+   * future page that forgets) degrades to the old always-visible behaviour
+   * rather than silently losing the control.
+   */
+  hasLongClimb?: boolean
+}>(), { hasLongClimb: true })
+
 const { weightKg, heightCm, wkg, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 
 onMounted(() => {
@@ -179,10 +199,10 @@ const { openProfile } = useOverlays()
         >
       </div>
       <div
-        v-if="draftMode === 'ttt'"
+        v-if="draftMode === 'ttt' && props.hasLongClimb"
         class="w-full sm:w-64"
       >
-        <label class="block text-xs font-medium text-muted mb-1">Team climb power: {{ pendingClimbWkg.toFixed(1) }} W/kg ({{ Math.round(pendingClimbWkg * weightKg) }} W) <UTooltip text="What the team averages on climbs steeper than 3% lasting over ~3.5 minutes, where a paceline breaks up and everyone rides their own pace. Starts at your normal power and stays where you put it - changing the Power slider above never moves it."><UIcon
+        <label class="block text-xs font-medium text-muted mb-1">Team climb power: {{ pendingClimbWkg.toFixed(1) }} W/kg ({{ Math.round(pendingClimbWkg * weightKg) }} W) <UTooltip text="What the team averages on this route's long climbs, where a paceline breaks up and everyone rides their own pace. Only shown on routes that have one. Starts at your normal power and stays where you put it - changing the Power slider above never moves it."><UIcon
           name="i-lucide-info"
           class="size-3 text-muted align-text-bottom"
         /></UTooltip></label>
