@@ -98,8 +98,20 @@ const recommendQuery = computed(() => ({
 // category fetches that group's route instead of reusing the previous one.
 // The recommend call watches nothing itself (`watch: []` - `useAsyncData`'s
 // spelling of `useFetch`'s `watch: false`) + the explicit refresh watcher
-// below, matching the route/segment pages - its key still tracks
-// `selectedRouteSlug`, which is what refetches it on a group switch.
+// below, matching the route/segment pages.
+//
+// The recommend key includes the serialized query, not just the slug. This
+// mirrors what `useFetch` does implicitly on the route/segment pages (its
+// auto-key hashes the query values) and it is load-bearing: while Nuxt is
+// still hydrating, ANY `refresh()` - the manual one below included - is
+// answered from the server-rendered payload for the current key instead of
+// hitting the network (see `getDefaultCachedData` in Nuxt's `asyncData`).
+// The rider's stored profile loads from localStorage inside that hydration
+// window, so with a slug-only key the post-load refresh was silently
+// swallowed and page one kept the default-profile times - while "Show more
+// matches" fetched with the real profile, pinning faster times to the
+// bottom of the list. A query change rolling the key over misses the
+// payload cache, which is exactly what forces the refetch.
 const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecommendations }] = await Promise.all([
   useAsyncData(
     () => `race-route-${selectedRouteSlug.value ?? 'none'}`,
@@ -107,7 +119,7 @@ const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecom
     { watch: [selectedRouteSlug] }
   ),
   useAsyncData(
-    () => `race-recommend-${selectedRouteSlug.value ?? 'none'}`,
+    () => `race-recommend-${selectedRouteSlug.value ?? 'none'}-${JSON.stringify(recommendQuery.value)}`,
     () => selectedRouteSlug.value ? $fetch(`/api/recommend/${selectedRouteSlug.value}`, { query: recommendQuery.value }) : Promise.resolve(null),
     { watch: [] }
   )

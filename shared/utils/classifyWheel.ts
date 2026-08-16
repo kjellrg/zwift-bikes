@@ -110,16 +110,34 @@ function crrClassFor(category: WheelCategory, name: string): 'road' | 'gravel' |
 // Only the `aero`/`climb` fields of the returned preset are used - the
 // `gravel`/`cobble` fields are placeholders, always overridden by the real
 // Crr-derived scores in `classify()` below.
+//
+// These presets only apply to wheels WITHOUT a `WHEEL_SPEED_DATA` row, and
+// being unmeasured must never be an advantage: an estimated preset that
+// exceeds what measured wheels of the same class actually score means the
+// guess outranks the data precisely because it's a guess (issue #70 - the
+// old disc preset of 97 sat above every measured wheel in the game, so
+// unmeasured DISC_RE wheels beat the measured DICUT 85/Disc's 93 on every
+// flat route). Ceilings below are derived from the measured distribution
+// (2026-08-16, post-#71 sync):
+// - disc: measured DISC_RE wheels score 27 (Zwift Supersonic - a real
+//   measurement of a novelty disc) up to 93; 62 sits just below the slowest
+//   measured conventional disc shape (Zwift Tri Spoke, 63), so an unknown
+//   disc ranks behind every measured disc except that novelty outlier.
+// - aero (65mm+ depth): measured members score 63-89; 62 sits below all of
+//   them.
+// - climb: unchanged - no unmeasured wheel currently classifies as `climb`,
+//   and 92 stays below the measured wheel climb maximum (Princeton Alta
+//   3532's 93).
 function scoresForCategory(category: WheelCategory, depthMm?: number): ClassificationScores {
   switch (category) {
     case 'gravel':
       return { aero: 25, climb: 55, gravel: 0, cobble: 0 }
     case 'disc':
-      return { aero: 97, climb: 15, gravel: 0, cobble: 0 }
+      return { aero: 62, climb: 15, gravel: 0, cobble: 0 }
     case 'climb':
       return { aero: 45, climb: 92, gravel: 0, cobble: 0 }
     case 'aero':
-      return { aero: 94, climb: 25, gravel: 0, cobble: 0 }
+      return { aero: 62, climb: 25, gravel: 0, cobble: 0 }
     case 'allrounder':
     default:
       if (depthMm === undefined) return ALLROUNDER_SCORES
