@@ -164,7 +164,7 @@ const faqAnswer = computed(() => {
 });
 
 const siteConfig = useSiteConfig();
-const requestUrl = useRequestURL();
+const canonicalUrl = useCanonicalUrl();
 useHead(() => {
   if (!routeData.value) return {};
   const scripts = [{
@@ -174,7 +174,7 @@ useHead(() => {
       "@type": "BreadcrumbList",
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Home", "item": siteConfig.url },
-        { "@type": "ListItem", "position": 2, "name": routeData.value.name, "item": requestUrl.href }
+        { "@type": "ListItem", "position": 2, "name": routeData.value.name, "item": canonicalUrl.value }
       ]
     }).replace(/</g, "\\u003c")
   }];

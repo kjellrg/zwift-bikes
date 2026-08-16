@@ -330,7 +330,7 @@ const faqAnswer = computed(() => {
 })
 
 const siteConfig = useSiteConfig()
-const requestUrl = useRequestURL()
+const canonicalUrl = useCanonicalUrl()
 
 useSeoMeta({
   title: () => `Best Bike for ${season!.seriesName} ${raceHeading.value} - ${routeNamesLabel.value} (${formatLabel.value}) - ZwiftBikes`,
@@ -357,7 +357,7 @@ useHead(() => {
           { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteConfig.url },
           { '@type': 'ListItem', 'position': 2, 'name': 'Race calendars', 'item': `${siteConfig.url}/events` },
           { '@type': 'ListItem', 'position': 3, 'name': `${season!.seriesName} ${season!.label}`, 'item': `${siteConfig.url}/events/${season!.slug}` },
-          { '@type': 'ListItem', 'position': 4, 'name': raceHeading.value, 'item': requestUrl.href }
+          { '@type': 'ListItem', 'position': 4, 'name': raceHeading.value, 'item': canonicalUrl.value }
         ]
       }).replace(/</g, '\\u003c')
     },
@@ -394,7 +394,7 @@ useHead(() => {
           'name': `${season!.seriesName} ${season!.label}`,
           'url': `${siteConfig.url}/events/${season!.slug}`
         },
-        'url': requestUrl.href
+        'url': canonicalUrl.value
       }).replace(/</g, '\\u003c')
     }
   ]
