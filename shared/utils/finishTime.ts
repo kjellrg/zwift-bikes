@@ -3,7 +3,7 @@ import { SURFACE_CRR } from '../data/surfaceCrr'
 import { clampLaps } from './routeLaps'
 import { equipmentPhysics, riderScaledCdaM2 } from './physics/equipment'
 import { speedForPower } from './physics/forces'
-import { tttGroupSpeedMps } from './physics/draft'
+import { raceGroupSpeedMps, tttGroupSpeedMps } from './physics/draft'
 
 /**
  * Rough physics-based estimate of how long a rider would take to finish a
@@ -13,10 +13,11 @@ import { tttGroupSpeedMps } from './physics/draft'
  *
  * This is a simplified constant-power/constant-speed model - it does NOT
  * simulate pack dynamics, coasting on descents, or Zwift's exact physics
- * engine. Draft enters only through the optional `ttt` argument below, which
- * mirrors what the real simulator does for a Team Time Trial (see
- * `physics/draft.ts`). It exists to give a *relative* "which combo is faster for
- * me on this route" comparison, not a precise real-world time prediction.
+ * engine. Draft enters only through the optional `draft` argument below, which
+ * mirrors what the real simulator does for a Team Time Trial or a mass-start
+ * race (see `physics/draft.ts`). It exists to give a *relative* "which combo is
+ * faster for me on this route" comparison, not a precise real-world time
+ * prediction.
  *
  * Method: for a rider sustaining `wkg * weightKg` watts, solve the standard
  * cycling power-speed equation
@@ -92,22 +93,27 @@ function blendedCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): numbe
  * reusing the lap's grade, since a short lead-in can have a very different
  * gradient than the lap itself.
  *
- * `ttt` (TTT draft mode only) mirrors what `simulateRoute` does for a
- * paceline, so the cheap estimate (the full-pool ranking key) keeps tracking
- * the simulator (the displayed times) and the `orderBySimulatedTime` window
- * still catches every real contender:
+ * `draft` mirrors what `simulateRoute` does for the same mode, so the cheap
+ * estimate (the full-pool ranking key) keeps tracking the simulator (the
+ * displayed times) and the `orderBySimulatedTime` window still catches every
+ * real contender:
  *
- * - `riders` makes every speed solve a `tttGroupSpeedMps` fixed point rather
- *   than a plain `speedForPower` - each rider averages `wkg`, and the group
- *   moves at the speed their combined effort produces.
- * - `climb` (the aggregate of `tttPowerPlan`'s blocks over the WHOLE ride,
- *   laps and lead-in included) additionally splits the estimate into two
- *   closed-form phases: the plan's climb distance at the team climb power on
- *   the climbs' own average grade, the remainder at `wkg` on the remaining
- *   average grade.
+ * - `{ mode: 'ttt', riders }` makes every speed solve a `tttGroupSpeedMps`
+ *   fixed point rather than a plain `speedForPower` - each rider averages
+ *   `wkg`, and the group moves at the speed their combined effort produces.
+ * - `{ mode: 'ttt', climb }` (the aggregate of `tttPowerPlan`'s blocks over the
+ *   WHOLE ride, laps and lead-in included) additionally splits the estimate
+ *   into two closed-form phases: the plan's climb distance at the team climb
+ *   power on the climbs' own average grade, the remainder at `wkg` on the
+ *   remaining average grade.
+ * - `{ mode: 'race' }` solves `raceGroupSpeedMps` instead - one field-calibrated
+ *   saving, no rider count and no power plan, because race mode has neither
+ *   (see `RACE_DRAFT_SAVING`).
  *
- * When `ttt` is unset this function is unchanged, so solo-mode ordering
- * cannot drift by construction.
+ * A discriminated union rather than one flag per mode so a fourth draft mode is
+ * a new arm here instead of a new parameter at every call site. When `draft` is
+ * unset this function is unchanged, so solo-mode ordering cannot drift by
+ * construction.
  */
 export function estimateFinishTimeSec(
   route: RouteWithMeta,
@@ -117,7 +123,7 @@ export function estimateFinishTimeSec(
   heightCm: number,
   wkg: number,
   laps = 1,
-  ttt?: { riders: number, climb?: { distanceM: number, elevationM: number, powerW: number } }
+  draft?: { mode: 'ttt', riders: number, climb?: { distanceM: number, elevationM: number, powerW: number } } | { mode: 'race' }
 ): number {
   const powerW = wkg * weightKg
   const grade = route.terrain.climbRatio / 1000 // m/km -> m/m
@@ -128,13 +134,15 @@ export function estimateFinishTimeSec(
   const crr = Math.max(0, blendedCrr(wheelset, route) + (crrDelta ?? 0))
 
   const effectiveLaps = clampLaps(route, laps)
-  // One speed solver for both modes, so the TTT path can never drift from the
-  // solo path in anything except the draft benefit itself.
-  const solveSpeedMs = (atPowerW: number, atGrade: number) => ttt
-    ? tttGroupSpeedMps(atPowerW, ttt.riders, massKg, atGrade, crr, cda)
-    : speedForPower(atPowerW, massKg, atGrade, crr, cda)
+  // One speed solver for every mode, so no drafted path can drift from the solo
+  // path in anything except the draft benefit itself.
+  const solveSpeedMs = (atPowerW: number, atGrade: number) => draft?.mode === 'ttt'
+    ? tttGroupSpeedMps(atPowerW, draft.riders, massKg, atGrade, crr, cda)
+    : draft?.mode === 'race'
+      ? raceGroupSpeedMps(atPowerW, massKg, atGrade, crr, cda)
+      : speedForPower(atPowerW, massKg, atGrade, crr, cda)
 
-  const tttClimb = ttt?.climb
+  const tttClimb = draft?.mode === 'ttt' ? draft.climb : undefined
   if (tttClimb && tttClimb.distanceM > 0) {
     const lapDistanceM = route.distance * 1000 * effectiveLaps
     const leadInDistanceM = (route.leadInDistance ?? 0) * 1000
@@ -173,7 +181,7 @@ export function estimateFinishTimeSec(
  * Returns `0` for routes with no known gravel/cobble (`estimateSurface`'s
  * `'unverified'`/`'heuristic'` confidence levels always have `gravel`/`cobble`
  * at 0, so this is a no-op for them too - see `routeTerrain.ts`).
- * Deliberately draft-free even in TTT mode: it's a Crr-isolation delta, and
+ * Deliberately draft-free in every draft mode: it's a Crr-isolation delta, and
  * both compared rides would share the same draft benefit anyway.
  */
 export function estimateSurfaceTimePenaltySec(

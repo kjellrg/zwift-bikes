@@ -17,7 +17,7 @@ const props = defineProps<{
   fastestTimeSec?: number;
   /** Frames the rider owns, keyed by frame id, mapped to their upgrade level - used to label whether `combo.frame.level` is an owned level or the rider's assumed default for unowned bikes. */
   owned?: Record<number, number>;
-  /** TTT draft mode context, so the fallback estimate below applies the same climb power plan the server did - see `physics/draft.ts`. */
+  /** Draft mode context, so the fallback estimate below applies the same draft the server did - the TTT climb power plan, or race mode's field-calibrated saving. See `physics/draft.ts`. */
   draftMode?: DraftMode;
   tttRiders?: number;
   tttClimbWkg?: number;
@@ -55,13 +55,14 @@ function toggleWheelOwned() {
   setWheelOwned(props.combo.wheelset.key, !isOwnedWheel.value);
 }
 
-/** Same TTT context the server's estimate uses, so a fallback time can't disagree with server-computed ones. The climb plan is guarded on `route.terrain`: the segment page passes a minimal `RouteWithMeta` stand-in without it. */
-const tttEstimate = computed(() => {
+/** Same draft context the server's estimate uses, so a fallback time can't disagree with server-computed ones. Race mode carries no sub-state at all. The TTT climb plan is guarded on `route.terrain`: the segment page passes a minimal `RouteWithMeta` stand-in without it. */
+const draftEstimate = computed(() => {
+  if (props.draftMode === "race") return { mode: "race" as const };
   if (props.draftMode !== "ttt") return undefined;
   const riders = props.tttRiders ?? TTT_DEFAULT_RIDERS;
-  if (!props.tttClimbWkg || !props.weightKg || !props.route?.terrain) return { riders, climb: undefined };
+  if (!props.tttClimbWkg || !props.weightKg || !props.route?.terrain) return { mode: "ttt" as const, riders, climb: undefined };
   const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg);
-  return { riders, climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined };
+  return { mode: "ttt" as const, riders, climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined };
 });
 
 const finishTimeSec = computed(() => {
@@ -75,7 +76,7 @@ const finishTimeSec = computed(() => {
     props.heightCm,
     props.wkg,
     props.laps ?? 1,
-    tttEstimate.value,
+    draftEstimate.value,
   );
 });
 
