@@ -428,7 +428,8 @@ and the sand-free control ruled out the wheel-class explanation at the same time
 
 **What settled it.** Strava segment efforts - a known distance, a known time,
 and the rider's own average power over exactly that stretch, with the rider's
-real bike where they could tell us. Three of them, all drafted races:
+real bike where they could tell us. Three of them land on sand-bearing routes,
+all drafted races:
 
 | route | sand | rider | actual | predicted | error |
 |---|---|---|---|---|---|
@@ -859,6 +860,9 @@ distance:
 |---|---|---|---|---|
 | Mech Isle Mayhem | 6 | 27:22 | 26:58 | −1.44% |
 | Queen's Highway After Party | 15 | 26:13 | 26:59 | **+2.90%** |
+
+Both on the rider's own frame and wheels at a confirmed upgrade level, so the
+±2.5% equipment band that widens most of these comparisons is closed on both.
 
 Queen's Highway After Party is worth dwelling on: it was the largest anomaly
 before exclusion, and with measured geometry it is *still* the largest residual
