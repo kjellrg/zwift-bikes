@@ -34,7 +34,7 @@
               "laps": 1,
               "officialDistanceKm": 20.4,
               "officialElevationM": 121,
-              "curatorNote": "zwift-data's slug for Mech Isle Mayhem is the bare numeric id. ZwiftInsider's published distance (20.4 km) runs about 2 km over route + lead-in (18.4 km), consistent with an event-pen lead-in; the same overshoot shows on stages 2 and 4."
+              "curatorNote": "zwift-data's slug for Mech Isle Mayhem is the bare numeric id. ZwiftInsider's published 20.4 km ran about 2 km over route + lead-in (18.4 km) because Zwift's game dictionary publishes an 85 m lead-in for this route - the same value it gives Urumaze and a Mech Isle running route. Corrected in shared/data/routeEventLeadIns.ts from the published distance and confirmed by a Strava segment effort, so our total now matches the listing."
             }
           ],
           "note": "The month opens with a single lap of Mech Isle Mayhem - about 20 km with only 121 m of climbing, so expect a fast, draft-heavy race that stays together. Only a third of the lap is tarmac, but the 35% beach sand rolls at tarmac speed in Zwift, so road wheels still win comfortably; it's the 21% dirt that costs time. Feather and Ghost are the powerups on offer.",
@@ -59,7 +59,7 @@
               "laps": 1,
               "officialDistanceKm": 26.8,
               "officialElevationM": 202,
-              "curatorNote": "Same route ZRL 2026/27 R1W3 gives C/D - zwift-data's numeric id is the real slug."
+              "curatorNote": "Same route ZRL 2026/27 R1W3 gives C/D - zwift-data's numeric id is the real slug. The published 26.8 km exceeds route + lead-in for the same reason as stage 1, and is corrected in shared/data/routeEventLeadIns.ts; 152 real finishers reproduce at +1.07% on the corrected distance against -5.78% on the uncorrected one."
             }
           ],
           "note": "Urumaze is a clean, rolling lap where ordinary road aero wins - the 202 m of climbing never bites hard enough to hand the race to a lightweight build. Two fifths of the lap is beach sand, which sounds slow and isn't: Zwift rolls sand at tarmac Crr, so it costs road wheels nothing. Feather and Aero powerups.",

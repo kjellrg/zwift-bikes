@@ -42,6 +42,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+import { assertDatasetRoutesResolve } from './validate-dataset-routes.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
@@ -223,6 +224,9 @@ statistic and chart from this dataset.`)
   process.exit(1)
 }
 const dataset = JSON.parse(readFileSync(datasetPath, 'utf8'))
+// Up front, over EVERY race - including ones this run filters out with
+// --race - so a rotted slug is reported the same way whatever is in scope.
+assertDatasetRoutesResolve(dataset, getRouteBySlug, 'analyze-field-draft')
 const equipment = Object.fromEntries(Object.entries(EQUIPMENT_SCENARIOS).map(([key, scenario]) => [key, buildEquipment(scenario)]))
 const results = []
 

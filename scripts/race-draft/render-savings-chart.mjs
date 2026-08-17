@@ -16,12 +16,18 @@ const NEW_DEFAULT = 0.31
 const input = JSON.parse(readFileSync(process.argv[2] ?? '/dev/stdin', 'utf8'))
 const rows = input.results.filter(r => r.bunch && r.race !== EXCLUDED_RACE)
 
+// The constant-setting races, in the same order as `CONSTANT_RACES` in
+// spot-check-shipped-race-mode.mjs. Turf N Surf and Neokyo All-Nighter joined
+// after the sand investigation (docs §5): they put Makuri sand and Neokyo
+// brick inside the pool, which is what let the sand claim be tested at all.
 const RACE_LABELS = {
   'la-boucle': 'La Boucle',
   'hell-of-the-north': 'Hell of the North',
   'rolling-highlands': 'Rolling Highlands',
   'sprinters-playground': 'Sprinter\'s Playground',
-  'braek-fast-crits-and-grits': 'Crits and Grits'
+  'braek-fast-crits-and-grits': 'Crits and Grits',
+  'turf-n-surf': 'Turf N Surf (29% sand)',
+  'neokyo-all-nighter': 'Neokyo All-Nighter'
 }
 // Drawn below a divider: the loose-surface races, which calibrate nothing
 // (docs §4). They get an assumption band rather than an interquartile range,
@@ -66,8 +72,8 @@ const x = v => left + (Math.min(maxX, Math.max(minX, v)) - minX) / (maxX - minX)
 
 const parts = []
 parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-labelledby="ttl dsc">`)
-parts.push('<title id="ttl">Draft savings implied by seven full race fields</title>')
-parts.push(`<desc id="dsc">For each category of five mass-start races, the draft saving implied by every bunch finisher's own power, weight and finish time. Bars span the interquartile range, the notch is the median, dots are individual riders. The five intact races all sit above the ${(OLD_DEFAULT * 100).toFixed(1)} percent originally proposed and cluster around ${(NEW_DEFAULT * 100).toFixed(0)} percent, with the fastest A fields lowest and the slower D fields highest. Below the divider the two loose-surface races are excluded from the constant, and their bars span the range of defensible equipment and rolling-resistance assumptions rather than a rider distribution - on dirt that range is wider than the whole effect being measured.</desc>`)
+parts.push('<title id="ttl">Draft savings implied by nine full race fields</title>')
+parts.push(`<desc id="dsc">For each category of seven mass-start races, the draft saving implied by every bunch finisher's own power, weight and finish time. Bars span the interquartile range, the notch is the median, dots are individual riders. The seven intact races all sit above the ${(OLD_DEFAULT * 100).toFixed(1)} percent originally proposed and cluster around ${(NEW_DEFAULT * 100).toFixed(0)} percent, with the fastest A fields lowest and the slower D fields highest. Turf N Surf carries 29 percent beach sand and sits with the rest, which is the evidence that Zwift rolls sand at its published tarmac rolling resistance. Below the divider the two loose-surface races are excluded from the constant, and their bars span the range of defensible equipment and rolling-resistance assumptions rather than a rider distribution - on dirt that range is wider than the whole effect being measured.</desc>`)
 parts.push(`<style>
 text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
 .t{fill:#6e7781}

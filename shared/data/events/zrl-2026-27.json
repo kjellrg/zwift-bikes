@@ -94,7 +94,7 @@
               "laps": 1,
               "officialDistanceKm": 24.8,
               "officialElevationM": 193.4,
-              "curatorNote": "zwift-data has no readable slug for Urumaze - the numeric id is the real slug, not a placeholder. Same route ZRacing 2026 August stage 2 uses."
+              "curatorNote": "zwift-data has no readable slug for Urumaze - the numeric id is the real slug, not a placeholder. Same route ZRacing 2026 August stage 2 uses. WTRL publishes 24.8 km here, which is the route lap; our 26.8 km adds the event-pen lead-in that Zwift under-reports as 85 m (see shared/data/routeEventLeadIns.ts). The distance warning on this race is therefore expected, and the larger figure is the one riders actually cover."
             }
           ],
           "note": "The two halves of the field ride different courses this week, but not different equipment answers. A/B get Makuri 40 and C/D get Urumaze, and both come out at the same blended rolling resistance on road wheels: Urumaze is nearly two fifths beach sand and Makuri 40 about a fifth, and Zwift rolls sand at tarmac Crr, so neither course punishes a road setup. Ordinary road aero wins both halves.",

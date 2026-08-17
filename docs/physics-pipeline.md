@@ -102,7 +102,8 @@ because breaking it shipped a real bug:
 
 | Module | Owns | Called by |
 |---|---|---|
-| [catalog.ts](../shared/utils/catalog.ts) | Route/frame lookup over `zwift-data`, cached | Both recommend endpoints |
+| [catalog.ts](../shared/utils/catalog.ts) | Route/frame lookup over `zwift-data`, cached; applies `routeEventLeadIns.ts` so every consumer sees one ridden distance | Both recommend endpoints |
+| [routeEventLeadIns.ts](../shared/data/routeEventLeadIns.ts) | Event lead-in corrections for the few routes where Zwift's own published figure is wrong (see race-drafting.md §5) | `catalog.ts` |
 | [routeTerrain.ts](../shared/utils/routeTerrain.ts) | Climb ratio, terrain weights, surface composition + its confidence level | `catalog.ts` |
 | [classifyBikeFrame.ts](../shared/utils/classifyBikeFrame.ts) | Category/style, 0-100 scores, `confidence`, solved CdA/mass/Crr delta, per-scheme garage-level staging | `catalog.ts` |
 | [classifyWheel.ts](../shared/utils/classifyWheel.ts) | Wheel scores, `crrClass` (road/gravel/mountain), `confidence` | `wheelsets.ts` |
@@ -256,6 +257,7 @@ flowchart TD
     SPEED["frameSpeedData.ts<br/>wheelSpeedData.ts"]
     UPGRADE["frameUpgradeSchemes.ts<br/>per-stage curves + drivetrain Crr"]
     CRR["surfaceCrr.ts"]
+    LEADIN["routeEventLeadIns.ts<br/>corrected event lead-ins"]
 
     TERRAIN{{"routeTerrain.ts<br/>climb ratio + surface"}}
     CLASSIFY{{"Classifiers<br/>scores + confidence"}}
@@ -269,6 +271,8 @@ flowchart TD
 
     GEN --> TERRAIN
     ZD --> TERRAIN
+    ZD --> LEADIN
+    LEADIN --> TERRAIN
     ZD --> CLASSIFY
     SPEED --> CLASSIFY
     UPGRADE --> CLASSIFY
@@ -409,9 +413,9 @@ scale-as-power-multiplier plumbing at both midpoint velocities each step, same
 single number.
 
 - **One constant, no inputs.** `RACE_DRAFT_SAVING = 31%` is the flat-speed power
-  saving of a typical mid-pack racer, field-calibrated against thirteen real
-  ZwiftPower race fields (1313 riders; pooled bunch median 31.7%, IQR
-  28.5–34.8%, n = 430). There is no rider count, no position, no category and no
+  saving of a typical mid-pack racer, field-calibrated against real ZwiftPower
+  race fields — seven constant-setting races out of twenty collected (1654
+  riders; pooled bunch median 31.4%, n = 473 bunch finishers). There is no rider count, no position, no category and no
   grade term, because a racer does not occupy a position in a mass start — they
   occupy a distribution of positions, and the constant is the time-weighted
   expectation over it. Full evidence in

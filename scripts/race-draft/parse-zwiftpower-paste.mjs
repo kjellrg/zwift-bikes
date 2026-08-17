@@ -118,14 +118,18 @@ function parseGapSec(token) {
  * anything is classified - the alternative is a clock pattern that also has to
  * swallow the gap, which then can't be validated independently.
  */
-const CLOCK_WITH_GAP = /^(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?)(\+.+)$/
+// The seconds field allows one digit because ZwiftPower drops its leading
+// zero on hour-plus finishes: a two-hour race prints "2:00:9", not "2:00:09".
+// Only the trailing field is loosened - minutes stay two digits, so this
+// cannot start matching something that was never a clock.
+const CLOCK_WITH_GAP = /^(\d{1,2}:\d{2}(?::\d{1,2})?(?:\.\d+)?)(\+.+)$/
 function splitClockAndGap(token) {
   const match = CLOCK_WITH_GAP.exec(token)
   return match ? [match[1], match[2]] : [token]
 }
 
 const CATEGORY = /^[A-E]$/
-const CLOCK = /^\d{1,2}:\d{2}(:\d{2})?(\.\d+)?$/
+const CLOCK = /^\d{1,2}:\d{2}(:\d{1,2})?(\.\d+)?$/
 const GAP = /^\+\d[\d.:]*s?$/
 const WKG = /^(\d+(\.\d+)?)w\/kg$/i
 const WATTS = /^(\d+(\.\d+)?)w$/i

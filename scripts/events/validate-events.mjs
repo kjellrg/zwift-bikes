@@ -63,6 +63,7 @@ try {
 const { getAllSeasons, isRacePublishable, raceEndDate } = events
 const { getAllSegmentSummaries } = loadSharedModule('shared/utils/routeSegments.ts')
 const { computeRouteTotals } = loadSharedModule('shared/utils/routeLaps.ts')
+const { eventLeadIn } = loadSharedModule('shared/data/routeEventLeadIns.ts')
 
 const DISTANCE_TOLERANCE = 0.05
 const ELEVATION_TOLERANCE = 0.10
@@ -73,7 +74,18 @@ const SLUG_CONVENTIONS = {
   zracing: race => `stage-${race.week}`
 }
 
-const routesBySlug = new Map(routes.filter(route => route.slug).map(route => [route.slug, route]))
+// Routes as the SITE sees them, not as zwift-data ships them: a handful of
+// event-only routes carry a wrong lead-in in Zwift's own game dictionary and
+// are corrected in `shared/data/routeEventLeadIns.ts`. Reading the raw catalog
+// here would make this validator warn about a divergence the site no longer
+// has - and, worse, would keep warning after the fix, training the curator to
+// ignore it. The published-distance check is only meaningful against the
+// distance we actually show.
+const routesBySlug = new Map(
+  routes
+    .filter(route => route.slug)
+    .map(route => [route.slug, { ...route, ...eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation) }])
+)
 // The segments this site actually has pages for - a scoring segment can only
 // carry a `slug` if it's in here, or the race page renders a link to a 404.
 const segmentPages = new Map(getAllSegmentSummaries().map(segment => [segment.slug, segment]))

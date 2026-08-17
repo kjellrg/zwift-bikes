@@ -38,7 +38,7 @@ states, which is a property of racing rather than of the rider.
 **One thing does need saying in the UI.** The number entered is the rider's
 *mechanical average power for the whole race* — the same thing solo and TTT
 mode mean, but easier to get wrong here, because racers know their numbers as
-20-minute or normalised power. Across the 1221 field results in §5 the median
+20-minute or normalised power. Across the 1543 field results in §5 the median
 variability index was 1.05, so entering normalised power instead feeds the model
 ~5% too much power, which on a flat circuit is ~2% too much speed — and doing
 the same thing inside the *calibration* is what made the first version of this
@@ -105,7 +105,7 @@ actually occupies:
 
 Two of those numbers are not ZwiftInsider's, and it matters which:
 
-- **39% for "deep in the bunch" is fitted**, to the 430 real bunch finishers in
+- **39% for "deep in the bunch" is fitted**, to the 473 real bunch finishers in
   §5. It is the model's one free parameter and the only number here that is not
   either measured or a time budget.
 - **The 16% of race time with no shelter at all** is still a judgement call, as
@@ -114,7 +114,7 @@ Two of those numbers are not ZwiftInsider's, and it matters which:
 Everything else is ZwiftInsider's published road-bike test.
 
 An earlier version of this section put the deep state at the 4-bot test's 37.6%
-and reached an expected saving of 26.7%. Five real fields say that is too low by
+and reached an expected saving of 26.7%. Seven real fields say that is too low by
 about four points. The arithmetic is tight rather than impossible: holding the
 4-bot ceiling, the most a rider can save while still spending 16% of the race in
 the wind is 0.84 x 37.6% = 31.6%, and that requires *all* of their sheltered
@@ -288,16 +288,19 @@ is a marker of drafting well, not of wasting energy.
 until there is a variable-power input for it to act on. The `(1 − cohesion)`
 shape may still be right for fragmenting routes; nothing here tests that.
 
-## 5. Calibration against five full race fields, and two that cannot calibrate
+## 5. Calibration against seven full race fields, and the ones that cannot calibrate
 
 The first version of this document calibrated on one rider across ten races.
-This section replaces that with **1313 riders across thirteen**, which is what
-makes the expected saving a measurement rather than a judgement call.
+This section replaces that with **1654 riders across twenty**, which is what
+makes the expected saving a measurement rather than a judgement call. Seven of
+those races set the constant; the rest are evidence about what the model does
+elsewhere, including one race that produced a confident wrong answer for a week
+(see "What sand turned out not to be").
 
 **The data.** ZwiftPower publishes, for every finisher, both halves of the
 equation: what the rider put in (average power, normalised power, weight,
 height) and what they got out (finish time on a known route). Names, teams, ages
-and heart rates are deliberately not kept. 1221 of the 1313 published a weight
+and heart rates are deliberately not kept. 1543 of the 1654 published a weight
 and are usable.
 
 **The per-rider file is local-only and is not in this repository.** It lives at
@@ -328,26 +331,37 @@ section and §6 reach different numbers.
 
 ### What was excluded, and why
 
-**Makuri Madness stage 1 (Mech Isle Mayhem), all 91 riders.** Two independent
-reasons, either of which is disqualifying:
+**Makuri Madness stage 1 (Mech Isle Mayhem), all 91 riders.** Originally excluded
+for two independent reasons. Only one of them survives, and it turned out to be
+the more interesting one:
 
-- Its geometry is synthesised. The route has no measured elevation profile, so
-  `geometryForRouteLaps` falls back to the rolling-lap approximation, and its
-  surface data is `unverified`. The first version of this document already
-  concluded that validation must refuse synthesised-geometry routes.
-- Its distance is not known to better than ~10%. `zwift-data` gives route +
-  lead-in as 18.42 km, ZwiftInsider publishes 20.4 km for the stage, and Zwift
-  disabled racing-score changes for it citing finish-line inaccuracies. Distance
-  enters the implied saving through `v³`, so this is the largest error term in
-  the whole analysis.
+- ~~Its geometry is synthesised.~~ **Resolved.** The route now has a measured
+  elevation profile and measured surface data, and its dataset entry is keyed on
+  `2919739330` - zwift-data's slug for it is the bare numeric id, and the
+  readable slug it used to carry resolved to nothing, which silently dropped the
+  race out of every report until `validate-dataset-routes.mjs` was added to
+  refuse that. With real geometry its implied saving moves 19.3% → 27.7%.
+- **Its ridden distance is not what the route says, and this is now measured.**
+  `zwift-data` gives route + lead-in as 18.42 km; ZwiftInsider publishes 20.4 km
+  for the stage. A Strava segment effort on the route settles it: the activity
+  recorded 20,772 m in total against an 18,394 m segment, so 2,378 m was ridden
+  outside the lap, at 39.8 km/h - the event lead-in, ridden at race pace, where
+  `zwift-data` records 85 m. At 18.42 km the field is −10.84% out; at 20.4 km,
+  −2.04%.
 
-Run anyway at the published 20.4 km it gives 19.3%; it would need ~22 km to
-agree with the other five races. That spread is the reason it is excluded rather
-than averaged in.
+Distance enters the implied saving through `v³`, so it remains the largest error
+term in the whole analysis. The lead-in is now corrected in
+`shared/data/routeEventLeadIns.ts` and the race reproduces at −2.04%, but it
+stays **held out of the constant** rather than pooled: its distance comes from a
+published figure rather than a measurement, and the whole point of the episode
+below is that a plausible distance is exactly what fooled us. It rejoins the
+pool when a segment effort confirms the lead-in - see "What sand turned out not
+to be".
 
-**The seven clean races.** Every one has a measured elevation profile, measured
-surface data, and a distance that is just `zwift-data`'s route + lead-in with no
-published figure disagreeing:
+**The clean races.** Every constant-setting race has a measured elevation
+profile, measured surface data, and a ridden distance that really is
+`zwift-data`'s route + lead-in - which, as the distance-excluded rows below show,
+is a claim that has to be checked rather than assumed:
 
 | Race | World | Distance | Climbing | Surface | Role |
 |---|---|---|---|---|---|
@@ -356,13 +370,167 @@ published figure disagreeing:
 | Rolling Highlands | Scotland | 23.05 km | 8 m/km | 99% tarmac | constant |
 | Sprinter's Playground | Makuri Islands | 24.93 km | 5 m/km | 51% brick | constant |
 | BRAEk-fast Crits and Grits | Scotland | 22.15 km | 12 m/km | 93% tarmac, 6% gravel | constant |
-| Makuri 40 | Makuri Islands | 80.37 km | 8 m/km | tarmac | check — 2 hours |
+| Turf N Surf | Makuri Islands | 24.70 km | 8 m/km | 51% tarmac, 29% sand | constant |
+| Neokyo All-Nighter | Makuri Islands | 24.57 km | 7 m/km | 58% brick, 41% tarmac | constant |
+| Makuri 40 (two fields) | Makuri Islands | 80.37 km | 8 m/km | 64% tarmac, 18% sand | check — 2 hours |
 | Radio Rendezvous | Watopia | 23.60 km | 31 m/km | 85% tarmac | climb evidence |
 | Three Sisters Reverse | Watopia | 45.89 km | 19 m/km | tarmac | climb evidence |
-| Yumezi Grit | Makuri Islands | 19.25 km | 6 m/km | 60% tarmac, 35% dirt | *excluded* |
-| Jungle Circuit | Watopia | 13.52 km | 6 m/km | 97% dirt | *excluded* |
+| Yumezi Grit | Makuri Islands | 19.25 km | 6 m/km | 48% tarmac, 45% dirt | *excluded — loose* |
+| Jungle Circuit | Watopia | 13.52 km | 6 m/km | 95% dirt | *excluded — loose* |
 | Road to Sky, Mar 2025 | Watopia | 17.60 km | **59 m/km** | 80% tarmac, 19% dirt | climb evidence |
 | Road to Sky, Feb 2025 | Watopia | 17.60 km? | **59 m/km** | 80% tarmac, 19% dirt | *excluded — distance* |
+| Urumaze (two fields) | Makuri Islands | 26.80 km | 8 m/km | 46% tarmac, 40% sand | *held out — corrected lead-in* |
+| Mech Isle Mayhem | Makuri Islands | 20.40 km | 6 m/km | 32% tarmac, 35% sand, 21% dirt | *held out — corrected lead-in* |
+| Neokyo Crit Course | Makuri Islands | 20.19 km? | 5 m/km | 52% brick, 48% tarmac | *excluded — distance unverified* |
+| Tropic Rush | Makuri Islands | 84.14 km | 8 m/km | 42% tarmac, 32% brick, 18% sand | *no bunch finish* |
+
+The four distance-excluded rows are all **event-only routes**, and that is not a
+coincidence: an event-only route is only ever ridden from an event pen, and
+`zwift-data`'s `leadInDistance` for these carries a placeholder. Urumaze and Mech
+Isle Mayhem both record 85 m and both ride roughly 2 km more than that. Nothing
+in the source data marks them out - a shared lead-in value is normal, since 147
+of the 393 routes Zwift publishes share one with another route that starts from
+the same pen. The only way to find a wrong one is to compare against something
+ridden. Twenty-eight event-only routes in Zwift's dictionary carry sub-200 m
+lead-ins - twenty of them cycling routes in our catalogue - and have not been
+checked.
+
+### What sand turned out not to be
+
+This subsection exists because a wrong answer survived three rounds of
+corroboration, and the way it eventually died is worth more than the finding
+would have been.
+
+**The claim.** Urumaze is 40% beach sand, and `SURFACE_CRR` rolls sand at
+0.004 - identical to tarmac, exactly as ZwiftInsider publishes it. Against 152
+bunch finishers the shipped model came out **−5.78%** (predicting ~2:13 too fast
+on a 38-minute race), with an implied saving of 18.0% against the pool's 31%.
+Raising the road-class sand Crr to ~0.011 collapsed the error to zero and the MAE
+to 2.5%, the noise floor of the clean races. It fit Mech Isle Mayhem (35% sand)
+and Makuri 40 (18% sand) at the same value. The error was flat across categories
+(−5.96% for A at 38.7 km/h, −7.16% for D at 31.4 km/h), which is a
+rolling-resistance signature rather than an aerodynamic one. Every check pointed
+the same way.
+
+**What killed it.** A dose-response test, with the predictions written down
+first. If sand rolled at 0.011, then a 29%-sand route should be −3.2% and an
+18%-sand route −2.0%; if instead the fields were riding gravel-class wheels, both
+should be about −8%.
+
+| race | sand | if sand is slow | if gravel wheels | **measured** |
+|---|---|---|---|---|
+| Turf N Surf, n=34 | 29% | −3.2% | −7.9% | **−1.14%** |
+| Makuri 40, n=10 | 18% | −2.0% | −8.0% | **+0.61%** |
+| Neokyo All-Nighter, n=9 | 0% | 0.0% | −7.9% | **−1.16%** |
+
+Neither. The error does not scale with sand share, so sand is not the variable -
+and the sand-free control ruled out the wheel-class explanation at the same time.
+
+**What settled it.** Strava segment efforts - a known distance, a known time,
+and the rider's own average power over exactly that stretch, with the rider's
+real bike where they could tell us. Three of them land on sand-bearing routes,
+all drafted races:
+
+| route | sand | rider | actual | predicted | error |
+|---|---|---|---|---|---|
+| Turf N Surf | 29% | 79 kg / 181 cm, Aeroad 2024 + ARC 85/Disc, level 5 | 36:25 | 36:32 | **+0.30%** |
+| Urumaze | 40% | 67 kg / 180 cm, equipment assumed | 31:36 | 31:52 | **+0.85%** |
+| Mech Isle Mayhem | 35% (plus 21% dirt) | 79 kg / 181 cm, same bike | 27:22 | 26:58 | **−1.44%** |
+
+Turf N Surf is the decisive one: it is the route whose −1.14% first broke the
+dose-response, and this test has none of the weaknesses of a field result -
+exact distance, the rider's actual frame and wheels at a confirmed upgrade
+level, confirmed draft mode, and their own power over the segment rather than
+over the whole activity. Seven seconds out over thirty-six minutes, on a route
+that is nearly a third beach sand. There is no room in that for a 4-5% surface
+penalty.
+
+It is also seven months old - a January 2026 game build against surface data
+measured in August - which is weak but real evidence that the surface behaviour
+has not shifted underneath us in between.
+
+An earlier version of this section reported the Mech Isle effort at +0.09%. That
+number was wrong twice over: it used a generic "typical" bike rather than the
+rider's own, and the lap it simulated was missing 13 m of climbing (see the note
+on `splitMeasuredProfile` above). Both are fixed, and −1.44% is the honest
+figure.
+
+**What the error actually was.** Distance. The same activity recorded 20,772 m
+in total against the 18,394 m segment: 2,378 m ridden outside the lap, at
+39.8 km/h - the event lead-in at race pace, where `zwift-data` records 85 m.
+
+The confirming figure was in this repository the whole time. `validate-events.mjs`
+has been warning that ZRacing 2026 stage 2 - which *is* Urumaze - publishes
+**26.8 km** against our 24.8, and stage 1 publishes 20.4 against 18.4. Solving
+for the distance that makes the 152-rider field fit gave 26.5 km before anyone
+looked at that warning. At the published 26.8 km:
+
+| race | at route + lead-in | at the published event distance |
+|---|---|---|
+| Urumaze, n=152 | −5.78% | **+1.07%** (MAE 2.55%) |
+| Urumaze, second field, n=12 | −8.91% | **−2.18%** |
+| Mech Isle Mayhem, n=53 | −10.84% | **−2.04%** (at 20.4 km) |
+
+No Crr change at all. The curator note on stage 1 had already recorded the
+mechanism - "about 2 km over route + lead-in, consistent with an event-pen
+lead-in; the same overshoot shows on stages 2 and 4" - and the sand hypothesis
+was built on top of a warning that said the distance was wrong.
+
+![Median finish-time error per field, before and after correcting the event lead-in](./assets/race-draft-leadin-correction.svg)
+
+**The correction ships.** `shared/data/routeEventLeadIns.ts` carries a lead-in
+per affected route, derived from the organiser's published event distance minus
+`laps x route.distance`, and `getRoutesWithMeta` applies it once so route pages,
+the estimate, the simulator and the MCP tools cannot disagree about how far the
+event is:
+
+| route | Zwift publishes | corrected | our total now | published |
+|---|---|---|---|---|
+| Mech Isle Mayhem | 0.085 km | 2.063 km | 20.40 km / 121 m | 20.4 / 121 |
+| Urumaze | 0.085 km | 2.046 km | 26.80 km / 202 m | 26.8 / 202 |
+| Twilight Crit (5 laps) | 0.066 km | 1.680 km | 21.20 km / 116 m | 21.2 / 116 |
+
+WhatYumeziWereLost is deliberately absent - published 17.6 km against our 17.54
+is agreement at the precision the organiser publishes, and an override without
+evidence is the same mistake pointing the other way. The default remains
+whatever `zwift-data` ships; `docs/events-data.md` carries the standing rule for
+curators, and 20 event-only cycling routes still hold unchecked sub-200 m
+lead-ins.
+
+**The methodological lesson, which is the durable part.** A field result cannot
+separate a distance error from a resistance error: both produce a flat
+percentage offset across every category, and the fitted Crr will happily absorb
+a missing kilometre. Three separate races agreeing only meant the same unmeasured
+lead-in was wrong three times. What breaks the tie is an instrument with no free
+distance parameter:
+
+- **Use segment efforts, not activity distances.** A segment starts and ends at
+  fixed points, so no event pen inflates it and no post-finish riding does
+  either. An activity's total distance has the opposite property - Zwift keeps
+  recording past the line, which is why the 20,772 m figure above is evidence
+  about the lead-in but must never be used as a race distance.
+- **One effort beats a field** when the field's distance is inferred. 152 riders
+  produced a confident wrong answer; one rider over a measured 18.39 km produced
+  the right one.
+- The set lives in `scripts/race-draft/segment-efforts.json` (local-only, same
+  privacy rule as the field results), is built with
+  [`add-segment-effort.mjs`](../scripts/race-draft/add-segment-effort.mjs) and
+  checked with
+  [`check-segment-efforts.mjs`](../scripts/race-draft/check-segment-efforts.mjs),
+  which builds the lap with the lead-in set to zero so the simulated lap is
+  exactly the segment.
+
+  That last detail is not a formality. `geometryForRouteLaps` feeds its lead-in
+  from `splitMeasuredProfile`, which carves the lead-in's shape out of the
+  *lap's* measured profile - the profile is the lap's own Strava segment, and no
+  measured data for the lead-in exists. Trimming a lead-in back off therefore
+  returns a lap missing its first `leadInDistance` of terrain. At the 85 m
+  `zwift-data` reported that was invisible; at the corrected 2.06 km it removed
+  13 m of climbing from Mech Isle Mayhem's lap and made the check 1.4% too fast
+  until it was caught. On shipped predictions the same approximation is worth
+  0.05% (Hell of the North) to 0.35% (Urumaze, Mech Isle Mayhem) - real, but far
+  too small to justify changing the geometry builder and re-fitting the constant
+  behind it.
 
 **The two dirt races are excluded from the constant**, and §4 gives the reason
 in full: on a loose surface the implied saving is dominated by the
@@ -397,6 +565,12 @@ category, assuming the median measured frame and wheelset:
 Nineteen independent groups, four worlds, four surfaces, four categories, a
 11 km/h speed range — and every median lands between 27.7% and 37.2%. **Pooled
 median: 31.7%** (n = 430), interquartile range 28.5–34.8%.
+
+Two races joined the pool later, after the sand investigation put Makuri sand
+and Neokyo brick inside it for the first time: Turf N Surf at 29.8% (n = 34) and
+Neokyo All-Nighter at 29.8% (n = 9), both comfortably inside the range above.
+Pooled across all seven the median is **31.4%** (n = 473) — a quarter-point
+move, which is why the constant did not follow it (§11's ≥1-point rule).
 
 Two structures run through the table, and both are consistent across races:
 
@@ -666,6 +840,38 @@ Queen's Highway After Party and Mech Isle Mayhem, the former having been the
 largest anomaly in the set before exclusion. **Validation should refuse
 synthesised-geometry routes outright** — a rule §5 applies again, to the same
 route.
+
+**Both of those routes have since been measured, and the exclusion no longer
+applies to either.** They were in the batch of thirteen that gained real GPS
+elevation and surface data, and the recommend endpoint now reports
+`geometry: measured` for both. The rule stands; its scope has shrunk. Of 292
+cycling routes, 285 are `measured` and **seven** still fall back to
+`aggregate-compatibility` — ZG25 Climb Champs, Peaky Pavé, Power Punches, Flat
+Route Reverse, Power to the Portal, and the Volcano and Mont Saint-Michel climb
+portals. Those seven are exactly the routes `zwift-data` gives no
+`stravaSegmentId`, so there is no GPS trace to measure and no way to promote
+them without one.
+
+Both have re-entered the evidence base through the segment-effort set, which is
+what the rule was really asking for — a measured route tested against a measured
+distance:
+
+| route | m/km | actual | predicted | error |
+|---|---|---|---|---|
+| Mech Isle Mayhem | 6 | 27:22 | 26:58 | −1.44% |
+| Queen's Highway After Party | 15 | 26:13 | 26:59 | **+2.90%** |
+
+Both on the rider's own frame and wheels at a confirmed upgrade level, so the
+±2.5% equipment band that widens most of these comparisons is closed on both.
+
+Queen's Highway After Party is worth dwelling on: it was the largest anomaly
+before exclusion, and with measured geometry it is *still* the largest residual
+in the set — three times the next one. So its anomaly was never a
+synthesised-geometry artifact. What it now looks like is the model running slow
+on the hilliest route we have a segment effort for (15 m/km against 6-8 for the
+others), which is where race mode's draft term is weakest and a strung-out pack
+is most likely. One route cannot separate those, and §5's climb races could not
+either.
 
 ### Results
 
@@ -953,7 +1159,8 @@ points).
 | Pooled bunch median | 31.66% | 34.56% |
 | IQR | 28.53–34.75% | 31.03–37.88% |
 
-The reason is **descents, not fast riders.** Only 78 of the 430 riders (18%)
+The reason is **descents, not fast riders.** Only 78 of the 430 riders (18%) in
+the five-race pool this cap analysis was run on
 *averaged* above the 42 km/h reference speed, but all of them spent time
 descending well above it, so the region above scale 1.0 is exercised on every
 route inside the fit. Take that draft away and the model needs a bigger flat
@@ -977,7 +1184,9 @@ through `racePowerScaleAtSpeed` exactly as the endpoints do:
 | Rolling Highlands | 47 | −1.79% | 2.66% | 64% |
 | Sprinter's Playground | 87 | +0.51% | 2.67% | 59% |
 | Crits and Grits | 158 | −0.40% | 2.24% | 73% |
-| **Pooled** | **430** | **+0.49%** | **2.69%** | **63%** |
+| Turf N Surf | 34 | −1.14% | 2.17% | 79% |
+| Neokyo All-Nighter | 9 | −1.16% | 2.18% | 78% |
+| **Pooled** | **473** | **+0.27%** | **2.64%** | **64%** |
 
 Positive means the app predicts slower than the field actually rode. The pooled
 median sits half a percent from perfect, and the MAE lands on the ~2.7% floor
@@ -985,6 +1194,12 @@ median sits half a percent from perfect, and the MAE lands on the ~2.7% floor
 than model error — riders in the same five-second bunch imply savings spanning
 17–42%, and no position-free model can do better than that. Per-race errors
 track the ±3-point equipment band, not anything the model is missing.
+
+The two newest rows are the ones worth watching: Turf N Surf is 29% beach sand
+and Neokyo All-Nighter 58% brick, and both land inside a point and a half of
+zero on the published `SURFACE_CRR` values. That is the surface term staying at
+zero on two more surfaces, not a lucky cancellation — §5's "What sand turned out
+not to be" is the full account.
 
 The excluded races behave exactly as §5 says they should, which is the useful
 part of running them anyway: Jungle Circuit (97% dirt) comes out +11.7%, Yumezi

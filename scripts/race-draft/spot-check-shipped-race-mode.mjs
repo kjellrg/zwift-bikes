@@ -28,14 +28,29 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+import { assertDatasetRoutesResolve } from './validate-dataset-routes.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
 const onlyRace = args.includes('--race') ? args[args.indexOf('--race') + 1] : undefined
 const showAll = args.includes('--all')
 
-/** The races that set the constant - docs §5, "The seven clean races" minus the climb-evidence and dirt rows. */
-const CONSTANT_RACES = new Set(['la-boucle', 'hell-of-the-north', 'rolling-highlands', 'sprinters-playground', 'braek-fast-crits-and-grits'])
+/**
+ * The races that set the constant - docs §5, "The clean races" minus the
+ * climb-evidence and dirt rows.
+ *
+ * `turf-n-surf` and `neokyo-all-nighter` joined after the sand investigation
+ * (docs §5, "What sand turned out not to be"): both are free-ride routes whose
+ * ridden distance is just zwift-data's route + lead-in, both have measured
+ * geometry, and neither carries a loose surface worth the name - Turf N Surf's
+ * non-tarmac is sand, brick and wood plus 5% dirt, All-Nighter's is 58% brick.
+ * They widen the pool from three worlds to four and put Makuri sand inside it,
+ * which is the whole reason the sand claim could be tested at all.
+ */
+const CONSTANT_RACES = new Set([
+  'la-boucle', 'hell-of-the-north', 'rolling-highlands', 'sprinters-playground', 'braek-fast-crits-and-grits',
+  'turf-n-surf', 'neokyo-all-nighter'
+])
 /** What the pooled median error has to stay inside for this to be called a pass. Docs §5 measures a ~2.7% MAE floor from position variance alone, so anything much tighter than this would be a fake test - and anything looser would not notice the power scale being dropped. */
 const POOLED_MEDIAN_TOLERANCE_PCT = 2
 /** Finishers within this many seconds of each other rode to the line together - same rule as the analyzer. */
@@ -103,6 +118,10 @@ function markBunchFinishes(riders) {
 }
 
 const dataset = JSON.parse(readFileSync(datasetPath, 'utf8'))
+// Before anything is pooled: a race whose slug no longer resolves used to be
+// skipped with one line of output, and the pooled median was then reported -
+// and passed - over whatever was left. Fail instead.
+assertDatasetRoutesResolve(dataset, getRouteBySlug, 'spot-check-shipped-race-mode')
 const pooledErrors = []
 const rows = []
 
@@ -111,8 +130,9 @@ for (const [raceSlug, race] of Object.entries(dataset.races)) {
   const counts = CONSTANT_RACES.has(raceSlug)
   if (!counts && !showAll && !onlyRace) continue
 
+  // `assertDatasetRoutesResolve` above has already established that every
+  // race resolves, so this cannot be a skip.
   const route = getRouteBySlug(race.routeSlug)
-  if (!route) { console.error(`  skipped ${raceSlug}: route ${race.routeSlug} is not in the catalog`); continue }
   let geometry = geometryForRouteLaps(route, race.laps)
   // Same distance reconciliation as the analyzer: when the published event
   // distance is longer than route + lead-in, the difference is ridden as flat

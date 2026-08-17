@@ -1,0 +1,36 @@
+{
+ "_comment": "SYNTHETIC SAMPLE. Every number below is invented - this file documents the format check-segment-efforts.mjs reads, nothing more. The real set is segment-efforts.json, which is gitignored and never enters the repo (see README.md, 'Where the data lives'). Build it locally with add-segment-effort.mjs.",
+ "source": "Strava segment efforts on Zwift route laps - exact distance, exact time, no lead-in.",
+ "privacy": "No athlete, activity title or activity id is stored. A record is a route, a distance, a time, a power and the rider's weight and height, which is all the physics consumes.",
+ "why": "A segment starts and ends at fixed points, so an event pen cannot inflate it and riding past the finish line cannot either. That makes one effort a stronger test than a whole field whose ridden distance had to be inferred - see docs/race-drafting.md §5, 'What sand turned out not to be'.",
+ "columns": "routeSlug (catalog slug, numeric id for routes zwift-data does not name), routeName (readability only), segmentDistanceM (Strava's measured segment length), elapsedSec, avgW (average power over the segment, not the whole activity), weightKg, heightCm, draft (race | solo | ttt - a drafted effort must not be compared against the solo model), frame + wheels + frameLevel (optional, exact catalog names; supplying them turns the check from a +/-2.5% scenario band into a point prediction, and the upgrade level alone is worth ~1.2%), date (game build matters; surfaces change with patches), note",
+ "efforts": [
+  {
+   "routeSlug": "tempus-fugit",
+   "routeName": "Tempus Fugit",
+   "segmentDistanceM": 17231,
+   "elapsedSec": 1620,
+   "avgW": 240,
+   "weightKg": 75,
+   "heightCm": 180,
+   "draft": "solo",
+   "date": "2026-01-01",
+   "note": "Invented sample row - not a real effort."
+  },
+  {
+   "routeSlug": "2919739330",
+   "routeName": "Mech Isle Mayhem",
+   "segmentDistanceM": 18394,
+   "elapsedSec": 1700,
+   "avgW": 265,
+   "weightKg": 79,
+   "heightCm": 180,
+   "draft": "race",
+   "frame": "Canyon Aeroad 2024",
+   "wheels": "DTSwiss ARC 1100 DICUT 85/Disc",
+   "frameLevel": 5,
+   "date": "2026-01-01",
+   "note": "Invented sample row, shown with equipment. The real effort on this route is what refuted the sand hypothesis; it lives in the local set, not here."
+  }
+ ]
+}
