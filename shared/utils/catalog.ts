@@ -1,6 +1,7 @@
 import { bikeFrames, routes, worlds } from 'zwift-data'
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta } from '../types/catalog'
 import { classifyBikeFrame } from './classifyBikeFrame'
+import { eventLeadIn } from '../data/routeEventLeadIns'
 import { computeTerrain, estimateSurface } from './routeTerrain'
 
 const worldNameBySlug = new Map<string, string>(worlds.map(w => [w.slug, w.name]))
@@ -74,6 +75,13 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
       .filter(r => r.slug)
       .map(route => ({
         ...route,
+        // Applied here, once, so every consumer sees the same ride: route
+        // totals, the finish-time estimate, the simulator's geometry and the
+        // MCP tools all read `leadInDistance` and would otherwise disagree
+        // about how long the event actually is. Almost always a no-op - see
+        // `EVENT_LEAD_IN_OVERRIDES` for the three routes where Zwift's own
+        // figure is wrong and why we only override with published evidence.
+        ...eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation),
         worldName: getWorldName(route.world),
         terrain: computeTerrain(route),
         surface: estimateSurface(route)
