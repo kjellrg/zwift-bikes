@@ -142,8 +142,14 @@ const contactMailto = `mailto:${contactAddress}`
         into a GitHub issue, your email address never goes in it. Your name
         only shows up there if you ask to be credited.
       </p>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <p class="font-medium text-highlighted">
+        Getting in touch
+      </p>
       <p>
-        Not a bug, just want to get in touch?
+        A question, a suggestion, or anything that isn't a bug?
         <ClientOnly>
           Write to
           <a
