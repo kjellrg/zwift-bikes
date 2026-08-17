@@ -30,7 +30,9 @@ export function useRiderProfile() {
   const ftpWatts = useState<number>('rider-ftp-watts', () => DEFAULT_FTP_WATTS)
   const defaultUnownedLevel = useState<number>('rider-default-unowned-level', () => DEFAULT_UNOWNED_LEVEL)
   // Draft mode (see `shared/utils/physics/draft.ts`): 'solo' is a lone rider;
-  // 'ttt' reads the entered watts as each rider's own rotation average.
+  // 'ttt' reads the entered watts as each rider's own rotation average; 'race'
+  // reads them as the rider's own race average in a typical mass-start bunch
+  // and needs no sub-state of its own (one field-calibrated constant).
   const draftMode = useState<DraftMode>('rider-draft-mode', () => 'solo')
   const tttRiders = useState<number>('rider-ttt-riders', () => TTT_DEFAULT_RIDERS)
   // Optional "avg W/kg on climbs over 3-4 min" (TTT only) - undefined means
@@ -62,7 +64,7 @@ export function useRiderProfile() {
       if (typeof parsed.wkg === 'number') wkg.value = parsed.wkg
       if (typeof parsed.ftpWatts === 'number') ftpWatts.value = parsed.ftpWatts
       if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = parsed.defaultUnownedLevel
-      if (parsed.draftMode === 'ttt' || parsed.draftMode === 'solo') draftMode.value = parsed.draftMode
+      if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') draftMode.value = parsed.draftMode
       if (typeof parsed.tttRiders === 'number') tttRiders.value = clampTttRiders(parsed.tttRiders)
       if (typeof parsed.tttClimbWkg === 'number') tttClimbWkg.value = clampTttClimbWkg(parsed.tttClimbWkg)
     } catch {
@@ -100,7 +102,7 @@ export function useRiderProfile() {
   }
 
   function setDraftMode(value: DraftMode) {
-    draftMode.value = value === 'ttt' ? 'ttt' : 'solo'
+    draftMode.value = value === 'ttt' || value === 'race' ? value : 'solo'
     persist()
   }
 

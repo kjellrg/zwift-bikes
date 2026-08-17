@@ -65,7 +65,7 @@ const recommendQuery = computed(() => ({
   heightCm: heightCm.value,
   wkg: wkg.value,
   // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
-  draftMode: draftMode.value === 'ttt' ? 'ttt' : undefined,
+  draftMode: draftMode.value === 'solo' ? undefined : draftMode.value,
   tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
   tttClimbWkg: draftMode.value === 'ttt' ? tttClimbWkg.value : undefined
 }))
@@ -119,6 +119,7 @@ const physicsInfo = computed(() => recommendData.value?.physics)
 const fastestOverall = computed(() => recommendData.value?.fastestOverall)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
+const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
 
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
@@ -230,6 +231,12 @@ const segmentAsRoute = computed(() => segmentData.value
             class="text-xs text-muted sm:text-right"
           >
             {{ tttSavingText }}
+          </p>
+          <p
+            v-if="raceSavingText"
+            class="text-xs text-muted sm:text-right"
+          >
+            {{ raceSavingText }}
           </p>
         </div>
       </div>

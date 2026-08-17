@@ -90,7 +90,7 @@ const recommendQuery = computed(() => ({
   // start on. See `excludeTT` in `server/api/recommend/[slug].get.ts`.
   excludeTT: ttAllowed ? undefined : 'true',
   // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
-  draftMode: draftMode.value === 'ttt' ? 'ttt' : undefined,
+  draftMode: draftMode.value === 'solo' ? undefined : draftMode.value,
   tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
   tttClimbWkg: draftMode.value === 'ttt' ? tttClimbWkg.value : undefined
 }))
@@ -244,18 +244,23 @@ const isPointsRaceWithoutSegments = computed(() => race!.format === 'points' && 
 const draftHintDismissed = ref(false)
 const draftHint = computed(() => {
   if (draftHintDismissed.value) return undefined
-  if (race!.format === 'ttt' && draftMode.value === 'solo') {
+  if (race!.format === 'ttt' && draftMode.value !== 'ttt') {
     return {
-      text: 'This is a team time trial, but the ranking below is computed for a solo rider. TTT draft mode ranks bikes at your team\'s paceline speeds instead - and it can genuinely reorder the list.',
+      text: 'This is a team time trial, but the ranking below is computed for ' + (draftMode.value === 'race' ? 'a mass-start bunch' : 'a solo rider') + '. TTT draft mode ranks bikes at your team\'s paceline speeds instead - and it can genuinely reorder the list.',
       action: 'Use TTT draft mode',
       mode: 'ttt' as const
     }
   }
-  if (race!.format !== 'ttt' && draftMode.value === 'ttt') {
+  // A points or scratch race IS a mass start, so race draft mode is the honest
+  // default here - both for a rider who left TTT on and for one still on solo,
+  // whose predicted time is then minutes off what a bunch actually does.
+  if (race!.format !== 'ttt' && draftMode.value !== 'race') {
     return {
-      text: `Your profile has TTT draft mode on, but this is a ${formatLabel.value.toLowerCase()} - the ranking below assumes paceline speeds this race won't be ridden at.`,
-      action: 'Switch to solo',
-      mode: 'solo' as const
+      text: draftMode.value === 'ttt'
+        ? `Your profile has TTT draft mode on, but this is a ${formatLabel.value.toLowerCase()} - the ranking below assumes paceline speeds this race won't be ridden at. Race draft mode models the mass-start bunch this actually is.`
+        : `This is a ${formatLabel.value.toLowerCase()}, but the ranking below is computed for a lone rider with no draft at all. Race draft mode adds the draft a typical mid-pack racer measurably gets, calibrated on thirteen real race fields.`,
+      action: 'Use race draft mode',
+      mode: 'race' as const
     }
   }
   return undefined

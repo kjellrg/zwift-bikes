@@ -189,3 +189,39 @@ Data: ZwiftInsider's Pack Dynamics 4.1 TTT test on TT bikes (positions 2–4
 measured at 22%, 28.7% and 34% power savings; deeper positions assumed to
 plateau) and their draft-savings-by-speed measurements. See
 `shared/utils/physics/draft.ts` for the constants and every citation.
+
+## Race draft mode
+
+**Race (pack draft)** is for anything ridden in a bunch — a points or
+scratch race, a crit, a group ride. Unlike TTT it asks for nothing extra:
+
+- **One number, measured from real races.** Sitting in a typical mass-start bunch
+  is worth about **31% less power** for the same speed on the flat. That figure
+  is not a model of the pack — it is what 1313 riders across thirteen real
+  ZwiftPower race fields actually achieved, solved rider by rider from their own
+  published power, weight and finish time.
+- **Your power still means your own race average.** Specifically your *average*
+  watts for the whole race, not your normalised power. Racers usually know their
+  numbers as 20-minute or normalised power, and entering NP here feeds the model
+  about 5% more power than you produced.
+- **There is no "where did you sit in the bunch" input, on purpose.** Over a race
+  you drift back, get shuffled out of shelter, burn a match to close a gap and
+  recover deep in the field. Nobody occupies one wheel position, so being asked
+  for one would be being asked for a number that does not exist. The 31% is the
+  time-weighted average over all of it.
+- **The draft fades on climbs, exactly as in TTT mode**, and for the same reason:
+  it is an aerodynamic effect tracked continuously from your actual speed. For a
+  75 kg rider at 3.0 W/kg that means roughly **11% faster than solo on a flat
+  route, ~10% rolling, and ~3% on Alpe du Zwift**. It also means a faster rider
+  gets more, because a faster bunch has more draft to give.
+- **It predicts a typical mid-pack finish, not a win.** Riders who crossed the
+  line within five seconds of each other in the same bunch turned out to have
+  saved anywhere from 17% to 42% — some sat in, some worked. No model without
+  position data can be tighter than that, so expect your own result to land
+  within a couple of percent of the prediction rather than on it.
+- **The "saves X vs riding alone" line** works the same way as TTT's: the
+  identical rider, power and route with the draft switched off.
+
+Full writeup — the field data, the terms that were measured and then dropped, the
+validation, and what it does not model — is in
+[race-drafting.md](race-drafting.md).

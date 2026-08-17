@@ -86,8 +86,8 @@ the times. On Road to Sky, stage 0 puts the Tarmac SL9 on top and stage 5 puts
 the Aethos S-Works there. Pass `upgradeLevel: 0` for bikes as they come out of
 the drop shop.
 
-Both recommend tools also take `draftMode` (`solo` | `ttt`), `tttRiders` (2-8,
-default 8) and `tttClimbWkg` (optional). The default `solo` is a lone rider
+Both recommend tools also take `draftMode` (`solo` | `ttt` | `race`), `tttRiders`
+(2-8, default 8) and `tttClimbWkg` (optional). The default `solo` is a lone rider
 with no draft - exactly how ZwiftInsider's bot tests ride, and byte-identical
 to requests from before the option existed. `ttt` models a rotating Team Time
 Trial paceline: the profile's `wkg` still means the rider's **own average over
@@ -100,6 +100,18 @@ watts, and - on the first page - a simulated "saves X vs riding this alone at
 the same effort" comparison, which the tools surface as an assumption line in
 the header. See `shared/utils/physics/draft.ts` for the Pack Dynamics 4.1 data
 behind it.
+
+`race` models a mass-start bunch - any points or scratch race, group ride or
+crit - and takes **no parameters of its own**, because it is one draft saving
+calibrated against thirteen real ZwiftPower race fields rather than a pack model
+(see [race-drafting.md](race-drafting.md)). Two things a model relaying it needs
+to get right: the profile's `wkg` still means the rider's own **mechanical
+average** power for the race, not their normalised power (feeding NP in
+overstates the prediction by roughly 2%), and what comes back is a **typical
+mid-pack** finish time, not a winning, breakaway or off-the-front one - a real
+bunch spreads about ±1-2% around it. The response's `physics.race` block carries
+the applied saving, the rider's own watts and the same "saves X vs riding solo"
+comparison, again surfaced as a header assumption line.
 
 They return at most 9 combos per call - the same cap the HTTP endpoint
 enforces - with `offset` for paging, and **one row per frame**, paired with

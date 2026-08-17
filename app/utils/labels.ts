@@ -179,6 +179,24 @@ export function formatTttTimeSaving(ttt: { riders: number, frontPullPowerW: numb
     : `A ${ttt.riders}-rider paceline is ~${formatted} slower here than riding alone at the same effort - the draft can't offset your team's climb pace on this route.`
 }
 
+/**
+ * The "sitting in the bunch saves X vs solo" line for race draft mode - see the
+ * recommend endpoints' `physics.race` block. Same shape and same honesty as
+ * `formatTttTimeSaving`: both rides are the same rider at the same average
+ * power, and only the draft differs. Says *typical mid-pack* out loud, because
+ * that is what the constant measures - not a win and not a breakaway.
+ */
+export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: number } | undefined): string | undefined {
+  if (!race || typeof race.raceSavedSec !== 'number') return undefined
+  const savedSec = race.raceSavedSec
+  const magnitude = Math.abs(savedSec)
+  if (magnitude < 0.5) return undefined
+  const formatted = magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
+  return savedSec >= 0
+    ? `Sitting in a typical mass-start bunch saves ~${formatted} vs riding this alone at the same average power (~${race.savingPct}% less power for the same speed on the flat).`
+    : `A typical mass-start bunch is ~${formatted} slower here than riding alone at the same average power - this route is too steep for the draft to be worth anything.`
+}
+
 export const RACE_FORMAT_LABELS: Record<RaceFormat, string> = {
   ttt: 'Team time trial',
   points: 'Points race',

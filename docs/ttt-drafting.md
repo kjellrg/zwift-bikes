@@ -161,6 +161,11 @@ Stated plainly, because these are the limits of the claim:
 - **Positions 5–8 are an assumption, not data.** ZwiftInsider tests four bots;
   deeper positions are assumed to plateau at the 4th wheel's 34%. If the real
   curve keeps improving, large teams are slightly understated here.
+  [`race-drafting.md`](race-drafting.md) §5 finds, from two full race fields,
+  that sitting deep in a mass-start bunch saves distinctly more than the 4-bot
+  test's deepest position — but a bunch is not a single-file paceline, and no
+  equivalent measurement exists for an 8-rider TTT line, so nothing here is
+  changed on the strength of it.
 - **The speed-dependence curve is a 4-anchor fit**, not per-position measured
   data. It is isolated in one function so better data can replace it without
   touching any caller.
@@ -173,9 +178,12 @@ Stated plainly, because these are the limits of the claim:
   of accelerating back onto the rear of the line after a turn, no rider being
   dropped.
 - **No pack churn or sticky draft.** This is a clean paceline, not Zwift's
-  full mass-start pack behaviour. A future race-draft mode should extend this
-  module rather than duplicate it; the speed dependence and the
-  power-multiplier plumbing are the reusable parts.
+  full mass-start pack behaviour. Race mode now covers that case, and it did
+  extend this module rather than duplicate it — see
+  [`race-drafting.md`](race-drafting.md): it reuses `draftSavingsSpeedScale` and
+  the same per-timestep power-multiplier plumbing, and differs only in replacing
+  the rotation model with one field-calibrated constant. Nothing in TTT mode
+  changed when it landed.
 - **Equipment data stays draft-free.** The solvers in `equipment.ts` invert
   ZwiftInsider's *no-draft* bot protocol and must never see a draft factor, or
   every frame and wheel rating in the app becomes wrong.

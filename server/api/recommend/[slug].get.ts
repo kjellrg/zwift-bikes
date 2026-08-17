@@ -3,7 +3,7 @@ import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 
@@ -70,11 +70,14 @@ export default defineEventHandler((event) => {
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
   const laps = clampLaps(route, Number(query.laps))
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
-  // TTT draft mode (see `physics/draft.ts`): the rider's `wkg` is their own
+  // Draft mode (see `physics/draft.ts`). In `ttt` the rider's `wkg` is their own
   // average over the rotation, and the paceline moves at the speed that
   // combined effort produces - roughly a solo rider at 1.38x their power on
-  // the flat for an 8-rider team.
-  const draftMode = query.draftMode === 'ttt' ? 'ttt' : 'solo'
+  // the flat for an 8-rider team. In `race` the `wkg` is their own race average
+  // and a single field-calibrated saving applies; `race` reads NO further query
+  // params, which is the whole point of one constant - so its cache key is just
+  // `draftMode=race`, and `tttRiders`/`tttClimbWkg` stay TTT-only.
+  const draftMode = query.draftMode === 'ttt' ? 'ttt' : query.draftMode === 'race' ? 'race' : 'solo'
   const tttRiders = clampTttRiders(Number(query.tttRiders))
   const tttClimbWkg = draftMode === 'ttt' ? clampTttClimbWkg(Number(query.tttClimbWkg)) : undefined
 
@@ -145,16 +148,18 @@ export default defineEventHandler((event) => {
   const tttPlan = hasRiderProfile && tttClimbWkg
     ? tttPowerPlan(geometry ?? geometryForRouteLaps(route, laps), tttClimbWkg, weightKg)
     : undefined
-  // The one object every TTT-aware call site threads through: the draft
+  // The one object every draft-aware call site threads through: the draft
   // scaling for the simulator, and its closed-form twin for the estimate.
-  const tttEstimate = draftMode === 'ttt'
-    ? { riders: tttRiders, climb: tttPlan ? { distanceM: tttPlan.climbDistanceM, elevationM: tttPlan.climbElevationM, powerW: tttPlan.climbPowerW } : undefined }
-    : undefined
-  const powerScaleAtSpeed = draftMode === 'ttt' ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps) : undefined
+  const draftEstimate = draftMode === 'ttt'
+    ? { mode: 'ttt' as const, riders: tttRiders, climb: tttPlan ? { distanceM: tttPlan.climbDistanceM, elevationM: tttPlan.climbElevationM, powerW: tttPlan.climbPowerW } : undefined }
+    : draftMode === 'race' ? { mode: 'race' as const } : undefined
+  const powerScaleAtSpeed = draftMode === 'ttt'
+    ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps)
+    : draftMode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, tttEstimate) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
 
@@ -231,6 +236,25 @@ export default defineEventHandler((event) => {
       tttSavedSec
     }
   }
+  // "Sitting in the bunch saves X vs solo": the same one-extra-simulation trick
+  // as the TTT block above, with the race power scale removed. Race mode has no
+  // pacing plan, so the two rides differ by nothing but the draft.
+  let race: { savingPct: number, riderPowerW: number, soloFinishTimeSec?: number, raceSavedSec?: number } | undefined
+  if (hasRiderProfile && draftMode === 'race') {
+    const topCombo = pageCombos[0]
+    let soloFinishTimeSec: number | undefined
+    let raceSavedSec: number | undefined
+    if (geometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry }).elapsedSec
+      raceSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
+    }
+    race = {
+      savingPct: Math.round(RACE_DRAFT_SAVING * 100),
+      riderPowerW: Math.round(rider.powerW),
+      soloFinishTimeSec,
+      raceSavedSec
+    }
+  }
   // "A bike outside your category is faster": the fastest combo once the
   // category filter is lifted. The rider-facing pages default to `standard`
   // (TT frames win outright on most routes but are restricted in a lot of
@@ -254,7 +278,7 @@ export default defineEventHandler((event) => {
     const outsideCategoryFrames = allFrames.filter(f => f.category !== category)
     if (outsideCategoryFrames.length) {
       let candidates = rankCombos(route, outsideCategoryFrames, wheelsets, outsideCategoryFrames.length * wheelsets.length)
-        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, tttEstimate) }))
+        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, draftEstimate) }))
         .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
       let overallTopSec = candidates[0]?.finishTimeSec
       // Same estimate-then-simulate discipline as the main path: the estimate
@@ -288,6 +312,10 @@ export default defineEventHandler((event) => {
     ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
     : ''
 
+  const raceNote = race
+    ? ` Race draft mode: assumes you sit in a typical mass-start bunch. Your ${race.riderPowerW} W is still your OWN average for the race (average power, not normalised), and the predicted time includes the ~${race.savingPct}% power equivalent a mid-pack racer measurably gets - field-calibrated across thirteen real races, where a typical bunch spreads roughly ±3-4 percentage points, i.e. ±1-2% on finish time. This is a typical mid-pack outcome, not a win or a breakaway. The benefit fades on climbs and grows on descents automatically.`
+    : ''
+
   return {
     route: toRouteSummary(route),
     combos: pageCombos,
@@ -296,6 +324,7 @@ export default defineEventHandler((event) => {
       ? {
           mode: physicsMode,
           ttt,
+          race,
           geometry: route.terrain.elevationProfile
             ? 'measured'
             : route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility',
@@ -304,7 +333,7 @@ export default defineEventHandler((event) => {
             ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s elevation profile is real, measured GPS data (not synthesized), so grade changes are modeled at their actual position along the route.'
             : route.terrain.climbs.length > 0
               ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s named climb(s) use real length/gradient data, with the remaining unmapped distance still synthesized from aggregate elevation.'
-              : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.') + tttNote
+              : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.') + tttNote + raceNote
         }
       : undefined,
     pagination: {

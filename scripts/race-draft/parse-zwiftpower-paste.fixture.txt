@@ -1,0 +1,30 @@
+A	1
+ Test Rider One [TST]TESTTEAM
+31:41	3.4w/kg	245w
+268w
+3.3w/kg	4.1w/kg	7.0w/kg	8.2w/kg	9.4w/kg	72.0kg	Snr	151bpm	179bpm	178cm	2.94
+A	2
+ Test Rider Two [TST]TESTTEAM
+31:42+1.380s	3.5w/kg	291w
+312w
+3.4w/kg	4.4w/kg	7.3w/kg	8.6w/kg	9.9w/kg	84.0kg	Vet	158bpm	184bpm	190cm	3.11
+A	3
+ Test Rider Three
+31:43+2.400s	3.2w/kg	260w
+280w
+3.1w/kg	3.9w/kg	6.8w/kg	7.9w/kg	9.0w/kg	Mas	160bpm	186bpm	2.87
+B	1
+ Test Rider Four [OTH]OTHERTEAM
+33:12	3.1w/kg	210w
+228w
+3.0w/kg	3.7w/kg	6.4w/kg	7.5w/kg	8.6w/kg	68.5kg	Snr	149bpm	176bpm	172cm	2.55
+B	2
+ Test Rider Five [OTH]OTHERTEAM
+33:12+0.800s	2.9w/kg	268w
+289w
+2.8w/kg	3.5w/kg	6.1w/kg	7.1w/kg	8.2w/kg	91.0kg	Vet	155bpm	181bpm	186cm	2.61
+B	3
+ Test Rider Six
+33:17+5.200s	3.1w/kg	232w
+250w
+3.0w/kg	3.8w/kg	6.5w/kg	7.6w/kg	8.7w/kg	75.5kg	Snr	152bpm	180bpm	180cm	2.48

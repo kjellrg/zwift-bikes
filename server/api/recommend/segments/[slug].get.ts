@@ -4,7 +4,7 @@ import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
 import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
-import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
 
@@ -58,9 +58,10 @@ export default defineEventHandler((event) => {
   const wkg = Number(query.wkg)
   const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
   const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
-  // TTT draft mode - see the equivalent comment in `recommend/[slug].get.ts`
-  // and `physics/draft.ts` for what the rider's power means here.
-  const draftMode = query.draftMode === 'ttt' ? 'ttt' : 'solo'
+  // Draft mode - see the equivalent comment in `recommend/[slug].get.ts` and
+  // `physics/draft.ts` for what the rider's power means in each mode, and why
+  // `race` deliberately reads no parameters of its own.
+  const draftMode = query.draftMode === 'ttt' ? 'ttt' : query.draftMode === 'race' ? 'race' : 'solo'
   const tttRiders = clampTttRiders(Number(query.tttRiders))
   const tttClimbWkg = draftMode === 'ttt' ? clampTttClimbWkg(Number(query.tttClimbWkg)) : undefined
 
@@ -131,13 +132,15 @@ export default defineEventHandler((event) => {
       )
     : undefined
   const warmedPowerSegmentsW = tttPlan?.powerSegmentsW.map(segment => ({ ...segment, fromM: segment.fromM + WARMUP_DISTANCE_M, toM: segment.toM + WARMUP_DISTANCE_M }))
-  const tttEstimate = draftMode === 'ttt'
-    ? { riders: tttRiders, climb: tttPlan ? { distanceM: tttPlan.climbDistanceM, elevationM: tttPlan.climbElevationM, powerW: tttPlan.climbPowerW } : undefined }
-    : undefined
+  const draftEstimate = draftMode === 'ttt'
+    ? { mode: 'ttt' as const, riders: tttRiders, climb: tttPlan ? { distanceM: tttPlan.climbDistanceM, elevationM: tttPlan.climbElevationM, powerW: tttPlan.climbPowerW } : undefined }
+    : draftMode === 'race' ? { mode: 'race' as const } : undefined
   // Applied to BOTH the warmed and the warmup-only run, so the group enters
   // the segment at its own drafted steady-state speed and the subtraction
   // still cancels exactly.
-  const powerScaleAtSpeed = draftMode === 'ttt' ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps) : undefined
+  const powerScaleAtSpeed = draftMode === 'ttt'
+    ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps)
+    : draftMode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined
 
   // Both sims must share the same time step for this subtraction to cancel
   // cleanly - they use the simulator's default (see `DEFAULT_DT_SEC`).
@@ -148,7 +151,7 @@ export default defineEventHandler((event) => {
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, tttEstimate) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
 
@@ -210,6 +213,27 @@ export default defineEventHandler((event) => {
       tttSavedSec
     }
   }
+  // "Sitting in the bunch saves X vs solo" - the same warmed-minus-warmup
+  // subtraction as the ranked times, run once with the race power scale removed
+  // from both halves. Race mode has no pacing plan, so nothing but the draft
+  // differs between the two rides.
+  let race: { savingPct: number, riderPowerW: number, soloFinishTimeSec?: number, raceSavedSec?: number } | undefined
+  if (hasRiderProfile && draftMode === 'race') {
+    const topCombo = pageCombos[0]
+    let soloFinishTimeSec: number | undefined
+    let raceSavedSec: number | undefined
+    if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry }).elapsedSec
+        - simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
+      raceSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
+    }
+    race = {
+      savingPct: Math.round(RACE_DRAFT_SAVING * 100),
+      riderPowerW: Math.round(rider.powerW),
+      soloFinishTimeSec,
+      raceSavedSec
+    }
+  }
   // "A bike outside your category is faster" - see the equivalent block in
   // `recommend/[slug].get.ts` for why this is computed server-side, why only
   // the out-of-category frames are ranked, and why it is gated this narrowly.
@@ -219,7 +243,7 @@ export default defineEventHandler((event) => {
     const outsideCategoryFrames = allFrames.filter(f => f.category !== category)
     if (outsideCategoryFrames.length) {
       let candidates = rankCombos(segmentRoute, outsideCategoryFrames, wheelsets, outsideCategoryFrames.length * wheelsets.length)
-        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, tttEstimate) }))
+        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, draftEstimate) }))
         .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
       let overallTopSec = candidates[0]?.finishTimeSec
       if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic') {
@@ -247,6 +271,10 @@ export default defineEventHandler((event) => {
     ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
     : ''
 
+  const raceNote = race
+    ? ` Race draft mode: assumes you sit in a typical mass-start bunch. Your ${race.riderPowerW} W is still your OWN average for the effort (average power, not normalised), and the predicted time includes the ~${race.savingPct}% power equivalent a mid-pack racer measurably gets - field-calibrated across thirteen real races, where a typical bunch spreads roughly ±3-4 percentage points, i.e. ±1-2% on finish time. This is a typical mid-pack outcome, not a win or a breakaway. The benefit fades on climbs and grows on descents automatically.`
+    : ''
+
   return {
     segment: summary,
     combos: pageCombos,
@@ -255,10 +283,11 @@ export default defineEventHandler((event) => {
       ? {
           mode: physicsMode,
           ttt,
+          race,
           rider: { weightKg, heightCm, wkg },
           note: (physicsMode === 'legacy'
             ? 'Legacy finish-time model active - a constant-speed estimate at this segment’s own average grade.'
-            : 'Dynamic physics is active. The segment is simulated after a 2km flat warmup so the timed portion starts at realistic speed, matching how a Zwift/Strava segment is actually entered (never from a standing start).') + tttNote
+            : 'Dynamic physics is active. The segment is simulated after a 2km flat warmup so the timed portion starts at realistic speed, matching how a Zwift/Strava segment is actually entered (never from a standing start).') + tttNote + raceNote
         }
       : undefined,
     pagination: {

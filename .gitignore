@@ -17,6 +17,11 @@ node_modules
 logs
 *.log
 
+# Race draft calibration dataset - per-rider race results stay local-only.
+# Summary statistics and the charts live in docs/race-drafting.md; the format is
+# documented by scripts/race-draft/field-results.sample.json.
+scripts/race-draft/field-results.json
+
 # Misc
 .DS_Store
 .fleet
