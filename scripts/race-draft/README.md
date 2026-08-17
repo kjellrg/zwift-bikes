@@ -12,7 +12,7 @@ results are added, and its output goes into the doc.
 
 | File | What it is |
 |---|---|
-| `field-results.json` | **Local only — gitignored, never committed.** Anonymised ZwiftPower results for thirteen mass-start races (1313 riders). Category, finishing position, finish time, average and normalised power, weight and height — no names, teams, ages or heart rates. |
+| `field-results.json` | **Local only — gitignored, never committed.** Anonymised ZwiftPower results for twenty mass-start races (1654 riders). Category, finishing position, finish time, average and normalised power, weight and height — no names, teams, ages or heart rates. |
 | `field-results.sample.json` | A tiny synthetic sample, committed, documenting the exact format the analyzer reads. Invented numbers; no real rider rows. |
 | `parse-zwiftpower-paste.mjs` | Turns a raw ZwiftPower results paste into one race block of the dataset, discarding names as it parses and validating what it kept. |
 | `parse-zwiftpower-paste.fixture.txt` | Fake paste for the parser's test — the one place fake rider names exist in this repo, and they are obviously fake. |
@@ -26,6 +26,7 @@ results are added, and its output goes into the doc.
 | `add-segment-effort.mjs` | Builds a record, either from a Strava activity (reads its segment efforts, keeps the ones that are a route lap) or from numbers reported by hand. |
 | `check-segment-efforts.mjs` | Runs the shipped model against each effort over exactly the lap the segment covers. The report to believe when it disagrees with the field results. |
 | `render-savings-chart.mjs` | Renders `docs/assets/race-draft-field-savings.svg` from the analyzer's `--json` output. |
+| `render-leadin-chart.mjs` | Renders `docs/assets/race-draft-leadin-correction.svg` — median error per field with Zwift's lead-in and with the corrected one, controls included. Every number is computed, not typed. |
 | `render-alpe-chart.mjs` | Renders `docs/assets/race-draft-alpe-finishes.svg` (the Road to Sky finishes vs the solo model, docs §5) from the analyzer's `--json --race road-to-sky-2025-03` output. |
 
 ## Where the data lives
@@ -62,6 +63,10 @@ node scripts/race-draft/spot-check-shipped-race-mode.mjs --all  # including the 
 
 node scripts/race-draft/analyze-field-draft.mjs --json > /tmp/field.json
 node scripts/race-draft/render-savings-chart.mjs /tmp/field.json > docs/assets/race-draft-field-savings.svg
+node scripts/race-draft/render-leadin-chart.mjs > docs/assets/race-draft-leadin-correction.svg
+
+# The distance-exact validation set - no lead-in, no event pen, one rider each.
+node scripts/race-draft/check-segment-efforts.mjs
 ```
 
 The full analyzer run takes about two minutes: every rider is solved by
@@ -93,8 +98,9 @@ pooled into the constant:
   and Mech Isle Mayhem both record 85 m and both ride roughly 2 km more. That
   missing distance is indistinguishable from a surface penalty in a field
   result, and it cost this project a week — see docs §5, "What sand turned out
-  not to be". Verify with a segment effort (`add-segment-effort.mjs`) before
-  adding an event-only route, or leave it out.
+  not to be". Verify against the organiser's published event distance, or with a
+  segment effort (`add-segment-effort.mjs`), before adding an event-only route -
+  or leave it out. Corrections live in `shared/data/routeEventLeadIns.ts`.
 
 - **Routes without a measured elevation profile.** `geometryForRouteLaps` falls
   back to a synthesised rolling profile for those, and the implied saving then

@@ -51,7 +51,7 @@ const { classifyBikeFrame } = loadSharedModule('shared/utils/classifyBikeFrame.t
 const { simulateRoute } = loadSharedModule('shared/utils/physics/simulator.ts')
 const { geometryForRouteLaps } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
 const { racePowerScaleAtSpeed, tttPowerScaleAtSpeed } = loadSharedModule('shared/utils/physics/draft.ts')
-const { bikeFrames, routes } = await import('zwift-data')
+const { bikeFrames } = await import('zwift-data')
 
 /** Same three setups the field analysis uses, so the two reports are comparable. */
 const SCENARIOS = [
@@ -113,13 +113,17 @@ console.log('route                       km    draft   actual   predicted (typic
 const errors = []
 for (const effort of efforts) {
   const route = getRouteBySlug(effort.routeSlug)
-  const raw = routes.find(r => r.slug === effort.routeSlug)
-  if (!route || !raw) {
+  if (!route) {
     console.error(`  skipped ${effort.routeSlug}: not in the catalog - re-key the effort or drop it`)
     continue
   }
 
-  const geometry = lapOnlyGeometry(route, (raw.leadInDistance ?? 0) * 1000)
+  // The route's EFFECTIVE lead-in, i.e. after `routeEventLeadIns.ts` has had
+  // its say - that is what `geometryForRouteLaps` just prepended, so that is
+  // what has to come back off. Reading zwift-data's raw figure here instead
+  // left 2 km of Mech Isle Mayhem's corrected lead-in inside the "lap" and
+  // blew the effort 12% out, which is how this bug was found.
+  const geometry = lapOnlyGeometry(route, (route.leadInDistance ?? 0) * 1000)
   const rider = { weightKg: effort.weightKg, heightCm: effort.heightCm, powerW: effort.avgW }
   const powerScaleAtSpeed = powerScaleFor(effort.draft)
 

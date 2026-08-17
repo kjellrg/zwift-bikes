@@ -350,9 +350,13 @@ the more interesting one:
   −2.04%.
 
 Distance enters the implied saving through `v³`, so it remains the largest error
-term in the whole analysis, and the race stays out of the constant. What changed
-is that we now know *which* term was wrong, and have an instrument that does not
-depend on it - see "What sand turned out not to be" below.
+term in the whole analysis. The lead-in is now corrected in
+`shared/data/routeEventLeadIns.ts` and the race reproduces at −2.04%, but it
+stays **held out of the constant** rather than pooled: its distance comes from a
+published figure rather than a measurement, and the whole point of the episode
+below is that a plausible distance is exactly what fooled us. It rejoins the
+pool when a segment effort confirms the lead-in - see "What sand turned out not
+to be".
 
 **The clean races.** Every constant-setting race has a measured elevation
 profile, measured surface data, and a ridden distance that really is
@@ -375,9 +379,9 @@ is a claim that has to be checked rather than assumed:
 | Jungle Circuit | Watopia | 13.52 km | 6 m/km | 95% dirt | *excluded — loose* |
 | Road to Sky, Mar 2025 | Watopia | 17.60 km | **59 m/km** | 80% tarmac, 19% dirt | climb evidence |
 | Road to Sky, Feb 2025 | Watopia | 17.60 km? | **59 m/km** | 80% tarmac, 19% dirt | *excluded — distance* |
-| Urumaze (two fields) | Makuri Islands | 26.80 km | 8 m/km | 46% tarmac, 40% sand | *excluded — distance* |
-| Mech Isle Mayhem | Makuri Islands | 20.40 km? | 6 m/km | 32% tarmac, 35% sand, 21% dirt | *excluded — distance* |
-| Neokyo Crit Course | Makuri Islands | 20.19 km? | 5 m/km | 52% brick, 48% tarmac | *excluded — distance* |
+| Urumaze (two fields) | Makuri Islands | 26.80 km | 8 m/km | 46% tarmac, 40% sand | *held out — corrected lead-in* |
+| Mech Isle Mayhem | Makuri Islands | 20.40 km | 6 m/km | 32% tarmac, 35% sand, 21% dirt | *held out — corrected lead-in* |
+| Neokyo Crit Course | Makuri Islands | 20.19 km? | 5 m/km | 52% brick, 48% tarmac | *excluded — distance unverified* |
 | Tropic Rush | Makuri Islands | 84.14 km | 8 m/km | 42% tarmac, 32% brick, 18% sand | *no bunch finish* |
 
 The four distance-excluded rows are all **event-only routes**, and that is not a
@@ -449,6 +453,27 @@ No Crr change at all. The curator note on stage 1 had already recorded the
 mechanism - "about 2 km over route + lead-in, consistent with an event-pen
 lead-in; the same overshoot shows on stages 2 and 4" - and the sand hypothesis
 was built on top of a warning that said the distance was wrong.
+
+![Median finish-time error per field, before and after correcting the event lead-in](./assets/race-draft-leadin-correction.svg)
+
+**The correction ships.** `shared/data/routeEventLeadIns.ts` carries a lead-in
+per affected route, derived from the organiser's published event distance minus
+`laps x route.distance`, and `getRoutesWithMeta` applies it once so route pages,
+the estimate, the simulator and the MCP tools cannot disagree about how far the
+event is:
+
+| route | Zwift publishes | corrected | our total now | published |
+|---|---|---|---|---|
+| Mech Isle Mayhem | 0.085 km | 2.063 km | 20.40 km / 121 m | 20.4 / 121 |
+| Urumaze | 0.085 km | 2.046 km | 26.80 km / 202 m | 26.8 / 202 |
+| Twilight Crit (5 laps) | 0.066 km | 1.680 km | 21.20 km / 116 m | 21.2 / 116 |
+
+WhatYumeziWereLost is deliberately absent - published 17.6 km against our 17.54
+is agreement at the precision the organiser publishes, and an override without
+evidence is the same mistake pointing the other way. The default remains
+whatever `zwift-data` ships; `docs/events-data.md` carries the standing rule for
+curators, and 20 event-only cycling routes still hold unchecked sub-200 m
+lead-ins.
 
 **The methodological lesson, which is the durable part.** A field result cannot
 separate a distance error from a resistance error: both produce a flat
