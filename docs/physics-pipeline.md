@@ -400,6 +400,39 @@ and validation evidence is in [ttt-drafting.md](ttt-drafting.md):
   draft scaling removed. The only difference between the two rides is the
   draft, so the gap is exactly what the paceline is worth.
 
-A future mass-start `race` draft mode should extend this module — the speed
-dependence and the scale-as-power-multiplier plumbing are the reusable core;
-only the position/rotation model differs.
+## 10. Race draft mode
+
+`draftMode=race` models a mass-start bunch, and it did extend the module above
+rather than duplicate it: same `draftSavingsSpeedScale`, same
+scale-as-power-multiplier plumbing at both midpoint velocities each step, same
+`equipment.ts`-stays-draft-free rule. Only the rotation model is replaced — by a
+single number.
+
+- **One constant, no inputs.** `RACE_DRAFT_SAVING = 31%` is the flat-speed power
+  saving of a typical mid-pack racer, field-calibrated against thirteen real
+  ZwiftPower race fields (1313 riders; pooled bunch median 31.7%, IQR
+  28.5–34.8%, n = 430). There is no rider count, no position, no category and no
+  grade term, because a racer does not occupy a position in a mass start — they
+  occupy a distribution of positions, and the constant is the time-weighted
+  expectation over it. Full evidence in
+  [race-drafting.md](race-drafting.md).
+- **`racePowerScaleAtSpeed`** is the whole transform:
+  `1 / (1 − saving × draftSavingsSpeedScale(v))`. Its exactness is load-bearing —
+  the constant was bisected per rider under precisely this expression against
+  `simulateRoute`, so changing the curve or the application point invalidates the
+  31% rather than improving it. `saving` is a defaulted parameter, which is where
+  a future per-category or effort-preset value plugs in.
+- **No power plan.** `tttPowerPlan` stays TTT-only: the speed curve already makes
+  the benefit fade on a climb, and "the bunch settles into its own climbing pace"
+  is a model the data does not support.
+- **The cheap estimate** solves `raceGroupSpeedMps`, the same 4-iteration fixed
+  point as TTT's, so full-pool ranking keeps tracking the displayed simulated
+  times. `estimateFinishTimeSec`'s draft argument is a discriminated union
+  (`{ mode: 'ttt', … } | { mode: 'race' }`) so a fourth mode is a new arm rather
+  than a new parameter at every call site. With `draftMode=solo` both models are
+  bit-identical to before race mode existed.
+- **What it is worth**, reference rider (75 kg, 3.0 W/kg): ~11% faster than solo
+  on the flat, ~10% rolling, ~3% on Alpe du Zwift — monotone in climbing with no
+  grade term, and much smaller than the 31% power saving because speed goes as
+  roughly the cube root of power. Reproduce with
+  `node scripts/race-draft/validate-race-draft.mjs`.
