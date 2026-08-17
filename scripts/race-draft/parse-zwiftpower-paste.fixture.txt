@@ -28,3 +28,13 @@ B	3
 33:17+5.200s	3.1w/kg	232w
 250w
 3.0w/kg	3.8w/kg	6.5w/kg	7.6w/kg	8.7w/kg	75.5kg	Snr	152bpm	180bpm	180cm	2.48
+C	1
+ Test Rider Seven [TST]TESTTEAM
+1:02:9	2.9w/kg	205w
+221w
+2.8w/kg	3.5w/kg	6.0w/kg	7.0w/kg	8.0w/kg	70.0kg	Snr	150bpm	178bpm	175cm	2.40
+C	2
+ Test Rider Eight
+1:02:9+2.400s	3.0w/kg	219w
+235w
+2.9w/kg	3.6w/kg	6.2w/kg	7.2w/kg	8.2w/kg	73.0kg	Vet	152bpm	180bpm	178cm	2.30

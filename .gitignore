@@ -22,6 +22,10 @@ logs
 # documented by scripts/race-draft/field-results.sample.json.
 scripts/race-draft/field-results.json
 
+# Segment-effort validation set - one rider's exact distance/time/power per
+# route lap, also local-only. Format: scripts/race-draft/segment-efforts.sample.json.
+scripts/race-draft/segment-efforts.json
+
 # Misc
 .DS_Store
 .fleet

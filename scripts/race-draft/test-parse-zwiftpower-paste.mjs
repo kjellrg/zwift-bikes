@@ -41,7 +41,12 @@ const EXPECTED = {
       { cat: 'A', pos: 3, timeSec: 1903, avgW: 260, npW: 280 },
       { cat: 'B', pos: 1, timeSec: 1992, avgW: 210, npW: 228, weightKg: 68.5, heightCm: 172 },
       { cat: 'B', pos: 2, timeSec: 1993, avgW: 268, npW: 289, weightKg: 91, heightCm: 186 },
-      { cat: 'B', pos: 3, timeSec: 1997, avgW: 232, npW: 250, weightKg: 75.5, heightCm: 180 }
+      { cat: 'B', pos: 3, timeSec: 1997, avgW: 232, npW: 250, weightKg: 75.5, heightCm: 180 },
+      // Hour-plus finishes: ZwiftPower drops the leading zero on the seconds
+      // ("1:02:9", not "1:02:09"), which the clock pattern used to reject -
+      // silently costing every such row its finish time. 1h 02m 09s = 3729s.
+      { cat: 'C', pos: 1, timeSec: 3729, avgW: 205, npW: 221, weightKg: 70, heightCm: 175 },
+      { cat: 'C', pos: 2, timeSec: 3731, avgW: 219, npW: 235, weightKg: 73, heightCm: 178 }
     ]
   }
 }
@@ -110,7 +115,7 @@ if (forced.status !== 0) failures.push('--allow-mismatch should downgrade the mi
 const cut = run(['--dnf-cut', '3'])
 if (cut.status !== 0) failures.push(`--dnf-cut should not fail, but the parser exited ${cut.status}`)
 const cutRiders = cut.status === 0 ? JSON.parse(cut.stdout)['example-crit'].riders : []
-if (cutRiders.length !== 5) failures.push(`--dnf-cut 3 should drop exactly the one rider 5s down, kept ${cutRiders.length} of 6`)
+if (cutRiders.length !== 7) failures.push(`--dnf-cut 3 should drop exactly the one rider 5s down, kept ${cutRiders.length} of 8`)
 
 if (failures.length) {
   console.error(`test-parse-zwiftpower-paste: ${failures.length} failure(s)\n`)
