@@ -495,8 +495,20 @@ distance parameter:
   [`add-segment-effort.mjs`](../scripts/race-draft/add-segment-effort.mjs) and
   checked with
   [`check-segment-efforts.mjs`](../scripts/race-draft/check-segment-efforts.mjs),
-  which strips the lead-in back off `geometryForRouteLaps` so the simulated lap
-  is exactly the segment.
+  which builds the lap with the lead-in set to zero so the simulated lap is
+  exactly the segment.
+
+  That last detail is not a formality. `geometryForRouteLaps` feeds its lead-in
+  from `splitMeasuredProfile`, which carves the lead-in's shape out of the
+  *lap's* measured profile - the profile is the lap's own Strava segment, and no
+  measured data for the lead-in exists. Trimming a lead-in back off therefore
+  returns a lap missing its first `leadInDistance` of terrain. At the 85 m
+  `zwift-data` reported that was invisible; at the corrected 2.06 km it removed
+  13 m of climbing from Mech Isle Mayhem's lap and made the check 1.4% too fast
+  until it was caught. On shipped predictions the same approximation is worth
+  0.05% (Hell of the North) to 0.35% (Urumaze, Mech Isle Mayhem) - real, but far
+  too small to justify changing the geometry builder and re-fitting the constant
+  behind it.
 
 **The two dirt races are excluded from the constant**, and §4 gives the reason
 in full: on a loose surface the implied saving is dominated by the

@@ -74,26 +74,22 @@ const equipment = SCENARIOS.map((scenario) => {
 })
 
 /**
- * The Strava segment covers the route's LAP, not its lead-in, so the lead-in
- * `geometryForRouteLaps` prepends has to come back off before anything is
- * compared. Getting this wrong would reintroduce exactly the ambiguity this
- * whole file exists to remove - and on a route whose lead-in is wrong in
- * zwift-data (Urumaze, Mech Isle Mayhem: 85 m recorded, ~2 km real) it would
- * import that error straight into the "exact" measurement.
+ * The Strava segment covers the route's LAP, so the comparison has to be
+ * against the lap alone.
+ *
+ * Built by asking for the route with NO lead-in, rather than by trimming the
+ * lead-in off a full geometry. Trimming looks equivalent and is not:
+ * `geometryForRouteLaps` feeds the lead-in from `splitMeasuredProfile`, which
+ * carves the lead-in's shape out of the *lap's* measured profile - the profile
+ * is the lap's own Strava segment, and there is no measured data for the
+ * lead-in at all. So a trimmed geometry hands back a lap that is missing its
+ * first `leadInDistance` of real terrain, stretched to full length. At the 85 m
+ * `zwift-data` used to report for these routes that was invisible; at the
+ * corrected 2.06 km it silently removed 13 m of climbing from Mech Isle
+ * Mayhem's lap and made the model 1.4% too fast.
  */
-function lapOnlyGeometry(route, leadInM) {
-  const geometry = geometryForRouteLaps(route, 1)
-  if (!leadInM) return geometry
-  return {
-    ...geometry,
-    points: geometry.points
-      .filter(point => point.distanceM >= leadInM - 1e-6)
-      .map(point => ({ ...point, distanceM: point.distanceM - leadInM })),
-    surfaceSegments: geometry.surfaceSegments
-      .filter(segment => segment.toM > leadInM)
-      .map(segment => ({ ...segment, fromM: Math.max(0, segment.fromM - leadInM), toM: segment.toM - leadInM })),
-    totalDistanceM: geometry.totalDistanceM - leadInM
-  }
+function lapOnlyGeometry(route) {
+  return geometryForRouteLaps({ ...route, leadInDistance: 0, leadInElevation: 0 }, 1)
 }
 
 const powerScaleFor = draft => draft === 'race' ? racePowerScaleAtSpeed : draft === 'ttt' ? tttPowerScaleAtSpeed : undefined
@@ -118,12 +114,7 @@ for (const effort of efforts) {
     continue
   }
 
-  // The route's EFFECTIVE lead-in, i.e. after `routeEventLeadIns.ts` has had
-  // its say - that is what `geometryForRouteLaps` just prepended, so that is
-  // what has to come back off. Reading zwift-data's raw figure here instead
-  // left 2 km of Mech Isle Mayhem's corrected lead-in inside the "lap" and
-  // blew the effort 12% out, which is how this bug was found.
-  const geometry = lapOnlyGeometry(route, (route.leadInDistance ?? 0) * 1000)
+  const geometry = lapOnlyGeometry(route)
   const rider = { weightKg: effort.weightKg, heightCm: effort.heightCm, powerW: effort.avgW }
   const powerScaleAtSpeed = powerScaleFor(effort.draft)
 
