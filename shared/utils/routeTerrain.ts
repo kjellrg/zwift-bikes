@@ -60,12 +60,20 @@ function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
 // which always checks generated data first) - re-check this list whenever
 // zwift-data adds a `stravaSegmentId` for one of these, since the curated
 // entry becomes dead weight the moment generated data covers it too.
+//
+// `handful-of-gravel`, `jungle-circuit-rev` and `cobbled-crown` were dropped
+// from here for exactly that reason once zwift-data gained their segment ids.
+// Worth knowing how far the guesses were off: `jungle-circuit-rev` was
+// carried as 55% road / 45% gravel and actually measures 94.6% dirt. Gravel
+// wheels won it either way, so the ranking held - but blended road-wheel Crr
+// goes 0.0094 -> 0.0154, so the curated figure understated the cost of the
+// wrong wheel by a factor of six and made every finish-time estimate on the
+// route optimistic. Curated percentages from route descriptions are a
+// stopgap for ranking, not a second opinion on measured data, and they are
+// worst exactly where they matter most - predicted time.
 const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {
-  'handful-of-gravel': { road: 10, gravel: 90, cobble: 0 },
   'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 },
-  'jungle-circuit-rev': { road: 55, gravel: 45, cobble: 0 },
-  'peaky-pave': { road: 70, gravel: 0, cobble: 30 },
-  'cobbled-crown': { road: 75, gravel: 0, cobble: 25 }
+  'peaky-pave': { road: 70, gravel: 0, cobble: 30 }
 }
 
 export function estimateSurface(route: Route): SurfaceEstimate {
