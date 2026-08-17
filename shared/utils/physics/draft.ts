@@ -5,10 +5,19 @@ import { speedForPower } from './forces'
  * Draft modes the recommendation pipeline understands. `solo` is today's
  * behavior - one rider, no draft anywhere (which is also exactly how
  * ZwiftInsider's bot tests are ridden, so all equipment data stays valid).
- * `ttt` models a Team Time Trial paceline. A future `race` mode (mass-start
- * pack draft) should extend THIS module - the speed-dependence curve below
- * (`draftSavingsSpeedScale`) is the reusable core, only the position/rotation
- * model differs.
+ * `ttt` models a Team Time Trial paceline. `race` models a mass-start bunch;
+ * both extend the same speed-dependence curve below
+ * (`draftSavingsSpeedScale`) and differ only in the position/rotation model.
+ *
+ * Race semantics: the rider's entered power is **their own mechanical average
+ * for the whole race**, exactly as in solo and TTT mode - not their normalised
+ * power, which runs ~5% higher and would feed the model speed the rider never
+ * produced. The pack itself is assumed rather than modelled per-rider: there
+ * is no rider count, no position and no rotation, because a racer does not
+ * occupy a position in a mass start, they occupy a distribution of positions.
+ * What `RACE_DRAFT_SAVING` measures is the time-weighted expectation over that
+ * whole distribution, taken from real race fields rather than from a pack
+ * model - see `docs/race-drafting.md`.
  *
  * TTT semantics: the rider's entered power is **their own average over a full
  * rotation** - the same thing it means in solo mode, i.e. what they can
@@ -29,9 +38,12 @@ import { speedForPower } from './forces'
  *
  * IMPORTANT: never feed draft factors into `equipment.ts`'s
  * `steadyStateSpeedMps`/`solveEquipmentDelta` - those invert ZwiftInsider's
- * no-draft bot test protocol and must stay draft-free.
+ * no-draft bot test protocol and must stay draft-free. That applies to race
+ * mode exactly as it does to TTT: the equipment solvers reproduce a bot test
+ * ridden alone, and a draft factor anywhere near them corrupts every frame and
+ * wheel CdA the site owns.
  */
-export type DraftMode = 'solo' | 'ttt'
+export type DraftMode = 'solo' | 'ttt' | 'race'
 
 export const TTT_MIN_RIDERS = 2
 export const TTT_MAX_RIDERS = 8
@@ -188,6 +200,76 @@ export function tttGroupSpeedMps(
   let speedMps = speedForPower(riderPowerW, massKg, grade, crr, cdaM2)
   for (let iteration = 0; iteration < 4; iteration++) {
     speedMps = speedForPower(riderPowerW * tttPowerScaleAtSpeed(riders, speedMps), massKg, grade, crr, cdaM2)
+  }
+  return speedMps
+}
+
+/**
+ * Power saving of a typical mid-pack racer versus riding solo, at flat race
+ * speeds. Field-calibrated in `docs/race-drafting.md` §5 from thirteen real
+ * ZwiftPower race fields (1313 riders, 1221 with a published weight): pooled
+ * bunch median 31.7%, interquartile range 28.5-34.8%, n = 430, under the
+ * typical-equipment scenario. 31% rather than 31.7% because ZwiftPower does not
+ * publish equipment and the assumed bike moves the answer (35.4% stock, 31.7%
+ * typical, 29.0% fast) - 31% is the midpoint of the plausible field, and that
+ * +/-3-point band is the real error bar, larger than every other uncertainty
+ * here.
+ *
+ * Valid ONLY under `racePowerScaleAtSpeed`'s exact transform - the constant was
+ * bisected per rider under that formula against `simulateRoute`, so changing
+ * the formula silently invalidates the number. Recalibrate first: see
+ * `scripts/race-draft/README.md`.
+ *
+ * A single constant is the measured answer, not a simplification: per-category
+ * constants were fitted and rejected (they buy at most 0.2 points of mean
+ * absolute time error, and ~80% of the A->D gradient is a speed effect the
+ * curve below already handles), and within one bunch riders who finished five
+ * seconds apart imply savings spanning 17-42%, so no position-free model can
+ * beat that spread.
+ */
+export const RACE_DRAFT_SAVING = 0.31
+
+/**
+ * What sitting in a mass-start bunch is worth, as a multiplier on the rider's
+ * own race-average power: the rider covers ground like a lone rider at
+ * `power x this`, because the pack let them hold their average while producing
+ * less of the speed themselves.
+ *
+ * This exact expression is the calibration's invariant (see
+ * `RACE_DRAFT_SAVING`). It is speed-dependent through the same
+ * `draftSavingsSpeedScale` TTT mode uses and is evaluated against the CURRENT
+ * speed at each simulator timestep, so the benefit fades on a climb and grows
+ * on a descent with no per-grade bookkeeping - which is why race mode needs no
+ * grade term of its own. On the flat it is 1/(1-0.31) = 1.449; on Alpe du Zwift
+ * it collapses to a few percent on its own.
+ *
+ * `saving` is defaulted rather than hard-coded on purpose: per-category
+ * constants, a "front group / typical bunch" selector, or a recalibrated value
+ * all pass through here without touching a single caller.
+ */
+export function racePowerScaleAtSpeed(speedMps: number, saving = RACE_DRAFT_SAVING): number {
+  return 1 / (1 - saving * draftSavingsSpeedScale(speedMps))
+}
+
+/**
+ * Steady-state bunch speed for a rider averaging `riderPowerW` in a race, on a
+ * constant grade. Same fixed point as `tttGroupSpeedMps` and for the same
+ * reason - the draft benefit depends on the speed and the speed depends on the
+ * benefit - converging in a couple of iterations because the scale saturates
+ * while drag keeps growing with v^3. Used by the cheap closed-form estimate;
+ * the simulator applies `racePowerScaleAtSpeed` per timestep instead.
+ */
+export function raceGroupSpeedMps(
+  riderPowerW: number,
+  massKg: number,
+  grade: number,
+  crr: number,
+  cdaM2: number,
+  saving = RACE_DRAFT_SAVING
+): number {
+  let speedMps = speedForPower(riderPowerW, massKg, grade, crr, cdaM2)
+  for (let iteration = 0; iteration < 4; iteration++) {
+    speedMps = speedForPower(riderPowerW * racePowerScaleAtSpeed(speedMps, saving), massKg, grade, crr, cdaM2)
   }
   return speedMps
 }
