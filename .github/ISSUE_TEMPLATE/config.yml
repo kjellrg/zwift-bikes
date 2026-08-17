@@ -1,0 +1,17 @@
+# Blank issues are disabled so every report arrives through one of the forms
+# above - they're what the in-app report composer (app/utils/report.ts)
+# prefills, and what makes a data correction actionable without a round trip.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/kjellrg/zwift-bikes/security/advisories/new
+    about: >
+      Please don't file security issues publicly. This sends the report
+      privately to the maintainer - see SECURITY.md.
+
+  - name: Not on GitHub? Report by email
+    url: mailto:bugs@zwiftbikes.com
+    about: >
+      No GitHub account needed, and it's read privately - your email address
+      is never published in an issue. Slower to triage than an issue, but it
+      gets read. Please include the page URL and what you expected to happen.

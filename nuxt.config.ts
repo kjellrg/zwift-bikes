@@ -22,6 +22,33 @@ export default defineNuxtConfig({
     url: 'https://zwiftbikes.com'
   },
 
+  runtimeConfig: {
+    public: {
+      /**
+       * Short commit the site was built from, shown in the "app context"
+       * block of a bug report (see `useReportContext`) so a report can be
+       * tied to a build - there are no released versions, only whatever is
+       * currently on `main`.
+       *
+       * Resolved here, at build time, rather than left to a runtime env
+       * lookup: the SSR function on Azure has no `GITHUB_SHA` in its
+       * environment, so a runtime-only value would be empty for every page
+       * that isn't prerendered. Reading it in this file inlines it as the
+       * default instead, which prerendered pages and the SSR function then
+       * both carry. Fed by the `env:` block on the deploy workflow's build
+       * step, which Azure's action forwards into the Oryx build container.
+       *
+       * Deliberately `BUILD_SHA` and not `NUXT_PUBLIC_BUILD_SHA`: Nuxt
+       * applies `NUXT_PUBLIC_*` variables over the resolved config value
+       * automatically, which would hand the raw 40-character SHA straight to
+       * the app and skip the `slice()` below entirely. Keeping the variable
+       * out of that namespace leaves this expression the only thing that
+       * decides the value.
+       */
+      buildSha: (process.env.BUILD_SHA || process.env.GITHUB_SHA || '').slice(0, 7)
+    }
+  },
+
   routeRules: {
     '/': { prerender: true }
   },
@@ -81,6 +108,7 @@ export default defineNuxtConfig({
       routes: [
         '/robots.txt',
         '/about',
+        '/report',
         '/events',
         ...getSeasons().map(season => `/events/${season.slug}`),
         ...getPublishableRaces().map(race => race.path),

@@ -18,6 +18,19 @@ This is a side project maintained in spare time, so there's no guaranteed
 response time, but reports will be looked at and fixes released as soon as
 reasonably possible.
 
+## Non-security bugs
+
+For ordinary bugs, or a frame/wheel/route number that looks wrong, use the
+**Report an issue** link in the site footer (or
+[zwiftbikes.com/report](https://zwiftbikes.com/report)) - it prefills the
+right issue form for you. A GitHub issue is public, which is fine for an
+ordinary bug; if you'd rather not post one, the same form can send the report
+by email instead - **Email it instead** opens your mail app with the address
+(`bugs [at] zwiftbikes.com`) already filled in - and that is read privately.
+Your email address is never published in an issue, and your name only appears
+there if you ask to be credited. Only security issues need the private route
+above.
+
 ## Supported Versions
 
 There are no released versions - the app runs from the latest commit on the

@@ -1,9 +1,25 @@
 <script setup lang="ts">
+import { contactEmailAddress } from '../utils/report'
+
 // Shared by `AboutModal.vue` (in-app UX) and `pages/about.vue` (the
 // crawlable copy). A modal's content is never in the server-rendered HTML -
 // Nuxt UI portals it in only once the dialog opens - so search engines only
 // ever see the page version. Keep this component free of modal-specific
 // markup so both hosts can style their own heading/container.
+
+// The report link below is a plain `<a>` with a real `href`, not a `ULink`:
+// this component renders inside the About dialog, and a router link there
+// navigated to `/report` underneath the still-open dialog. `openReportFromAbout`
+// swaps one modal for the other instead. Same modifier-key contract as every
+// other overlay link in the app - cmd/ctrl-click still opens the real page.
+const { openReportFromAbout } = useOverlays()
+
+// Wrapped in `<ClientOnly>` below, not rendered server-side: `/about` is
+// prerendered, so an address in that markup would sit in a static file for
+// harvesters. `contactEmailAddress()` assembles it at call time for the same
+// reason - see the note in `app/utils/report.ts`.
+const contactAddress = contactEmailAddress()
+const contactMailto = `mailto:${contactAddress}`
 </script>
 
 <template>
@@ -101,6 +117,49 @@
         Your weight, height and power are sent to the server with each
         recommendation request purely to compute that answer - never stored,
         never shared, never used for anything else.
+      </p>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <p class="font-medium text-highlighted">
+        Reporting an issue
+      </p>
+      <p>
+        The
+        <a
+          href="/report"
+          class="underline"
+          @click="openReportFromAbout"
+        >Report an issue</a>
+        form fills in the report for you, then opens it as either a GitHub
+        issue or an email - you read it over and send it yourself. Your rider
+        profile is left out unless you tick the box to include it.
+      </p>
+      <p>
+        GitHub is the public site where this project's code and bug list live,
+        so anything posted there can be read by anyone. Email goes privately
+        to the people who maintain the site. If we turn your emailed report
+        into a GitHub issue, your email address never goes in it. Your name
+        only shows up there if you ask to be credited.
+      </p>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <p class="font-medium text-highlighted">
+        Getting in touch
+      </p>
+      <p>
+        A question, a suggestion, or anything that isn't a bug?
+        <ClientOnly>
+          Write to
+          <a
+            :href="contactMailto"
+            class="underline"
+          >{{ contactAddress }}</a>.
+          <template #fallback>
+            The report form above reaches us too, whatever you want to say.
+          </template>
+        </ClientOnly>
       </p>
     </div>
 

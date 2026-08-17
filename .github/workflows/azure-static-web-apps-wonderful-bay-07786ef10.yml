@@ -82,6 +82,20 @@ jobs:
           output_location: ".output/public" # Built app content directory - optional
           production_branch: "main" # Only this branch deploys to the production environment; others get their own preview environment
           ###### End of Repository/Build Configurations ######
+        env:
+          # Baked into the bundle by `runtimeConfig.public.buildSha` in
+          # nuxt.config.ts, so a bug report can say which build it came from.
+          # Azure's action forwards a step `env:` block into the Oryx build
+          # container, which is where `nuxt build` actually runs - the runner's
+          # own environment isn't visible in there.
+          #
+          # On a pull_request event `github.sha` is the ephemeral merge commit,
+          # which exists in no branch and can't be checked out later; the head
+          # SHA is the one a preview-environment report should name.
+          #
+          # Not `NUXT_PUBLIC_BUILD_SHA` - see the comment on `buildSha` in
+          # nuxt.config.ts for why that name would defeat the shortening.
+          BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

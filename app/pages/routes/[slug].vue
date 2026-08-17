@@ -328,6 +328,7 @@ useHead(() => {
           <p v-else-if="!topCombo" class="text-muted text-center py-10">No bikes match your filters.</p>
         </div>
         <div v-if="hasMore" class="text-center mt-6"><UButton color="neutral" variant="subtle" :loading="loadingMore" @click="showMore">Show more matches</UButton></div>
+        <ReportDataLink :item="routeData?.name" />
       </template>
     </div>
   </UContainer>

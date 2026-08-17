@@ -398,6 +398,7 @@ const segmentAsRoute = computed(() => segmentData.value
             Show more matches
           </UButton>
         </div>
+        <ReportDataLink :item="segmentData?.name" />
       </template>
     </div>
   </UContainer>

@@ -1,23 +1,16 @@
 <script setup>
-const isAboutOpen = ref(false);
-
-// The footer entry keeps a real `href="/about"` so crawlers can reach the
-// page version (the modal's content is never server-rendered) and so
+// Every nav/footer entry below keeps a real `href` so crawlers can reach the
+// page version (a modal's content is never server-rendered) and so
 // cmd/ctrl-click still opens it in a new tab - but a plain left click shows
-// the modal instead of navigating away. A plain `<a>` rather than ULink:
-// vue-router's own click handler would run before this one, so `.prevent`
-// on a NuxtLink wouldn't reliably stop the navigation.
-function openAbout(event) {
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  event.preventDefault();
-  isAboutOpen.value = true;
-}
-
-// Same deal for My Profile / My Garage, except their openers are shared with
-// the "(edit profile)" / "(edit garage)" links buried in the route, segment
-// and event pages - so the open state and the handlers live in a composable.
-// Both nav entries render as real `<a href>`s for the same reasons as About.
-const { isGarageOpen, isProfileOpen, openGarage, openProfile } = useOverlays();
+// the modal instead of navigating away. They're plain `<a>`s rather than
+// ULinks: vue-router's own click handler would run before these, so
+// `.prevent` on a NuxtLink wouldn't reliably stop the navigation.
+//
+// The open state and handlers all live in a composable because their openers
+// are shared with links buried elsewhere - "(edit profile)" / "(edit garage)"
+// on the route, segment and event pages, and the report link inside the About
+// modal itself.
+const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport } = useOverlays()
 
 // UHeader's mobile panel closes itself when an entry navigates. These
 // entries deliberately don't navigate any more, so close it by hand - but
@@ -233,6 +226,11 @@ useHead({
     <AboutModal v-model:open="isAboutOpen" />
     <GarageModal v-model:open="isGarageOpen" />
     <ProfileModal v-model:open="isProfileOpen" />
+    <ReportModal
+      v-model:open="isReportOpen"
+      :seed-kind="reportSeed?.kind"
+      :seed-item="reportSeed?.item"
+    />
 
     <UMain>
       <NuxtPage />
@@ -269,6 +267,12 @@ useHead({
             @click="openAbout"
             >About this project</a
           >
+          <span aria-hidden="true"> • </span>
+          <a
+            href="/report"
+            class="underline transition-colors hover:text-default"
+            @click="openReport"
+          >Report an issue</a>
         </p>
       </template>
 

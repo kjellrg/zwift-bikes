@@ -1,0 +1,65 @@
+name: Wrong data
+description: A frame, wheelset or route number on the site looks wrong
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The whole point of this site is that its numbers are traceable to real
+        measurements rather than vibes, so a correction needs a source - see
+        [How the physics works](https://github.com/kjellrg/zwift-bikes/blob/main/docs/physics-model.md).
+
+        Ratings marked **estimated** in the UI are already labelled guesses,
+        and a measurement beats them automatically. Those are worth reporting
+        only if you have bot-test data to replace them with.
+
+  # The `id` of every field below is its URL prefill key - see the note in
+  # bug.yml, and app/utils/report.ts.
+  - type: input
+    id: item
+    attributes:
+      label: What's wrong?
+      description: The frame, wheelset or route this is about.
+      placeholder: Zwift Concept Z1 (Tron) / Zipp 858 / Alpe du Zwift
+    validations:
+      required: true
+
+  - type: textarea
+    id: shown
+    attributes:
+      label: What the site currently shows
+      placeholder: Ranked 40th on Alpe du Zwift, climb rating 0.4
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should show, and why
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: >
+        A link to the measurement - a ZwiftInsider speed test, an official
+        Zwift changelog, another published test. "I ride this bike and it feels
+        faster" isn't something the model can be corrected against, since the
+        site's numbers come from controlled tests.
+      placeholder: https://zwiftinsider.com/...
+    validations:
+      required: true
+
+  - type: textarea
+    id: app-context
+    attributes:
+      label: App context
+      description: >
+        Filled in automatically when you report from the site's "Report an
+        issue" form - it records the filters and rider profile the ranking
+        was computed with, which is usually what explains a surprising result.
+      render: text
+    validations:
+      required: false
