@@ -63,6 +63,16 @@ const heightCm = Number(value('--height'))
 const draft = value('--draft') ?? 'race'
 const note = value('--note')
 const date = value('--date')
+// Optional, and worth chasing when the rider knows it: an effort with its real
+// frame and wheelset is a point prediction, while one without is only ever a
+// band across the stock/typical/fast scenarios - roughly +/-2.5% on a
+// half-hour lap, which is wider than most effects worth measuring.
+const frameName = value('--frame')
+const wheelsName = value('--wheels')
+// Zwift's frame upgrade level (0 stock - 5 fully upgraded). Worth ~1.2% on a
+// half-hour lap, so it is recorded rather than assumed; 5 is only the default
+// because that is what the rest of the calibration assumes.
+const frameLevel = value('--level') === undefined ? 5 : Number(value('--level'))
 
 if (!activityId && !routeSlug) {
   console.error('add-segment-effort: pass either --activity <strava id> or --route <slug> with --sec/--watts. See the usage block at the top of this file.')
@@ -83,6 +93,22 @@ if (!(heightCm > 100 && heightCm < 230)) {
 if (!['race', 'solo', 'ttt'].includes(draft)) {
   console.error(`add-segment-effort: --draft must be race, solo or ttt (got ${JSON.stringify(draft)}). A drafted effort compared against the solo model is not a measurement of anything.`)
   process.exit(2)
+}
+
+if (!(Number.isInteger(frameLevel) && frameLevel >= 0 && frameLevel <= 5)) {
+  console.error('add-segment-effort: --level must be an integer 0-5 (Zwift frame upgrade level).')
+  process.exit(2)
+}
+if ((frameName && !wheelsName) || (wheelsName && !frameName)) {
+  console.error('add-segment-effort: --frame and --wheels go together - a frame without wheels (or the reverse) cannot be simulated.')
+  process.exit(2)
+}
+if (frameName) {
+  const { bikeFrames } = await import('zwift-data')
+  if (!bikeFrames.some(f => f.name === frameName)) {
+    console.error(`add-segment-effort: no frame named ${JSON.stringify(frameName)} in the catalog. Names are exact - e.g. "Canyon Aeroad 2024".`)
+    process.exit(2)
+  }
 }
 
 /**
@@ -197,6 +223,7 @@ for (const record of records) {
     weightKg,
     heightCm,
     draft,
+    ...(frameName ? { frame: frameName, wheels: wheelsName, frameLevel } : {}),
     ...(record.date ? { date: record.date } : {}),
     ...(note ? { note } : {})
   })

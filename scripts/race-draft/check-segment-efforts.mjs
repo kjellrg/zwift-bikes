@@ -108,7 +108,7 @@ if (efforts.length === 0) {
 const format = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`
 console.log('Shipped model vs real segment efforts - exact distance, no lead-in, no event pen.')
 console.log('Positive error = the model predicts SLOWER than the rider actually rode.\n')
-console.log('route                       km    draft   actual   predicted (typical)    error    equipment band')
+console.log('route                       km    draft   actual        predicted    error    equipment')
 
 const errors = []
 for (const effort of efforts) {
@@ -127,19 +127,36 @@ for (const effort of efforts) {
   const rider = { weightKg: effort.weightKg, heightCm: effort.heightCm, powerW: effort.avgW }
   const powerScaleAtSpeed = powerScaleFor(effort.draft)
 
+  // When the rider told us what they actually rode, use it: that turns the
+  // effort from a band across three guessed setups into a point prediction,
+  // and the equipment band is the widest remaining uncertainty in this file
+  // (~5 points end to end). Worth asking for every time.
+  let known
+  if (effort.frame && effort.wheels) {
+    const rawFrame = bikeFrames.find(f => f.name === effort.frame)
+    const wheelset = getWheelsets().find(w => w.name === effort.wheels)
+    if (!rawFrame || !wheelset) {
+      console.error(`  ${effort.routeSlug}: equipment ${JSON.stringify(effort.frame)} / ${JSON.stringify(effort.wheels)} is no longer in the catalog - falling back to the scenario band`)
+    } else {
+      known = { frame: classifyBikeFrame(rawFrame, effort.frameLevel ?? FRAME_LEVEL), wheelset, level: effort.frameLevel ?? FRAME_LEVEL }
+    }
+  }
+
   const predicted = equipment.map(scenario => ({
     key: scenario.key,
     sec: simulateRoute({ rider, frame: scenario.frame, wheelset: scenario.wheelset, geometry, powerScaleAtSpeed }).elapsedSec
   }))
-  const typical = predicted.find(p => p.key === 'typical').sec
-  const errorPct = (typical / effort.elapsedSec - 1) * 100
+  const headlineSec = known
+    ? simulateRoute({ rider, frame: known.frame, wheelset: known.wheelset, geometry, powerScaleAtSpeed }).elapsedSec
+    : predicted.find(p => p.key === 'typical').sec
+  const errorPct = (headlineSec / effort.elapsedSec - 1) * 100
   const band = predicted.map(p => (p.sec / effort.elapsedSec - 1) * 100)
   errors.push(errorPct)
 
   console.log(
     `${route.name.slice(0, 24).padEnd(24)} ${(geometry.totalDistanceM / 1000).toFixed(2).padStart(6)} ${effort.draft.padStart(6)} `
-    + `${format(effort.elapsedSec).padStart(8)} ${format(typical).padStart(18)} ${`${errorPct >= 0 ? '+' : ''}${errorPct.toFixed(2)}%`.padStart(9)}`
-    + `    ${Math.min(...band).toFixed(1)}% to ${Math.max(...band).toFixed(1)}%`
+    + `${format(effort.elapsedSec).padStart(8)} ${format(headlineSec).padStart(18)} ${`${errorPct >= 0 ? '+' : ''}${errorPct.toFixed(2)}%`.padStart(9)}`
+    + `    ${known ? `actual equipment, level ${known.level}` : `${Math.min(...band).toFixed(1)}% to ${Math.max(...band).toFixed(1)}% (assumed)`}`
   )
 }
 
