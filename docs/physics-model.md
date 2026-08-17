@@ -197,7 +197,7 @@ scratch race, a crit, a group ride. Unlike TTT it asks for nothing extra:
 
 - **One number, measured from real races.** Sitting in a typical mass-start bunch
   is worth about **31% less power** for the same speed on the flat. That figure
-  is not a model of the pack — it is what 1313 riders across thirteen real
+  is not a model of the pack — it is what 1654 riders across twenty real
   ZwiftPower race fields actually achieved, solved rider by rider from their own
   published power, weight and finish time.
 - **Your power still means your own race average.** Specifically your *average*

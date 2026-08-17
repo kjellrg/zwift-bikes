@@ -426,12 +426,33 @@ should be about −8%.
 Neither. The error does not scale with sand share, so sand is not the variable -
 and the sand-free control ruled out the wheel-class explanation at the same time.
 
-**What settled it.** One Strava segment effort on Mech Isle Mayhem, a route that
-is 35% sand and 21% dirt: 18,393.8 m, 1642 s, 265 W, 79 kg rider. The shipped
-model predicts **27:23 against an actual 27:22 — +0.09%**, inside a −1.8% to
-+3.0% equipment band and a ±1.2% band across a 172–188 cm height range. Sand
-rolls at its published value. There is no room in that measurement for a 4-5%
-surface penalty.
+**What settled it.** Strava segment efforts - a known distance, a known time,
+and the rider's own average power over exactly that stretch, with the rider's
+real bike where they could tell us. Three of them, all drafted races:
+
+| route | sand | rider | actual | predicted | error |
+|---|---|---|---|---|---|
+| Turf N Surf | 29% | 79 kg / 181 cm, Aeroad 2024 + ARC 85/Disc, level 5 | 36:25 | 36:32 | **+0.30%** |
+| Urumaze | 40% | 67 kg / 180 cm, equipment assumed | 31:36 | 31:52 | **+0.85%** |
+| Mech Isle Mayhem | 35% (plus 21% dirt) | 79 kg / 181 cm, same bike | 27:22 | 26:58 | **−1.44%** |
+
+Turf N Surf is the decisive one: it is the route whose −1.14% first broke the
+dose-response, and this test has none of the weaknesses of a field result -
+exact distance, the rider's actual frame and wheels at a confirmed upgrade
+level, confirmed draft mode, and their own power over the segment rather than
+over the whole activity. Seven seconds out over thirty-six minutes, on a route
+that is nearly a third beach sand. There is no room in that for a 4-5% surface
+penalty.
+
+It is also seven months old - a January 2026 game build against surface data
+measured in August - which is weak but real evidence that the surface behaviour
+has not shifted underneath us in between.
+
+An earlier version of this section reported the Mech Isle effort at +0.09%. That
+number was wrong twice over: it used a generic "typical" bike rather than the
+rider's own, and the lap it simulated was missing 13 m of climbing (see the note
+on `splitMeasuredProfile` above). Both are fixed, and −1.44% is the honest
+figure.
 
 **What the error actually was.** Distance. The same activity recorded 20,772 m
 in total against the 18,394 m segment: 2,378 m ridden outside the lap, at
@@ -543,6 +564,12 @@ category, assuming the median measured frame and wheelset:
 Nineteen independent groups, four worlds, four surfaces, four categories, a
 11 km/h speed range — and every median lands between 27.7% and 37.2%. **Pooled
 median: 31.7%** (n = 430), interquartile range 28.5–34.8%.
+
+Two races joined the pool later, after the sand investigation put Makuri sand
+and Neokyo brick inside it for the first time: Turf N Surf at 29.8% (n = 34) and
+Neokyo All-Nighter at 29.8% (n = 9), both comfortably inside the range above.
+Pooled across all seven the median is **31.4%** (n = 473) — a quarter-point
+move, which is why the constant did not follow it (§11's ≥1-point rule).
 
 Two structures run through the table, and both are consistent across races:
 
@@ -1099,7 +1126,8 @@ points).
 | Pooled bunch median | 31.66% | 34.56% |
 | IQR | 28.53–34.75% | 31.03–37.88% |
 
-The reason is **descents, not fast riders.** Only 78 of the 430 riders (18%)
+The reason is **descents, not fast riders.** Only 78 of the 430 riders (18%) in
+the five-race pool this cap analysis was run on
 *averaged* above the 42 km/h reference speed, but all of them spent time
 descending well above it, so the region above scale 1.0 is exercised on every
 route inside the fit. Take that draft away and the model needs a bigger flat

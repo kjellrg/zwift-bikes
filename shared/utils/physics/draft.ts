@@ -206,10 +206,12 @@ export function tttGroupSpeedMps(
 
 /**
  * Power saving of a typical mid-pack racer versus riding solo, at flat race
- * speeds. Field-calibrated in `docs/race-drafting.md` §5 from thirteen real
- * ZwiftPower race fields (1313 riders, 1221 with a published weight): pooled
- * bunch median 31.7%, interquartile range 28.5-34.8%, n = 430, under the
- * typical-equipment scenario. 31% rather than 31.7% because ZwiftPower does not
+ * speeds. Field-calibrated in `docs/race-drafting.md` §5 from real ZwiftPower
+ * race fields: originally five races (1313 riders, n = 430 bunch finishers,
+ * pooled bunch median 31.7%), since widened to seven constant-setting races out
+ * of twenty collected (1654 riders, n = 473, pooled bunch median 31.4%) - a
+ * quarter-point move, well inside §11's >=1-point rule for touching this
+ * number. Both under the typical-equipment scenario. 31% rather than 31.7% because ZwiftPower does not
  * publish equipment and the assumed bike moves the answer (35.4% stock, 31.7%
  * typical, 29.0% fast) - 31% is the midpoint of the plausible field, and that
  * +/-3-point band is the real error bar, larger than every other uncertainty
