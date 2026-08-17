@@ -1,0 +1,65 @@
+name: Bug report
+description: Something on zwiftbikes.com is broken or behaves unexpectedly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        **If a bike, wheel or route *number* looks wrong** (a speed rating, a
+        Crr value, a surface percentage), use the
+        [Wrong data](https://github.com/kjellrg/zwift-bikes/issues/new?template=data-correction.yml)
+        form instead - that one asks for the source that proves it.
+
+        **If this is a security issue**, please don't file it here - use
+        [private vulnerability reporting](https://github.com/kjellrg/zwift-bikes/security/advisories/new)
+        instead. See [SECURITY.md](https://github.com/kjellrg/zwift-bikes/blob/main/SECURITY.md).
+
+  # The `id` of every field below is its URL prefill key, so the in-app
+  # report composer (app/utils/report.ts) can fill this form in. Renaming an
+  # id silently drops that field from prefilled reports - grep for it there
+  # before changing one.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, and what did the site do?
+      placeholder: |
+        1. Opened the route page for Alpe du Zwift
+        2. Set the bike filter to "Gravel"
+        3. The results list stayed empty
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: false
+
+  - type: textarea
+    id: app-context
+    attributes:
+      label: App context
+      description: >
+        Filled in automatically when you report from the site's "Report an
+        issue" form. If you're filing by hand, the page URL and your browser
+        are the useful parts.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      description: >
+        The site runs from the latest commit on `main` - there are no released
+        versions, so a fix can only be built against what's live now.
+      options:
+        - label: This still happens on https://zwiftbikes.com right now
+          required: true
+        - label: I searched existing issues and this isn't already reported
+          required: false
