@@ -15,13 +15,16 @@ import { routes } from 'zwift-data'
  * **How the bad ones were found.** Urumaze predicted 5.78% fast against 152
  * real finishers, and the missing distance was mistaken for a rolling-
  * resistance problem for a week - see `docs/race-drafting.md` §5, "What sand
- * turned out not to be". The tell in the source data is visible in hindsight:
- * Zwift publishes `85.2417526245` m for Urumaze, Mech Isle Mayhem *and* Mech
- * Isle Loop Run - one value copied across three unrelated Makuri routes, one of
- * them a running route - while every other route carries its own distinct
- * figure. Urumaze's dictionary entry also lists `eventPaddocks 21,22,23,24`,
- * so the route is started from event pens that the 85 m plainly does not
- * describe.
+ * turned out not to be".
+ *
+ * There is no tell in the source data itself, which is the point. Zwift
+ * publishes `85.2417526245` m for Urumaze, Mech Isle Mayhem and Mech Isle Loop
+ * Run, and it is tempting to read one value across three routes as a copied
+ * placeholder - but sharing is normal and proves nothing: 147 of the 393
+ * routes in the dictionary share a lead-in with at least one other route,
+ * usually because they start from the same pen (six London routes share
+ * 462.1 m). The field looks entirely well-formed. It is only wrong when
+ * compared against something ridden.
  *
  * **The rule for adding an entry.** Only for `eventOnly` routes, and only with
  * one of:

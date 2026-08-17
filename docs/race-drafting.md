@@ -383,9 +383,13 @@ is a claim that has to be checked rather than assumed:
 The four distance-excluded rows are all **event-only routes**, and that is not a
 coincidence: an event-only route is only ever ridden from an event pen, and
 `zwift-data`'s `leadInDistance` for these carries a placeholder. Urumaze and Mech
-Isle Mayhem hold the only two lead-ins in the entire catalogue equal to exactly
-85 m, and both ride roughly 2 km more than that. Eighteen further event-only
-cycling routes carry sub-200 m lead-ins and have not been checked.
+Isle Mayhem both record 85 m and both ride roughly 2 km more than that. Nothing
+in the source data marks them out - a shared lead-in value is normal, since 147
+of the 393 routes Zwift publishes share one with another route that starts from
+the same pen. The only way to find a wrong one is to compare against something
+ridden. Twenty-eight event-only routes in Zwift's dictionary carry sub-200 m
+lead-ins - twenty of them cycling routes in our catalogue - and have not been
+checked.
 
 ### What sand turned out not to be
 
