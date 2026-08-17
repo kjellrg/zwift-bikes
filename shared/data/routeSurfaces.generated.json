@@ -117645,5 +117645,3833 @@
   ],
   "generatedAt": "2026-08-10T16:33:45.997Z",
   "stravaSegmentId": 37039844
+ },
+ "queens-highway-after-party": {
+  "composition": {
+   "tarmac": 100
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 17.146300000000004,
+    "type": "tarmac"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 161.5999999999999,
+    "elevationM": -2
+   },
+   {
+    "distanceM": 287.2000000000003,
+    "elevationM": -0.5999999999999943
+   },
+   {
+    "distanceM": 705.9000000000001,
+    "elevationM": -8.799999999999997
+   },
+   {
+    "distanceM": 977.5999999999999,
+    "elevationM": -24.19999999999999
+   },
+   {
+    "distanceM": 1314.5,
+    "elevationM": -23.19999999999999
+   },
+   {
+    "distanceM": 1543.9,
+    "elevationM": -17.39999999999999
+   },
+   {
+    "distanceM": 1728.4,
+    "elevationM": -26.799999999999997
+   },
+   {
+    "distanceM": 1843.6,
+    "elevationM": -29.799999999999997
+   },
+   {
+    "distanceM": 1979.6,
+    "elevationM": -22.599999999999994
+   },
+   {
+    "distanceM": 2110.7000000000003,
+    "elevationM": -22.39999999999999
+   },
+   {
+    "distanceM": 2622.5000000000005,
+    "elevationM": -7.3999999999999915
+   },
+   {
+    "distanceM": 2788.9,
+    "elevationM": -8.199999999999989
+   },
+   {
+    "distanceM": 2988.0000000000005,
+    "elevationM": 0.20000000000001705
+   },
+   {
+    "distanceM": 3156.2999999999997,
+    "elevationM": -2
+   },
+   {
+    "distanceM": 3260.7000000000003,
+    "elevationM": -0.5999999999999943
+   },
+   {
+    "distanceM": 3680.7999999999997,
+    "elevationM": -8.599999999999994
+   },
+   {
+    "distanceM": 3950.1,
+    "elevationM": -24.19999999999999
+   },
+   {
+    "distanceM": 4304,
+    "elevationM": -23
+   },
+   {
+    "distanceM": 4521.1,
+    "elevationM": -17.39999999999999
+   },
+   {
+    "distanceM": 4702.6,
+    "elevationM": -26.39999999999999
+   },
+   {
+    "distanceM": 4834.299999999999,
+    "elevationM": -29.599999999999994
+   },
+   {
+    "distanceM": 4957,
+    "elevationM": -22.799999999999997
+   },
+   {
+    "distanceM": 5087.5,
+    "elevationM": -22.599999999999994
+   },
+   {
+    "distanceM": 5610.9,
+    "elevationM": -7.3999999999999915
+   },
+   {
+    "distanceM": 5765.4,
+    "elevationM": -8.399999999999991
+   },
+   {
+    "distanceM": 5936.4,
+    "elevationM": -0.4000000000000057
+   },
+   {
+    "distanceM": 6132.4,
+    "elevationM": -2
+   },
+   {
+    "distanceM": 6237.4,
+    "elevationM": -0.4000000000000057
+   },
+   {
+    "distanceM": 6686.1,
+    "elevationM": -9.199999999999989
+   },
+   {
+    "distanceM": 6941.9,
+    "elevationM": -24.19999999999999
+   },
+   {
+    "distanceM": 7279.9,
+    "elevationM": -23.19999999999999
+   },
+   {
+    "distanceM": 7509.9,
+    "elevationM": -17.39999999999999
+   },
+   {
+    "distanceM": 7676.699999999999,
+    "elevationM": -26
+   },
+   {
+    "distanceM": 7824.9,
+    "elevationM": -29.599999999999994
+   },
+   {
+    "distanceM": 7945.799999999999,
+    "elevationM": -22.799999999999997
+   },
+   {
+    "distanceM": 8076.699999999999,
+    "elevationM": -22.39999999999999
+   },
+   {
+    "distanceM": 8599.5,
+    "elevationM": -7.3999999999999915
+   },
+   {
+    "distanceM": 8754.8,
+    "elevationM": -8.399999999999991
+   },
+   {
+    "distanceM": 8896,
+    "elevationM": -1
+   },
+   {
+    "distanceM": 8997.1,
+    "elevationM": 0.4000000000000057
+   },
+   {
+    "distanceM": 9121.9,
+    "elevationM": -2
+   },
+   {
+    "distanceM": 9226.6,
+    "elevationM": -0.4000000000000057
+   },
+   {
+    "distanceM": 9646.199999999999,
+    "elevationM": -8.599999999999994
+   },
+   {
+    "distanceM": 9933.4,
+    "elevationM": -24.19999999999999
+   },
+   {
+    "distanceM": 10269.8,
+    "elevationM": -23.19999999999999
+   },
+   {
+    "distanceM": 10498.699999999999,
+    "elevationM": -17.39999999999999
+   },
+   {
+    "distanceM": 10667.6,
+    "elevationM": -26.19999999999999
+   },
+   {
+    "distanceM": 10799.4,
+    "elevationM": -29.799999999999997
+   },
+   {
+    "distanceM": 10934.6,
+    "elevationM": -22.599999999999994
+   },
+   {
+    "distanceM": 11053.4,
+    "elevationM": -22.599999999999994
+   },
+   {
+    "distanceM": 11577.3,
+    "elevationM": -7.3999999999999915
+   },
+   {
+    "distanceM": 11731.1,
+    "elevationM": -8.399999999999991
+   },
+   {
+    "distanceM": 11874.6,
+    "elevationM": -1.1999999999999886
+   },
+   {
+    "distanceM": 11974.6,
+    "elevationM": 0.4000000000000057
+   },
+   {
+    "distanceM": 12098.1,
+    "elevationM": -2
+   },
+   {
+    "distanceM": 12216,
+    "elevationM": -0.5999999999999943
+   },
+   {
+    "distanceM": 12651.4,
+    "elevationM": -9
+   },
+   {
+    "distanceM": 12906.4,
+    "elevationM": -24.19999999999999
+   },
+   {
+    "distanceM": 13245.5,
+    "elevationM": -23.19999999999999
+   },
+   {
+    "distanceM": 13476.1,
+    "elevationM": -17.39999999999999
+   },
+   {
+    "distanceM": 13658.199999999999,
+    "elevationM": -26.599999999999994
+   },
+   {
+    "distanceM": 13789.999999999998,
+    "elevationM": -29.599999999999994
+   },
+   {
+    "distanceM": 13911.9,
+    "elevationM": -22.799999999999997
+   },
+   {
+    "distanceM": 14030.300000000001,
+    "elevationM": -22.799999999999997
+   },
+   {
+    "distanceM": 14565.6,
+    "elevationM": -7.3999999999999915
+   },
+   {
+    "distanceM": 14720.199999999999,
+    "elevationM": -8.399999999999991
+   },
+   {
+    "distanceM": 14871.800000000001,
+    "elevationM": -0.799999999999983
+   },
+   {
+    "distanceM": 14952.199999999999,
+    "elevationM": 0.4000000000000057
+   },
+   {
+    "distanceM": 15087.300000000001,
+    "elevationM": -2
+   },
+   {
+    "distanceM": 15192.199999999999,
+    "elevationM": -0.4000000000000057
+   },
+   {
+    "distanceM": 15626.4,
+    "elevationM": -8.799999999999997
+   },
+   {
+    "distanceM": 15915.999999999998,
+    "elevationM": -24.39999999999999
+   },
+   {
+    "distanceM": 15980.699999999999,
+    "elevationM": -18.19999999999999
+   },
+   {
+    "distanceM": 16125.300000000001,
+    "elevationM": -10.799999999999997
+   },
+   {
+    "distanceM": 16496.100000000002,
+    "elevationM": -4.400000000000006
+   },
+   {
+    "distanceM": 16820.7,
+    "elevationM": 16.400000000000006
+   },
+   {
+    "distanceM": 17146.300000000003,
+    "elevationM": 30.200000000000017
+   }
+  ],
+  "generatedAt": "2026-08-17T15:50:59.932Z",
+  "stravaSegmentId": 39270897
+ },
+ "362278484": {
+  "composition": {
+   "brick": 42.9369513168396,
+   "tarmac": 57.0630486831604
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 0.2327,
+    "type": "brick"
+   },
+   {
+    "fromKm": 0.2327,
+    "toKm": 2.4492,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 2.4492,
+    "toKm": 3.8843,
+    "type": "brick"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 883.6,
+    "elevationM": -1.6000000000000085
+   },
+   {
+    "distanceM": 1042.8,
+    "elevationM": 2.3999999999999915
+   },
+   {
+    "distanceM": 1296.8,
+    "elevationM": 0.5999999999999943
+   },
+   {
+    "distanceM": 1470.1,
+    "elevationM": 2.3999999999999915
+   },
+   {
+    "distanceM": 1893.6,
+    "elevationM": -3.4000000000000057
+   },
+   {
+    "distanceM": 2066.1,
+    "elevationM": -3.4000000000000057
+   },
+   {
+    "distanceM": 2157,
+    "elevationM": -0.8000000000000114
+   },
+   {
+    "distanceM": 2449.2,
+    "elevationM": 1
+   },
+   {
+    "distanceM": 2606,
+    "elevationM": -1
+   },
+   {
+    "distanceM": 2965.9,
+    "elevationM": -0.4000000000000057
+   },
+   {
+    "distanceM": 3480.9,
+    "elevationM": 4
+   },
+   {
+    "distanceM": 3884.3,
+    "elevationM": -0.20000000000000284
+   }
+  ],
+  "generatedAt": "2026-08-17T15:51:09.618Z",
+  "stravaSegmentId": 41882382
+ },
+ "hudson-hustle": {
+  "composition": {
+   "tarmac": 100
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 20.2952,
+    "type": "tarmac"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 134.6,
+    "elevationM": -9
+   },
+   {
+    "distanceM": 312,
+    "elevationM": -14.200000000000003
+   },
+   {
+    "distanceM": 443.4,
+    "elevationM": -8.799999999999997
+   },
+   {
+    "distanceM": 1066.5,
+    "elevationM": -11.200000000000003
+   },
+   {
+    "distanceM": 1782.6,
+    "elevationM": 1
+   },
+   {
+    "distanceM": 1944,
+    "elevationM": 7.400000000000006
+   },
+   {
+    "distanceM": 2030.7,
+    "elevationM": 14.799999999999997
+   },
+   {
+    "distanceM": 2305.5,
+    "elevationM": 11.799999999999997
+   },
+   {
+    "distanceM": 2463.2,
+    "elevationM": 6.400000000000006
+   },
+   {
+    "distanceM": 2594.3,
+    "elevationM": 13
+   },
+   {
+    "distanceM": 2703.7,
+    "elevationM": 13.200000000000003
+   },
+   {
+    "distanceM": 3024.5,
+    "elevationM": 5
+   },
+   {
+    "distanceM": 3226.4,
+    "elevationM": 4.6000000000000085
+   },
+   {
+    "distanceM": 3706.3,
+    "elevationM": -11.599999999999994
+   },
+   {
+    "distanceM": 4129.6,
+    "elevationM": 8.799999999999997
+   },
+   {
+    "distanceM": 4297.4,
+    "elevationM": -2.5999999999999943
+   },
+   {
+    "distanceM": 4816.1,
+    "elevationM": 25.200000000000003
+   },
+   {
+    "distanceM": 4979,
+    "elevationM": 31.200000000000003
+   },
+   {
+    "distanceM": 5201.6,
+    "elevationM": 31.200000000000003
+   },
+   {
+    "distanceM": 5430.9,
+    "elevationM": 19.799999999999997
+   },
+   {
+    "distanceM": 5912.1,
+    "elevationM": 16.60000000000001
+   },
+   {
+    "distanceM": 6010.9,
+    "elevationM": 19.400000000000006
+   },
+   {
+    "distanceM": 6150.3,
+    "elevationM": 30.400000000000006
+   },
+   {
+    "distanceM": 6221.5,
+    "elevationM": 32.60000000000001
+   },
+   {
+    "distanceM": 6401.7,
+    "elevationM": 32.400000000000006
+   },
+   {
+    "distanceM": 6808.7,
+    "elevationM": 26.200000000000003
+   },
+   {
+    "distanceM": 7067.6,
+    "elevationM": 15.400000000000006
+   },
+   {
+    "distanceM": 7190,
+    "elevationM": 13
+   },
+   {
+    "distanceM": 7799.7,
+    "elevationM": 12.400000000000006
+   },
+   {
+    "distanceM": 7942.4,
+    "elevationM": 4.799999999999997
+   },
+   {
+    "distanceM": 8068.3,
+    "elevationM": 12.600000000000009
+   },
+   {
+    "distanceM": 8463.9,
+    "elevationM": 9.799999999999997
+   },
+   {
+    "distanceM": 8549.8,
+    "elevationM": 6.200000000000003
+   },
+   {
+    "distanceM": 8721.9,
+    "elevationM": -6.200000000000003
+   },
+   {
+    "distanceM": 8842.8,
+    "elevationM": -11
+   },
+   {
+    "distanceM": 8918.9,
+    "elevationM": -8.599999999999994
+   },
+   {
+    "distanceM": 9798.5,
+    "elevationM": -10
+   },
+   {
+    "distanceM": 10031.8,
+    "elevationM": -8
+   },
+   {
+    "distanceM": 10053.6,
+    "elevationM": -8.599999999999994
+   },
+   {
+    "distanceM": 10147.7,
+    "elevationM": -27.4
+   },
+   {
+    "distanceM": 11595.1,
+    "elevationM": -27.4
+   },
+   {
+    "distanceM": 11667.7,
+    "elevationM": -14.399999999999991
+   },
+   {
+    "distanceM": 13013.9,
+    "elevationM": -14.599999999999994
+   },
+   {
+    "distanceM": 13168.9,
+    "elevationM": -8.399999999999991
+   },
+   {
+    "distanceM": 13442.6,
+    "elevationM": -7
+   },
+   {
+    "distanceM": 13750.9,
+    "elevationM": 1.6000000000000085
+   },
+   {
+    "distanceM": 14047,
+    "elevationM": 1.4000000000000057
+   },
+   {
+    "distanceM": 14183,
+    "elevationM": -2.799999999999997
+   },
+   {
+    "distanceM": 14600.8,
+    "elevationM": -0.5999999999999943
+   },
+   {
+    "distanceM": 14722.4,
+    "elevationM": -3.799999999999997
+   },
+   {
+    "distanceM": 14928.1,
+    "elevationM": -3.5999999999999943
+   },
+   {
+    "distanceM": 15268.2,
+    "elevationM": -14.200000000000003
+   },
+   {
+    "distanceM": 15644.1,
+    "elevationM": -14.399999999999991
+   },
+   {
+    "distanceM": 15703.1,
+    "elevationM": -26.4
+   },
+   {
+    "distanceM": 15721.2,
+    "elevationM": -27.4
+   },
+   {
+    "distanceM": 17167.9,
+    "elevationM": -27.4
+   },
+   {
+    "distanceM": 17270.4,
+    "elevationM": -8.200000000000003
+   },
+   {
+    "distanceM": 18311.5,
+    "elevationM": -9.599999999999994
+   },
+   {
+    "distanceM": 18519.1,
+    "elevationM": -6.3999999999999915
+   },
+   {
+    "distanceM": 18843.5,
+    "elevationM": -10
+   },
+   {
+    "distanceM": 19112.3,
+    "elevationM": 0.20000000000000284
+   },
+   {
+    "distanceM": 19201.3,
+    "elevationM": -1.5999999999999943
+   },
+   {
+    "distanceM": 19360.6,
+    "elevationM": -9.799999999999997
+   },
+   {
+    "distanceM": 19849.8,
+    "elevationM": -8.799999999999997
+   },
+   {
+    "distanceM": 19989.3,
+    "elevationM": -14.200000000000003
+   },
+   {
+    "distanceM": 20157.6,
+    "elevationM": -9.200000000000003
+   },
+   {
+    "distanceM": 20295.2,
+    "elevationM": -0.20000000000000284
+   }
+  ],
+  "generatedAt": "2026-08-17T15:51:19.307Z",
+  "stravaSegmentId": 40654556
+ },
+ "811898717": {
+  "composition": {
+   "tarmac": 63.42607728088742,
+   "cobbles": 6.4398827652264705,
+   "wood": 4.735275392742209,
+   "dirt": 25.398764561143906
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 2.4306,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 2.4306,
+    "toKm": 3.5534,
+    "type": "cobbles"
+   },
+   {
+    "fromKm": 3.5534,
+    "toKm": 4.5967,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 4.5967,
+    "toKm": 4.6427,
+    "type": "wood"
+   },
+   {
+    "fromKm": 4.6427,
+    "toKm": 9.8435,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 9.8435,
+    "toKm": 9.9348,
+    "type": "wood"
+   },
+   {
+    "fromKm": 9.9348,
+    "toKm": 10.174700000000001,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 10.174700000000001,
+    "toKm": 10.429,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.429,
+    "toKm": 10.741100000000001,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 10.741100000000001,
+    "toKm": 11.9338,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 11.9338,
+    "toKm": 11.9761,
+    "type": "wood"
+   },
+   {
+    "fromKm": 11.9761,
+    "toKm": 12.2945,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 12.2945,
+    "toKm": 12.32,
+    "type": "wood"
+   },
+   {
+    "fromKm": 12.32,
+    "toKm": 12.887,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 12.887,
+    "toKm": 13.5736,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 13.5736,
+    "toKm": 13.6232,
+    "type": "wood"
+   },
+   {
+    "fromKm": 13.6232,
+    "toKm": 14.707799999999999,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 14.707799999999999,
+    "toKm": 14.7494,
+    "type": "wood"
+   },
+   {
+    "fromKm": 14.7494,
+    "toKm": 14.809899999999999,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 14.809899999999999,
+    "toKm": 16.4413,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 16.4413,
+    "toKm": 16.4971,
+    "type": "wood"
+   },
+   {
+    "fromKm": 16.4971,
+    "toKm": 16.5404,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 16.5404,
+    "toKm": 16.577099999999998,
+    "type": "wood"
+   },
+   {
+    "fromKm": 16.577099999999998,
+    "toKm": 17.154,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 17.154,
+    "toKm": 17.2283,
+    "type": "wood"
+   },
+   {
+    "fromKm": 17.2283,
+    "toKm": 17.3006,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 17.3006,
+    "toKm": 17.4088,
+    "type": "wood"
+   },
+   {
+    "fromKm": 17.4088,
+    "toKm": 17.4351,
+    "type": "dirt"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 58.2,
+    "elevationM": 5.3999999999999915
+   },
+   {
+    "distanceM": 119.7,
+    "elevationM": 8
+   },
+   {
+    "distanceM": 288.7,
+    "elevationM": 13
+   },
+   {
+    "distanceM": 412.1,
+    "elevationM": 13.399999999999991
+   },
+   {
+    "distanceM": 1097.6,
+    "elevationM": 40.400000000000006
+   },
+   {
+    "distanceM": 1378.5,
+    "elevationM": 47.19999999999999
+   },
+   {
+    "distanceM": 2131.2,
+    "elevationM": 47
+   },
+   {
+    "distanceM": 2310.8,
+    "elevationM": 45
+   },
+   {
+    "distanceM": 2459.5,
+    "elevationM": 38.39999999999999
+   },
+   {
+    "distanceM": 2634.4,
+    "elevationM": 34.19999999999999
+   },
+   {
+    "distanceM": 3009.5,
+    "elevationM": 34.8
+   },
+   {
+    "distanceM": 3293.3,
+    "elevationM": 32.599999999999994
+   },
+   {
+    "distanceM": 3603.5,
+    "elevationM": 15
+   },
+   {
+    "distanceM": 3649.4,
+    "elevationM": 17.19999999999999
+   },
+   {
+    "distanceM": 3788,
+    "elevationM": 9.799999999999997
+   },
+   {
+    "distanceM": 3972,
+    "elevationM": 5
+   },
+   {
+    "distanceM": 4101.8,
+    "elevationM": 5.199999999999989
+   },
+   {
+    "distanceM": 4170.1,
+    "elevationM": 2.799999999999997
+   },
+   {
+    "distanceM": 4301.8,
+    "elevationM": 5.199999999999989
+   },
+   {
+    "distanceM": 4658.4,
+    "elevationM": -10
+   },
+   {
+    "distanceM": 5123.3,
+    "elevationM": -17.400000000000006
+   },
+   {
+    "distanceM": 5248.5,
+    "elevationM": -21.400000000000006
+   },
+   {
+    "distanceM": 5431.1,
+    "elevationM": -21.200000000000003
+   },
+   {
+    "distanceM": 5507.4,
+    "elevationM": -18.60000000000001
+   },
+   {
+    "distanceM": 5621.6,
+    "elevationM": -21.80000000000001
+   },
+   {
+    "distanceM": 6997.5,
+    "elevationM": -19.60000000000001
+   },
+   {
+    "distanceM": 7484.5,
+    "elevationM": -15
+   },
+   {
+    "distanceM": 7797.6,
+    "elevationM": -6.6000000000000085
+   },
+   {
+    "distanceM": 8062.9,
+    "elevationM": 4.599999999999994
+   },
+   {
+    "distanceM": 8209,
+    "elevationM": 4
+   },
+   {
+    "distanceM": 8320.4,
+    "elevationM": 7.599999999999994
+   },
+   {
+    "distanceM": 8429.5,
+    "elevationM": 8
+   },
+   {
+    "distanceM": 8697.5,
+    "elevationM": 4.3999999999999915
+   },
+   {
+    "distanceM": 8899.1,
+    "elevationM": 11.399999999999991
+   },
+   {
+    "distanceM": 9218.8,
+    "elevationM": 18.599999999999994
+   },
+   {
+    "distanceM": 9673.4,
+    "elevationM": 22.19999999999999
+   },
+   {
+    "distanceM": 10166.5,
+    "elevationM": 34.8
+   },
+   {
+    "distanceM": 10592.3,
+    "elevationM": 41
+   },
+   {
+    "distanceM": 10848.8,
+    "elevationM": 40.79999999999998
+   },
+   {
+    "distanceM": 10962.8,
+    "elevationM": 43
+   },
+   {
+    "distanceM": 11064.9,
+    "elevationM": 40.599999999999994
+   },
+   {
+    "distanceM": 11392.9,
+    "elevationM": 52.400000000000006
+   },
+   {
+    "distanceM": 11550,
+    "elevationM": 62
+   },
+   {
+    "distanceM": 11634.4,
+    "elevationM": 63.599999999999994
+   },
+   {
+    "distanceM": 11905.2,
+    "elevationM": 64.4
+   },
+   {
+    "distanceM": 12034.4,
+    "elevationM": 60.79999999999998
+   },
+   {
+    "distanceM": 12185.1,
+    "elevationM": 61
+   },
+   {
+    "distanceM": 12460.6,
+    "elevationM": 76.6
+   },
+   {
+    "distanceM": 12550.1,
+    "elevationM": 73
+   },
+   {
+    "distanceM": 12851.2,
+    "elevationM": 49.400000000000006
+   },
+   {
+    "distanceM": 12904.8,
+    "elevationM": 47
+   },
+   {
+    "distanceM": 13236.9,
+    "elevationM": 44.79999999999998
+   },
+   {
+    "distanceM": 13487.6,
+    "elevationM": 50.79999999999998
+   },
+   {
+    "distanceM": 13729.5,
+    "elevationM": 43.79999999999998
+   },
+   {
+    "distanceM": 14071.9,
+    "elevationM": 43.400000000000006
+   },
+   {
+    "distanceM": 14533.4,
+    "elevationM": 38.19999999999999
+   },
+   {
+    "distanceM": 15013.8,
+    "elevationM": 43
+   },
+   {
+    "distanceM": 15112.3,
+    "elevationM": 40.19999999999999
+   },
+   {
+    "distanceM": 15448.1,
+    "elevationM": 52
+   },
+   {
+    "distanceM": 15608.4,
+    "elevationM": 61.79999999999998
+   },
+   {
+    "distanceM": 15724.4,
+    "elevationM": 65.6
+   },
+   {
+    "distanceM": 16312.5,
+    "elevationM": 104.4
+   },
+   {
+    "distanceM": 16436,
+    "elevationM": 109.19999999999999
+   },
+   {
+    "distanceM": 16692.4,
+    "elevationM": 108.19999999999999
+   },
+   {
+    "distanceM": 16975.1,
+    "elevationM": 124.79999999999998
+   },
+   {
+    "distanceM": 17050.4,
+    "elevationM": 131.6
+   },
+   {
+    "distanceM": 17077.6,
+    "elevationM": 130.4
+   },
+   {
+    "distanceM": 17125.2,
+    "elevationM": 134
+   },
+   {
+    "distanceM": 17435.1,
+    "elevationM": 131.4
+   }
+  ],
+  "generatedAt": "2026-08-17T15:51:29.102Z",
+  "stravaSegmentId": 41888860
+ },
+ "flat-out-fast": {
+  "composition": {
+   "tarmac": 98.41826947759489,
+   "dirt": 0.3234403222268376,
+   "wood": 1.2582902001782887
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 0.1138,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 0.1138,
+    "toKm": 0.18309999999999998,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 0.18309999999999998,
+    "toKm": 0.4527,
+    "type": "wood"
+   },
+   {
+    "fromKm": 0.4527,
+    "toKm": 21.425900000000002,
+    "type": "tarmac"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 256.4,
+    "elevationM": -0.20000000000000007
+   },
+   {
+    "distanceM": 542.8,
+    "elevationM": 5.8
+   },
+   {
+    "distanceM": 1128.4,
+    "elevationM": 11
+   },
+   {
+    "distanceM": 2097.9,
+    "elevationM": 12.2
+   },
+   {
+    "distanceM": 2378.6,
+    "elevationM": 15.399999999999999
+   },
+   {
+    "distanceM": 4553.8,
+    "elevationM": 12.2
+   },
+   {
+    "distanceM": 6820.4,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 7185.3,
+    "elevationM": 16.8
+   },
+   {
+    "distanceM": 7527.3,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 8288.4,
+    "elevationM": 12.2
+   },
+   {
+    "distanceM": 10632.2,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 10787.3,
+    "elevationM": 14.399999999999999
+   },
+   {
+    "distanceM": 11448.4,
+    "elevationM": 11.799999999999999
+   },
+   {
+    "distanceM": 12738.3,
+    "elevationM": 14.399999999999999
+   },
+   {
+    "distanceM": 12967.1,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 16065.5,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 16379.9,
+    "elevationM": 16.8
+   },
+   {
+    "distanceM": 16777.6,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 21425.9,
+    "elevationM": 13.6
+   }
+  ],
+  "generatedAt": "2026-08-17T15:51:38.803Z",
+  "stravaSegmentId": 39873080
+ },
+ "volcano-flat-rev": {
+  "composition": {
+   "tarmac": 87.74900237491318,
+   "dirt": 5.976056997915947,
+   "cobbles": 0.6163465111394679,
+   "wood": 5.658594116031414
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 4.8253999999999975,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 4.8253999999999975,
+    "toKm": 5.3565,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 5.3565,
+    "toKm": 5.432799999999999,
+    "type": "cobbles"
+   },
+   {
+    "fromKm": 5.432799999999999,
+    "toKm": 7.671200000000001,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 7.671200000000001,
+    "toKm": 7.933899999999998,
+    "type": "wood"
+   },
+   {
+    "fromKm": 7.933899999999998,
+    "toKm": 8.0347,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 8.0347,
+    "toKm": 8.1633,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.1633,
+    "toKm": 8.2712,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 8.2712,
+    "toKm": 8.4745,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.4745,
+    "toKm": 8.6185,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 8.6185,
+    "toKm": 8.724399999999997,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.724399999999997,
+    "toKm": 12.379399999999999,
+    "type": "tarmac"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 405.09999999999854,
+    "elevationM": 0.6000000000000001
+   },
+   {
+    "distanceM": 855.6999999999989,
+    "elevationM": 11.8
+   },
+   {
+    "distanceM": 1073.199999999999,
+    "elevationM": 8.6
+   },
+   {
+    "distanceM": 1816.699999999999,
+    "elevationM": 8
+   },
+   {
+    "distanceM": 2489.2999999999993,
+    "elevationM": 7.800000000000001
+   },
+   {
+    "distanceM": 2551.399999999998,
+    "elevationM": 10.8
+   },
+   {
+    "distanceM": 2672.7000000000007,
+    "elevationM": 10.8
+   },
+   {
+    "distanceM": 2746.2000000000007,
+    "elevationM": 7.800000000000001
+   },
+   {
+    "distanceM": 2995,
+    "elevationM": 7.6
+   },
+   {
+    "distanceM": 3161,
+    "elevationM": 0.6000000000000001
+   },
+   {
+    "distanceM": 4666.399999999998,
+    "elevationM": -1.6
+   },
+   {
+    "distanceM": 4918.799999999999,
+    "elevationM": 0.19999999999999996
+   },
+   {
+    "distanceM": 5256.5999999999985,
+    "elevationM": 9
+   },
+   {
+    "distanceM": 5442.799999999999,
+    "elevationM": 8.4
+   },
+   {
+    "distanceM": 5864.899999999998,
+    "elevationM": 18.4
+   },
+   {
+    "distanceM": 5960.799999999999,
+    "elevationM": 18
+   },
+   {
+    "distanceM": 6066.399999999998,
+    "elevationM": 13.8
+   },
+   {
+    "distanceM": 7648.899999999998,
+    "elevationM": -0.6000000000000001
+   },
+   {
+    "distanceM": 8821.899999999998,
+    "elevationM": -0.6000000000000001
+   },
+   {
+    "distanceM": 9073.7,
+    "elevationM": -7.800000000000001
+   },
+   {
+    "distanceM": 10828.8,
+    "elevationM": -7.6
+   },
+   {
+    "distanceM": 11058.3,
+    "elevationM": -0.8
+   },
+   {
+    "distanceM": 11483.599999999999,
+    "elevationM": -1.2000000000000002
+   },
+   {
+    "distanceM": 11781,
+    "elevationM": 3.1999999999999997
+   },
+   {
+    "distanceM": 12035.8,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 12379.399999999998,
+    "elevationM": 0
+   }
+  ],
+  "generatedAt": "2026-08-17T15:51:48.579Z",
+  "stravaSegmentId": 14120237
+ },
+ "handful-of-gravel": {
+  "composition": {
+   "dirt": 82.47360036787047,
+   "brick": 10.569706524773775,
+   "wood": 2.5422476228013986,
+   "tarmac": 4.4144454845543555
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 0.47009999999999996,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 0.47009999999999996,
+    "toKm": 0.5832999999999999,
+    "type": "brick"
+   },
+   {
+    "fromKm": 0.5832999999999999,
+    "toKm": 0.6503,
+    "type": "wood"
+   },
+   {
+    "fromKm": 0.6503,
+    "toKm": 0.7908999999999999,
+    "type": "brick"
+   },
+   {
+    "fromKm": 0.7908999999999999,
+    "toKm": 1.2066000000000001,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 1.2066000000000001,
+    "toKm": 1.3839000000000001,
+    "type": "brick"
+   },
+   {
+    "fromKm": 1.3839000000000001,
+    "toKm": 1.4717,
+    "type": "wood"
+   },
+   {
+    "fromKm": 1.4717,
+    "toKm": 1.6842000000000001,
+    "type": "brick"
+   },
+   {
+    "fromKm": 1.6842000000000001,
+    "toKm": 4.64,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 4.64,
+    "toKm": 4.908799999999999,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 4.908799999999999,
+    "toKm": 6.089099999999999,
+    "type": "dirt"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 422.9,
+    "elevationM": -7.599999999999998
+   },
+   {
+    "distanceM": 1155.4,
+    "elevationM": -29
+   },
+   {
+    "distanceM": 1316.3000000000002,
+    "elevationM": -29.799999999999997
+   },
+   {
+    "distanceM": 1923,
+    "elevationM": -14.2
+   },
+   {
+    "distanceM": 2181.6,
+    "elevationM": -11.799999999999997
+   },
+   {
+    "distanceM": 3182,
+    "elevationM": 21.200000000000003
+   },
+   {
+    "distanceM": 3341.1,
+    "elevationM": 21.6
+   },
+   {
+    "distanceM": 3593.5,
+    "elevationM": 26.4
+   },
+   {
+    "distanceM": 3761.1,
+    "elevationM": 23.200000000000003
+   },
+   {
+    "distanceM": 4034.8,
+    "elevationM": 24.4
+   },
+   {
+    "distanceM": 4447.299999999999,
+    "elevationM": 31.800000000000004
+   },
+   {
+    "distanceM": 4630.4,
+    "elevationM": 31.800000000000004
+   },
+   {
+    "distanceM": 4769,
+    "elevationM": 23.200000000000003
+   },
+   {
+    "distanceM": 4922.5,
+    "elevationM": 31.800000000000004
+   },
+   {
+    "distanceM": 4982.4,
+    "elevationM": 31.800000000000004
+   },
+   {
+    "distanceM": 5367.2,
+    "elevationM": 22.200000000000003
+   },
+   {
+    "distanceM": 5684.4,
+    "elevationM": 11.399999999999999
+   },
+   {
+    "distanceM": 5748.799999999999,
+    "elevationM": 11.399999999999999
+   },
+   {
+    "distanceM": 6089.099999999999,
+    "elevationM": 0
+   }
+  ],
+  "generatedAt": "2026-08-17T15:51:58.261Z",
+  "stravaSegmentId": 31095294
+ },
+ "cobbled-crown": {
+  "composition": {
+   "tarmac": 86.18441335521986,
+   "cobbles": 13.815586644780137
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 1.9362000000000001,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 1.9362000000000001,
+    "toKm": 2.0574,
+    "type": "cobbles"
+   },
+   {
+    "fromKm": 2.0574,
+    "toKm": 2.9640999999999997,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 2.9640999999999997,
+    "toKm": 3.3515,
+    "type": "cobbles"
+   },
+   {
+    "fromKm": 3.3515,
+    "toKm": 10.1761,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 10.1761,
+    "toKm": 12.4634,
+    "type": "cobbles"
+   },
+   {
+    "fromKm": 12.4634,
+    "toKm": 20.1197,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 20.1197,
+    "toKm": 20.5198,
+    "type": "cobbles"
+   },
+   {
+    "fromKm": 20.5198,
+    "toKm": 21.4275,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 21.4275,
+    "toKm": 21.5476,
+    "type": "cobbles"
+   },
+   {
+    "fromKm": 21.5476,
+    "toKm": 24.002599999999997,
+    "type": "tarmac"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 533.2,
+    "elevationM": -33.400000000000006
+   },
+   {
+    "distanceM": 741.8,
+    "elevationM": -39.400000000000006
+   },
+   {
+    "distanceM": 1307.5,
+    "elevationM": -34.6
+   },
+   {
+    "distanceM": 1439.1,
+    "elevationM": -31.000000000000004
+   },
+   {
+    "distanceM": 1613.3,
+    "elevationM": -19.400000000000002
+   },
+   {
+    "distanceM": 1743.7,
+    "elevationM": -5.600000000000001
+   },
+   {
+    "distanceM": 1913.2,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 1989.9,
+    "elevationM": -5.200000000000003
+   },
+   {
+    "distanceM": 2201.7,
+    "elevationM": -28.6
+   },
+   {
+    "distanceM": 2300.3,
+    "elevationM": -25.400000000000002
+   },
+   {
+    "distanceM": 2385.6,
+    "elevationM": -25.6
+   },
+   {
+    "distanceM": 2496.3,
+    "elevationM": -17.200000000000003
+   },
+   {
+    "distanceM": 2568.9,
+    "elevationM": -6.800000000000004
+   },
+   {
+    "distanceM": 2608.2,
+    "elevationM": -3.6000000000000014
+   },
+   {
+    "distanceM": 2852.1,
+    "elevationM": 0.3999999999999986
+   },
+   {
+    "distanceM": 2905.9,
+    "elevationM": -1.4000000000000057
+   },
+   {
+    "distanceM": 3090.8,
+    "elevationM": -0.6000000000000014
+   },
+   {
+    "distanceM": 3633.1,
+    "elevationM": -36.6
+   },
+   {
+    "distanceM": 3773.7,
+    "elevationM": -41
+   },
+   {
+    "distanceM": 3966.4,
+    "elevationM": -41.400000000000006
+   },
+   {
+    "distanceM": 4085.1,
+    "elevationM": -38.400000000000006
+   },
+   {
+    "distanceM": 4496.3,
+    "elevationM": -43
+   },
+   {
+    "distanceM": 5143.3,
+    "elevationM": -42.6
+   },
+   {
+    "distanceM": 5223.2,
+    "elevationM": -37.800000000000004
+   },
+   {
+    "distanceM": 5362.5,
+    "elevationM": -37.2
+   },
+   {
+    "distanceM": 5511.9,
+    "elevationM": -41.800000000000004
+   },
+   {
+    "distanceM": 5758.7,
+    "elevationM": -42
+   },
+   {
+    "distanceM": 6477,
+    "elevationM": -39.400000000000006
+   },
+   {
+    "distanceM": 6609.9,
+    "elevationM": -35.400000000000006
+   },
+   {
+    "distanceM": 6949.7,
+    "elevationM": -18.6
+   },
+   {
+    "distanceM": 7079.6,
+    "elevationM": -17.800000000000004
+   },
+   {
+    "distanceM": 7250.7,
+    "elevationM": -12.600000000000001
+   },
+   {
+    "distanceM": 7592.4,
+    "elevationM": 5.399999999999999
+   },
+   {
+    "distanceM": 7670.6,
+    "elevationM": 7.399999999999999
+   },
+   {
+    "distanceM": 9211.1,
+    "elevationM": 4.599999999999994
+   },
+   {
+    "distanceM": 9479.8,
+    "elevationM": 10
+   },
+   {
+    "distanceM": 9857.3,
+    "elevationM": 10.199999999999996
+   },
+   {
+    "distanceM": 10404.6,
+    "elevationM": 16.4
+   },
+   {
+    "distanceM": 12723.3,
+    "elevationM": 16
+   },
+   {
+    "distanceM": 13690.4,
+    "elevationM": 9.399999999999999
+   },
+   {
+    "distanceM": 13895.2,
+    "elevationM": 11
+   },
+   {
+    "distanceM": 14162.1,
+    "elevationM": 4.399999999999999
+   },
+   {
+    "distanceM": 15813.2,
+    "elevationM": 7.399999999999999
+   },
+   {
+    "distanceM": 16230.9,
+    "elevationM": -12.600000000000001
+   },
+   {
+    "distanceM": 16433.3,
+    "elevationM": -18.400000000000002
+   },
+   {
+    "distanceM": 16536,
+    "elevationM": -18.800000000000004
+   },
+   {
+    "distanceM": 16861,
+    "elevationM": -35
+   },
+   {
+    "distanceM": 17010.5,
+    "elevationM": -39.6
+   },
+   {
+    "distanceM": 17880,
+    "elevationM": -42
+   },
+   {
+    "distanceM": 18181.4,
+    "elevationM": -37.2
+   },
+   {
+    "distanceM": 18249.9,
+    "elevationM": -37.6
+   },
+   {
+    "distanceM": 18343,
+    "elevationM": -42.6
+   },
+   {
+    "distanceM": 18990.8,
+    "elevationM": -43
+   },
+   {
+    "distanceM": 19399.4,
+    "elevationM": -38.400000000000006
+   },
+   {
+    "distanceM": 19527.3,
+    "elevationM": -41.400000000000006
+   },
+   {
+    "distanceM": 19766.4,
+    "elevationM": -40.2
+   },
+   {
+    "distanceM": 19871.4,
+    "elevationM": -35.6
+   },
+   {
+    "distanceM": 20044.4,
+    "elevationM": -22.6
+   },
+   {
+    "distanceM": 20099.2,
+    "elevationM": -21.6
+   },
+   {
+    "distanceM": 20380,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 20587.2,
+    "elevationM": -1.4000000000000057
+   },
+   {
+    "distanceM": 20641.3,
+    "elevationM": 0.3999999999999986
+   },
+   {
+    "distanceM": 20886.4,
+    "elevationM": -3.4000000000000057
+   },
+   {
+    "distanceM": 21013.2,
+    "elevationM": -17.6
+   },
+   {
+    "distanceM": 21118,
+    "elevationM": -25.6
+   },
+   {
+    "distanceM": 21198.2,
+    "elevationM": -25.400000000000002
+   },
+   {
+    "distanceM": 21292.3,
+    "elevationM": -28.6
+   },
+   {
+    "distanceM": 21514.2,
+    "elevationM": -4
+   },
+   {
+    "distanceM": 21580,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 21744.6,
+    "elevationM": -5
+   },
+   {
+    "distanceM": 21886.7,
+    "elevationM": -19.400000000000002
+   },
+   {
+    "distanceM": 22111.1,
+    "elevationM": -32.6
+   },
+   {
+    "distanceM": 22755.4,
+    "elevationM": -39.400000000000006
+   },
+   {
+    "distanceM": 22937.3,
+    "elevationM": -35
+   },
+   {
+    "distanceM": 23489.3,
+    "elevationM": -0.4000000000000057
+   },
+   {
+    "distanceM": 24002.6,
+    "elevationM": 6.799999999999997
+   }
+  ],
+  "generatedAt": "2026-08-17T15:52:07.980Z",
+  "stravaSegmentId": 40657307
+ },
+ "kaze-kicker": {
+  "composition": {
+   "tarmac": 40.13441609671313,
+   "wood": 6.325149334741162,
+   "dirt": 12.855541253166141,
+   "sand": 39.97781481898909,
+   "brick": 0.7070784963904581
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 0.009800000000000001,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 0.009800000000000001,
+    "toKm": 0.1581,
+    "type": "wood"
+   },
+   {
+    "fromKm": 0.1581,
+    "toKm": 0.6297,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 0.6297,
+    "toKm": 4.851100000000001,
+    "type": "sand"
+   },
+   {
+    "fromKm": 4.851100000000001,
+    "toKm": 4.925,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 4.925,
+    "toKm": 5.0498,
+    "type": "sand"
+   },
+   {
+    "fromKm": 5.0498,
+    "toKm": 5.1375,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 5.1375,
+    "toKm": 5.2566999999999995,
+    "type": "brick"
+   },
+   {
+    "fromKm": 5.2566999999999995,
+    "toKm": 9.6885,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 9.6885,
+    "toKm": 10.0607,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 10.0607,
+    "toKm": 10.1386,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.1386,
+    "toKm": 10.286,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.286,
+    "toKm": 10.337,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.337,
+    "toKm": 10.3756,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.3756,
+    "toKm": 10.4259,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.4259,
+    "toKm": 10.5107,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.5107,
+    "toKm": 10.548200000000001,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.548200000000001,
+    "toKm": 10.6119,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.6119,
+    "toKm": 10.6744,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.6744,
+    "toKm": 10.764299999999999,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.764299999999999,
+    "toKm": 10.8552,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.8552,
+    "toKm": 10.8809,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.8809,
+    "toKm": 10.981200000000001,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.981200000000001,
+    "toKm": 11.115200000000002,
+    "type": "sand"
+   },
+   {
+    "fromKm": 11.115200000000002,
+    "toKm": 11.229700000000001,
+    "type": "wood"
+   },
+   {
+    "fromKm": 11.229700000000001,
+    "toKm": 11.844,
+    "type": "sand"
+   },
+   {
+    "fromKm": 11.844,
+    "toKm": 11.9615,
+    "type": "wood"
+   },
+   {
+    "fromKm": 11.9615,
+    "toKm": 12.1392,
+    "type": "sand"
+   },
+   {
+    "fromKm": 12.1392,
+    "toKm": 12.207,
+    "type": "wood"
+   },
+   {
+    "fromKm": 12.207,
+    "toKm": 12.6635,
+    "type": "sand"
+   },
+   {
+    "fromKm": 12.6635,
+    "toKm": 14.1364,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 14.1364,
+    "toKm": 14.6971,
+    "type": "sand"
+   },
+   {
+    "fromKm": 14.6971,
+    "toKm": 14.980799999999999,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 14.980799999999999,
+    "toKm": 15.092799999999999,
+    "type": "wood"
+   },
+   {
+    "fromKm": 15.092799999999999,
+    "toKm": 15.501700000000001,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 15.501700000000001,
+    "toKm": 15.5375,
+    "type": "wood"
+   },
+   {
+    "fromKm": 15.5375,
+    "toKm": 16.0806,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 16.0806,
+    "toKm": 16.8581,
+    "type": "tarmac"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 196,
+    "elevationM": -6.6
+   },
+   {
+    "distanceM": 1626.3,
+    "elevationM": -8.6
+   },
+   {
+    "distanceM": 2102.3,
+    "elevationM": -5.199999999999999
+   },
+   {
+    "distanceM": 2686.3,
+    "elevationM": -6.799999999999999
+   },
+   {
+    "distanceM": 2805.1,
+    "elevationM": -4.6
+   },
+   {
+    "distanceM": 2918.7,
+    "elevationM": -7.999999999999999
+   },
+   {
+    "distanceM": 3444.4,
+    "elevationM": 13
+   },
+   {
+    "distanceM": 3588.8,
+    "elevationM": 17.400000000000002
+   },
+   {
+    "distanceM": 3736.9,
+    "elevationM": 18.2
+   },
+   {
+    "distanceM": 3993.5,
+    "elevationM": 25.8
+   },
+   {
+    "distanceM": 4463.4,
+    "elevationM": 46.2
+   },
+   {
+    "distanceM": 4618.3,
+    "elevationM": 48.2
+   },
+   {
+    "distanceM": 4702.7,
+    "elevationM": 52.2
+   },
+   {
+    "distanceM": 4876.1,
+    "elevationM": 50
+   },
+   {
+    "distanceM": 5078.6,
+    "elevationM": 56.2
+   },
+   {
+    "distanceM": 5490,
+    "elevationM": 54.2
+   },
+   {
+    "distanceM": 6239,
+    "elevationM": 57.8
+   },
+   {
+    "distanceM": 6347,
+    "elevationM": 57.599999999999994
+   },
+   {
+    "distanceM": 6505.7,
+    "elevationM": 53.599999999999994
+   },
+   {
+    "distanceM": 6771.4,
+    "elevationM": 52.599999999999994
+   },
+   {
+    "distanceM": 7589.9,
+    "elevationM": 55.599999999999994
+   },
+   {
+    "distanceM": 7815.5,
+    "elevationM": 51.2
+   },
+   {
+    "distanceM": 8003.4,
+    "elevationM": 54.8
+   },
+   {
+    "distanceM": 8260.4,
+    "elevationM": 55.8
+   },
+   {
+    "distanceM": 8360.7,
+    "elevationM": 53.8
+   },
+   {
+    "distanceM": 10082.2,
+    "elevationM": 56.2
+   },
+   {
+    "distanceM": 10362.6,
+    "elevationM": 53.39999999999999
+   },
+   {
+    "distanceM": 10968.6,
+    "elevationM": 52.400000000000006
+   },
+   {
+    "distanceM": 11074.2,
+    "elevationM": 49.599999999999994
+   },
+   {
+    "distanceM": 11291.9,
+    "elevationM": 49.599999999999994
+   },
+   {
+    "distanceM": 11449.8,
+    "elevationM": 53.2
+   },
+   {
+    "distanceM": 11621.2,
+    "elevationM": 53.39999999999999
+   },
+   {
+    "distanceM": 11888.6,
+    "elevationM": 44.8
+   },
+   {
+    "distanceM": 12318.6,
+    "elevationM": 43.8
+   },
+   {
+    "distanceM": 12761.9,
+    "elevationM": 26.599999999999998
+   },
+   {
+    "distanceM": 13179,
+    "elevationM": 19
+   },
+   {
+    "distanceM": 13269.3,
+    "elevationM": 14.600000000000001
+   },
+   {
+    "distanceM": 13494.2,
+    "elevationM": 11.400000000000002
+   },
+   {
+    "distanceM": 14244.4,
+    "elevationM": -8.2
+   },
+   {
+    "distanceM": 14769.4,
+    "elevationM": -6.799999999999999
+   },
+   {
+    "distanceM": 14911.6,
+    "elevationM": -2.799999999999999
+   },
+   {
+    "distanceM": 15037.9,
+    "elevationM": -4.3999999999999995
+   },
+   {
+    "distanceM": 15493.9,
+    "elevationM": 14.400000000000002
+   },
+   {
+    "distanceM": 15665.6,
+    "elevationM": 11.400000000000002
+   },
+   {
+    "distanceM": 16035.7,
+    "elevationM": -5.999999999999999
+   },
+   {
+    "distanceM": 16858.1,
+    "elevationM": -2.5999999999999996
+   }
+  ],
+  "generatedAt": "2026-08-17T15:52:17.756Z",
+  "stravaSegmentId": 40654914
+ },
+ "jungle-circuit-rev": {
+  "composition": {
+   "dirt": 94.5579878188629,
+   "tarmac": 3.230040009174078,
+   "wood": 2.211972171963026
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 4.282099999999999,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 4.282099999999999,
+    "toKm": 4.535599999999999,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 4.535599999999999,
+    "toKm": 7.233299999999999,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 7.233299999999999,
+    "toKm": 7.406900000000001,
+    "type": "wood"
+   },
+   {
+    "fromKm": 7.406900000000001,
+    "toKm": 7.8482,
+    "type": "dirt"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 309.7999999999993,
+    "elevationM": -3
+   },
+   {
+    "distanceM": 770.2000000000007,
+    "elevationM": -3
+   },
+   {
+    "distanceM": 1349.0999999999985,
+    "elevationM": 12.999999999999998
+   },
+   {
+    "distanceM": 1662,
+    "elevationM": 18.200000000000003
+   },
+   {
+    "distanceM": 1822.9000000000015,
+    "elevationM": 18.6
+   },
+   {
+    "distanceM": 2811.9000000000015,
+    "elevationM": 51.2
+   },
+   {
+    "distanceM": 2971.5,
+    "elevationM": 51.6
+   },
+   {
+    "distanceM": 3228.5,
+    "elevationM": 56.4
+   },
+   {
+    "distanceM": 3392.7000000000007,
+    "elevationM": 53.2
+   },
+   {
+    "distanceM": 3668.7000000000007,
+    "elevationM": 54.4
+   },
+   {
+    "distanceM": 4080.2000000000007,
+    "elevationM": 61.800000000000004
+   },
+   {
+    "distanceM": 4271.5999999999985,
+    "elevationM": 61.6
+   },
+   {
+    "distanceM": 4401,
+    "elevationM": 53.2
+   },
+   {
+    "distanceM": 4551.200000000001,
+    "elevationM": 61.6
+   },
+   {
+    "distanceM": 4618.0999999999985,
+    "elevationM": 61.800000000000004
+   },
+   {
+    "distanceM": 5012.5999999999985,
+    "elevationM": 52
+   },
+   {
+    "distanceM": 5322.9000000000015,
+    "elevationM": 41.4
+   },
+   {
+    "distanceM": 5379.5,
+    "elevationM": 41.6
+   },
+   {
+    "distanceM": 5770.700000000001,
+    "elevationM": 28.6
+   },
+   {
+    "distanceM": 5966.200000000001,
+    "elevationM": 26.400000000000002
+   },
+   {
+    "distanceM": 6452,
+    "elevationM": 12.6
+   },
+   {
+    "distanceM": 6851.5999999999985,
+    "elevationM": 5.4
+   },
+   {
+    "distanceM": 6943.5,
+    "elevationM": 6
+   },
+   {
+    "distanceM": 7233.299999999999,
+    "elevationM": -2.5999999999999996
+   },
+   {
+    "distanceM": 7516.4000000000015,
+    "elevationM": -3
+   },
+   {
+    "distanceM": 7848.200000000001,
+    "elevationM": 0
+   }
+  ],
+  "generatedAt": "2026-08-17T15:52:27.441Z",
+  "stravaSegmentId": 16359371
+ },
+ "2919739330": {
+  "composition": {
+   "sand": 34.95743130837564,
+   "tarmac": 32.26250149506899,
+   "dirt": 20.83310680772871,
+   "wood": 11.946960388826664
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 0.9831,
+    "type": "sand"
+   },
+   {
+    "fromKm": 0.9831,
+    "toKm": 1.293,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 1.293,
+    "toKm": 1.65,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 1.65,
+    "toKm": 1.8644,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 1.8644,
+    "toKm": 2.7397,
+    "type": "sand"
+   },
+   {
+    "fromKm": 2.7397,
+    "toKm": 3.4845,
+    "type": "wood"
+   },
+   {
+    "fromKm": 3.4845,
+    "toKm": 4.3857,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 4.3857,
+    "toKm": 4.9269,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 4.9269,
+    "toKm": 4.9581,
+    "type": "wood"
+   },
+   {
+    "fromKm": 4.9581,
+    "toKm": 5.397600000000001,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 5.397600000000001,
+    "toKm": 5.5088,
+    "type": "wood"
+   },
+   {
+    "fromKm": 5.5088,
+    "toKm": 5.802899999999999,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 5.802899999999999,
+    "toKm": 7.823300000000001,
+    "type": "sand"
+   },
+   {
+    "fromKm": 7.823300000000001,
+    "toKm": 7.9568,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 7.9568,
+    "toKm": 8.0899,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.0899,
+    "toKm": 9.4063,
+    "type": "sand"
+   },
+   {
+    "fromKm": 9.4063,
+    "toKm": 10.1511,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.1511,
+    "toKm": 12.7309,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 12.7309,
+    "toKm": 12.882299999999999,
+    "type": "wood"
+   },
+   {
+    "fromKm": 12.882299999999999,
+    "toKm": 13.360700000000001,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 13.360700000000001,
+    "toKm": 13.578899999999999,
+    "type": "sand"
+   },
+   {
+    "fromKm": 13.578899999999999,
+    "toKm": 13.870899999999999,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 13.870899999999999,
+    "toKm": 13.969899999999999,
+    "type": "wood"
+   },
+   {
+    "fromKm": 13.969899999999999,
+    "toKm": 14.3876,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 14.3876,
+    "toKm": 14.416799999999999,
+    "type": "wood"
+   },
+   {
+    "fromKm": 14.416799999999999,
+    "toKm": 14.964,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 14.964,
+    "toKm": 16.7595,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 16.7595,
+    "toKm": 16.9123,
+    "type": "wood"
+   },
+   {
+    "fromKm": 16.9123,
+    "toKm": 17.377200000000002,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 17.377200000000002,
+    "toKm": 18.3938,
+    "type": "sand"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 463.5,
+    "elevationM": 3.2
+   },
+   {
+    "distanceM": 1089.4,
+    "elevationM": 2.4000000000000004
+   },
+   {
+    "distanceM": 1479,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 1637.8,
+    "elevationM": 11.600000000000001
+   },
+   {
+    "distanceM": 1945.1,
+    "elevationM": 1.2000000000000002
+   },
+   {
+    "distanceM": 2187,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 2524.4,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 2751.9,
+    "elevationM": 3.4000000000000004
+   },
+   {
+    "distanceM": 3242.7,
+    "elevationM": 5.8
+   },
+   {
+    "distanceM": 3948,
+    "elevationM": 5.8
+   },
+   {
+    "distanceM": 4371.6,
+    "elevationM": 2
+   },
+   {
+    "distanceM": 4466,
+    "elevationM": 3
+   },
+   {
+    "distanceM": 4759,
+    "elevationM": 18
+   },
+   {
+    "distanceM": 4908.2,
+    "elevationM": 22.8
+   },
+   {
+    "distanceM": 5001.7,
+    "elevationM": 22.4
+   },
+   {
+    "distanceM": 5461.4,
+    "elevationM": 4.2
+   },
+   {
+    "distanceM": 5594,
+    "elevationM": 5.6000000000000005
+   },
+   {
+    "distanceM": 5747.3,
+    "elevationM": 1.6000000000000005
+   },
+   {
+    "distanceM": 6042.5,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 6239.2,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 6822.4,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 7301.7,
+    "elevationM": 3.2
+   },
+   {
+    "distanceM": 8076.7,
+    "elevationM": 2.4000000000000004
+   },
+   {
+    "distanceM": 8202.4,
+    "elevationM": -0.3999999999999999
+   },
+   {
+    "distanceM": 8714.4,
+    "elevationM": 1.6000000000000005
+   },
+   {
+    "distanceM": 9178.8,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 9406.3,
+    "elevationM": 3.4000000000000004
+   },
+   {
+    "distanceM": 9909,
+    "elevationM": 5.8
+   },
+   {
+    "distanceM": 10601.4,
+    "elevationM": 5.8
+   },
+   {
+    "distanceM": 11051.7,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 11170.2,
+    "elevationM": 4.2
+   },
+   {
+    "distanceM": 11418,
+    "elevationM": 0.8000000000000003
+   },
+   {
+    "distanceM": 11848.9,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 11982.1,
+    "elevationM": 6.2
+   },
+   {
+    "distanceM": 12088.6,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 12381.1,
+    "elevationM": 2
+   },
+   {
+    "distanceM": 12672.5,
+    "elevationM": 8.399999999999999
+   },
+   {
+    "distanceM": 12755.6,
+    "elevationM": 7.8
+   },
+   {
+    "distanceM": 12928.3,
+    "elevationM": 1.7999999999999998
+   },
+   {
+    "distanceM": 13644.2,
+    "elevationM": 1.6000000000000005
+   },
+   {
+    "distanceM": 13793.4,
+    "elevationM": 5.6000000000000005
+   },
+   {
+    "distanceM": 13933.5,
+    "elevationM": 4.2
+   },
+   {
+    "distanceM": 14387.6,
+    "elevationM": 22.8
+   },
+   {
+    "distanceM": 14556.6,
+    "elevationM": 19.599999999999998
+   },
+   {
+    "distanceM": 14916.3,
+    "elevationM": 2.4000000000000004
+   },
+   {
+    "distanceM": 15194.7,
+    "elevationM": 4.2
+   },
+   {
+    "distanceM": 15431.5,
+    "elevationM": 0.8000000000000003
+   },
+   {
+    "distanceM": 15877.8,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 15999.1,
+    "elevationM": 6.2
+   },
+   {
+    "distanceM": 16103.6,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 16410.4,
+    "elevationM": 2
+   },
+   {
+    "distanceM": 16747.6,
+    "elevationM": 8.399999999999999
+   },
+   {
+    "distanceM": 16958.1,
+    "elevationM": 1.7999999999999998
+   },
+   {
+    "distanceM": 18393.8,
+    "elevationM": 0
+   }
+  ],
+  "generatedAt": "2026-08-17T15:52:37.144Z",
+  "stravaSegmentId": 41888254
+ },
+ "laguardia-after-party": {
+  "composition": {
+   "tarmac": 100
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 20.8552,
+    "type": "tarmac"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 166.2,
+    "elevationM": -10.200000000000003
+   },
+   {
+    "distanceM": 343.6,
+    "elevationM": -15.200000000000003
+   },
+   {
+    "distanceM": 463.3,
+    "elevationM": -9.800000000000004
+   },
+   {
+    "distanceM": 942.2,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 1121.8,
+    "elevationM": -2.200000000000003
+   },
+   {
+    "distanceM": 1199.7,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 1467.6,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 1820.5,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 1965.7,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 2251,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 2466.1,
+    "elevationM": -12.200000000000003
+   },
+   {
+    "distanceM": 2686.1,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 2798.4,
+    "elevationM": -7.800000000000004
+   },
+   {
+    "distanceM": 3056.8,
+    "elevationM": -3.8000000000000043
+   },
+   {
+    "distanceM": 3181.3,
+    "elevationM": -5.0000000000000036
+   },
+   {
+    "distanceM": 3315.3,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 3444.7,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 3633.7,
+    "elevationM": -12.000000000000004
+   },
+   {
+    "distanceM": 3762.6,
+    "elevationM": -10.600000000000001
+   },
+   {
+    "distanceM": 3931.1,
+    "elevationM": -2.0000000000000036
+   },
+   {
+    "distanceM": 4002.5,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 4268.7,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 4622.7,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 4780.1,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 5052.9,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 5267.8,
+    "elevationM": -12.200000000000003
+   },
+   {
+    "distanceM": 5449.9,
+    "elevationM": -7.800000000000004
+   },
+   {
+    "distanceM": 5868.9,
+    "elevationM": -3.8000000000000043
+   },
+   {
+    "distanceM": 5983.4,
+    "elevationM": -5.0000000000000036
+   },
+   {
+    "distanceM": 6102.5,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 6246.5,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 6435.4,
+    "elevationM": -12.000000000000004
+   },
+   {
+    "distanceM": 6564.5,
+    "elevationM": -10.600000000000001
+   },
+   {
+    "distanceM": 6740.9,
+    "elevationM": -1.8000000000000043
+   },
+   {
+    "distanceM": 6805.5,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 7069.9,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 7424.9,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 7581.8,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 7888.7,
+    "elevationM": -9.600000000000001
+   },
+   {
+    "distanceM": 8082.1,
+    "elevationM": -12.200000000000003
+   },
+   {
+    "distanceM": 8242.8,
+    "elevationM": -8.000000000000004
+   },
+   {
+    "distanceM": 8671.4,
+    "elevationM": -3.8000000000000043
+   },
+   {
+    "distanceM": 8785.5,
+    "elevationM": -4.800000000000004
+   },
+   {
+    "distanceM": 8946.2,
+    "elevationM": -11.000000000000004
+   },
+   {
+    "distanceM": 9048.4,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 9249.8,
+    "elevationM": -12.000000000000004
+   },
+   {
+    "distanceM": 9377.9,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 9538.1,
+    "elevationM": -2.200000000000003
+   },
+   {
+    "distanceM": 9608.6,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 9885.6,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 10238,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 10383.5,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 10668.4,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 10883.9,
+    "elevationM": -12.200000000000003
+   },
+   {
+    "distanceM": 11074.3,
+    "elevationM": -7.600000000000001
+   },
+   {
+    "distanceM": 11215.9,
+    "elevationM": -7.800000000000004
+   },
+   {
+    "distanceM": 11474.1,
+    "elevationM": -3.8000000000000043
+   },
+   {
+    "distanceM": 11598.9,
+    "elevationM": -5.0000000000000036
+   },
+   {
+    "distanceM": 11733.4,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 11850.3,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 12051.5,
+    "elevationM": -12.000000000000004
+   },
+   {
+    "distanceM": 12168.7,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 12347.9,
+    "elevationM": -2.0000000000000036
+   },
+   {
+    "distanceM": 12419.4,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 12686.6,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 13040,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 13197.6,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 13470.3,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 13710.4,
+    "elevationM": -12.200000000000003
+   },
+   {
+    "distanceM": 13905.7,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 14018.3,
+    "elevationM": -7.800000000000004
+   },
+   {
+    "distanceM": 14315.2,
+    "elevationM": -3.8000000000000043
+   },
+   {
+    "distanceM": 14548.6,
+    "elevationM": -11.000000000000004
+   },
+   {
+    "distanceM": 14664,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 14852.7,
+    "elevationM": -12.000000000000004
+   },
+   {
+    "distanceM": 14981.9,
+    "elevationM": -10.600000000000001
+   },
+   {
+    "distanceM": 15157.6,
+    "elevationM": -1.8000000000000043
+   },
+   {
+    "distanceM": 15238.7,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 15487.7,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 15842.2,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 15999.3,
+    "elevationM": -10.400000000000002
+   },
+   {
+    "distanceM": 16306,
+    "elevationM": -9.600000000000001
+   },
+   {
+    "distanceM": 16524.6,
+    "elevationM": -12.200000000000003
+   },
+   {
+    "distanceM": 16698.5,
+    "elevationM": -7.400000000000002
+   },
+   {
+    "distanceM": 17117.3,
+    "elevationM": -3.8000000000000043
+   },
+   {
+    "distanceM": 17202.7,
+    "elevationM": -4.800000000000004
+   },
+   {
+    "distanceM": 17335.6,
+    "elevationM": -10.600000000000001
+   },
+   {
+    "distanceM": 17465.8,
+    "elevationM": -9.400000000000002
+   },
+   {
+    "distanceM": 17654.3,
+    "elevationM": -12.000000000000004
+   },
+   {
+    "distanceM": 17783.9,
+    "elevationM": -10.600000000000001
+   },
+   {
+    "distanceM": 17967.2,
+    "elevationM": -1.6000000000000014
+   },
+   {
+    "distanceM": 18041.4,
+    "elevationM": -0.8000000000000043
+   },
+   {
+    "distanceM": 18288.7,
+    "elevationM": -10.800000000000004
+   },
+   {
+    "distanceM": 18644.3,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 18792,
+    "elevationM": -11.800000000000004
+   },
+   {
+    "distanceM": 18908.2,
+    "elevationM": -7.200000000000003
+   },
+   {
+    "distanceM": 19123.2,
+    "elevationM": 7.799999999999997
+   },
+   {
+    "distanceM": 19249.5,
+    "elevationM": 9.199999999999996
+   },
+   {
+    "distanceM": 19344.7,
+    "elevationM": 20.4
+   },
+   {
+    "distanceM": 19454.5,
+    "elevationM": 26
+   },
+   {
+    "distanceM": 19519.9,
+    "elevationM": 33.2
+   },
+   {
+    "distanceM": 19714.5,
+    "elevationM": 33.2
+   },
+   {
+    "distanceM": 20047.9,
+    "elevationM": 58.2
+   },
+   {
+    "distanceM": 20238.8,
+    "elevationM": 61.599999999999994
+   },
+   {
+    "distanceM": 20408.1,
+    "elevationM": 77.6
+   },
+   {
+    "distanceM": 20516.8,
+    "elevationM": 80.6
+   },
+   {
+    "distanceM": 20614.2,
+    "elevationM": 94.39999999999999
+   },
+   {
+    "distanceM": 20658,
+    "elevationM": 97.99999999999999
+   },
+   {
+    "distanceM": 20855.2,
+    "elevationM": 100.2
+   }
+  ],
+  "generatedAt": "2026-08-17T15:52:46.929Z",
+  "stravaSegmentId": 39086492
+ },
+ "4092230492": {
+  "composition": {
+   "sand": 40.22871162079388,
+   "tarmac": 46.2451023512749,
+   "dirt": 5.16336256118277,
+   "brick": 0.5241644238024723,
+   "wood": 7.838659042945967
+  },
+  "segments": [
+   {
+    "fromKm": 0,
+    "toKm": 3.2179,
+    "type": "sand"
+   },
+   {
+    "fromKm": 3.2179,
+    "toKm": 3.2909,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 3.2909,
+    "toKm": 3.4112,
+    "type": "sand"
+   },
+   {
+    "fromKm": 3.4112,
+    "toKm": 3.486,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 3.486,
+    "toKm": 3.6159,
+    "type": "brick"
+   },
+   {
+    "fromKm": 3.6159,
+    "toKm": 8.052100000000001,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 8.052100000000001,
+    "toKm": 8.423,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 8.423,
+    "toKm": 8.4967,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.4967,
+    "toKm": 8.6432,
+    "type": "sand"
+   },
+   {
+    "fromKm": 8.6432,
+    "toKm": 8.6841,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.6841,
+    "toKm": 8.739600000000001,
+    "type": "sand"
+   },
+   {
+    "fromKm": 8.739600000000001,
+    "toKm": 8.7804,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.7804,
+    "toKm": 8.859200000000001,
+    "type": "sand"
+   },
+   {
+    "fromKm": 8.859200000000001,
+    "toKm": 8.899700000000001,
+    "type": "wood"
+   },
+   {
+    "fromKm": 8.899700000000001,
+    "toKm": 8.968200000000001,
+    "type": "sand"
+   },
+   {
+    "fromKm": 8.968200000000001,
+    "toKm": 9.022,
+    "type": "wood"
+   },
+   {
+    "fromKm": 9.022,
+    "toKm": 9.1187,
+    "type": "sand"
+   },
+   {
+    "fromKm": 9.1187,
+    "toKm": 9.2027,
+    "type": "wood"
+   },
+   {
+    "fromKm": 9.2027,
+    "toKm": 9.2304,
+    "type": "sand"
+   },
+   {
+    "fromKm": 9.2304,
+    "toKm": 9.338700000000001,
+    "type": "wood"
+   },
+   {
+    "fromKm": 9.338700000000001,
+    "toKm": 9.468,
+    "type": "sand"
+   },
+   {
+    "fromKm": 9.468,
+    "toKm": 9.591700000000001,
+    "type": "wood"
+   },
+   {
+    "fromKm": 9.591700000000001,
+    "toKm": 10.2055,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.2055,
+    "toKm": 10.3146,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.3146,
+    "toKm": 10.489600000000001,
+    "type": "sand"
+   },
+   {
+    "fromKm": 10.489600000000001,
+    "toKm": 10.562,
+    "type": "wood"
+   },
+   {
+    "fromKm": 10.562,
+    "toKm": 11.0167,
+    "type": "sand"
+   },
+   {
+    "fromKm": 11.0167,
+    "toKm": 12.4854,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 12.4854,
+    "toKm": 14.3556,
+    "type": "sand"
+   },
+   {
+    "fromKm": 14.3556,
+    "toKm": 14.6663,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 14.6663,
+    "toKm": 15.0358,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 15.0358,
+    "toKm": 15.2522,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 15.2522,
+    "toKm": 16.1132,
+    "type": "sand"
+   },
+   {
+    "fromKm": 16.1132,
+    "toKm": 16.6538,
+    "type": "wood"
+   },
+   {
+    "fromKm": 16.6538,
+    "toKm": 18.416900000000002,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 18.416900000000002,
+    "toKm": 18.6508,
+    "type": "wood"
+   },
+   {
+    "fromKm": 18.6508,
+    "toKm": 19.5093,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 19.5093,
+    "toKm": 19.556099999999997,
+    "type": "wood"
+   },
+   {
+    "fromKm": 19.556099999999997,
+    "toKm": 20.0916,
+    "type": "sand"
+   },
+   {
+    "fromKm": 20.0916,
+    "toKm": 20.1262,
+    "type": "wood"
+   },
+   {
+    "fromKm": 20.1262,
+    "toKm": 20.628700000000002,
+    "type": "sand"
+   },
+   {
+    "fromKm": 20.628700000000002,
+    "toKm": 20.815,
+    "type": "wood"
+   },
+   {
+    "fromKm": 20.815,
+    "toKm": 23.149,
+    "type": "tarmac"
+   },
+   {
+    "fromKm": 23.149,
+    "toKm": 23.3022,
+    "type": "wood"
+   },
+   {
+    "fromKm": 23.3022,
+    "toKm": 23.766599999999997,
+    "type": "dirt"
+   },
+   {
+    "fromKm": 23.766599999999997,
+    "toKm": 24.7823,
+    "type": "sand"
+   }
+  ],
+  "elevationProfile": [
+   {
+    "distanceM": 0,
+    "elevationM": 0
+   },
+   {
+    "distanceM": 465.6,
+    "elevationM": 3.2
+   },
+   {
+    "distanceM": 1049,
+    "elevationM": 1.6000000000000005
+   },
+   {
+    "distanceM": 1146.8,
+    "elevationM": 3.8
+   },
+   {
+    "distanceM": 1274,
+    "elevationM": 0.40000000000000036
+   },
+   {
+    "distanceM": 1812.3,
+    "elevationM": 21.8
+   },
+   {
+    "distanceM": 1951,
+    "elevationM": 25.8
+   },
+   {
+    "distanceM": 2110.1,
+    "elevationM": 27
+   },
+   {
+    "distanceM": 2350.5,
+    "elevationM": 34.2
+   },
+   {
+    "distanceM": 2810,
+    "elevationM": 54.2
+   },
+   {
+    "distanceM": 2974.5,
+    "elevationM": 56.6
+   },
+   {
+    "distanceM": 3073.4,
+    "elevationM": 60.800000000000004
+   },
+   {
+    "distanceM": 3242.5,
+    "elevationM": 58.400000000000006
+   },
+   {
+    "distanceM": 3442.6,
+    "elevationM": 64.60000000000001
+   },
+   {
+    "distanceM": 3855.6,
+    "elevationM": 62.60000000000001
+   },
+   {
+    "distanceM": 4564.8,
+    "elevationM": 66.2
+   },
+   {
+    "distanceM": 5134.3,
+    "elevationM": 61
+   },
+   {
+    "distanceM": 5942.3,
+    "elevationM": 64
+   },
+   {
+    "distanceM": 6169.7,
+    "elevationM": 59.6
+   },
+   {
+    "distanceM": 6359.4,
+    "elevationM": 63.2
+   },
+   {
+    "distanceM": 6614.6,
+    "elevationM": 64.2
+   },
+   {
+    "distanceM": 6709.1,
+    "elevationM": 62.2
+   },
+   {
+    "distanceM": 8435.1,
+    "elevationM": 64.60000000000001
+   },
+   {
+    "distanceM": 8725.6,
+    "elevationM": 61.8
+   },
+   {
+    "distanceM": 9325.3,
+    "elevationM": 60.800000000000004
+   },
+   {
+    "distanceM": 9438.8,
+    "elevationM": 58
+   },
+   {
+    "distanceM": 9982.1,
+    "elevationM": 61.8
+   },
+   {
+    "distanceM": 10252.8,
+    "elevationM": 53
+   },
+   {
+    "distanceM": 10669.3,
+    "elevationM": 52.2
+   },
+   {
+    "distanceM": 11136.6,
+    "elevationM": 34.400000000000006
+   },
+   {
+    "distanceM": 11541.1,
+    "elevationM": 27.2
+   },
+   {
+    "distanceM": 11620.3,
+    "elevationM": 23.2
+   },
+   {
+    "distanceM": 11842.2,
+    "elevationM": 20
+   },
+   {
+    "distanceM": 12615.2,
+    "elevationM": 0.20000000000000018
+   },
+   {
+    "distanceM": 13354.2,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 13834.3,
+    "elevationM": 3.2
+   },
+   {
+    "distanceM": 14475.5,
+    "elevationM": 2.4000000000000004
+   },
+   {
+    "distanceM": 14863.1,
+    "elevationM": 12.399999999999999
+   },
+   {
+    "distanceM": 15048.5,
+    "elevationM": 10.8
+   },
+   {
+    "distanceM": 15316.9,
+    "elevationM": 1.4000000000000004
+   },
+   {
+    "distanceM": 15559.5,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 15897.3,
+    "elevationM": -0.19999999999999973
+   },
+   {
+    "distanceM": 16125.5,
+    "elevationM": 3.4000000000000004
+   },
+   {
+    "distanceM": 16590.6,
+    "elevationM": 2.6000000000000005
+   },
+   {
+    "distanceM": 16883.1,
+    "elevationM": 14.399999999999999
+   },
+   {
+    "distanceM": 17341.7,
+    "elevationM": 13.2
+   },
+   {
+    "distanceM": 18157.1,
+    "elevationM": 46.800000000000004
+   },
+   {
+    "distanceM": 19094.5,
+    "elevationM": 56.2
+   },
+   {
+    "distanceM": 19444,
+    "elevationM": 44
+   },
+   {
+    "distanceM": 19601.3,
+    "elevationM": 43.2
+   },
+   {
+    "distanceM": 19757.5,
+    "elevationM": 38.800000000000004
+   },
+   {
+    "distanceM": 20178.6,
+    "elevationM": 21.8
+   },
+   {
+    "distanceM": 20645.5,
+    "elevationM": 6.3999999999999995
+   },
+   {
+    "distanceM": 21164.6,
+    "elevationM": 2.8
+   },
+   {
+    "distanceM": 21485,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 21575.8,
+    "elevationM": 4.2
+   },
+   {
+    "distanceM": 21836.5,
+    "elevationM": 0.8000000000000003
+   },
+   {
+    "distanceM": 22267.5,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 22388.4,
+    "elevationM": 6.2
+   },
+   {
+    "distanceM": 22493.1,
+    "elevationM": 2.2
+   },
+   {
+    "distanceM": 22799.9,
+    "elevationM": 2
+   },
+   {
+    "distanceM": 23136.9,
+    "elevationM": 8.399999999999999
+   },
+   {
+    "distanceM": 23332.5,
+    "elevationM": 1.7999999999999998
+   },
+   {
+    "distanceM": 24782.3,
+    "elevationM": 0
+   }
+  ],
+  "generatedAt": "2026-08-17T15:52:56.720Z",
+  "stravaSegmentId": 41887960
  }
 }

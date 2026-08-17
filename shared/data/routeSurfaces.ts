@@ -15,6 +15,16 @@ import generated from './routeSurfaces.generated.json'
  * `elevationProfile` are optional since they were added after `composition` -
  * entries generated before those changes won't have them until the script is
  * re-run.
+ *
+ * Keys are whatever `route.slug` zwift-data currently exposes, which for a
+ * handful of event-only routes is a bare numeric id rather than a readable
+ * name (`4092230492` is Urumaze, `2919739330` Mech Isle Mayhem, `362278484`
+ * Twilight Crit, `811898717` WhatYumeziWereLost). Those keys have to be
+ * re-pointed if zwift-data ever gives those routes readable slugs, together
+ * with the matching `routeSlug` values in `shared/data/events/` - a stale key
+ * matches nothing and drops the route back to the heuristic estimate without
+ * failing anything. `compute-route-surfaces.mjs` warns about keys that match
+ * no route, which is how that gets caught.
  */
 interface GeneratedRouteSurface {
   composition: SurfaceComposition

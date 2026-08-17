@@ -112,3 +112,17 @@ for (const route of routesToProcess) {
 }
 
 console.log(`\nWrote ${outPath} (${Object.keys(results).length} routes total)`)
+
+// `getGeneratedRouteSurface` is a lookup keyed on `route.slug`, so an entry
+// whose key matches no route in the catalog is dead data - the route silently
+// falls back to the heuristic estimate with nothing to indicate it used to
+// have measured data. That happens whenever zwift-data renames a slug,
+// including when it replaces a bare numeric id with a readable one. Cheap to
+// check, and the only thing standing between a rename and a silent regression.
+const catalogSlugs = new Set(routes.map(r => r.slug))
+const orphaned = Object.keys(results).filter(slug => !catalogSlugs.has(slug))
+if (orphaned.length > 0) {
+  console.warn(`\nWARNING: ${orphaned.length} entr${orphaned.length === 1 ? 'y' : 'ies'} match no route in zwift-data and are being ignored at runtime:`)
+  for (const slug of orphaned) console.warn(`  ${slug}`)
+  console.warn('Re-key them to the current slug (and update any event-page references) or delete them.')
+}
