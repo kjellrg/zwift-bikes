@@ -22,6 +22,13 @@ export interface RecommendPhysics {
     soloFinishTimeSec?: number
     tttSavedSec?: number
   }
+  /** Present only in race draft mode - see `shared/utils/physics/draft.ts`. `riderPowerW` is the rider's own race average; `savingPct` is the field-calibrated flat-speed power saving the prediction applied. */
+  race?: {
+    savingPct: number
+    riderPowerW: number
+    soloFinishTimeSec?: number
+    raceSavedSec?: number
+  }
 }
 
 export interface RecommendPagination {
@@ -141,6 +148,24 @@ export function formatTttAssumption(physics: RecommendPhysics | undefined): stri
     parts.push(ttt.tttSavedSec >= 0
       ? `saves ~${formatDuration(Math.abs(ttt.tttSavedSec))} vs riding solo`
       : `~${formatDuration(Math.abs(ttt.tttSavedSec))} SLOWER than riding solo`)
+  }
+  return parts.join('; ')
+}
+
+/**
+ * The race-mode assumption line for the recommend tools' headers - present only
+ * when the request ran in race draft mode. States the mid-pack framing
+ * explicitly, because the one thing a model must not do with this number is
+ * present it as a winning or breakaway time.
+ */
+export function formatRaceAssumption(physics: RecommendPhysics | undefined): string | undefined {
+  const race = physics?.race
+  if (!race) return undefined
+  const parts = [`- Race draft mode: a typical mid-pack finish in a mass-start bunch (NOT a win or a breakaway); the rider's ${race.riderPowerW} W is their own race average, and the prediction applies the field-calibrated ~${race.savingPct}% flat-speed power saving`]
+  if (typeof race.raceSavedSec === 'number') {
+    parts.push(race.raceSavedSec >= 0
+      ? `saves ~${formatDuration(Math.abs(race.raceSavedSec))} vs riding solo`
+      : `~${formatDuration(Math.abs(race.raceSavedSec))} SLOWER than riding solo`)
   }
   return parts.join('; ')
 }
