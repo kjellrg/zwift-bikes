@@ -1,7 +1,7 @@
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset, ZwiftSurfaceType } from '../../types/catalog'
 import type { RouteGeometryPoint } from '../../types/physics'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
-import { tttFrontPullPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from './draft'
+import { racePowerScaleAtSpeed, tttFrontPullPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from './draft'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { powerForSpeed } from './forces'
 import { geometryForRouteLaps } from './routeGeometry'
@@ -67,16 +67,18 @@ export interface RouteSurfaceSpeedProfile {
    */
   elevationPoints: RouteGeometryPoint[]
   /**
-   * TTT draft mode only: the same rider, same power, same pacing, riding the
-   * route alone with no draft - the dashed "if you rode this solo" overlay.
-   * `speedSamples` share the main series' bucket positions so the two lines
-   * are directly comparable, and the gap between them IS the draft benefit.
+   * Drafted modes only (TTT or race): the same rider, same power, same pacing,
+   * riding the route alone with no draft - the dashed "if you rode this solo"
+   * overlay. `speedSamples` share the main series' bucket positions so the two
+   * lines are directly comparable, and the gap between them IS the draft
+   * benefit. Present for exactly the modes whose headline time includes a
+   * draft, so the chart and that time can never disagree.
    */
   soloComparison?: {
     speedSamples: RouteSurfaceSpeedSample[]
     overallAvgSpeedKmh: number
-    /** What the rider holds while pulling on the front - the concrete number a TTT calculator would give them. */
-    frontPullPowerW: number
+    /** TTT only: what the rider holds while pulling on the front - the concrete number a TTT calculator would give them. Race mode has no position, so no pull number exists. */
+    frontPullPowerW?: number
   }
 }
 
@@ -166,7 +168,7 @@ export function computeRouteSurfaceSpeedProfile(
   weightKg: number,
   heightCm: number,
   wkg: number,
-  ttt?: { riders: number, climbWkg?: number }
+  draft?: { mode: 'ttt', riders: number, climbWkg?: number } | { mode: 'race' }
 ): RouteSurfaceSpeedProfile | undefined {
   if (!route.terrain.elevationProfile || route.terrain.elevationProfile.length < 2) return undefined
   if (!route.surface.segments || route.surface.segments.length === 0) return undefined
@@ -184,8 +186,10 @@ export function computeRouteSurfaceSpeedProfile(
   // Chart is per-lap (single lap geometry), so the TTT plan here is built on
   // that same single-lap geometry - independent of the endpoints' per-request
   // plans, which cover the full laps+lead-in ride.
-  const tttPlan = ttt?.climbWkg ? tttPowerPlan(geometry, ttt.climbWkg, weightKg) : undefined
-  const powerScaleAtSpeed = ttt ? (speedMps: number) => tttPowerScaleAtSpeed(ttt.riders, speedMps) : undefined
+  const tttPlan = draft?.mode === 'ttt' && draft.climbWkg ? tttPowerPlan(geometry, draft.climbWkg, weightKg) : undefined
+  const powerScaleAtSpeed = draft?.mode === 'ttt'
+    ? (speedMps: number) => tttPowerScaleAtSpeed(draft.riders, speedMps)
+    : draft?.mode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined
   const result = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed })
 
   const timePoints = buildTimePoints(result, boundariesM, totalDistanceM)
@@ -231,16 +235,16 @@ export function computeRouteSurfaceSpeedProfile(
 
   const speedSamples = resampleSpeedSamples(timePoints, totalDistanceM)
 
-  // One extra simulation, only while the chart is open in TTT mode: the same
-  // ride with the draft scaling removed, so the gap between the two lines is
-  // exactly what the paceline is worth at each point on the route.
+  // One extra simulation, only while the chart is open in a drafted mode: the
+  // same ride with the draft scaling removed, so the gap between the two lines
+  // is exactly what the draft is worth at each point on the route.
   let soloComparison: RouteSurfaceSpeedProfile['soloComparison']
-  if (ttt) {
+  if (draft) {
     const soloResult = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: tttPlan?.powerSegmentsW })
     soloComparison = {
       speedSamples: resampleSpeedSamples(buildTimePoints(soloResult, boundariesM, totalDistanceM), totalDistanceM),
       overallAvgSpeedKmh: Math.round(soloResult.averageSpeedMps * 3.6 * 10) / 10,
-      frontPullPowerW: Math.round(tttFrontPullPowerW(rider.powerW, ttt.riders))
+      frontPullPowerW: draft.mode === 'ttt' ? Math.round(tttFrontPullPowerW(rider.powerW, draft.riders)) : undefined
     }
   }
 

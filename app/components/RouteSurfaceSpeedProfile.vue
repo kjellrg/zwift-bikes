@@ -63,8 +63,8 @@ const profile = computed(() => hasOpened.value
       props.heightCm,
       props.wkg,
       props.draftMode === 'ttt'
-        ? { riders: props.tttRiders ?? TTT_DEFAULT_RIDERS, climbWkg: props.tttClimbWkg }
-        : undefined
+        ? { mode: 'ttt' as const, riders: props.tttRiders ?? TTT_DEFAULT_RIDERS, climbWkg: props.tttClimbWkg }
+        : props.draftMode === 'race' ? { mode: 'race' as const } : undefined
     )
   : undefined)
 
@@ -250,7 +250,7 @@ const areaPath = computed(() => {
   return `${top} L${last.x1},${BASELINE_Y} L${first.x0},${BASELINE_Y} Z`
 })
 
-/** Dashed, muted "if you rode this solo" overlay line - TTT draft mode only (see `soloComparison`). Same knot/curve treatment as the main series, no area fill. */
+/** Dashed, muted "if you rode this solo" overlay line - drafted modes only (see `soloComparison`). Same knot/curve treatment as the main series, no area fill. */
 const soloLinePath = computed(() => {
   const samples = soloComparison.value?.speedSamples
   if (!samples || samples.length === 0) return ''
@@ -462,7 +462,7 @@ const summaryText = computed(() => {
             class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted"
           >
             <span class="inline-flex items-center gap-1.5">
-              <span class="inline-block w-5 border-t-2 border-primary" />In the paceline (~{{ soloComparison.frontPullPowerW }} W on your pulls)
+              <span class="inline-block w-5 border-t-2 border-primary" /><template v-if="soloComparison.frontPullPowerW">In the paceline (~{{ soloComparison.frontPullPowerW }} W on your pulls)</template><template v-else>In a typical race bunch</template>
             </span>
             <span class="inline-flex items-center gap-1.5">
               <span class="inline-block w-5 border-t-2 border-dashed border-current" />Same effort solo, no draft ({{ soloComparison.overallAvgSpeedKmh.toFixed(1) }} km/h avg)
