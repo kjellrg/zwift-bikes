@@ -840,6 +840,35 @@ largest anomaly in the set before exclusion. **Validation should refuse
 synthesised-geometry routes outright** — a rule §5 applies again, to the same
 route.
 
+**Both of those routes have since been measured, and the exclusion no longer
+applies to either.** They were in the batch of thirteen that gained real GPS
+elevation and surface data, and the recommend endpoint now reports
+`geometry: measured` for both. The rule stands; its scope has shrunk. Of 292
+cycling routes, 285 are `measured` and **seven** still fall back to
+`aggregate-compatibility` — ZG25 Climb Champs, Peaky Pavé, Power Punches, Flat
+Route Reverse, Power to the Portal, and the Volcano and Mont Saint-Michel climb
+portals. Those seven are exactly the routes `zwift-data` gives no
+`stravaSegmentId`, so there is no GPS trace to measure and no way to promote
+them without one.
+
+Both have re-entered the evidence base through the segment-effort set, which is
+what the rule was really asking for — a measured route tested against a measured
+distance:
+
+| route | m/km | actual | predicted | error |
+|---|---|---|---|---|
+| Mech Isle Mayhem | 6 | 27:22 | 26:58 | −1.44% |
+| Queen's Highway After Party | 15 | 26:13 | 26:59 | **+2.90%** |
+
+Queen's Highway After Party is worth dwelling on: it was the largest anomaly
+before exclusion, and with measured geometry it is *still* the largest residual
+in the set — three times the next one. So its anomaly was never a
+synthesised-geometry artifact. What it now looks like is the model running slow
+on the hilliest route we have a segment effort for (15 m/km against 6-8 for the
+others), which is where race mode's draft term is weakest and a strung-out pack
+is most likely. One route cannot separate those, and §5's climb races could not
+either.
+
 ### Results
 
 Estimate is the 26.7% expected saving scaled by `(v / 11.7)²`, with `ks` and
