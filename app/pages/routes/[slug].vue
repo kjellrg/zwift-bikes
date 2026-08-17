@@ -47,7 +47,9 @@ const recommendQuery = computed(() => ({
   // is what gets prerendered and what crawlers see. The watch below then
   // refetches after hydration, but only for a rider whose stored settings
   // actually differ from the defaults.
-  draftMode: draftMode.value === "ttt" ? "ttt" : undefined,
+  // Race mode sends nothing but the mode itself - one calibrated constant, no
+  // parameters - so its cache key stays as clean as solo's.
+  draftMode: draftMode.value === "solo" ? undefined : draftMode.value,
   tttRiders: draftMode.value === "ttt" ? tttRiders.value : undefined,
   tttClimbWkg: draftMode.value === "ttt" ? tttClimbWkg.value : undefined,
 }));
@@ -165,6 +167,7 @@ const physicsInfo = computed(() => recommendData.value?.physics);
 const fastestOverall = computed(() => recommendData.value?.fastestOverall);
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === "dynamic");
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt));
+const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race));
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined);
 const faqAnswer = computed(() => {
@@ -217,7 +220,7 @@ useHead(() => {
           <TerrainBadge :terrain="routeData.terrain" /><SurfaceBadges :surface="routeData.surface" />
           <UBadge v-if="physicsIsDynamic" color="primary" variant="subtle" icon="i-lucide-atom">Dynamic physics</UBadge>
           <UBadge v-if="routeData.eventOnly" color="error" variant="subtle" icon="i-lucide-calendar-clock">Event only</UBadge>
-        </div><p v-if="surfaceTimePenaltyText" class="text-xs text-muted sm:text-right">{{ surfaceTimePenaltyText }}</p><p v-if="tttSavingText" class="text-xs text-muted sm:text-right">{{ tttSavingText }}</p></div>
+        </div><p v-if="surfaceTimePenaltyText" class="text-xs text-muted sm:text-right">{{ surfaceTimePenaltyText }}</p><p v-if="tttSavingText" class="text-xs text-muted sm:text-right">{{ tttSavingText }}</p><p v-if="raceSavingText" class="text-xs text-muted sm:text-right">{{ raceSavingText }}</p></div>
       </div>
       <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <UCard :ui="{ body: 'text-center py-4' }"><p class="text-xs text-muted uppercase tracking-wide">Distance</p><p class="text-xl font-bold">{{ formatDistance(routeTotals?.distanceKm ?? routeData.distance) }}</p></UCard>

@@ -62,10 +62,11 @@ export function useReportContext() {
   const profile = computed(() => {
     const base = `${weightKg.value} kg, ${heightCm.value} cm, ${ftpWatts.value} W `
       + `(${wkg.value.toFixed(2)} W/kg), unowned bikes assumed at level ${defaultUnownedLevel.value}`
-    // Only spell out team size when it can actually affect the numbers.
+    // Only spell out team size when it can actually affect the numbers - race
+    // mode has no parameters at all, so its name is the whole story.
     const draft = draftMode.value === 'ttt'
       ? `TTT, ${tttRiders.value} riders`
-      : 'solo'
+      : draftMode.value === 'race' ? 'race (mass-start)' : 'solo'
     return `${base}, draft=${draft}`
   })
 

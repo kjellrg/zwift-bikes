@@ -83,7 +83,7 @@ watch(tttRiders, (value) => {
   pendingRiders.value = value
 })
 
-const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }]
+const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }, { label: 'Race (pack draft)', value: 'race' }]
 // The draft controls sit behind a disclosure. Solo is the default and covers
 // almost every visit (a road race is not ridden as a paceline), so the
 // paceline inputs stay folded away until someone asks for them - but ANY
@@ -139,7 +139,7 @@ const { openProfile } = useOverlays()
         >
       </div>
       <div class="min-w-64 flex-1">
-        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === 'ttt' ? ' average' : '' }}</label>
+        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === 'solo' ? '' : ' average' }}</label>
         <input
           v-model.number="pendingWkg"
           type="range"
@@ -167,7 +167,7 @@ const { openProfile } = useOverlays()
         v-if="draftControlsOpen"
         class="w-44"
       >
-        <label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces."><UIcon
+        <label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces. Race is a mass-start bunch: one draft benefit measured from real race fields, with your power still your own race average."><UIcon
           name="i-lucide-info"
           class="size-3 text-muted align-text-bottom"
         /></UTooltip></label>
@@ -176,9 +176,21 @@ const { openProfile } = useOverlays()
           value-key="value"
           :items="draftModeOptions"
           :search-input="false"
-          @update:model-value="(value: string) => setDraftMode(value === 'ttt' ? 'ttt' : 'solo')"
+          @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')"
         />
       </div>
+      <!-- Race mode has no controls of its own by design (one field-calibrated
+           constant), so the spare width carries the two things a rider has to
+           know instead: what is being assumed, and what their W/kg still means.
+           Bottom-aligned like every control in this row rather than centered -
+           `self-center` measured itself against the tallest item (label plus
+           control) and left the text floating above the select next to it. -->
+      <p
+        v-if="draftMode === 'race'"
+        class="flex-1 min-w-64 max-w-md self-end pb-2 text-xs text-muted"
+      >
+        Assumes typical mid-pack draft. Your W/kg still means your own race average.
+      </p>
       <div
         v-if="draftMode === 'ttt'"
         class="w-full sm:w-40"
@@ -217,9 +229,18 @@ const { openProfile } = useOverlays()
           @change="commitClimbWkg"
         >
       </div>
+      <!-- `py-1.5 text-sm` is not a nudge - it is the same box `USelectMenu`'s
+           own theme gives its trigger at the default `md` size. Two bottom-
+           aligned flex items with identical vertical metrics put their text on
+           the same line by construction, so this stays right if the row gains a
+           control or the note wraps to two lines. `self-center` was the bug:
+           in an `items-end` row it centres against the TALLEST item (a label
+           plus its control, ~52px), leaving the link floating above every
+           control's text line. A hand-tuned `pb-` value fixes the same-height
+           case only, and is 2px out against this select. -->
       <a
         href="/profile"
-        class="text-sm text-primary underline self-center"
+        class="self-end py-1.5 text-sm text-primary underline"
         @click="openProfile"
       >
         (edit profile)

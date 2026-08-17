@@ -17,7 +17,7 @@ const { bikeCategory, showUpcomingRaces, load: loadPreferences, setBikeCategory,
 onMounted(() => { load(); loadPreferences() })
 
 const defaultUnownedLevelOptions = [0, 1, 2, 3, 4, 5].map(level => ({ label: level === 0 ? 'Level 0 (stock, just unlocked)' : `Level ${level}`, value: level }))
-const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }]
+const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }, { label: 'Race (pack draft)', value: 'race' }]
 const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = [
   { label: 'All categories', value: 'all' }, { label: BIKE_CATEGORY_LABELS.standard, value: 'standard' },
   { label: BIKE_CATEGORY_LABELS.tt, value: 'tt' }, { label: BIKE_CATEGORY_LABELS.gravel, value: 'gravel' },
@@ -84,8 +84,9 @@ const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(wkg.
 
       <div class="max-w-xs">
         <label class="block text-xs font-medium text-muted mb-1">Default draft mode</label>
-        <USelectMenu :model-value="draftMode" value-key="value" :items="draftModeOptions" :search-input="false" @update:model-value="(value: string) => setDraftMode(value === 'ttt' ? 'ttt' : 'solo')" />
+        <USelectMenu :model-value="draftMode" value-key="value" :items="draftModeOptions" :search-input="false" @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')" />
         <p class="text-sm text-muted mt-1">TTT (Team Time Trial) models a rotating paceline. Your W/kg still means your own average over a full rotation - you push well above it while pulling on the front and sit below it in the wheels - and the group moves at the speed that combined effort produces, which is a lot faster than riding alone at the same effort.</p>
+        <p class="text-sm text-muted mt-1">Race models a mass-start bunch, using one draft benefit measured from thirteen real race fields rather than a pack model - so it needs no extra settings. Your W/kg still means your own average for the race (average power, not normalised), and what you get is a typical mid-pack finish time, not a winning one.</p>
       </div>
 
       <div v-if="draftMode === 'ttt'" class="max-w-md">
