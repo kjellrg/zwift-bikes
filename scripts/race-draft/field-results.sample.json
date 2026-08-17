@@ -1,0 +1,22 @@
+{
+  "_comment": "SYNTHETIC SAMPLE. Every number and every race below is invented - this file documents the format analyze-field-draft.mjs reads, nothing more. The real dataset is field-results.json, which is gitignored and never enters the repo (see README.md, 'Where the data lives'). Build it locally with parse-zwiftpower-paste.mjs.",
+  "source": "ZwiftPower category result lists for mass-start Zwift races.",
+  "privacy": "Rider names, teams, ages and heart rates are deliberately NOT stored. Each row keeps only category, finishing position, finish time, average and normalised power, and the weight/height the physics needs. Rows whose weight was not published keep no weight/height and are skipped by the analysis.",
+  "columns": "cat, pos, timeSec, avgW (mechanical average power), npW (normalised power), weightKg, heightCm",
+  "routeSlug": "Either an app route slug (as below) or, when the event ran a route the catalog does not map by name, the numeric Zwift route ID as a string.",
+  "races": {
+    "example-flat-crit": {
+      "label": "Example Flat Crit (synthetic sample - not real results)",
+      "routeSlug": "tempus-fugit",
+      "laps": 2,
+      "eventDistanceKm": 34.6,
+      "distanceNote": "zwift-data route + lead-in matches the published event distance; nothing to reconcile. When they disagree, say so here and by how much - distance enters the implied saving through v^3, so a 5% error is a ~15% power error, and an unresolved one disqualifies the race (see README.md, 'Adding a race').",
+      "riders": [
+        { "cat": "B", "pos": 1, "timeSec": 2941, "avgW": 254, "npW": 271, "weightKg": 78.0, "heightCm": 183 },
+        { "cat": "B", "pos": 2, "timeSec": 2942, "avgW": 231, "npW": 250, "weightKg": 71.5, "heightCm": 176 },
+        { "cat": "B", "pos": 3, "timeSec": 2953, "avgW": 268, "npW": 280 },
+        { "cat": "C", "pos": 1, "timeSec": 3105, "avgW": 205, "npW": 219, "weightKg": 84.0, "heightCm": 181 }
+      ]
+    }
+  }
+}
