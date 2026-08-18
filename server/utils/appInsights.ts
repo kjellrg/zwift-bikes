@@ -151,6 +151,9 @@ export interface RequestTelemetry {
   totalMs: number
   cold: boolean
   bootMs?: number
+  /** Cold request only: how long the startup warm took, and whether it finished before this request. */
+  warmupMs?: number
+  warmedBefore?: boolean
   phases: Record<string, number>
   meta: Record<string, TimingMetaValue>
 }
@@ -188,6 +191,8 @@ export function trackRequest(telemetry: RequestTelemetry): void {
     if (typeof value === 'number') measurements[key] = value
   }
   if (telemetry.bootMs !== undefined) measurements.bootMs = telemetry.bootMs
+  if (telemetry.warmupMs !== undefined) measurements.warmupMs = telemetry.warmupMs
+  if (telemetry.warmedBefore !== undefined) properties.warmedBefore = String(telemetry.warmedBefore)
 
   enqueue({
     name: 'Microsoft.ApplicationInsights.Event',
