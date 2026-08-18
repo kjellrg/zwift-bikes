@@ -7,6 +7,7 @@ import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../.
 import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
+import { addTimingMeta, markPhase } from '../../../utils/timing'
 
 function parseOwnedLevels(raw: unknown): Record<string, number> {
   if (typeof raw !== 'string' || !raw) return {}
@@ -28,6 +29,16 @@ export default defineEventHandler((event) => {
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing segment slug' })
   const summary = getSegmentSummary(slug)
   if (!summary) throw createError({ statusCode: 404, statusMessage: `Segment "${slug}" not found` })
+
+  // Counts integrations, not combos - see the equivalent comment in
+  // `recommend/[slug].get.ts`. Note this endpoint runs TWO of them per
+  // candidate (warmed, minus warmup-only), so the count here is roughly
+  // double the route endpoint's for the same-sized pool.
+  let simCount = 0
+  const countedSimulate: typeof simulateRoute = (options) => {
+    simCount++
+    return simulateRoute(options)
+  }
 
   const query = getQuery(event)
   const preferredRoute = typeof query.route === 'string' && query.route ? query.route : undefined
@@ -93,6 +104,8 @@ export default defineEventHandler((event) => {
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
   const frames = category ? allFrames.filter(f => f.category === category) : allFrames
+  // Carries this instance's lazy catalog init on a cold start.
+  markPhase(event, 'pool')
 
   // See the equivalent comments in `recommend/[slug].get.ts` - `rankCombos`
   // scores every candidate internally regardless of `limit`, so it's always
@@ -102,6 +115,7 @@ export default defineEventHandler((event) => {
   // unlike real finish time). Otherwise a genuinely faster combo could rank
   // outside `score`'s view of "the best candidates" and never surface.
   const rankedCombos = rankCombos(segmentRoute, frames, wheelsets, frames.length * wheelsets.length)
+  markPhase(event, 'rank')
 
   const rider = { weightKg, heightCm, powerW: weightKg * wkg }
   const segmentGeometry = hasRiderProfile && physicsMode !== 'legacy'
@@ -145,8 +159,9 @@ export default defineEventHandler((event) => {
   // Both sims must share the same time step for this subtraction to cancel
   // cleanly - they use the simulator's default (see `DEFAULT_DT_SEC`).
   const simulateSegmentSec = (combo: typeof rankedCombos[number]) =>
-    simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry!, powerSegmentsW: warmedPowerSegmentsW, powerScaleAtSpeed }).elapsedSec
-    - simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry!, powerScaleAtSpeed }).elapsedSec
+    countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry!, powerSegmentsW: warmedPowerSegmentsW, powerScaleAtSpeed }).elapsedSec
+    - countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry!, powerScaleAtSpeed }).elapsedSec
+  markPhase(event, 'geometry')
 
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
@@ -154,6 +169,7 @@ export default defineEventHandler((event) => {
       .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
+  markPhase(event, 'estimate')
 
   // See the equivalent comment in `recommend/[slug].get.ts` - capping is
   // skipped entirely while searching, and matches are ordered frame-name
@@ -161,6 +177,7 @@ export default defineEventHandler((event) => {
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
+  markPhase(event, 'filter')
 
   // See the equivalent comment in `recommend/[slug].get.ts` - the reachable
   // window is re-ordered by real simulated time before pagination, because
@@ -172,6 +189,8 @@ export default defineEventHandler((event) => {
     filteredRankedCombos = ordering.ordered
     for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
   }
+  markPhase(event, 'simulate')
+
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
   if (hasRiderProfile) {
@@ -189,6 +208,7 @@ export default defineEventHandler((event) => {
     if (physicsMode === 'compare') pageCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
+  markPhase(event, 'page')
 
   // "TTT saves X vs solo" - the same rider at the same power and pacing, with
   // the draft scaling removed from both halves of the subtraction, so the
@@ -199,8 +219,8 @@ export default defineEventHandler((event) => {
     let soloFinishTimeSec: number | undefined
     let tttSavedSec: number | undefined
     if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
-      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry, powerSegmentsW: warmedPowerSegmentsW }).elapsedSec
-        - simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
+      soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry, powerSegmentsW: warmedPowerSegmentsW }).elapsedSec
+        - countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
       tttSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
     ttt = {
@@ -223,8 +243,8 @@ export default defineEventHandler((event) => {
     let soloFinishTimeSec: number | undefined
     let raceSavedSec: number | undefined
     if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
-      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry }).elapsedSec
-        - simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
+      soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry }).elapsedSec
+        - countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
       raceSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
     race = {
@@ -266,6 +286,21 @@ export default defineEventHandler((event) => {
       }
     }
   }
+
+  markPhase(event, 'extras')
+  addTimingMeta(event, {
+    segment: summary.slug,
+    route: segmentRoute.slug,
+    distanceKm: Math.round(segmentRoute.distance * 10) / 10,
+    physics: physicsMode,
+    draft: draftMode,
+    category,
+    profile: hasRiderProfile,
+    combos: rankedCombos.length,
+    sims: simCount,
+    offset,
+    searching: Boolean(search)
+  })
 
   const tttNote = ttt
     ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
