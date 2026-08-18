@@ -19,8 +19,8 @@
     "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs"
   },
   "dependencies": {
-    "@iconify-json/lucide": "^1.2.121",
-    "@iconify-json/simple-icons": "^1.2.92",
+    "@iconify-json/lucide": "^1.2.123",
+    "@iconify-json/simple-icons": "^1.2.93",
     "@nuxt/ui": "^4.10.0",
     "@nuxtjs/robots": "^6.1.4",
     "@nuxtjs/sitemap": "^8.3.4",
@@ -30,12 +30,12 @@
     "zwift-data": "^1.50.0"
   },
   "devDependencies": {
-    "@nuxt/eslint": "^1.16.0",
+    "@nuxt/eslint": "^1.17.0",
     "@types/node": "^22.20.1",
     "esbuild": "^0.27.7",
-    "eslint": "^10.8.0",
+    "eslint": "^10.8.1",
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
-    "vue-tsc": "^3.3.9"
+    "vue-tsc": "^3.3.10"
   }
 }
