@@ -134,9 +134,9 @@ customEvents
 | where name == "server.request" and timestamp > ago(30m)
 | summarize requests = count(),
             p95 = percentile(todouble(customMeasurements.totalMs), 95),
-            last = max(timestamp)
+            last_seen = max(timestamp)
           by host = tostring(customDimensions.host)
-| order by last desc
+| order by last_seen desc
 ```
 
 Exclude previews from a production ranking with
@@ -164,6 +164,11 @@ in Logs either way.
 In the portal: the App Insights resource next to the static web app ->
 **Monitoring -> Logs**.
 
+KQL reserves a number of short words - `kind`, `last` and `range` among them -
+and rejects them as column aliases with a parse error rather than anything
+self-explanatory. Hence `last_seen` and the `_p95` suffixes below;
+bracket-quoting (`['last'] = max(timestamp)`) works too.
+
 Slowest routes, ranked (the query to start from):
 
 ```kusto
@@ -186,12 +191,12 @@ Phase contribution to the p95, ranked - which phase to attack first:
 ```kusto
 customEvents
 | where name == "server.request" and tostring(customDimensions.path) startswith "/api/recommend/"
-| summarize p95 = percentile(todouble(customMeasurements.totalMs), 95),
-            pool = percentile(todouble(customMeasurements.poolMs), 95),
-            rank = percentile(todouble(customMeasurements.rankMs), 95),
-            estimate = percentile(todouble(customMeasurements.estimateMs), 95),
-            simulate = percentile(todouble(customMeasurements.simulateMs), 95),
-            extras = percentile(todouble(customMeasurements.extrasMs), 95)
+| summarize total_p95 = percentile(todouble(customMeasurements.totalMs), 95),
+            pool_p95 = percentile(todouble(customMeasurements.poolMs), 95),
+            rank_p95 = percentile(todouble(customMeasurements.rankMs), 95),
+            estimate_p95 = percentile(todouble(customMeasurements.estimateMs), 95),
+            simulate_p95 = percentile(todouble(customMeasurements.simulateMs), 95),
+            extras_p95 = percentile(todouble(customMeasurements.extrasMs), 95)
 ```
 
 Cold starts, ranked against warm requests:
