@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { flushTelemetry, trackRequest } from '../utils/appInsights'
+import { warmup } from '../utils/warmup'
 import { getRequestTiming, phasesObject, roundMs, serverTimingHeader, startRequestTiming } from '../utils/timing'
 
 /**
@@ -79,13 +80,23 @@ export default defineNitroPlugin((nitroApp) => {
     // relative to process start, so at the first request it reads as
     // "how long this instance took to become able to serve anything".
     const bootMs = cold ? roundMs(timing.startedMs) : undefined
+    // Only on the cold request, and only to answer one question: did the
+    // startup warm finish before this request arrived? If it did, the catalog
+    // init is off the request path for good; if `warmedBefore` is false (or
+    // the warm had not run at all), the Functions host loaded the module
+    // lazily inside this invocation and the warm bought nothing. See
+    // server/utils/warmup.ts.
+    const warmupMs = cold ? warmup.durationMs : undefined
+    const warmedBefore = cold
+      ? warmup.finishedAtMs !== undefined && warmup.finishedAtMs <= timing.startedMs
+      : undefined
     const phases = phasesObject(timing)
     // Shared by the stdout line and the Application Insights telemetry so a
     // customEvents row can be joined back to its trace (and vice versa) - the
     // Functions host stamps its own unrelated operation id on the traces.
     const operationId = randomUUID().replaceAll('-', '')
 
-    trackRequest({ path, host, method: event.method, status, operationId, totalMs, cold, bootMs, phases, meta: timing.meta })
+    trackRequest({ path, host, method: event.method, status, operationId, totalMs, cold, bootMs, warmupMs, warmedBefore, phases, meta: timing.meta })
 
     if (process.env.TIMING_LOG !== 'off') {
       console.log(JSON.stringify({
@@ -97,6 +108,8 @@ export default defineNitroPlugin((nitroApp) => {
         totalMs,
         cold,
         bootMs,
+        warmupMs,
+        warmedBefore,
         phases,
         ...timing.meta
       }))

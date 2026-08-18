@@ -51,6 +51,7 @@ which is what makes per-route and per-phase analysis possible.
 | `reqId` | Correlation id, also sent as `operation_Id` on the custom event and metrics - the join between a trace line and its rankable row. |
 | `cold` | First request this instance ever served. The container start, module graph and lazy catalog init are all paid by that one rider. |
 | `bootMs` | Only on a cold request: milliseconds from process start to the request arriving - i.e. how long the instance took to become able to answer. |
+| `warmupMs` / `warmedBefore` | Cold request only. How long the startup warm took, and whether it finished before this request arrived. `warmedBefore = false` means the Functions host loaded the module inside the invocation, so the warm bought nothing and the request paid the init anyway - see `server/utils/warmup.ts`. |
 | `pool` | Building the candidate pool: ownership/cosmetic/verified filters plus `classifyBikeFrame` for every frame at the rider's upgrade level. Carries the lazy catalog load on a cold instance. |
 | `rank` | `rankCombos` over the full frame x wheelset matrix. |
 | `geometry` | Route/segment geometry and the TTT power plan. |
@@ -272,6 +273,18 @@ traces
             cold = countif(d.cold == true),
             p95_boot = percentile(todouble(d.bootMs), 95)
           by bin(timestamp, 1d)
+```
+
+Did the startup warm actually beat the first request (the only thing that
+decides whether catalog init is off the request path on this host):
+
+```kusto
+customEvents
+| where name == "server.request" and tostring(customDimensions.cold) == "true"
+| summarize instances = count(),
+            warmed_first = countif(tostring(customDimensions.warmedBefore) == "true"),
+            warmup_p50 = percentile(todouble(customMeasurements.warmupMs), 50),
+            pool_p95 = percentile(todouble(customMeasurements.poolMs), 95)
 ```
 
 Which routes are slow, and whether it's distance or pool depth:
