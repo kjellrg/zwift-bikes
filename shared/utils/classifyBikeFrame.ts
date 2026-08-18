@@ -264,7 +264,52 @@ function classifyBikeCategory(frame: BikeFrame): BikeCategory {
   return 'standard'
 }
 
+/**
+ * Classified frames, by frame object and then upgrade level.
+ *
+ * Classification is pure - the same frame at the same level always produces
+ * the same scores - but it is not cheap: every measured frame runs
+ * `solveFrameEquipmentDelta`, a numerical solve, and the recommend endpoints
+ * classify all 166 frames on every request (`getFrames()` is memoized, this
+ * was not). Measured on the deployed Static Web App that was 850 ms of a
+ * 900 ms response - 94% of a short-route request spent recomputing 166
+ * answers the process had already computed.
+ *
+ * Keyed on the frame OBJECT rather than its id or name: both call sites pass
+ * elements of a memoized array (`getFrames()`, or `bikeFrames` from
+ * zwift-data), so identity is stable for the life of the process, and a
+ * WeakMap can't outlive the frames it describes or collide on a duplicate id.
+ *
+ * Nothing mutates a classified frame - the whole app treats them as read-only
+ * values - so handing the same object to every caller is safe. If that ever
+ * stops being true, this cache turns a local edit into a global one.
+ */
+const classifiedByFrame = new WeakMap<BikeFrame, Map<number, ClassifiedBikeFrame>>()
+
 export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFrame {
+  // Only whole levels 0-5 are cached, which is the entire real domain (see
+  // `DEFAULT_UNOWNED_LEVEL` and the garage). Anything else - a fraction, a
+  // negative, a level past 5 - still classifies normally and is simply not
+  // stored, so a caller passing arbitrary numbers (the `owned` query
+  // parameter is rider-supplied JSON) can neither change an answer nor grow
+  // this map without bound.
+  if (!Number.isInteger(level) || level < 0 || level > 5) return classifyFrame(frame, level)
+
+  let byLevel = classifiedByFrame.get(frame)
+  if (!byLevel) {
+    byLevel = new Map()
+    classifiedByFrame.set(frame, byLevel)
+  }
+
+  const cached = byLevel.get(level)
+  if (cached) return cached
+
+  const classified = classifyFrame(frame, level)
+  byLevel.set(level, classified)
+  return classified
+}
+
+function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
   const category = classifyBikeCategory(frame)
   const hasFixedWheels = FIXED_WHEEL_FRAMES.has(frame.name)
   const clampedLevel = Math.min(5, Math.max(0, level))
