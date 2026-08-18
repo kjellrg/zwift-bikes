@@ -57,7 +57,14 @@ const laps = computed(() => lapsForCategoryGroup(race!, categoryGroupIndex.value
  */
 const selectedRouteSlug = computed(() => selectedGroup.value?.routeSlug)
 const ttAllowed = ttBikesAllowed(race)
+const draftAllowed = draftingAllowed(race)
 const formatLabel = computed(() => RACE_FORMAT_LABELS[race!.format!])
+/**
+ * The format for use mid-sentence. Every other format's label lowercases into
+ * ordinary prose ("this is a points race"); "Race of Truth" is a proper name
+ * and reads as gibberish if it doesn't keep its capitals.
+ */
+const formatPhrase = computed(() => race!.format === 'rot' ? 'Race of Truth' : formatLabel.value.toLowerCase())
 
 /**
  * The persisted bike-category preference, made race-legal: a rider whose
@@ -70,6 +77,16 @@ const effectiveCategory = computed(() => {
   if (bikeCategory.value === 'tt' && !ttAllowed) return undefined
   return bikeCategory.value
 })
+
+/**
+ * The persisted draft mode, made race-legal - the exact counterpart of
+ * `effectiveCategory` above, and for the same reason. WTRL switches drafting
+ * off entirely in a Race of Truth, so a ranking computed at bunch speeds there
+ * would be minutes fast and could genuinely reorder the list; it is forced to
+ * solo instead. The rider's stored preference is left alone, because it still
+ * applies to every other race they open.
+ */
+const effectiveDraftMode = computed(() => draftAllowed ? draftMode.value : 'solo')
 
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
@@ -90,9 +107,9 @@ const recommendQuery = computed(() => ({
   // start on. See `excludeTT` in `server/api/recommend/[slug].get.ts`.
   excludeTT: ttAllowed ? undefined : 'true',
   // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
-  draftMode: draftMode.value === 'solo' ? undefined : draftMode.value,
-  tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
-  tttClimbWkg: draftMode.value === 'ttt' ? tttClimbWkg.value : undefined
+  draftMode: effectiveDraftMode.value === 'solo' ? undefined : effectiveDraftMode.value,
+  tttRiders: effectiveDraftMode.value === 'ttt' ? tttRiders.value : undefined,
+  tttClimbWkg: effectiveDraftMode.value === 'ttt' ? tttClimbWkg.value : undefined
 }))
 
 // `useAsyncData` rather than `useFetch` here: the selected category group can
@@ -203,6 +220,18 @@ const coursesDiffer = hasSplitCourses(race)
 const powerups = race.powerups
 
 /**
+ * Same split as the FAQ's `rules` line: Zwift disables TT frames itself for
+ * points and scratch races, while WTRL bans them by regulation in a Race of
+ * Truth - where drafting being off would otherwise be the TT bike's whole
+ * argument, so a rider is owed the reason rather than just the verdict.
+ */
+const ttAlertDescription = computed(() => {
+  if (ttAllowed) return 'Zwift enables TT frames - and gives them draft - for team time trials, so they are included in the ranking below.'
+  if (race!.format === 'rot') return 'Drafting is off in a Race of Truth, but WTRL still bans TT frames from it - so this is raced on road bikes, and they are the only thing ranked below.'
+  return `Zwift disables TT frames for ${formatLabel.value.toLowerCase()}s, so they are excluded from the ranking below. Everything listed is a bike you can actually start on.`
+})
+
+/**
  * Where the points are, for the selected group.
  *
  * ZRL usually scores the same sprint both ways - FAL by finishing order
@@ -232,7 +261,7 @@ const scoringSegments = computed(() => {
  * table that looks like a loading failure.
  */
 const scoringSegmentsTbd = computed(() => Boolean(selectedGroup.value?.scoringSegmentsTbd))
-const isPointsRaceWithoutSegments = computed(() => race!.format === 'points' && !scoringSegments.value.length)
+const isPointsRaceWithoutSegments = computed(() => (race!.format === 'points' || race!.format === 'rot') && !scoringSegments.value.length)
 
 /**
  * The race format contradicting the rider's persisted draft mode genuinely
@@ -243,6 +272,9 @@ const isPointsRaceWithoutSegments = computed(() => race!.format === 'points' && 
  */
 const draftHintDismissed = ref(false)
 const draftHint = computed(() => {
+  // Nothing to nudge towards when the race has no draft at all: the ranking is
+  // already forced solo, and the banner that says so replaces this entirely.
+  if (!draftAllowed) return undefined
   if (draftHintDismissed.value) return undefined
   if (race!.format === 'ttt' && draftMode.value !== 'ttt') {
     return {
@@ -257,8 +289,8 @@ const draftHint = computed(() => {
   if (race!.format !== 'ttt' && draftMode.value !== 'race') {
     return {
       text: draftMode.value === 'ttt'
-        ? `Your profile has TTT draft mode on, but this is a ${formatLabel.value.toLowerCase()} - the ranking below assumes paceline speeds this race won't be ridden at. Race draft mode models the mass-start bunch this actually is.`
-        : `This is a ${formatLabel.value.toLowerCase()}, but the ranking below is computed for a lone rider with no draft at all. Race draft mode adds the draft a typical mid-pack racer measurably gets, calibrated on thirteen real race fields.`,
+        ? `Your profile has TTT draft mode on, but this is a ${formatPhrase.value} - the ranking below assumes paceline speeds this race won't be ridden at. Race draft mode models the mass-start bunch this actually is.`
+        : `This is a ${formatPhrase.value}, but the ranking below is computed for a lone rider with no draft at all. Race draft mode adds the draft a typical mid-pack racer measurably gets, calibrated on thirteen real race fields.`,
       action: 'Use race draft mode',
       mode: 'race' as const
     }
@@ -316,7 +348,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, laps, selectedRouteSlug, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => {
+watch([weightKg, heightCm, wkg, laps, selectedRouteSlug, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, effectiveDraftMode, tttRiders, tttClimbWkg], () => {
   refreshRecommendations()
 })
 watch(owned, () => {
@@ -351,10 +383,16 @@ const faqAnswer = computed(() => {
     ? `${topCombo.value.frame.name} with ${topCombo.value.wheelset.name}`
     : topCombo.value.frame.name
   const distanceKm = resultsTotals.value?.distanceKm ?? routeData.value.distance
+  // Who does the disabling differs and it matters to a rider reading the rules:
+  // Zwift itself blocks TT frames in points and scratch races, whereas WTRL
+  // bans them by regulation in a Race of Truth.
   const rules = ttAllowed
     ? 'TT bikes are allowed in this team time trial'
-    : `TT bikes are disabled for this ${formatLabel.value.toLowerCase()}`
-  return `${rules}. Over ${resultsLaps.value} lap${resultsLaps.value === 1 ? '' : 's'} of ${routeData.value.name} (${formatDistance(distanceKm)}), our physics model makes the ${equipment} the fastest legal combo, finishing in ${formatDuration(topCombo.value.finishTimeSec)} (~${formatSpeedKmh(distanceKm, topCombo.value.finishTimeSec)}).`
+    : race!.format === 'rot'
+      ? 'WTRL bans TT bikes from its Race of Truth'
+      : `TT bikes are disabled for this ${formatPhrase.value}`
+  const draftRule = draftAllowed ? '' : ', and WTRL turns drafting off, so the time below is ridden solo'
+  return `${rules}${draftRule}. Over ${resultsLaps.value} lap${resultsLaps.value === 1 ? '' : 's'} of ${routeData.value.name} (${formatDistance(distanceKm)}), our physics model makes the ${equipment} the fastest legal combo, finishing in ${formatDuration(topCombo.value.finishTimeSec)} (~${formatSpeedKmh(distanceKm, topCombo.value.finishTimeSec)}).`
 })
 
 const siteConfig = useSiteConfig()
@@ -517,9 +555,23 @@ useHead(() => {
         variant="subtle"
         :icon="ttAllowed ? 'i-lucide-rocket' : 'i-lucide-ban'"
         :title="ttAllowed ? 'TT bikes are allowed in this race' : 'TT bikes are disabled for this race'"
-        :description="ttAllowed
-          ? 'Zwift enables TT frames - and gives them draft - for team time trials, so they are included in the ranking below.'
-          : `Zwift disables TT frames for ${formatLabel.toLowerCase()}s, so they are excluded from the ranking below. Everything listed is a bike you can actually start on.`"
+        :description="ttAlertDescription"
+      />
+
+      <!--
+        Not a nudge like the draft hint below it, but a rule: the ranking is
+        already computed solo whatever the rider's saved draft mode says, so
+        this states what happened rather than offering to change it - and is
+        deliberately not dismissible for that reason.
+      -->
+      <UAlert
+        v-if="!draftAllowed"
+        class="mt-4"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-wind"
+        title="Drafting is disabled in this race"
+        description="WTRL turns the draft off for a Race of Truth: there is no bunch to sit in, so every rider covers the course on their own power. The ranking below is computed solo for exactly that reason, and aerodynamics count for more here than in a normal road race. Your saved draft setting is untouched and still applies everywhere else."
       />
 
       <!-- The differences readable at a glance, without toggling the selector. -->
@@ -820,7 +872,7 @@ useHead(() => {
       :weight-kg="weightKg"
       :height-cm="heightCm"
       :wkg="wkg"
-      :draft-mode="draftMode"
+      :draft-mode="effectiveDraftMode"
       :ttt-riders="tttRiders"
       :ttt-climb-wkg="tttClimbWkg"
     />
@@ -930,6 +982,7 @@ useHead(() => {
 
         <RiderProfileControls
           :has-long-climb="hasLongClimb"
+          :draft-locked="!draftAllowed"
           class="mb-6"
         />
 
@@ -973,7 +1026,7 @@ useHead(() => {
               :laps="resultsLaps"
               :fastest-time-sec="fastestTimeSec"
               :owned="owned"
-              :draft-mode="draftMode"
+              :draft-mode="effectiveDraftMode"
               :ttt-riders="tttRiders"
               :ttt-climb-wkg="tttClimbWkg"
               class="mb-6"
@@ -994,7 +1047,7 @@ useHead(() => {
                 :laps="resultsLaps"
                 :fastest-time-sec="fastestTimeSec"
                 :owned="owned"
-                :draft-mode="draftMode"
+                :draft-mode="effectiveDraftMode"
                 :ttt-riders="tttRiders"
                 :ttt-climb-wkg="tttClimbWkg"
               />

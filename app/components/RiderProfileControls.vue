@@ -34,7 +34,17 @@ const props = withDefaults(defineProps<{
    * rather than silently losing the control.
    */
   hasLongClimb?: boolean
-}>(), { hasLongClimb: true })
+  /**
+   * Whether the page this sits on races with no draft at all, in which case
+   * the whole draft cluster is hidden rather than disabled: the host page has
+   * already forced its ranking solo and said so in a banner, and leaving a
+   * live-looking control that changes nothing would be a lie about what the
+   * numbers below respond to. Like `hasLongClimb`, only the host page can know
+   * this - it is a property of the race, not the rider - and the rider's saved
+   * draft mode is left exactly as it was for every other page.
+   */
+  draftLocked?: boolean
+}>(), { hasLongClimb: true, draftLocked: false })
 
 const { weightKg, heightCm, wkg, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 
@@ -92,8 +102,14 @@ const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 
 // than one extra dropdown. That rule is deliberately written against
 // `!== 'solo'` rather than `=== 'ttt'` so a future race/pack-draft mode
 // (see `shared/utils/physics/draft.ts`) inherits it for free.
+// `draftLocked` wins over both, including over a stored non-solo mode: on a
+// no-draft race there is nothing the section could usefully show. It is what
+// the host page's ranking is actually computed at, so the power label reads it
+// too - the stored mode would otherwise call the rider's number an "average"
+// over a rotation this page never applies.
+const effectiveDraftMode = computed(() => props.draftLocked ? 'solo' : draftMode.value)
 const showDraftControls = ref(false)
-const draftControlsOpen = computed(() => showDraftControls.value || draftMode.value !== 'solo')
+const draftControlsOpen = computed(() => !props.draftLocked && (showDraftControls.value || draftMode.value !== 'solo'))
 
 // "(edit profile)" opens the profile modal over this page rather than
 // navigating away from the route the rider is looking at - its edits are
@@ -139,7 +155,7 @@ const { openProfile } = useOverlays()
         >
       </div>
       <div class="min-w-64 flex-1">
-        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ draftMode === 'solo' ? '' : ' average' }}</label>
+        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ effectiveDraftMode === 'solo' ? '' : ' average' }}</label>
         <input
           v-model.number="pendingWkg"
           type="range"
@@ -154,7 +170,7 @@ const { openProfile } = useOverlays()
     </div>
     <div class="flex flex-wrap items-end gap-6">
       <UButton
-        v-if="!draftControlsOpen"
+        v-if="!draftControlsOpen && !props.draftLocked"
         color="neutral"
         variant="subtle"
         size="xs"
@@ -186,13 +202,13 @@ const { openProfile } = useOverlays()
            `self-center` measured itself against the tallest item (label plus
            control) and left the text floating above the select next to it. -->
       <p
-        v-if="draftMode === 'race'"
+        v-if="draftControlsOpen && draftMode === 'race'"
         class="flex-1 min-w-64 max-w-md self-end pb-2 text-xs text-muted"
       >
         Assumes typical mid-pack draft. Your W/kg still means your own race average.
       </p>
       <div
-        v-if="draftMode === 'ttt'"
+        v-if="draftControlsOpen && draftMode === 'ttt'"
         class="w-full sm:w-40"
       >
         <label class="block text-xs font-medium text-muted mb-1">Riders: {{ pendingRiders }} <UTooltip text="Team size in the rotation. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is."><UIcon
@@ -211,7 +227,7 @@ const { openProfile } = useOverlays()
         >
       </div>
       <div
-        v-if="draftMode === 'ttt' && props.hasLongClimb"
+        v-if="draftControlsOpen && draftMode === 'ttt' && props.hasLongClimb"
         class="w-full sm:w-64"
       >
         <label class="block text-xs font-medium text-muted mb-1">Team climb power: {{ pendingClimbWkg.toFixed(1) }} W/kg ({{ Math.round(pendingClimbWkg * weightKg) }} W) <UTooltip text="What the team averages on this route's long climbs, where a paceline breaks up and everyone rides their own pace. Only shown on routes that have one. Starts at your normal power and stays where you put it - changing the Power slider above never moves it."><UIcon
