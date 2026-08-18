@@ -260,6 +260,46 @@ const scoringSegments = computed(() => {
  * Round 1's do this) - worth saying out loud rather than rendering an empty
  * table that looks like a loading failure.
  */
+/** The scoring segments that have a page here, for the elevation profile's stars. */
+const scoringSlugs = computed(() => [...new Set(scoringSegments.value.map(segment => segment.slug).filter((slug): slug is string => Boolean(slug)))])
+
+/**
+ * Where each scoring segment actually falls along the ride, from the same
+ * lap-expanded occurrences the profile and the climb/sprint cards use - so a
+ * "2x" in the table and two starred markers on the profile are the same two
+ * passes, not two independent derivations of the lap maths.
+ *
+ * Empty when zwift-data ships no segment placements for the route at all
+ * (Urumaze is the case in Round 1), which the table handles by dropping the
+ * column rather than printing a row of blanks.
+ */
+const scoringPositionsBySlug = computed(() => {
+  const bySlug = new Map<string, number[]>()
+  for (const occurrence of [...sprintOccurrences.value, ...climbOccurrences.value]) {
+    if (!scoringSlugs.value.includes(occurrence.slug)) continue
+    const positions = bySlug.get(occurrence.slug) ?? []
+    positions.push(occurrence.rideFromKm)
+    bySlug.set(occurrence.slug, positions)
+  }
+  for (const positions of bySlug.values()) positions.sort((a, b) => a - b)
+  return bySlug
+})
+
+/**
+ * The table's rows, in the order the rider meets them where that is knowable -
+ * a points race is ridden in course order, not in the order the organiser
+ * happened to list the segments. Segments with no position sort last, keeping
+ * their published order among themselves.
+ */
+const scoringRows = computed(() => scoringSegments.value
+  .map(segment => ({
+    ...segment,
+    positionsKm: segment.slug ? scoringPositionsBySlug.value.get(segment.slug) ?? [] : []
+  }))
+  .sort((a, b) => (a.positionsKm[0] ?? Infinity) - (b.positionsKm[0] ?? Infinity)))
+
+const hasScoringPositions = computed(() => scoringRows.value.some(row => row.positionsKm.length))
+
 const scoringSegmentsTbd = computed(() => Boolean(selectedGroup.value?.scoringSegmentsTbd))
 const isPointsRaceWithoutSegments = computed(() => (race!.format === 'points' || race!.format === 'rot') && !scoringSegments.value.length)
 
@@ -793,7 +833,9 @@ useHead(() => {
           Points are scored at these segments - <span class="font-medium text-highlighted">FAL</span> by the
           order riders cross the line, <span class="font-medium text-highlighted">FTS</span> by elapsed time
           across the segment. Tap a segment to see the fastest bikes for that sprint alone - the
-          fastest bike for a sprint isn't always the fastest over the whole race.
+          fastest bike for a sprint isn't always the fastest over the whole race.<template v-if="hasScoringPositions">
+            Every scoring pass is starred on the elevation profile below, in the order you meet it.
+          </template>
         </p>
         <div class="overflow-x-auto rounded-lg border border-default">
           <table class="w-full text-sm">
@@ -808,11 +850,19 @@ useHead(() => {
                 <th class="px-4 py-2 font-medium">
                   FTS
                 </th>
+                <!-- Only when the route publishes where its segments sit - see
+                     `scoringPositionsBySlug`. -->
+                <th
+                  v-if="hasScoringPositions"
+                  class="px-4 py-2 font-medium"
+                >
+                  Comes at
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="segment in scoringSegments"
+                v-for="segment in scoringRows"
                 :key="segment.name"
                 class="border-t border-default"
               >
@@ -836,6 +886,16 @@ useHead(() => {
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap">
                   <span v-if="segment.fts">{{ segment.fts }}x</span>
+                  <span
+                    v-else
+                    class="text-muted"
+                  >-</span>
+                </td>
+                <td
+                  v-if="hasScoringPositions"
+                  class="px-4 py-2 whitespace-nowrap"
+                >
+                  <span v-if="segment.positionsKm.length">{{ segment.positionsKm.map(km => formatDistance(km)).join(', ') }}</span>
                   <span
                     v-else
                     class="text-muted"
@@ -883,6 +943,7 @@ useHead(() => {
         :laps="laps"
         :climbs="climbOccurrences"
         :sprints="sprintOccurrences"
+        :scoring-slugs="scoringSlugs"
       />
     </div>
 

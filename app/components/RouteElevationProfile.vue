@@ -9,6 +9,15 @@ const props = defineProps<{
    * climb/sprint's position lines up with those cards without re-deriving lap expansion a second way. */
   climbs?: RouteClimbOccurrence[]
   sprints?: (RouteSegmentPlacement & SegmentOccurrence)[]
+  /**
+   * Segment slugs that score points in the event this profile is being shown
+   * for, if any. Matching markers are starred and drawn more strongly, which
+   * turns the profile into the answer to "when do I have to be at the front?"
+   * - every scoring pass in ride order, including the repeats a table of
+   * "3x Tidepool Sprint" can't place. Omitted everywhere but a race page, and
+   * an empty or absent list renders exactly as before.
+   */
+  scoringSlugs?: string[]
 }>()
 
 const VIEW_WIDTH = 800
@@ -234,10 +243,13 @@ const lapBoundaries = computed(() => {
  * also what `points` above is keyed on, so no further offset is needed here. One-time lead-in
  * occurrences (`!perLap`) are kept too; only occurrences beyond the plotted lap count are dropped.
  */
+const scoringSlugSet = computed(() => new Set(props.scoringSlugs ?? []))
+
 const markers = computed(() => {
   const climbMarkers = (props.climbs ?? []).map(item => ({
     key: `climb-${item.slug}-${item.rideFromKm}`,
     kind: 'climb' as const,
+    scoring: scoringSlugSet.value.has(item.slug),
     name: item.name,
     fromM: item.rideFromKm * 1000,
     toM: item.rideToKm * 1000,
@@ -248,6 +260,7 @@ const markers = computed(() => {
   const sprintMarkers = (props.sprints ?? []).map(item => ({
     key: `sprint-${item.slug}-${item.rideFromKm}`,
     kind: 'sprint' as const,
+    scoring: scoringSlugSet.value.has(item.slug),
     name: item.name,
     fromM: item.rideFromKm * 1000,
     toM: item.rideToKm * 1000,
@@ -272,8 +285,12 @@ const MARKER_STYLES = {
 function markerTitle(marker: (typeof markers.value)[number]) {
   const grade = marker.avgGradePercent ? ` · ${formatGrade(marker.avgGradePercent)}` : ''
   const lap = marker.lapNumber ? ` · lap ${marker.lapNumber}` : ''
-  return `${marker.name} · ${formatDistance(marker.lengthKm)}${grade}${lap}`
+  const scoring = marker.scoring ? ' · scores points' : ''
+  return `${marker.name} · ${formatDistance(marker.lengthKm)}${grade}${lap} · from ${formatDistance(marker.fromM / 1000)}${scoring}`
 }
+
+/** Only worth a legend entry when something on this profile actually scores. */
+const hasScoringMarkers = computed(() => markers.value.some(marker => marker.scoring))
 
 const stats = computed(() => {
   const pts = points.value
@@ -342,13 +359,16 @@ const stats = computed(() => {
             v-for="marker in markers"
             :key="marker.key"
           >
+            <!-- A scoring pass is drawn as the same marker turned up, not as a
+                 different shape: the rider still needs to read it as the sprint
+                 or climb it is, just with the fact that points are on the line. -->
             <rect
               :x="scaleX(marker.fromM)"
               :width="Math.max(1, scaleX(marker.toM) - scaleX(marker.fromM))"
               :y="PAD_TOP"
               :height="PLOT_HEIGHT"
               :class="MARKER_STYLES[marker.kind].tintClass"
-              opacity="0.12"
+              :opacity="marker.scoring ? 0.24 : 0.12"
             >
               <title>{{ markerTitle(marker) }}</title>
             </rect>
@@ -356,11 +376,22 @@ const stats = computed(() => {
               :x="scaleX(marker.fromM)"
               :width="Math.max(1, scaleX(marker.toM) - scaleX(marker.fromM))"
               :y="PAD_TOP"
-              height="3"
+              :height="marker.scoring ? 5 : 3"
               :class="MARKER_STYLES[marker.kind].barClass"
             >
               <title>{{ markerTitle(marker) }}</title>
             </rect>
+            <text
+              v-if="marker.scoring"
+              :x="(scaleX(marker.fromM) + scaleX(marker.toM)) / 2"
+              :y="PAD_TOP + 17"
+              text-anchor="middle"
+              :class="MARKER_STYLES[marker.kind].barClass"
+              font-size="12"
+            >
+              ★
+              <title>{{ markerTitle(marker) }}</title>
+            </text>
           </g>
           <line
             v-for="d in lapBoundaries"
@@ -467,6 +498,13 @@ const stats = computed(() => {
               :class="MARKER_STYLES[kind].dotClass"
             />
             {{ MARKER_STYLES[kind].label }}
+          </span>
+          <span
+            v-if="hasScoringMarkers"
+            class="inline-flex items-center gap-1 text-[11px] text-muted"
+          >
+            <span class="text-highlighted">★</span>
+            Scores points
           </span>
         </div>
       </template>
