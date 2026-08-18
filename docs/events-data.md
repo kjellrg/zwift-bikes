@@ -47,6 +47,21 @@ Two ways to say who a group is for:
 
 Every group needs one or the other (schema-enforced).
 
+## What the format decides
+
+The format is not decoration — it is the whole equipment rule, and two helpers in `shared/utils/events.ts` read it:
+
+| Format | TT frames (`ttBikesAllowed`) | Draft (`draftingAllowed`) | Scored by |
+|---|---|---|---|
+| `ttt` | legal, and they draft | yes, as a paceline | team time |
+| `points` | disabled by Zwift | yes, mass start | FAL/FTS at segments |
+| `scratch` | disabled by Zwift | yes, mass start | finishing order |
+| `rot` | **banned by WTRL** | **off** | FAL/FTS at segments |
+
+`rot` is WTRL's Race of Truth, new for 2026/27. It is the one format where drafting is off, which is normally the TT bike's whole argument — and WTRL bans TT frames from it anyway, so the two rules are genuinely independent and each needs its own helper. The race page reads `draftingAllowed` to rank on solo physics no matter what draft mode the rider has saved, without overwriting that preference; see `effectiveDraftMode` in `app/pages/events/[season]/[race].vue`, which is the same shape as the `effectiveCategory` beside it.
+
+Adding a format means extending `raceFormatSchema` *and* `RACE_FORMAT_LABELS`/`RACE_FORMAT_COLORS` in `app/utils/labels.ts` — both are `Record<RaceFormat, …>`, so the compiler names every spot you missed — plus `FORMATS` in the scaffolder.
+
 ## Powerups
 
 `powerups` is a race-level field with three meaningful states, and the distinction is rendered, so keep it honest:
@@ -71,7 +86,7 @@ Valid names: `feather`, `aero`, `draft`, `ghost`, `anvil`, `steamroller`, `burri
 
 ## The publish gate
 
-A race only gets a page once **all** of these hold: a `format` (the equipment rules derive from it — TT frames are legal, and draft, only in a TTT; see `ttBikesAllowed`), a non-empty `categories`, and **at least one** group whose `routeSlug` the catalog resolves. Only one group needs a resolvable route: ZRL sometimes runs a group on an unlisted "exclusive" route (R1 Week 6, C/D) — that group is still listed with its published figures and an explanation, rather than the whole race disappearing over it.
+A race only gets a page once **all** of these hold: a `format` (the equipment rules derive from it — see below), a non-empty `categories`, and **at least one** group whose `routeSlug` the catalog resolves. Only one group needs a resolvable route: ZRL sometimes runs a group on an unlisted "exclusive" route — that group is still listed with its published figures and an explanation, rather than the whole race disappearing over it. When *no* group resolves (R1 Week 6, once WTRL moved both halves of the field onto the exclusive route) the race drops back to a TBC calendar row; the entry keeps its data and the page returns the moment the route ships.
 
 Until then the race appears on the season calendar as a TBC row — riders plan around dates long before routes are announced — but gets **no page, no prerendered HTML and no sitemap entry**. Two dozen date-and-placeholder pages is the pattern search engines treat as doorway pages.
 
@@ -102,12 +117,12 @@ Doing it by hand instead: find slugs with `npm run events:find-route -- "name"` 
 1. Create `shared/data/events/<series>-<season>.json` and add one import line to `shared/data/events/index.ts`.
 2. A new series needs: `seriesSlug`/`seriesName`/`organizer` (+ `organizerUrl` — we link back to the organiser prominently; the disclaimer, the hub badge and the race pages' "Official event info" link all use it), a slug convention entry in the scaffolder and validator if it has one, and a decision on categories (pens vs `label` groups).
 3. ZRacing is modelled as **one season per calendar year**, each month a round (`number` = month number, `name` = "August: Makuri Madness"), weekly stages as races with `endDate`.
-4. Check the race-format enum covers the series' formats; extend `raceFormatSchema` (and `RACE_FORMAT_LABELS`/`RACE_FORMAT_COLORS` in `app/utils/labels.ts`) if not.
+4. Check the race-format enum covers the series' formats; extend it if not — see "What the format decides" above for everything a new format has to touch.
 
 ## The validator's rules
 
 Errors (build-blocking): unknown/duplicate race slugs or paths; `race.round` disagreeing with its round; dates outside the round's range; `endDate` before `date` or past the round's end; overlapping race windows within a round; a `routeSlug` zwift-data doesn't have; laps > 1 on a point-to-point route; a scoring-segment slug with no segment page; a pen listed in two groups; published distance >5% off computed totals **without** a documenting `curatorNote`; non-ascending dates within a round; a group with neither route slug nor route name.
 
-Warnings: slug off the series convention; route name not matching the slug's route (mis-mapping signature); missing `routeName`; documented >5% distance divergence; elevation >10% off; a pen-based race not covering A–D; a points race with no scoring segments and no `scoringSegmentsTbd`; missing `note` or `sourceUrl` on a publishable race.
+Warnings: slug off the series convention; route name not matching the slug's route (mis-mapping signature); missing `routeName`; documented >5% distance divergence; elevation >10% off; a pen-based race not covering A–D; a points race or Race of Truth with no scoring segments and no `scoringSegmentsTbd`; missing `note` or `sourceUrl` on a publishable race.
 
 Everything the schema enforces (types, enums, strict fields, cats-or-label) fails before the validator's own checks even run.
