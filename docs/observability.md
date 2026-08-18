@@ -47,12 +47,12 @@ which is what makes per-route and per-phase analysis possible.
 
 | Field | Meaning |
 | --- | --- |
-| `host` | The public hostname the request arrived at - `zwiftbikes.com` in production, the `…-<pr>.<region>.azurestaticapps.net` name on a preview environment. Read from `x-ms-original-url`, the header SWA's front end sets with the URL it matched. |
+| `host` | The public hostname the request arrived at, from `x-ms-original-url` - the header SWA's front end sets with the URL it matched. **Production answers to two names**: `zwiftbikes.com` and the default `wonderful-bay-<id>.<region>.azurestaticapps.net`. Preview environments carry the PR number: `wonderful-bay-<id>-<pr>.<region>.azurestaticapps.net`. Group queries **by** host rather than filtering on one name, or traffic through the other door is silently missing. |
 | `reqId` | Correlation id, also sent as `operation_Id` on the custom event and metrics - the join between a trace line and its rankable row. |
-| `cold` | First request this instance ever served. The container start, module graph and lazy catalog init are all paid by that one rider. |
-| `bootMs` | Only on a cold request: milliseconds from process start to the request arriving - i.e. how long the instance took to become able to answer. |
+| `cold` | First request this **process** served. Note it is not necessarily the request that paid the catalog init: if the instance served something cheap first (a sitemap fetch, a 404), that one is flagged `cold` and a later request wears the init. To find requests that actually paid it, filter on `poolMs > 500` instead - a count that cannot be argued with. |
+| `bootMs` | Only on a cold request: how OLD the process was when it served its first request. Not latency anyone waited for - production values of ~118 seconds showed the Functions host starts a worker long before it routes anything to it, which is what makes the startup warm in `server/utils/warmup.ts` possible. |
 | `warmupMs` / `warmedBefore` | Cold request only. How long the startup warm took, and whether it finished before this request arrived. `warmedBefore = false` means the Functions host loaded the module inside the invocation, so the warm bought nothing and the request paid the init anyway - see `server/utils/warmup.ts`. |
-| `pool` | Building the candidate pool: ownership/cosmetic/verified filters plus `classifyBikeFrame` for every frame at the rider's upgrade level. Carries the lazy catalog load on a cold instance. |
+| `pool` | Building the candidate pool: ownership/cosmetic/verified filters plus `classifyBikeFrame` for every frame at the rider's upgrade level. Both are cached now (per frame+level, and at startup), so this should read ~1 ms; anything above ~500 ms means a request built the catalog itself. |
 | `rank` | `rankCombos` over the full frame x wheelset matrix. |
 | `geometry` | Route/segment geometry and the TTT power plan. |
 | `estimate` | The closed-form `estimateFinishTimeSec` pass over the whole pool. |
@@ -140,8 +140,9 @@ customEvents
 | order by last_seen desc
 ```
 
-Exclude previews from a production ranking with
-`| where tostring(customDimensions.host) == "zwiftbikes.com"`.
+Group by host rather than filtering on `zwiftbikes.com`: production answers on
+its default `*.azurestaticapps.net` name too, so an equality filter quietly
+drops half of it - including anything you tested by hitting that URL directly.
 
 **Delivery**: envelopes are batched (24, or 10 seconds, whichever comes
 first) and posted with a 1 second timeout from the `afterResponse` hook, so
@@ -343,6 +344,65 @@ traces
   function that may be frozen straight after the invocation, and why the batch
   size and the 1 second timeout matter: at most one request in 24 pays for it,
   and never more than a second.
+
+## What normal looks like
+
+Measured on production after the August 2026 fixes. A number well outside
+these is the signal to start querying:
+
+| | total | `pool` | `estimate` | `simulate` |
+| --- | --- | --- | --- | --- |
+| short route (<20 km, ~67% of traffic) | 60-90 ms | ~1 ms | 45-55 ms | single-digit ms |
+| long route (173 km PRL Full, ~4% of traffic) | ~2.0 s | ~1 ms | ~50 ms | ~1.9 s |
+| first request into an instance | ~90 ms | <20 ms | - | - |
+
+`estimate` being the largest phase on a short route is expected: it is the
+closed-form pass over the whole ~7000-combo pool, and it exists so that
+ranking and search see every candidate. `simulate` dominating a long route is
+also expected - that is the actual physics, ~60 route integrations.
+
+Two counts that should stay at zero, and are worth checking after any deploy:
+
+- `countif(poolMs > 500)` - a request that built the catalog itself. Before
+  the startup warm this was 2-6% of production traffic, each one costing a
+  rider ~2.2 s.
+- `countif(warmedBefore == "false")` on cold rows - the startup warm ran too
+  late to help, meaning the host loaded the module inside the invocation.
+
+For context on why those numbers are what they are: a typical request was
+~900 ms until frame classification was cached (it was re-classifying all 166
+frames per request), and the sub-20 km p95 was 2173 ms until the catalog was
+built at startup instead of inside whichever request touched it first.
+
+## Alerting when telemetry stops
+
+"No rows arrived" is also what a quiet night looks like, so alert on the one
+combination that means something broke - the platform served requests while
+this instrumentation recorded none:
+
+```kusto
+union isfuzzy=true customEvents, customMetrics
+| summarize ours = countif(itemType == "customEvent" and name == "server.request"),
+            platform = countif(itemType == "customMetric" and name == "functions Count")
+| project telemetry_missing = iff(platform > 0 and ours == 0, 1, 0)
+```
+
+`functions Count` is a metric the SWA platform emits by itself, independently
+of anything in this repo, which is what makes it a usable control.
+
+| Alert rule setting | Value |
+| --- | --- |
+| Measure | `telemetry_missing` |
+| Aggregation type | Maximum |
+| Aggregation granularity | 1 hour |
+| Split by dimensions | None |
+| Operator / threshold | Greater than 0 |
+| Frequency of evaluation | 15 minutes |
+
+No `ago()` in the query - the rule injects its own window, and having both
+leaves you reasoning about the intersection. This is a "broken while busy"
+alarm, not a dead-man's switch: if the site is down, `platform` is 0 and it
+stays quiet.
 
 ## Moving off Azure
 
