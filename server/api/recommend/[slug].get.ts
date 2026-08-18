@@ -6,6 +6,7 @@ import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../s
 import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
+import { addTimingMeta, markPhase } from '../../utils/timing'
 
 function parseOwnedLevels(raw: unknown): Record<string, number> {
   if (typeof raw !== 'string' || !raw) return {}
@@ -20,6 +21,19 @@ export default defineEventHandler((event) => {
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing route slug' })
   const route = getRouteBySlug(slug)
   if (!route) throw createError({ statusCode: 404, statusMessage: `Route "${slug}" not found` })
+
+  // One full route integration is the unit of work this endpoint's latency is
+  // made of, so the count goes out with the timing (see server/utils/timing.ts):
+  // the `simulate` phase says how long, this says how many, and the two
+  // together say whether a slow response was a long route or a deep candidate
+  // pool. It moves with `SIMULATED_ORDER_MARGIN` and the disclosure blocks
+  // below, not with the page size, which is exactly the thing that is easy to
+  // change without noticing.
+  let simCount = 0
+  const countedSimulate: typeof simulateRoute = (options) => {
+    simCount++
+    return simulateRoute(options)
+  }
 
   const query = getQuery(event)
   const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : undefined
@@ -111,6 +125,9 @@ export default defineEventHandler((event) => {
   }
   if (excludeTT) allFrames = allFrames.filter(f => f.category !== 'tt')
   const frames = category ? allFrames.filter(f => f.category === category) : allFrames
+  // Includes this instance's lazy catalog init on a cold start - frame
+  // classification and the route surface data both load on first touch.
+  markPhase(event, 'pool')
 
   // `rankCombos` scores every frame x wheelset pair internally regardless of
   // the `limit` passed in - it only truncates the *returned* array at the
@@ -118,6 +135,7 @@ export default defineEventHandler((event) => {
   // fetch the full candidate pool so both the search filter below and the
   // ranking step that follows see every candidate, not an arbitrary slice.
   const rankedCombos = rankCombos(route, frames, wheelsets, frames.length * wheelsets.length)
+  markPhase(event, 'rank')
 
   // Once we know the rider's weight/power, `estimateFinishTimeSec` (cheap -
   // a ~40-iteration bisection, no per-meter simulation) is a far more
@@ -156,12 +174,15 @@ export default defineEventHandler((event) => {
   const powerScaleAtSpeed = draftMode === 'ttt'
     ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps)
     : draftMode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined
+  markPhase(event, 'geometry')
+
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
       .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
+  markPhase(event, 'estimate')
 
   // `capWheelsetsPerFrame` must never run before `search` gets to look at
   // the full pool - see its doc comment - so it's skipped entirely while
@@ -170,6 +191,7 @@ export default defineEventHandler((event) => {
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
+  markPhase(event, 'filter')
 
   // The cheap estimate got the pool into roughly the right order, but it is
   // NOT the signal this endpoint displays: in `dynamic` mode every time a
@@ -187,11 +209,13 @@ export default defineEventHandler((event) => {
     const ordering = orderBySimulatedTime(
       filteredRankedCombos,
       offset + limit + SIMULATED_ORDER_MARGIN,
-      combo => simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
+      combo => countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
     )
     filteredRankedCombos = ordering.ordered
     for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
   }
+  markPhase(event, 'simulate')
+
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
   if (hasRiderProfile) {
@@ -204,13 +228,14 @@ export default defineEventHandler((event) => {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
         combo.finishTimeSec = simulatedSec.get(combo)
-          ?? simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
+          ?? countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
     if (physicsMode === 'compare') pageCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
+  markPhase(event, 'page')
 
   // "Riding as a TTT saves X vs solo": ONE extra simulation per request (top
   // combo, first page, dynamic mode only) of the same rider at the same
@@ -223,7 +248,7 @@ export default defineEventHandler((event) => {
     let soloFinishTimeSec: number | undefined
     let tttSavedSec: number | undefined
     if (geometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
-      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW }).elapsedSec
+      soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW }).elapsedSec
       tttSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
     ttt = {
@@ -245,7 +270,7 @@ export default defineEventHandler((event) => {
     let soloFinishTimeSec: number | undefined
     let raceSavedSec: number | undefined
     if (geometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
-      soloFinishTimeSec = simulateRoute({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry }).elapsedSec
+      soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry }).elapsedSec
       raceSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
     race = {
@@ -289,7 +314,7 @@ export default defineEventHandler((event) => {
         const ordering = orderBySimulatedTime(
           candidates,
           1 + FASTEST_OVERALL_ORDER_MARGIN,
-          combo => simulateRoute({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
+          combo => countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
         )
         candidates = ordering.ordered
         overallTopSec = candidates[0] ? ordering.simulatedSec.get(candidates[0]) : undefined
@@ -307,6 +332,24 @@ export default defineEventHandler((event) => {
       }
     }
   }
+
+  markPhase(event, 'extras')
+  // What the phases above cost is only half the story - these are the inputs
+  // that predict it. Route distance x laps is what `simulate` scales with;
+  // `sims` is how many times that distance was integrated.
+  addTimingMeta(event, {
+    route: route.slug,
+    distanceKm: Math.round(route.distance * laps * 10) / 10,
+    laps,
+    physics: physicsMode,
+    draft: draftMode,
+    category,
+    profile: hasRiderProfile,
+    combos: rankedCombos.length,
+    sims: simCount,
+    offset,
+    searching: Boolean(search)
+  })
 
   const tttNote = ttt
     ? ` TTT draft mode: your ${ttt.riderPowerW} W is your OWN average across a full rotation of ${ttt.riders} riders - you hold about ${ttt.frontPullPowerW} W while pulling on the front and sit around ${ttt.lastWheelPowerW} W in the last wheel, so the group covers ground like a solo rider at ~${ttt.frontPullPowerW} W on the flat. The benefit fades as the group slows on climbs and grows on descents${ttt.climbWkg !== undefined ? `; long climbs (3%+ for 3.5+ min) are paced at your team's ${ttt.climbWkg.toFixed(1)} W/kg` : ''}.`
