@@ -30,54 +30,74 @@ const tooltipText = computed(() =>
 </script>
 
 <template>
+  <!-- Collapsed by default, and the same way on every page that shows it. The
+       per-surface Crr table is expert detail: the route and race headers
+       already carry `SurfaceBadges` for the at-a-glance mix, and where the
+       surface is actually the story (a fully cobbled race) the page says so in
+       prose above. Same UCard + UCollapsible header button as
+       `RouteElevationProfile`, so the analysis cards behave alike. -->
   <UCard v-if="rows.length">
-    <template #header>
-      <div class="flex items-center gap-2">
-        <p class="font-semibold text-highlighted">
-          Surface composition
-        </p>
-        <UTooltip :text="tooltipText">
+    <UCollapsible :ui="{ content: 'mt-3' }">
+      <template #default="{ open }">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-2 text-left"
+        >
+          <span class="flex items-center gap-2">
+            <p class="font-semibold text-highlighted">
+              Surface composition
+            </p>
+            <UTooltip :text="tooltipText">
+              <UIcon
+                name="i-lucide-info"
+                class="size-4 text-muted"
+                @click.stop
+              />
+            </UTooltip>
+          </span>
           <UIcon
-            name="i-lucide-info"
-            class="size-4 text-muted"
+            :name="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+            class="size-4 text-muted shrink-0"
           />
-        </UTooltip>
-      </div>
-    </template>
+        </button>
+      </template>
 
-    <div class="flex h-2 w-full overflow-hidden rounded-full bg-elevated">
-      <div
-        v-for="row in rows"
-        :key="row.surfaceType"
-        :class="SURFACE_TYPE_COLORS[row.surfaceType]"
-        :style="{ width: `${row.percent}%` }"
-      />
-    </div>
-
-    <div class="mt-4 space-y-2">
-      <div
-        v-for="row in rows"
-        :key="row.surfaceType"
-        class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm"
-      >
-        <span class="inline-flex items-center gap-1.5 font-medium">
-          <span
-            class="size-2 rounded-full inline-block"
+      <template #content>
+        <div class="flex h-2 w-full overflow-hidden rounded-full bg-elevated">
+          <div
+            v-for="row in rows"
+            :key="row.surfaceType"
             :class="SURFACE_TYPE_COLORS[row.surfaceType]"
+            :style="{ width: `${row.percent}%` }"
           />
-          <UIcon
-            :name="SURFACE_TYPE_ICONS[row.surfaceType]"
-            class="size-3.5 text-muted"
-          />
-          {{ SURFACE_TYPE_LABELS[row.surfaceType] }}
-          <span class="text-muted font-normal">~{{ formatPercent(row.percent) }}</span>
-        </span>
-        <span class="flex gap-x-3 text-xs text-muted">
-          <span v-if="row.crr.road !== null">Road Crr {{ row.crr.road.toFixed(4) }}</span>
-          <span v-if="row.crr.gravel !== null">Gravel Crr {{ row.crr.gravel.toFixed(4) }}</span>
-          <span v-if="row.crr.mountain !== null">MTB Crr {{ row.crr.mountain.toFixed(4) }}</span>
-        </span>
-      </div>
-    </div>
+        </div>
+
+        <div class="mt-4 space-y-2">
+          <div
+            v-for="row in rows"
+            :key="row.surfaceType"
+            class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm"
+          >
+            <span class="inline-flex items-center gap-1.5 font-medium">
+              <span
+                class="size-2 rounded-full inline-block"
+                :class="SURFACE_TYPE_COLORS[row.surfaceType]"
+              />
+              <UIcon
+                :name="SURFACE_TYPE_ICONS[row.surfaceType]"
+                class="size-3.5 text-muted"
+              />
+              {{ SURFACE_TYPE_LABELS[row.surfaceType] }}
+              <span class="text-muted font-normal">~{{ formatPercent(row.percent) }}</span>
+            </span>
+            <span class="flex gap-x-3 text-xs text-muted">
+              <span v-if="row.crr.road !== null">Road Crr {{ row.crr.road.toFixed(4) }}</span>
+              <span v-if="row.crr.gravel !== null">Gravel Crr {{ row.crr.gravel.toFixed(4) }}</span>
+              <span v-if="row.crr.mountain !== null">MTB Crr {{ row.crr.mountain.toFixed(4) }}</span>
+            </span>
+          </div>
+        </div>
+      </template>
+    </UCollapsible>
   </UCard>
 </template>
