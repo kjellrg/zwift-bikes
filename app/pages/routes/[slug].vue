@@ -307,7 +307,7 @@ useHead(() => {
       </div>
     </div>
 
-    <UAlert v-if="physicsInfo" color="primary" variant="subtle" icon="i-lucide-atom" :title="physicsIsDynamic ? 'Dynamic physics model active' : 'Legacy finish-time model'" :description="physicsInfo.note" />
+    <PhysicsNote v-if="physicsInfo" :mode="physicsInfo.mode" :summary="physicsInfo.summary" :note="physicsInfo.note" />
 
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">Best bike &amp; wheel combo for this route</h2>

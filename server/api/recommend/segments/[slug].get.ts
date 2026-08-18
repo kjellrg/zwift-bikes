@@ -310,6 +310,15 @@ export default defineEventHandler((event) => {
     ? ` Race draft mode: assumes you sit in a typical mass-start bunch. Your ${race.riderPowerW} W is still your OWN average for the effort (average power, not normalised), and the predicted time includes the ~${race.savingPct}% power equivalent a mid-pack racer measurably gets - field-calibrated across thirteen real races, where a typical bunch spreads roughly ±3-4 percentage points, i.e. ±1-2% on finish time. This is a typical mid-pack outcome, not a win or a breakaway. The benefit fades on climbs and grows on descents automatically.`
     : ''
 
+  // See the equivalent comment in `recommend/[slug].get.ts`: a one-sentence
+  // lead for the pages, with `note` kept intact behind their disclosure and
+  // for the MCP tools.
+  const draftSummary = ttt
+    ? ` Ridden as a ${ttt.riders}-rider paceline, at your own average power across the rotation.`
+    : race
+      ? ' Ridden in a typical mass-start bunch, at your own average power.'
+      : ''
+
   return {
     segment: summary,
     combos: pageCombos,
@@ -320,6 +329,9 @@ export default defineEventHandler((event) => {
           ttt,
           race,
           rider: { weightKg, heightCm, wkg },
+          summary: (physicsMode === 'legacy'
+            ? 'Every time below is estimated for your weight, height and power at this segment’s average grade.'
+            : 'Every time below is simulated for your weight, height and power, entered at racing speed rather than from a standing start.') + draftSummary,
           note: (physicsMode === 'legacy'
             ? 'Legacy finish-time model active - a constant-speed estimate at this segment’s own average grade.'
             : 'Dynamic physics is active. The segment is simulated after a 2km flat warmup so the timed portion starts at realistic speed, matching how a Zwift/Strava segment is actually entered (never from a standing start).') + tttNote + raceNote

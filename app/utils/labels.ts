@@ -200,13 +200,15 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
 export const RACE_FORMAT_LABELS: Record<RaceFormat, string> = {
   ttt: 'Team time trial',
   points: 'Points race',
-  scratch: 'Scratch race'
+  scratch: 'Scratch race',
+  rot: 'Race of Truth'
 }
 
-export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warning'> = {
+export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warning' | 'error'> = {
   ttt: 'warning',
   points: 'info',
-  scratch: 'primary'
+  scratch: 'primary',
+  rot: 'error'
 }
 
 /**

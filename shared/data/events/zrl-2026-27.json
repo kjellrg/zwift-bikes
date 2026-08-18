@@ -5,12 +5,13 @@
   "seriesName": "Zwift Racing League",
   "organizer": "WTRL",
   "organizerUrl": "https://www.wtrl.racing/zwift-racing-league/",
-  "description": "Team racing on Zwift across four six-week rounds, run by WTRL. Every race day, route and the fastest bike and wheel combo for it.",
-  "note": "Round 1 is confirmed - routes, formats and lap counts are in, including the weeks where A/B and C/D ride different courses. Rounds 2-4 have dates but no routes yet; they are added here as WTRL announces each round.",
-  "curatorNote": "Season structure, round names/dates ('4 x 6-week rounds'), registration opening 18 Aug 2026 and categories AB/CD come from the WTRL series page. Round 1 per-race details come from the R1 schedule page - note it renders its table in JavaScript, so fetching the HTML shows a 'TBC' placeholder skeleton; the real table is only visible in a browser. Every Round 1 distance and elevation agrees with this site's own lead-in-plus-laps totals to within 0.2%/0.3%, which is what cross-checks the route slugs and lap counts. Every race day is a Tuesday, weekly within a round; each round's sixth race lands exactly on WTRL's published round end date, which cross-checks the cadence.",
+  "description": "Team racing on Zwift across four six-week rounds, run by WTRL. Every race day and route in one calendar, with the fastest legal bike and wheel combo worked out for each course.",
+  "note": "Round 1 is confirmed - routes, formats and lap counts are in, including week 3 where A/B and C/D ride different courses. Week 1 opens with WTRL's new Race of Truth: points-scored, but with drafting switched off and TT bikes banned. Week 6 has moved to a ZRL-exclusive route that is not in the public catalog, so it can't be ranked yet. Rounds 2-4 have dates but no routes yet; they are added here as WTRL announces each round.",
+  "curatorNote": "Season structure, round names/dates ('4 x 6-week rounds'), registration opening 18 Aug 2026 and categories AB/CD come from the WTRL series page. Round 1 per-race details come from the R1 schedule page - note it renders its table in JavaScript, so fetching the HTML shows a 'TBC' placeholder skeleton; the real table is only visible in a browser. Every Round 1 distance and elevation agrees with this site's own lead-in-plus-laps totals to within 0.2%/0.3%, which is what cross-checks the route slugs and lap counts. Every race day is a Tuesday, weekly within a round; each round's sixth race lands exactly on WTRL's published round end date, which cross-checks the cadence. Revised 18 Aug 2026 against WTRL's updated R1 schedule: week 1 became a Race of Truth (format 'rot') with its scoring segments published, week 3 C/D gained its segments, and week 6 moved both halves of the field onto the exclusive route. Weeks 2, 4 and 5 were re-read and are unchanged, so their updatedAt stamps stay put - they drive sitemap lastmod.",
   "sources": [
-    { "url": "https://www.wtrl.racing/zwift-racing-league/", "checkedAt": "2026-08-14" },
-    { "url": "https://www.wtrl.racing/zrl/schedule/2026/r1/", "checkedAt": "2026-08-14" }
+    { "url": "https://www.wtrl.racing/zwift-racing-league/", "checkedAt": "2026-08-18" },
+    { "url": "https://www.wtrl.racing/zrl/schedule/2026/r1/", "checkedAt": "2026-08-18" },
+    { "url": "https://www.wtrl.racing/zrl/resources/", "checkedAt": "2026-08-18" }
   ],
   "rounds": [
     {
@@ -24,7 +25,7 @@
           "round": 1,
           "week": 1,
           "date": "2026-09-22",
-          "format": "points",
+          "format": "rot",
           "categories": [
             {
               "cats": ["A", "B", "C", "D"],
@@ -33,14 +34,27 @@
               "laps": 1,
               "officialDistanceKm": 27.6,
               "officialElevationM": 198.5,
-              "scoringSegmentsTbd": true,
-              "curatorNote": "All four categories ride the same race, so one group - which is also what stops the page showing a pointless category selector."
+              "curatorNote": "All four categories ride the same race, so one group - which is also what stops the page showing a pointless category selector. WTRL's published scoring passes match montmartre-mixer's own positional segment data exactly - the lap crosses Lutece once, Monceau twice, Église once, the Montmartre climb twice and Tchou Tchou (reverse) once - which independently cross-checks both the route slug and the single lap.",
+              "falSegments": [
+                { "name": "Lutece Sprint", "slug": "lutece-sprint", "times": 1 },
+                { "name": "Monceau Sprint", "slug": "monceau-sprint", "times": 2 },
+                { "name": "Église FWD Sprint", "slug": "eglise-sprint", "times": 1 },
+                { "name": "Montmartre FWD Climb", "slug": "montmartre-kom", "times": 2 },
+                { "name": "Tchou Tchou REV Sprint", "slug": "tchou-tchou-sprint", "times": 1 }
+              ],
+              "ftsSegments": [
+                { "name": "Lutece Sprint", "slug": "lutece-sprint", "times": 1 },
+                { "name": "Monceau Sprint", "slug": "monceau-sprint", "times": 2 },
+                { "name": "Église FWD Sprint", "slug": "eglise-sprint", "times": 1 },
+                { "name": "Montmartre FWD Climb", "slug": "montmartre-kom", "times": 2 },
+                { "name": "Tchou Tchou REV Sprint", "slug": "tchou-tchou-sprint", "times": 1 }
+              ]
             }
           ],
-          "note": "Every metre of Montmartre Mixer is cobbled, which makes this the wheel-choice race of the round: on cobbles rolling resistance is set purely by the wheel’s Crr class, and - counterintuitively - Road-class wheels roll fastest on them, not gravel ones. The frame barely affects rolling resistance at all here, so pick for aero and weight and let the wheels handle the surface.",
+          "note": "WTRL opens the round with a Race of Truth: points are scored at the sprints and the Montmartre climb exactly as in a points race, but drafting is switched off and TT bikes are banned, so every metre is ridden at your own power with no bunch to hide in. That makes aerodynamics matter more here than in any other road week of the round - there is no wheel to sit on to cover a slower setup. Every metre of Montmartre Mixer is also cobbled, which makes this the wheel-choice race of the round: on cobbles rolling resistance is set purely by the wheel’s Crr class, and - counterintuitively - Road-class wheels roll fastest on them, not gravel ones. The frame barely affects rolling resistance at all here, so pick for aero and weight and let the wheels handle the surface.",
           "powerups": { "allowed": [] },
           "sourceUrl": "https://www.wtrl.racing/zrl/schedule/2026/r1/",
-          "updatedAt": "2026-08-14"
+          "updatedAt": "2026-08-18"
         },
         {
           "slug": "round-1-week-2",
@@ -94,13 +108,23 @@
               "laps": 1,
               "officialDistanceKm": 24.8,
               "officialElevationM": 193.4,
-              "curatorNote": "zwift-data has no readable slug for Urumaze - the numeric id is the real slug, not a placeholder. Same route ZRacing 2026 August stage 2 uses. WTRL publishes 24.8 km here, which is the route lap; our 26.8 km adds the event-pen lead-in that Zwift under-reports as 85 m (see shared/data/routeEventLeadIns.ts). The distance warning on this race is therefore expected, and the larger figure is the one riders actually cover."
+              "curatorNote": "zwift-data has no readable slug for Urumaze - the numeric id is the real slug, not a placeholder. Same route ZRacing 2026 August stage 2 uses. WTRL publishes 24.8 km here, which is the route lap; our 26.8 km adds the event-pen lead-in that Zwift under-reports as 85 m (see shared/data/routeEventLeadIns.ts). The distance warning on this race is therefore expected, and the larger figure is the one riders actually cover. The three scoring segments are linked but carry no on-profile positions: zwift-data ships no segment placements for Urumaze at all (its segmentsOnRoute is empty), so the race page falls back to the table alone here. The slugs resolve through their host routes elsewhere in Makuri, and ?route=4092230492 degrades gracefully rather than 404ing.",
+              "falSegments": [
+                { "name": "Tidepool FWD Sprint", "slug": "tidepool-sprint", "times": 3 },
+                { "name": "Tower FWD Sprint", "slug": "tower-sprint", "times": 1 },
+                { "name": "Shisa FWD Sprint", "slug": "shisa-sprint", "times": 1 }
+              ],
+              "ftsSegments": [
+                { "name": "Tidepool FWD Sprint", "slug": "tidepool-sprint", "times": 3 },
+                { "name": "Tower FWD Sprint", "slug": "tower-sprint", "times": 1 },
+                { "name": "Shisa FWD Sprint", "slug": "shisa-sprint", "times": 1 }
+              ]
             }
           ],
-          "note": "The two halves of the field ride different courses this week, but not different equipment answers. A/B get Makuri 40 and C/D get Urumaze, and both come out at the same blended rolling resistance on road wheels: Urumaze is nearly two fifths beach sand and Makuri 40 about a fifth, and Zwift rolls sand at tarmac Crr, so neither course punishes a road setup. Ordinary road aero wins both halves.",
+          "note": "The two halves of the field ride different courses this week, but not different equipment answers. A/B get Makuri 40 and C/D get Urumaze, and both come out at the same blended rolling resistance on road wheels: Urumaze is nearly two fifths beach sand and Makuri 40 about a fifth, and Zwift rolls sand at tarmac Crr, so neither course punishes a road setup. Ordinary road aero wins both halves. Both halves also score five passes each way, so a sprinter's race on both sides of the split - Urumaze crosses Tidepool three times.",
           "powerups": { "allowed": [] },
           "sourceUrl": "https://www.wtrl.racing/zrl/schedule/2026/r1/",
-          "updatedAt": "2026-08-16"
+          "updatedAt": "2026-08-18"
         },
         {
           "slug": "round-1-week-4",
@@ -137,21 +161,20 @@
           "date": "2026-10-27",
           "format": "points",
           "categories": [
-            { "cats": ["A", "B"], "routeSlug": "radio-rendezvous", "routeName": "Radio Rendezvous", "laps": 1, "officialDistanceKm": 23.6, "officialElevationM": 744.2, "scoringSegmentsTbd": true },
             {
-              "cats": ["C", "D"],
+              "cats": ["A", "B", "C", "D"],
               "routeName": "ZRL Exclusive Route",
               "laps": 1,
               "officialDistanceKm": 24.0,
               "officialElevationM": 283.5,
               "scoringSegmentsTbd": true,
-              "curatorNote": "WTRL lists C/D on a route that isn't in the public catalog, so there's nothing to compute a ranking against - the group is still shown, with its published figures and the reason why."
+              "curatorNote": "WTRL's revised R1 schedule moves A/B off Radio Rendezvous, so all four categories now ride the same ZRL-exclusive route - one group. It isn't in the public catalog (ZwiftInsider reports the name as 'Spiral Summit'), so no group here has a resolvable routeSlug and isRacePublishable() therefore drops the page back to a TBC calendar row. That is the documented publish gate working as intended, not data loss: the published figures stay recorded here and the page returns the moment zwift-data ships the route."
             }
           ],
-          "note": "A/B close the round with a genuine mountain race - 744 m of climbing in 23.6 km, over 35 m/km, taking in four KOMs including the Radio Tower. Weight beats aerodynamics decisively at those gradients. C/D ride a ZRL-exclusive route that is not in the public route catalog, so no ranking can be computed for it.",
+          "note": "The round closes on a ZRL-exclusive route - 24 km with 283 m of climbing, so rolling rather than mountainous - that is not in the public route catalog, so no bike ranking can be computed for it yet. Scoring segments are not published either. This page fills in as soon as the route becomes public.",
           "powerups": { "allowed": [] },
           "sourceUrl": "https://www.wtrl.racing/zrl/schedule/2026/r1/",
-          "updatedAt": "2026-08-14"
+          "updatedAt": "2026-08-18"
         }
       ]
     },

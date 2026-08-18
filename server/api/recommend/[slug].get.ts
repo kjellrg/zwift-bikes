@@ -359,6 +359,16 @@ export default defineEventHandler((event) => {
     ? ` Race draft mode: assumes you sit in a typical mass-start bunch. Your ${race.riderPowerW} W is still your OWN average for the race (average power, not normalised), and the predicted time includes the ~${race.savingPct}% power equivalent a mid-pack racer measurably gets - field-calibrated across thirteen real races, where a typical bunch spreads roughly ±3-4 percentage points, i.e. ±1-2% on finish time. This is a typical mid-pack outcome, not a win or a breakaway. The benefit fades on climbs and grows on descents automatically.`
     : ''
 
+  // One sentence of the same thing, for the pages to lead with - the full
+  // `note` is four to six sentences once a draft mode is on, which is a wall
+  // of text above the results a racer came for. `note` itself is unchanged and
+  // still what the MCP tools print, where there is no disclosure to open.
+  const draftSummary = ttt
+    ? ` Ridden as a ${ttt.riders}-rider paceline, at your own average power across the rotation.`
+    : race
+      ? ' Ridden in a typical mass-start bunch, at your own average power.'
+      : ''
+
   return {
     route: toRouteSummary(route),
     combos: pageCombos,
@@ -372,6 +382,11 @@ export default defineEventHandler((event) => {
             ? 'measured'
             : route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility',
           rider: { weightKg, heightCm, wkg },
+          summary: (route.terrain.elevationProfile
+            ? 'Every time below is simulated for your weight, height and power over this route’s real, measured elevation data.'
+            : route.terrain.climbs.length > 0
+              ? 'Every time below is simulated for your weight, height and power, using real data for this route’s named climbs and an estimate for the rest.'
+              : 'Every time below is estimated for your weight, height and power - no elevation data is mapped for this route, so its terrain is approximated.') + draftSummary,
           note: (route.terrain.elevationProfile
             ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s elevation profile is real, measured GPS data (not synthesized), so grade changes are modeled at their actual position along the route.'
             : route.terrain.climbs.length > 0

@@ -26,7 +26,7 @@ const repoRoot = path.resolve(__dirname, '../..')
 const eventsDir = path.join(repoRoot, 'shared/data/events')
 
 const POWERUPS = ['feather', 'aero', 'draft', 'ghost', 'anvil', 'steamroller', 'burrito']
-const FORMATS = ['points', 'scratch', 'ttt']
+const FORMATS = ['points', 'scratch', 'ttt', 'rot']
 const CATS = ['A', 'B', 'C', 'D', 'E']
 
 const SLUG_CONVENTIONS = {

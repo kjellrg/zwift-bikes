@@ -295,13 +295,11 @@ const segmentAsRoute = computed(() => segmentData.value
       </p>
     </div>
 
-    <UAlert
+    <PhysicsNote
       v-if="physicsInfo"
-      color="primary"
-      variant="subtle"
-      icon="i-lucide-atom"
-      :title="physicsIsDynamic ? 'Dynamic physics model active' : 'Legacy finish-time model'"
-      :description="physicsInfo.note"
+      :mode="physicsInfo.mode"
+      :summary="physicsInfo.summary"
+      :note="physicsInfo.note"
     />
     <UAlert
       color="neutral"
