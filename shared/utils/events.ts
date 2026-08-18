@@ -29,13 +29,18 @@ import { seasonData } from '../data/events'
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO date (YYYY-MM-DD)')
 
 /**
- * The formats run across the covered series (ZRL's three; ZRacing stages are
+ * The formats run across the covered series (ZRL's four; ZRacing stages are
  * scratch races - GC is by best finishing time). This drives the equipment
  * rules rather than being stored alongside them: TT frames are only legal
  * (and only draft) in a team time trial, and are disabled by Zwift itself for
  * points and scratch races - see `ttBikesAllowed`.
+ *
+ * `rot` is WTRL's Race of Truth, new for 2026/27: scored exactly like a points
+ * race (FAL and FTS at published segments) but ridden with **drafting turned
+ * off** and TT frames banned, so it is neither a points race nor a TTT for
+ * equipment purposes - see `draftingAllowed`.
  */
-export const raceFormatSchema = z.enum(['ttt', 'points', 'scratch'])
+export const raceFormatSchema = z.enum(['ttt', 'points', 'scratch', 'rot'])
 
 /**
  * Zwift's lettered racing pens (E is ZRacing legacy / women's E). Not every
@@ -363,9 +368,23 @@ export function getPublishableRaces(): PublishableRace[] {
  * (with draft) for team time trials, so the format alone decides this - see
  * WTRL's ZRL rules. Unknown format is treated as "not allowed", matching the
  * majority case and the safer assumption for a rider packing a bike.
+ *
+ * A Race of Truth is the case that looks like it should be an exception and
+ * isn't: drafting is off, which in Zwift is normally the TT bike's argument,
+ * but WTRL bans TT frames in it outright, so it stays with the majority.
  */
 export function ttBikesAllowed(race: EventRace): boolean {
   return race.format === 'ttt'
+}
+
+/**
+ * Drafting is off only in WTRL's Race of Truth - every other covered format is
+ * a draft-legal mass start, or a TTT where the whole point is the rotation. A
+ * race page uses this to rank on solo physics regardless of the rider's saved
+ * draft preference, which it deliberately leaves untouched.
+ */
+export function draftingAllowed(race: EventRace): boolean {
+  return race.format !== 'rot'
 }
 
 /**

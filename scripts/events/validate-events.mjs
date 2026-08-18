@@ -246,12 +246,13 @@ for (const season of getAllSeasons()) {
       }
       publishableCount++
 
-      // A points race with no scoring segments is worth a second look at the
-      // source - it's what a missed column looks like too. Marking the group
-      // `scoringSegmentsTbd` says "checked, not published yet" and silences it.
-      if (race.format === 'points' && !race.categories.some(g => g.falSegments?.length || g.ftsSegments?.length)) {
+      // A points-scored race with no scoring segments is worth a second look
+      // at the source - it's what a missed column looks like too. Marking the
+      // group `scoringSegmentsTbd` says "checked, not published yet" and
+      // silences it. A Race of Truth scores the same way, so it counts here.
+      if ((race.format === 'points' || race.format === 'rot') && !race.categories.some(g => g.falSegments?.length || g.ftsSegments?.length)) {
         const tbd = race.categories.every(g => g.scoringSegmentsTbd)
-        if (!tbd) warnings.push(`${where}: points race with no FAL/FTS segments and not marked scoringSegmentsTbd - confirm the source really lists none`)
+        if (!tbd) warnings.push(`${where}: ${race.format === 'rot' ? 'race of truth' : 'points race'} with no FAL/FTS segments and not marked scoringSegmentsTbd - confirm the source really lists none`)
         else notes.push(`${where}: scoring segments marked TBD - re-check the source`)
       }
 
