@@ -93,14 +93,16 @@ for (const key of Object.keys(FRAME_SPEED_DATA)) {
 // Classifier special-case sets (exported by their modules for exactly this
 // check - a name here that drifts from the catalog silently stops
 // special-casing anything).
-const { FIXED_WHEEL_FRAMES, ROAD_HALO_FRAMES } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
+const { FIXED_WHEEL_FRAMES, ROAD_HALO_FRAMES, PURCHASABLE_HALO_FRAMES } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
 const { INTEGRATED_ONLY_WHEELS } = loadSharedModule('shared/utils/wheelsets.ts')
 const fixedWheelFrames = [...FIXED_WHEEL_FRAMES]
 const roadHaloFrames = [...ROAD_HALO_FRAMES]
+const purchasableHaloFrames = [...PURCHASABLE_HALO_FRAMES]
 const integratedOnlyWheels = [...INTEGRATED_ONLY_WHEELS]
 
 checkKeys('FIXED_WHEEL_FRAMES', fixedWheelFrames, frameNames)
 checkKeys('ROAD_HALO_FRAMES', roadHaloFrames, frameNames)
+checkKeys('PURCHASABLE_HALO_FRAMES', purchasableHaloFrames, frameNames)
 checkKeys('INTEGRATED_ONLY_WHEELS (front)', integratedOnlyWheels, frontWheelNames)
 for (const name of integratedOnlyWheels) {
   if (!rearWheelNames.has(name)) errors.push(`INTEGRATED_ONLY_WHEELS: ${JSON.stringify(name)} is not a bikeRearWheels name - the exclusion would only cover the front wheel`)
@@ -111,4 +113,4 @@ if (errors.length) {
   for (const e of errors) console.error(`ERROR: ${e}\n`)
   process.exit(1)
 }
-console.log(`validate-speed-data: OK (${Object.keys(WHEEL_SPEED_DATA).length} wheel rows, ${Object.keys(FRAME_SPEED_DATA).length + Object.keys(TT_FRAME_SPEED_DATA).length} frame rows, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} schemes, ${fixedWheelFrames.length + roadHaloFrames.length + integratedOnlyWheels.length} special-case names)`)
+console.log(`validate-speed-data: OK (${Object.keys(WHEEL_SPEED_DATA).length} wheel rows, ${Object.keys(FRAME_SPEED_DATA).length + Object.keys(TT_FRAME_SPEED_DATA).length} frame rows, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} schemes, ${fixedWheelFrames.length + roadHaloFrames.length + purchasableHaloFrames.length + integratedOnlyWheels.length} special-case names)`)
