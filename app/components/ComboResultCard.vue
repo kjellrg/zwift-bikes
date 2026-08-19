@@ -1,73 +1,73 @@
 <script setup lang="ts">
-import type { ComboScore, RouteWithMeta } from "../../shared/types/catalog";
-import type { DraftMode } from "../../shared/utils/physics/draft";
-import { TTT_DEFAULT_RIDERS, tttPowerPlan } from "#shared/utils/physics/draft";
-import { geometryForRouteLaps } from "#shared/utils/physics/routeGeometry";
+import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { DraftMode } from '../../shared/utils/physics/draft'
+import { TTT_DEFAULT_RIDERS, tttPowerPlan } from '#shared/utils/physics/draft'
+import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 
 const props = defineProps<{
-  combo: ComboScore;
-  rank: number;
-  route?: RouteWithMeta;
-  weightKg?: number;
-  heightCm?: number;
-  wkg?: number;
+  combo: ComboScore
+  rank: number
+  route?: RouteWithMeta
+  weightKg?: number
+  heightCm?: number
+  wkg?: number
   /** Lap count to assume for finish-time/distance display when computing a fallback client-side estimate (see `finishTimeSec` below) - the server already bakes laps into `combo.finishTimeSec` when a rider profile is set, so this is mostly a fallback/display concern. Defaults to 1. */
-  laps?: number;
+  laps?: number
   /** Fastest `finishTimeSec` among all currently-shown combos, used to show a "+Xs slower" gap instead of this card's own absolute time. */
-  fastestTimeSec?: number;
+  fastestTimeSec?: number
   /** Frames the rider owns, keyed by frame id, mapped to their upgrade level - used to label whether `combo.frame.level` is an owned level or the rider's assumed default for unowned bikes. */
-  owned?: Record<number, number>;
+  owned?: Record<number, number>
   /** Draft mode context, so the fallback estimate below applies the same draft the server did - the TTT climb power plan, or race mode's field-calibrated saving. See `physics/draft.ts`. */
-  draftMode?: DraftMode;
-  tttRiders?: number;
-  tttClimbWkg?: number;
-}>();
+  draftMode?: DraftMode
+  tttRiders?: number
+  tttClimbWkg?: number
+}>()
 
 const isOwnedFrame = computed(
-  () => props.owned?.[props.combo.frame.id] !== undefined,
-);
-const ownedFrameLevel = computed(() => props.owned?.[props.combo.frame.id]);
+  () => props.owned?.[props.combo.frame.id] !== undefined
+)
+const ownedFrameLevel = computed(() => props.owned?.[props.combo.frame.id])
 
 /** Quick-add-to-garage support: lets riders mark a bike/wheel as owned directly from a result card, without visiting the Garage page. */
-const { setOwned, setWheelOwned, isWheelOwned } = useGarage();
+const { setOwned, setWheelOwned, isWheelOwned } = useGarage()
 
 /** New quick-adds start at whatever level the rider has chosen in Profile as their default for unowned bikes (e.g. "show everything at level 5"), rather than always level 1 - matching how that same default already drives the level unowned bikes are scored/displayed at everywhere else. */
-const { defaultUnownedLevel } = useRiderProfile();
+const { defaultUnownedLevel } = useRiderProfile()
 
 function toggleFrameOwned() {
   setOwned(
     props.combo.frame.id,
-    isOwnedFrame.value ? null : defaultUnownedLevel.value,
-  );
+    isOwnedFrame.value ? null : defaultUnownedLevel.value
+  )
 }
 
 /** Lets riders adjust the owned upgrade level (0-5) right from the card, via the subtle level bar shown once a frame is owned. */
 function setFrameLevel(level: number) {
-  setOwned(props.combo.frame.id, level);
+  setOwned(props.combo.frame.id, level)
 }
 
 const isOwnedWheel = computed(
-  () => !!props.combo.wheelset && isWheelOwned(props.combo.wheelset.key),
-);
+  () => !!props.combo.wheelset && isWheelOwned(props.combo.wheelset.key)
+)
 
 function toggleWheelOwned() {
-  if (!props.combo.wheelset) return;
-  setWheelOwned(props.combo.wheelset.key, !isOwnedWheel.value);
+  if (!props.combo.wheelset) return
+  setWheelOwned(props.combo.wheelset.key, !isOwnedWheel.value)
 }
 
 /** Same draft context the server's estimate uses, so a fallback time can't disagree with server-computed ones. Race mode carries no sub-state at all. The TTT climb plan is guarded on `route.terrain`: the segment page passes a minimal `RouteWithMeta` stand-in without it. */
 const draftEstimate = computed(() => {
-  if (props.draftMode === "race") return { mode: "race" as const };
-  if (props.draftMode !== "ttt") return undefined;
-  const riders = props.tttRiders ?? TTT_DEFAULT_RIDERS;
-  if (!props.tttClimbWkg || !props.weightKg || !props.route?.terrain) return { mode: "ttt" as const, riders, climb: undefined };
-  const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg);
-  return { mode: "ttt" as const, riders, climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined };
-});
+  if (props.draftMode === 'race') return { mode: 'race' as const }
+  if (props.draftMode !== 'ttt') return undefined
+  const riders = props.tttRiders ?? TTT_DEFAULT_RIDERS
+  if (!props.tttClimbWkg || !props.weightKg || !props.route?.terrain) return { mode: 'ttt' as const, riders, climb: undefined }
+  const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg)
+  return { mode: 'ttt' as const, riders, climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined }
+})
 
 const finishTimeSec = computed(() => {
-  if (props.combo.finishTimeSec !== undefined) return props.combo.finishTimeSec;
-  if (!props.route || !props.weightKg || !props.heightCm || !props.wkg) return undefined;
+  if (props.combo.finishTimeSec !== undefined) return props.combo.finishTimeSec
+  if (!props.route || !props.weightKg || !props.heightCm || !props.wkg) return undefined
   return estimateFinishTimeSec(
     props.route,
     props.combo.frame,
@@ -76,15 +76,15 @@ const finishTimeSec = computed(() => {
     props.heightCm,
     props.wkg,
     props.laps ?? 1,
-    draftEstimate.value,
-  );
-});
+    draftEstimate.value
+  )
+})
 
 /** Total ride distance (lead-in + laps x lap distance) used for the km/h display, so it matches whatever lap count is currently selected rather than always assuming a single lap. */
 const totalDistanceKm = computed(() => {
-  if (!props.route) return undefined;
-  return computeRouteTotals(props.route, props.laps ?? 1).distanceKm;
-});
+  if (!props.route) return undefined
+  return computeRouteTotals(props.route, props.laps ?? 1).distanceKm
+})
 
 /**
  * Only the fastest combo shows its absolute time - every other card shows how far behind it is, per user request.
@@ -93,11 +93,11 @@ const totalDistanceKm = computed(() => {
  */
 const isFastest = computed(() => {
   return (
-    finishTimeSec.value !== undefined &&
-    props.fastestTimeSec !== undefined &&
-    Math.round((finishTimeSec.value - props.fastestTimeSec) * 100) <= 0
-  );
-});
+    finishTimeSec.value !== undefined
+    && props.fastestTimeSec !== undefined
+    && Math.round((finishTimeSec.value - props.fastestTimeSec) * 100) <= 0
+  )
+})
 </script>
 
 <template>
@@ -202,7 +202,9 @@ const isFastest = computed(() => {
         <p class="text-2xl font-bold text-primary">
           {{ combo.score }}
         </p>
-        <p class="text-xs text-muted">match score</p>
+        <p class="text-xs text-muted">
+          match score
+        </p>
       </div>
     </div>
 
@@ -210,27 +212,39 @@ const isFastest = computed(() => {
       v-if="finishTimeSec"
       class="flex flex-wrap items-center gap-1.5 text-sm text-highlighted"
     >
-      <UIcon name="i-lucide-timer" class="size-4" />
-      <span v-if="isFastest || fastestTimeSec === undefined"
-        >Est. finish time:
+      <UIcon
+        name="i-lucide-timer"
+        class="size-4"
+      />
+      <span v-if="isFastest || fastestTimeSec === undefined">Est. finish time:
         <span class="font-semibold">{{
           formatDuration(finishTimeSec)
-        }}</span></span
-      >
-      <span v-else class="font-semibold text-warning">{{
+        }}</span></span>
+      <span
+        v-else
+        class="font-semibold text-warning"
+      >{{
         formatDurationDelta(finishTimeSec - fastestTimeSec)
       }}</span>
-      <span v-if="route && totalDistanceKm !== undefined" class="text-muted"
-        >({{ formatSpeedKmh(totalDistanceKm, finishTimeSec) }})</span
-      >
+      <span
+        v-if="route && totalDistanceKm !== undefined"
+        class="text-muted"
+      >({{ formatSpeedKmh(totalDistanceKm, finishTimeSec) }})</span>
     </div>
 
     <div class="flex flex-wrap items-center gap-1.5">
       <BikeCategoryBadge :category="combo.frame.category" />
-      <UBadge v-if="combo.frame.style" color="neutral" variant="subtle">
+      <UBadge
+        v-if="combo.frame.style"
+        color="neutral"
+        variant="subtle"
+      >
         {{ combo.frame.style }} style
       </UBadge>
-      <UBadge color="neutral" variant="subtle">
+      <UBadge
+        color="neutral"
+        variant="subtle"
+      >
         {{
           combo.wheelset
             ? WHEEL_CATEGORY_LABELS[combo.wheelset.front.category]
@@ -287,7 +301,11 @@ const isFastest = computed(() => {
         v-else
         text="This frame comes with its own integrated disc wheels which cannot be changed in Zwift"
       >
-        <UBadge color="neutral" variant="subtle" icon="i-lucide-lock">
+        <UBadge
+          color="neutral"
+          variant="subtle"
+          icon="i-lucide-lock"
+        >
           wheels fixed
         </UBadge>
       </UTooltip>
@@ -299,7 +317,11 @@ const isFastest = computed(() => {
             : `You don't own this bike - scored at your default assumed level for unowned bikes (change on the Profile page)`
         "
       >
-        <UBadge color="neutral" variant="subtle" icon="i-lucide-gauge">
+        <UBadge
+          color="neutral"
+          variant="subtle"
+          icon="i-lucide-gauge"
+        >
           Level {{ combo.frame.level }}
         </UBadge>
       </UTooltip>

@@ -49,7 +49,9 @@ const {
 const { estimateFinishTimeSec } = loadSharedModule('shared/utils/finishTime.ts')
 
 const errors = []
-const check = (ok, message) => { if (!ok) errors.push(message) }
+const check = (ok, message) => {
+  if (!ok) errors.push(message)
+}
 const close = (actual, expected, tolerance) => Math.abs(actual - expected) <= tolerance
 
 // The reference rider every magnitude below is quoted for: 75 kg, 183 cm,
@@ -232,7 +234,10 @@ let swept = 0
 let skipped = 0
 for (const route of getRoutesWithMeta()) {
   const hasChartData = (route.terrain.elevationProfile?.length ?? 0) >= 2 && (route.surface.segments?.length ?? 0) > 0
-  if (!hasChartData) { skipped++; continue }
+  if (!hasChartData) {
+    skipped++
+    continue
+  }
   let profile
   try {
     profile = computeRouteSurfaceSpeedProfile(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, { mode: 'race' })
@@ -240,7 +245,10 @@ for (const route of getRoutesWithMeta()) {
     errors.push(`${route.slug}: the speed profile threw in race mode - ${error.message}`)
     continue
   }
-  if (!profile) { errors.push(`${route.slug}: has chart data but the speed profile came back undefined in race mode`); continue }
+  if (!profile) {
+    errors.push(`${route.slug}: has chart data but the speed profile came back undefined in race mode`)
+    continue
+  }
   swept++
   const samples = [...profile.speedSamples, ...(profile.soloComparison?.speedSamples ?? [])]
   for (const sample of samples) {

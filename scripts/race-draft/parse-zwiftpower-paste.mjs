@@ -8,6 +8,9 @@
 // summary, or an error message - rows are referred to by category and position
 // only. See README.md, "Where the data lives".
 //
+/* eslint-disable @stylistic/no-tabs -- the sample below is a verbatim paste,
+   and its tabs are the delimiter this parser keys on; spacing them out would
+   misrepresent the input this script has to handle. */
 // What a ZwiftPower category-list copy-paste actually looks like (ragged,
 // several lines per rider):
 //
@@ -17,6 +20,7 @@
 //   316w
 //   3.0w/kg	3.8w/kg	6.6w/kg	7.5w/kg	8.5w/kg	83.0kg	Vet	156bpm	187bpm	187cm	3.06
 //
+/* eslint-enable @stylistic/no-tabs */
 // i.e. per rider: a category letter (+ optional position), a NAME line, a line
 // with finish time (+ gap for non-winners), average w/kg and average watts, a
 // line with normalised power, then a line of power-curve w/kg values followed by

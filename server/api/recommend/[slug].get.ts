@@ -10,11 +10,17 @@ import { addTimingMeta, markPhase } from '../../utils/timing'
 
 function parseOwnedLevels(raw: unknown): Record<string, number> {
   if (typeof raw !== 'string' || !raw) return {}
-  try { const parsed = JSON.parse(raw); return parsed && typeof parsed === 'object' ? parsed : {} } catch { return {} }
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch { return {} }
 }
 function parseOwnedWheelKeys(raw: unknown): Set<string> {
   if (typeof raw !== 'string' || !raw) return new Set()
-  try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? new Set(parsed) : new Set() } catch { return new Set() }
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? new Set(parsed) : new Set()
+  } catch { return new Set() }
 }
 export default defineEventHandler((event) => {
   const slug = getRouterParam(event, 'slug')

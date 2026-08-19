@@ -143,7 +143,10 @@ for (const [raceSlug, race] of Object.entries(dataset.races)) {
   const riders = race.riders.filter(rider => rider.weightKg)
   markBunchFinishes(riders)
   const bunch = riders.filter(rider => rider.bunch)
-  if (bunch.length === 0) { rows.push({ raceSlug, counts, n: 0 }); continue }
+  if (bunch.length === 0) {
+    rows.push({ raceSlug, counts, n: 0 })
+    continue
+  }
 
   const errors = bunch.map((rider) => {
     const predictedSec = simulateRoute({

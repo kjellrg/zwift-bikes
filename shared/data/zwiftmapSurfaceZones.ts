@@ -43,22 +43,22 @@ export interface WorldSurfaceZone {
 }
 
 export const WORLD_SURFACE_ZONES: Partial<Record<WorldSlug, WorldSurfaceZone[]>> = {
-  bologna: [
+  'bologna': [
     { label: 'unlabeled brick-paved section', surface: 'cobble' }
   ],
   'crit-city': [
     { label: 'unlabeled brick-paved section', surface: 'cobble' }
   ],
-  france: [
+  'france': [
     { label: 'bridge near start', surface: 'cobble' },
     { label: 'pavé sprint', surface: 'cobble' },
     { label: 'bridge to bottom-left island', surface: 'cobble' }
   ],
-  innsbruck: [
+  'innsbruck': [
     { label: 'unlabeled brick-paved section', surface: 'cobble' },
     { label: 'unlabeled cobbled section', surface: 'cobble' }
   ],
-  london: [
+  'london': [
     { label: 'left entry from city (Handling District)', surface: 'cobble' },
     { label: 'right exit towards city (Handling District)', surface: 'cobble' }
   ],
@@ -83,20 +83,20 @@ export const WORLD_SURFACE_ZONES: Partial<Record<WorldSlug, WorldSurfaceZone[]>>
     { label: 'Neokyo (incl. rooftop KOM sections)', surface: 'cobble' },
     { label: 'Arcade + start', surface: 'cobble' }
   ],
-  paris: [
+  'paris': [
     { label: 'entire route network', surface: 'cobble' }
   ],
-  richmond: [
+  'richmond': [
     { label: 'top-left out-and-back climb', surface: 'cobble' },
     { label: 'Richmond KOM', surface: 'cobble' },
     { label: '23rd Street', surface: 'cobble' }
   ],
-  scotland: [
+  'scotland': [
     { label: 'south bridge', surface: 'cobble' },
     { label: 'east roundabout', surface: 'cobble' },
     { label: 'Sgurr Summit North', surface: 'gravel' }
   ],
-  watopia: [
+  'watopia': [
     { label: 'Jungle Circuit loop', surface: 'gravel' },
     { label: 'Jungle middle road (dirt sections)', surface: 'gravel' },
     { label: 'Repack Ridge', surface: 'gravel' },

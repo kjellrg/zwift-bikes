@@ -42,11 +42,9 @@
 // and segment-efforts.json is gitignored for the same reason.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { routes } from 'zwift-data'
 import generatedSurfaces from '../../shared/data/routeSurfaces.generated.json' with { type: 'json' }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
 const flag = name => args.includes(name)
 const value = (name) => {

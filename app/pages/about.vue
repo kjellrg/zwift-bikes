@@ -1,14 +1,14 @@
 <script setup lang="ts">
-const title = "About - ZwiftBikes";
+const title = 'About - ZwiftBikes'
 const description
-  = "ZwiftBikes is an unofficial fan project that ranks every bike frame and wheelset by predicted finish time for a given Zwift route. Built on zwift-data, ZwiftInsider bot speed tests, zwiftmap and real GPS route traces.";
+  = 'ZwiftBikes is an unofficial fan project that ranks every bike frame and wheelset by predicted finish time for a given Zwift route. Built on zwift-data, ZwiftInsider bot speed tests, zwiftmap and real GPS route traces.'
 
 useSeoMeta({
   title,
   description,
   ogTitle: title,
   ogDescription: description
-});
+})
 </script>
 
 <template>

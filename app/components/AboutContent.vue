@@ -32,7 +32,9 @@ const contactMailto = `mailto:${contactAddress}`
     </p>
 
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">Where the numbers come from</p>
+      <p class="font-medium text-highlighted">
+        Where the numbers come from
+      </p>
       <p>
         Frame and wheel ratings use real ZwiftInsider bot speed-test data
         wherever it exists. Where it doesn't, the app falls back to a clearly
@@ -40,15 +42,19 @@ const contactMailto = `mailto:${contactAddress}`
       </p>
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span class="flex items-center gap-1.5">
-          <UBadge color="success" variant="subtle" icon="i-lucide-badge-check"
-            >verified</UBadge
-          >
+          <UBadge
+            color="success"
+            variant="subtle"
+            icon="i-lucide-badge-check"
+          >verified</UBadge>
           <span class="text-muted">real speed-test data</span>
         </span>
         <span class="flex items-center gap-1.5">
-          <UBadge color="neutral" variant="subtle" icon="i-lucide-help-circle"
-            >estimated</UBadge
-          >
+          <UBadge
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-help-circle"
+          >estimated</UBadge>
           <span class="text-muted">a labelled fallback</span>
         </span>
       </div>
@@ -60,27 +66,29 @@ const contactMailto = `mailto:${contactAddress}`
           to="https://github.com/kjellrg/zwift-bikes/blob/main/docs/physics-model.md"
           target="_blank"
           class="underline"
-          >How the physics works</ULink
-        >.
+        >How the physics works</ULink>.
       </p>
     </div>
 
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">Built on</p>
+      <p class="font-medium text-highlighted">
+        Built on
+      </p>
       <ul class="list-disc space-y-1.5 pl-5">
         <li>
           <ULink
             to="https://www.npmjs.com/package/zwift-data"
             target="_blank"
             class="underline"
-            >zwift-data</ULink
-          >
+          >zwift-data</ULink>
           - the catalog of every route, frame, wheel and segment in the game.
         </li>
         <li>
-          <ULink to="https://zwiftinsider.com/" target="_blank" class="underline"
-            >ZwiftInsider</ULink
-          >
+          <ULink
+            to="https://zwiftinsider.com/"
+            target="_blank"
+            class="underline"
+          >ZwiftInsider</ULink>
           - bot speed-test results for frames and wheels, plus Zwift's
           rolling-resistance values per surface. Their painstaking, publicly
           shared testing is what makes these numbers possible at all.
@@ -90,15 +98,16 @@ const contactMailto = `mailto:${contactAddress}`
             to="https://github.com/andipaetzold/zwiftmap"
             target="_blank"
             class="underline"
-            >zwiftmap</ULink
-          >
+          >zwiftmap</ULink>
           - hand-mapped surface polygons for each Zwift world, used to work
           out where a route turns to gravel or cobbles.
         </li>
         <li>
-          <ULink to="https://www.strava.com/" target="_blank" class="underline"
-            >Strava</ULink
-          >
+          <ULink
+            to="https://www.strava.com/"
+            target="_blank"
+            class="underline"
+          >Strava</ULink>
           - the real GPS and elevation trace of each route, fetched once when
           the route data is generated. No Strava account or connection is
           needed to use this site.
@@ -107,7 +116,9 @@ const contactMailto = `mailto:${contactAddress}`
     </div>
 
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">Your data</p>
+      <p class="font-medium text-highlighted">
+        Your data
+      </p>
       <p>
         No accounts, no cookies, no analytics, no tracking, no database. Your
         garage and rider profile are saved only in your own browser's local
@@ -171,8 +182,7 @@ const contactMailto = `mailto:${contactAddress}`
         to="https://github.com/kjellrg/zwift-bikes"
         target="_blank"
         class="underline"
-        >GitHub</ULink
-      >.
+      >GitHub</ULink>.
     </p>
   </div>
 </template>

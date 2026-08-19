@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RouteWithMeta } from '../../../shared/types/catalog'
+import type { ComboScore, RouteWithMeta } from '../../../shared/types/catalog'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForSegment } from '#shared/utils/physics/routeGeometry'
 
@@ -42,7 +42,12 @@ onMounted(() => {
 const bikeSearch = ref('')
 const bikeSearchDebounced = ref('')
 let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined
-watch(bikeSearch, (value) => { clearTimeout(bikeSearchDebounceTimer); bikeSearchDebounceTimer = setTimeout(() => { bikeSearchDebounced.value = value }, 300) })
+watch(bikeSearch, (value) => {
+  clearTimeout(bikeSearchDebounceTimer)
+  bikeSearchDebounceTimer = setTimeout(() => {
+    bikeSearchDebounced.value = value
+  }, 300)
+})
 const pageSize = 9
 
 // A ranking is always a single pass over the segment - there's no fatigue
@@ -71,7 +76,7 @@ const recommendQuery = computed(() => ({
 }))
 const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/segments/${slug.value}`, { query: recommendQuery, watch: false })
 
-const loadedCombos = ref<any[]>([])
+const loadedCombos = ref<ComboScore[]>([])
 const hasMore = ref(true)
 const loadingMore = ref(false)
 watch(recommendData, (data) => {
@@ -105,14 +110,17 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => { refreshFirstPage() })
-watch(owned, () => { refreshFirstPage() }, { deep: true })
-watch(ownedWheels, () => { refreshFirstPage() }, { deep: true })
+watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
+watch(owned, () => refreshFirstPage(), { deep: true })
+watch(ownedWheels, () => refreshFirstPage(), { deep: true })
 
 const combos = computed(() => loadedCombos.value)
 const topCombo = computed(() => combos.value[0])
 const restCombos = computed(() => combos.value.slice(1))
-const fastestTimeSec = computed(() => { const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number'); return times.length ? Math.min(...times) : undefined })
+const fastestTimeSec = computed(() => {
+  const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number')
+  return times.length ? Math.min(...times) : undefined
+})
 const physicsInfo = computed(() => recommendData.value?.physics)
 // Present only when the category filter is hiding a faster combo - see
 // `FastestOverallNote` and the endpoint's `fastestOverall` block.

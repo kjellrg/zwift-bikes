@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/events/validate-events.mjs && node scripts/validate-speed-data.mjs && npm run validate:race-draft && nuxt build && node scripts/trim-swa-config.mjs",
+    "build": "npm run validate && nuxt build && node scripts/trim-swa-config.mjs",
+    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:race-draft",
     "validate:events": "node scripts/events/validate-events.mjs",
     "validate:speed-data": "node scripts/validate-speed-data.mjs",
     "validate:race-draft": "node scripts/race-draft/validate-race-draft.mjs && node scripts/race-draft/test-parse-zwiftpower-paste.mjs",
