@@ -2,7 +2,7 @@ import { getFrames } from '../../../../shared/utils/catalog'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../../../shared/utils/routeSegments'
 import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
-import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
 import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
@@ -56,6 +56,10 @@ export default defineEventHandler((event) => {
   const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
   // Defaults to on - see the equivalent comment in `recommend/[slug].get.ts`.
   const verifiedOnly = query.verifiedOnly !== 'false'
+  // Defaults to include - see the equivalent comment in
+  // `recommend/[slug].get.ts`: the pages always send it explicitly, absent
+  // means today's behavior for the MCP tools and API consumers.
+  const includeHalo = query.includeHalo !== 'false'
   // See the equivalent comment in `recommend/[slug].get.ts`.
   const rawMaxWheelsets = Number(query.maxWheelsetsPerFrame)
   const maxWheelsetsPerFrame = Number.isFinite(rawMaxWheelsets) ? Math.max(1, Math.round(rawMaxWheelsets)) : undefined
@@ -86,9 +90,15 @@ export default defineEventHandler((event) => {
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
   const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
 
-  // Built WITHOUT the category filter - see the equivalent comment in
-  // `recommend/[slug].get.ts`; every other filter applies to both the ranked
-  // results and the `fastestOverall` comparison at the end.
+  // Purchasable Halo frames the ranked pool should not show - see the
+  // equivalent comment in `recommend/[slug].get.ts` for why search and
+  // ownership bypass it, and why it must not shrink `allFrames`.
+  const isHiddenHalo = (frame: { name: string }) => !includeHalo && !search
+    && PURCHASABLE_HALO_FRAMES.has(frame.name) && !ownedFrameNames.has(frame.name)
+
+  // Built WITHOUT the category and Halo filters - see the equivalent comment
+  // in `recommend/[slug].get.ts`; every other filter applies to both the
+  // ranked results and the `fastestOverall` comparison at the end.
   let allFrames = getFrames().filter((frame) => {
     // Never list the same bike twice: a cosmetic re-skin and the frame it
     // re-skins are one bike, so only one of the pair is shown - the re-skin
@@ -109,7 +119,8 @@ export default defineEventHandler((event) => {
     allFrames = allFrames.filter(f => f.confidence === 'measured')
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
-  const frames = category ? allFrames.filter(f => f.category === category) : allFrames
+  const rankable = allFrames.filter(f => !isHiddenHalo(f))
+  const frames = category ? rankable.filter(f => f.category === category) : rankable
   // Carries this instance's lazy catalog init on a cold start.
   markPhase(event, 'pool')
 
@@ -260,15 +271,16 @@ export default defineEventHandler((event) => {
       raceSavedSec
     }
   }
-  // "A bike outside your category is faster" - see the equivalent block in
+  // "A bike your filters are hiding is faster" - see the equivalent block in
   // `recommend/[slug].get.ts` for why this is computed server-side, why only
-  // the out-of-category frames are ranked, and why it is gated this narrowly.
-  let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
+  // the frames the ranked pool can't show (out-of-category or Halo-hidden)
+  // are ranked, what `reason` is for, and why it is gated this narrowly.
+  let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, reason: 'category' | 'halo', wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
   const pageTopCombo = pageCombos[0]
-  if (category && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
-    const outsideCategoryFrames = allFrames.filter(f => f.category !== category)
-    if (outsideCategoryFrames.length) {
-      let candidates = rankCombos(segmentRoute, outsideCategoryFrames, wheelsets, outsideCategoryFrames.length * wheelsets.length)
+  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
+    const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
+    if (hiddenFrames.length) {
+      let candidates = rankCombos(segmentRoute, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
         .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, draftEstimate) }))
         .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
       let overallTopSec = candidates[0]?.finishTimeSec
@@ -285,6 +297,9 @@ export default defineEventHandler((event) => {
           frameId: overallTop.frame.id,
           frameName: overallTop.frame.name,
           category: overallTop.frame.category,
+          // Both-out-of-category-and-Halo reports `halo` - see the
+          // equivalent comment in `recommend/[slug].get.ts`.
+          reason: isHiddenHalo(overallTop.frame) ? 'halo' as const : 'category' as const,
           wheelsetName: overallTop.wheelset?.name,
           finishTimeSec: overallTopSec,
           deltaSec: pageTopCombo.finishTimeSec - overallTopSec
