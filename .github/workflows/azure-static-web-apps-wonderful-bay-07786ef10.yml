@@ -61,7 +61,7 @@ jobs:
       contents: read
       pull-requests: write # required by repo_token below to comment/manage PR preview links
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.changes.outputs.app == 'true'
         with:
           submodules: true
@@ -70,6 +70,14 @@ jobs:
       - name: Build And Deploy
         if: needs.changes.outputs.app == 'true'
         id: builddeploy
+        # `v1` on this action is both a tag and a branch, and they point at
+        # different commits: the tag is this SHA, the branch has moved on. The
+        # pin below is correct for the tag. `zizmor --persona=pedantic` with
+        # online audits resolves the branch instead and reports a
+        # `ref-version-mismatch` here - that finding is the ambiguity, not a
+        # stale pin, so don't "fix" it by bumping the SHA. Moving to the
+        # branch head is a real upgrade of the production deploy path and
+        # belongs in its own change.
         uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_BAY_07786EF10 }}
@@ -106,6 +114,7 @@ jobs:
     steps:
       - name: Close Pull Request
         id: closepullrequest
+        # Same tag-vs-branch note as build_and_deploy_job above.
         uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_BAY_07786EF10 }}

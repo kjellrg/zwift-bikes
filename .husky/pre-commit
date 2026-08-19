@@ -1,4 +1,4 @@
-trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run typecheck
+trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run lint && npm run typecheck
 
 # `npm run build` prerenders all 335 route pages and takes ~9 minutes, which
 # is a long time to wait to commit a workflow tweak or a docs change. Only run
