@@ -66,7 +66,7 @@ jobs:
       contents: read # Ceiling for the called workflow, which asks for the same.
 
   build_and_deploy_job:
-    # Fork PRs are excluded here and covered by build.yml instead: a
+    # Fork PRs are excluded here and picked up by `fork_build_job` below: a
     # `pull_request` run from a fork gets no repository secrets, so
     # AZURE_STATIC_WEB_APPS_API_TOKEN_* is empty and the deploy can only fail.
     if: >-
@@ -124,6 +124,42 @@ jobs:
           # Not `NUXT_PUBLIC_BUILD_SHA` - see the comment on `buildSha` in
           # nuxt.config.ts for why that name would defeat the shortening.
           BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+  # Was .github/workflows/build.yml. It lived in its own workflow, which meant
+  # both workflows triggered on every `pull_request` and both called
+  # `checks.yml` - running the same ~45s of lint/typecheck/validate twice per
+  # PR. Nothing dedupes a reusable workflow across callers (a shared
+  # concurrency group can only cancel, which would kill the deploy), so the
+  # only structural fix is one entry point per event. Merging it here also puts
+  # the fork and non-fork halves of the same decision side by side.
+  fork_build_job:
+    name: npm run build (fork PR)
+    # Fork PRs only - see `build_and_deploy_job` above. This is the sole build
+    # coverage such a PR gets, so unlike the deploy it is not behind the
+    # `changes` paths filter: it is rare enough that always building is worth
+    # more than the minutes saved.
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.action != 'closed'
+      && github.event.pull_request.head.repo.fork
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
 
   close_pull_request_job:
     if: >-

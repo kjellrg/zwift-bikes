@@ -1,9 +1,10 @@
 name: Checks
 
-# Reusable only - this workflow has no trigger of its own. Both PR/push entry
-# points (build.yml and the Azure deploy workflow) call it, so the checks run
-# once per caller and each caller can make its expensive job depend on them
-# rather than racing alongside.
+# Reusable only - this workflow has no trigger of its own. The Azure deploy
+# workflow is the single PR/push entry point and calls it once, so its build,
+# deploy and fork-build jobs can all `needs:` these checks rather than racing
+# alongside them. Keep it to one caller per event: nothing dedupes a reusable
+# workflow across callers, so a second one would just run all of this twice.
 on:
   workflow_call:
 
