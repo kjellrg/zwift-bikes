@@ -1,20 +1,17 @@
-trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run lint && npm run typecheck
+trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run lint && npm run typecheck && npm run validate
 
-# `npm run build` prerenders all 335 route pages and takes ~9 minutes, which
-# is a long time to wait to commit a workflow tweak or a docs change. Only run
-# it when something staged can actually affect the build output.
+# `npm run build` used to run here, conditionally, whenever a staged path could
+# affect build output. It prerenders all 335 route pages and takes ~9 minutes,
+# which is why the condition existed at all - and why `--no-verify` became the
+# habit on any commit in a series, which quietly cost us the other checks too.
 #
-# The pattern mirrors the paths filter in
-# .github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml, minus
-# the workflow file itself (which can't change what the build produces).
-# scripts/ is included because `npm run build` runs scripts/trim-swa-config.mjs.
+# It is no longer worth that. The .github/workflows/checks.yml workflow now runs
+# lint, typecheck and the data validators on every push and PR, and the Azure
+# deploy workflow still runs the full `npm run build` (via Oryx) on the way to a
+# preview environment - so a prerender failure is caught before merge either
+# way, ~4 minutes into a job nobody is waiting on, rather than ~9 minutes into a
+# commit somebody is.
 #
-# Nothing committed depends on the build's output - staticwebapp.config.json,
-# its only tracked-adjacent artifact, is gitignored - so skipping it here only
-# ever costs us the check, never correctness of the commit.
-if git diff --cached --name-only \
-  | grep -qE '^(app|server|shared|scripts)/|^(nuxt\.config\.ts|package\.json|package-lock\.json)$'; then
-  npm run build
-else
-  echo "pre-commit: no build-affecting paths staged, skipping 'npm run build'"
-fi
+# What stays here is everything that is fast enough to never be worth skipping:
+# secret scanning, workflow auditing, lint, typecheck and the validators - about
+# 25 seconds of work plus trufflehog.
