@@ -14,6 +14,13 @@ on:
 permissions:
   contents: read
 
+# Superseded preview runs have nothing left to say, so cancel them. Pushes to
+# main/devel are deliberately excluded: cancelling a half-finished upload to
+# Azure is a worse outcome than letting it finish and be replaced.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   changes:
     name: Detect changes
@@ -52,9 +59,22 @@ jobs:
               - "package-lock.json"
               - ".github/workflows/azure-static-web-apps-wonderful-bay-07786ef10.yml"
 
+  checks:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+    permissions:
+      contents: read # Ceiling for the called workflow, which asks for the same.
+
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
-    needs: changes
+    # Fork PRs are excluded here and covered by build.yml instead: a
+    # `pull_request` run from a fork gets no repository secrets, so
+    # AZURE_STATIC_WEB_APPS_API_TOKEN_* is empty and the deploy can only fail.
+    if: >-
+      github.event_name == 'push'
+      || (github.event_name == 'pull_request'
+      && github.event.action != 'closed'
+      && github.event.pull_request.head.repo.fork == false)
+    needs: [changes, checks]
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     permissions:
@@ -106,7 +126,10 @@ jobs:
           BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
   close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.action == 'closed'
+      && github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-latest
     name: Close Pull Request Job
     permissions:
