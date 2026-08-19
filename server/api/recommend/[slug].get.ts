@@ -1,7 +1,7 @@
 import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
 import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
-import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant } from '../../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
 import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
@@ -62,6 +62,15 @@ export default defineEventHandler((event) => {
   // same pool also feeds the `fastestOverall` disclosure, which would
   // otherwise advertise a TT bike that's illegal in the race.
   const excludeTT = query.excludeTT === 'true'
+  // Defaults to include: the three purchasable Halo frames stay in the pool
+  // unless the caller explicitly sends `includeHalo=false`. The rider-facing
+  // pages always send it (and their preference defaults to off - see
+  // `includeHaloBikes` in `usePreferences`); the MCP tools and existing API
+  // consumers never send it, so their behavior is unchanged by design
+  // (issue #112). Unlike `excludeTT` this is a DISPLAY preference, not a
+  // legality filter - it must not shrink `allFrames`, because a hidden Halo
+  // winner still has to surface in the `fastestOverall` disclosure below.
+  const includeHalo = query.includeHalo !== 'false'
   // How many wheelsets a single frame may occupy in the results. Undefined
   // keeps `capWheelsetsPerFrame`'s own default; a client that wants one row
   // per frame (the fastest wheelset for this route) passes 1. Only ever
@@ -105,10 +114,19 @@ export default defineEventHandler((event) => {
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
   const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
 
-  // Built WITHOUT the category filter, which is applied separately below.
-  // Every other filter - cosmetic dedupe, ownership, verified - belongs to
-  // both the ranked results and the `fastestOverall` comparison at the end,
-  // so the two can only ever differ by the category itself.
+  // True when `frame` is a purchasable Halo bike the ranked pool should not
+  // show. Bypassed while searching - a directed search must always be able to
+  // find any real, valid combo, and `searchCombos` only sees combos ranked
+  // from `frames`, so the bypass has to happen here, pre-rank. Also bypassed
+  // by ownership: a rider who put a Halo bike in their garage wants it
+  // ranked - the same argument as `isRedundantCosmeticVariant`.
+  const isHiddenHalo = (frame: { name: string }) => !includeHalo && !search
+    && PURCHASABLE_HALO_FRAMES.has(frame.name) && !ownedFrameNames.has(frame.name)
+
+  // Built WITHOUT the category and Halo filters, which are applied separately
+  // below. Every other filter - cosmetic dedupe, ownership, verified -
+  // belongs to both the ranked results and the `fastestOverall` comparison at
+  // the end, so the two can only ever differ by those two display filters.
   let allFrames = getFrames().filter((frame) => {
     // Never list the same bike twice: a cosmetic re-skin and the frame it
     // re-skins are one bike, so only one of the pair is shown - the re-skin
@@ -130,7 +148,8 @@ export default defineEventHandler((event) => {
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
   if (excludeTT) allFrames = allFrames.filter(f => f.category !== 'tt')
-  const frames = category ? allFrames.filter(f => f.category === category) : allFrames
+  const rankable = allFrames.filter(f => !isHiddenHalo(f))
+  const frames = category ? rankable.filter(f => f.category === category) : rankable
   // Includes this instance's lazy catalog init on a cold start - frame
   // classification and the route surface data both load on first touch.
   markPhase(event, 'pool')
@@ -286,29 +305,32 @@ export default defineEventHandler((event) => {
       raceSavedSec
     }
   }
-  // "A bike outside your category is faster": the fastest combo once the
-  // category filter is lifted. The rider-facing pages default to `standard`
-  // (TT frames win outright on most routes but are restricted in a lot of
-  // events), and this is what keeps that default honest - the genuinely
-  // quickest bike is never silently hidden, just moved one click away. It is
-  // returned from the endpoint rather than fetched separately by the client
-  // so it lands in the server-rendered HTML, where crawlers and a first paint
-  // both see it.
+  // "A bike your filters are hiding is faster": the fastest combo once the
+  // category and Halo filters are lifted. The rider-facing pages default to
+  // `standard` (TT frames win outright on most routes but are restricted in a
+  // lot of events) and to hiding the purchasable Halo bikes (issue #112), and
+  // this is what keeps those defaults honest - the genuinely quickest bike is
+  // never silently hidden, just moved one click away. It is returned from the
+  // endpoint rather than fetched separately by the client so it lands in the
+  // server-rendered HTML, where crawlers and a first paint both see it.
   //
-  // Only the frames OUTSIDE the current category are ranked here, not the
-  // full pool: if the overall winner were in-category there would be nothing
-  // to disclose, so the two formulations give the same answer and this one
-  // ranks a strictly smaller pool.
+  // Only the frames the ranked pool can't show are ranked here - everything
+  // outside the current category plus anything Halo-hidden (which can be
+  // IN-category: the R4000 is `standard`). If the overall winner were
+  // showable there would be nothing to disclose, so the two formulations give
+  // the same answer and this one ranks a strictly smaller pool. `reason`
+  // records which filter hid the winner, so the UI can offer the right way
+  // to reveal it.
   //
   // Gated to the first page of an unsearched request with a rider profile -
   // the only render that shows the line - because it costs a second ranking
   // pass and its own simulation window (see `SIMULATED_ORDER_MARGIN`).
-  let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
+  let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, reason: 'category' | 'halo', wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
   const pageTopCombo = pageCombos[0]
-  if (category && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
-    const outsideCategoryFrames = allFrames.filter(f => f.category !== category)
-    if (outsideCategoryFrames.length) {
-      let candidates = rankCombos(route, outsideCategoryFrames, wheelsets, outsideCategoryFrames.length * wheelsets.length)
+  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
+    const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
+    if (hiddenFrames.length) {
+      let candidates = rankCombos(route, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
         .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, draftEstimate) }))
         .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
       let overallTopSec = candidates[0]?.finishTimeSec
@@ -331,6 +353,11 @@ export default defineEventHandler((event) => {
           frameId: overallTop.frame.id,
           frameName: overallTop.frame.name,
           category: overallTop.frame.category,
+          // A frame that is both out-of-category AND Halo-hidden reports
+          // `halo`: switching to "All categories" alone would still not
+          // reveal it, while including Halo bikes at least discloses the
+          // remaining category gap on the refetch.
+          reason: isHiddenHalo(overallTop.frame) ? 'halo' as const : 'category' as const,
           wheelsetName: overallTop.wheelset?.name,
           finishTimeSec: overallTopSec,
           deltaSec: pageTopCombo.finishTimeSec - overallTopSec

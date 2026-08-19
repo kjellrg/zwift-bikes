@@ -47,6 +47,24 @@ export function usePreferences() {
    * the teasers only ever appear post-mount anyway.
    */
   const showUpcomingRaces = useState<boolean>('pref-show-upcoming-races', () => true)
+  /**
+   * Whether the three purchasable Halo bikes (`PURCHASABLE_HALO_FRAMES` in
+   * `classifyBikeFrame.ts`) appear in rankings. Defaults to off: each one
+   * takes three fully upgraded frames of one brand plus ~20M Drops, so for
+   * almost every rider they answer "what should I ride" with a bike they
+   * can't select - the same reasoning as `bikeCategory`'s `standard` default.
+   * And as there, nothing is silently hidden: a Halo bike that would win
+   * still surfaces through the endpoints' `fastestOverall` disclosure, and
+   * the filter is bypassed server-side for owned Halo frames and for
+   * directed searches.
+   *
+   * Same SSR rule as `bikeCategory` above. This default deliberately
+   * diverges from the ENDPOINTS' own default (absent `includeHalo` means
+   * include, so the MCP tools and existing API consumers keep today's
+   * behavior); the pages always send the param explicitly, so the two
+   * defaults never meet.
+   */
+  const includeHaloBikes = useState<boolean>('pref-include-halo-bikes', () => false)
 
   function persist() {
     if (!import.meta.client) return
@@ -54,7 +72,8 @@ export function usePreferences() {
       verifiedOnly: verifiedOnly.value,
       myBikesOnly: myBikesOnly.value,
       bikeCategory: bikeCategory.value,
-      showUpcomingRaces: showUpcomingRaces.value
+      showUpcomingRaces: showUpcomingRaces.value,
+      includeHaloBikes: includeHaloBikes.value
     }))
   }
 
@@ -68,6 +87,7 @@ export function usePreferences() {
       if (typeof parsed.myBikesOnly === 'boolean') myBikesOnly.value = parsed.myBikesOnly
       if (typeof parsed.bikeCategory === 'string' && BIKE_CATEGORY_VALUES.has(parsed.bikeCategory)) bikeCategory.value = parsed.bikeCategory as BikeCategory | 'all'
       if (typeof parsed.showUpcomingRaces === 'boolean') showUpcomingRaces.value = parsed.showUpcomingRaces
+      if (typeof parsed.includeHaloBikes === 'boolean') includeHaloBikes.value = parsed.includeHaloBikes
     } catch {
       // ignore corrupted storage
     }
@@ -99,5 +119,10 @@ export function usePreferences() {
     persist()
   }
 
-  return { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, setShowUpcomingRaces }
+  function setIncludeHaloBikes(value: boolean) {
+    includeHaloBikes.value = value
+    persist()
+  }
+
+  return { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, includeHaloBikes, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, setShowUpcomingRaces, setIncludeHaloBikes }
 }

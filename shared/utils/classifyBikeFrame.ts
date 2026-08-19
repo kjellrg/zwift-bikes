@@ -177,6 +177,22 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
 // against the catalog at build time.
 export const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade'])
 
+// The three Halo bikes almost nobody can ride (issue #112). ZwiftInsider
+// lists exactly four Halo bikes (zwiftinsider.com/halo-bikes/): these three -
+// each unlocked by fully upgrading three frames of one brand and then costing
+// ~10M Drops to buy plus ~10M more to upgrade - and the Zwift Concept Z1
+// ("Tron"). The Z1 pair is deliberately NOT in this set: the Tron is a free
+// Everest-challenge unlock, widely owned, and ZwiftInsider's own benchmark
+// bike, so hiding it would take away an answer most riders can act on.
+// The recommend endpoints drop these three from the ranked pool unless the
+// caller opts in (`includeHalo`), owns the frame, or is searching - see the
+// `isHiddenHalo` predicates there.
+// Intentionally a separate set from `FIXED_WHEEL_FRAMES` above: integrated
+// wheels and unlock cost are different facts about a frame, even though the
+// members currently coincide minus the Z1s.
+// Exported for `scripts/validate-speed-data.mjs`.
+export const PURCHASABLE_HALO_FRAMES = new Set(['Pinarello Espada', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade'])
+
 // `Zwift Golden Concept Z1` is the plain `Zwift Concept Z1` with a gold light
 // scheme - the same frame, sharing one `FRAME_SPEED_DATA` sample - so a ranked
 // result list showing both would just repeat one bike in two adjacent rows.
