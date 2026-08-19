@@ -65,7 +65,10 @@ function bunchFinishers(riders) {
   for (const group of byCat.values()) {
     group.sort((a, b) => a.timeSec - b.timeSec)
     let cluster = []
-    const flush = () => { if (cluster.length >= 3) out.push(...cluster); cluster = [] }
+    const flush = () => {
+      if (cluster.length >= 3) out.push(...cluster)
+      cluster = []
+    }
     for (const rider of group) {
       const previous = cluster[cluster.length - 1]
       if (previous && rider.timeSec - previous.timeSec > 5) flush()

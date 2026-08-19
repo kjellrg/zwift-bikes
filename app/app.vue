@@ -16,48 +16,48 @@ const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, open
 // entries deliberately don't navigate any more, so close it by hand - but
 // only when a modal actually opened: a modifier-click falls through to the
 // real href, and the panel going away under a new tab is just noise.
-const isMenuOpen = ref(false);
+const isMenuOpen = ref(false)
 
 function openProfileFromMenu(event) {
-  openProfile(event);
-  if (event.defaultPrevented) isMenuOpen.value = false;
+  openProfile(event)
+  if (event.defaultPrevented) isMenuOpen.value = false
 }
 
 function openGarageFromMenu(event) {
-  openGarage(event);
-  if (event.defaultPrevented) isMenuOpen.value = false;
+  openGarage(event)
+  if (event.defaultPrevented) isMenuOpen.value = false
 }
 
 function openAboutFromMenu() {
-  isAboutOpen.value = true;
-  isMenuOpen.value = false;
+  isAboutOpen.value = true
+  isMenuOpen.value = false
 }
 
 useHead({
-  meta: [{ name: "viewport", content: "width=device-width, initial-scale=1" }],
+  meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
   link: [
-    { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-    { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
-    { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+    { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+    { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }
   ],
   htmlAttrs: {
-    lang: "en",
-  },
-});
+    lang: 'en'
+  }
+})
 
-const title = "ZwiftBikes";
+const title = 'ZwiftBikes'
 // 150-220 chars: short enough not to be truncated in search results, long
 // enough to carry the keywords (Zwift, bike, wheelset, route, finish time).
-const description =
-  "Find the fastest bike and wheelset for any Zwift route. ZwiftBikes ranks every frame and wheel combo in the game by predicted finish time for your weight, height and power, built on real ZwiftInsider speed-test data.";
+const description
+  = 'Find the fastest bike and wheelset for any Zwift route. ZwiftBikes ranks every frame and wheel combo in the game by predicted finish time for your weight, height and power, built on real ZwiftInsider speed-test data.'
 
-const siteConfig = useSiteConfig();
+const siteConfig = useSiteConfig()
 
 // Set here in app.vue rather than per-page so no future page can forget it.
 // Any page needing a different canonical can still override it with its own
 // `link: [{ rel: 'canonical' }]` - unhead dedupes by rel. See
 // `useCanonicalUrl` for why this ignores the request URL.
-const canonicalUrl = useCanonicalUrl();
+const canonicalUrl = useCanonicalUrl()
 
 // Default social-share image for pages that don't set their own (home,
 // about, garage, profile). Route/segment pages override it with their
@@ -68,13 +68,13 @@ const canonicalUrl = useCanonicalUrl();
 // all is what lets scrapers render a card on the very first share of a
 // URL, before the image is processed (Facebook's debugger says exactly
 // this when they're missing).
-const ogImageUrl = `${siteConfig.url.replace(/\/+$/, "")}/og-image.png`;
+const ogImageUrl = `${siteConfig.url.replace(/\/+$/, '')}/og-image.png`
 const ogImage = {
   url: ogImageUrl,
   width: 1200,
   height: 630,
-  alt: "ZwiftBikes - find the fastest bike for any Zwift route",
-};
+  alt: 'ZwiftBikes - find the fastest bike for any Zwift route'
+}
 
 useSeoMeta({
   title,
@@ -82,27 +82,27 @@ useSeoMeta({
   ogTitle: title,
   ogDescription: description,
   ogSiteName: siteConfig.name,
-  ogType: "website",
+  ogType: 'website',
   ogUrl: () => canonicalUrl.value,
   ogImage,
-  twitterCard: "summary_large_image",
-  twitterImage: ogImageUrl,
-});
+  twitterCard: 'summary_large_image',
+  twitterImage: ogImageUrl
+})
 useHead({
-  link: [{ rel: "canonical", href: () => canonicalUrl.value }],
+  link: [{ rel: 'canonical', href: () => canonicalUrl.value }],
   script: [
     {
-      type: "application/ld+json",
+      type: 'application/ld+json',
       innerHTML: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": siteConfig.name,
-        "description": siteConfig.description,
-        "url": siteConfig.url,
-      }).replace(/</g, "\\u003c"),
-    },
-  ],
-});
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        'name': siteConfig.name,
+        'description': siteConfig.description,
+        'url': siteConfig.url
+      }).replace(/</g, '\\u003c')
+    }
+  ]
+})
 </script>
 
 <template>
@@ -246,27 +246,23 @@ useHead({
             to="https://www.npmjs.com/package/zwift-data"
             target="_blank"
             class="underline"
-            >zwift-data</ULink
-          >,
+          >zwift-data</ULink>,
           <ULink
             to="https://zwiftinsider.com/"
             target="_blank"
             class="underline"
-            >ZwiftInsider</ULink
-          >
+          >ZwiftInsider</ULink>
           and
           <ULink
             to="https://zwiftmap.com"
             target="_blank"
             class="underline"
-            >zwiftmap</ULink
-          >.
+          >zwiftmap</ULink>.
           <a
             href="/about"
             class="underline transition-colors hover:text-default"
             @click="openAbout"
-            >About this project</a
-          >
+          >About this project</a>
           <span aria-hidden="true"> • </span>
           <a
             href="/report"

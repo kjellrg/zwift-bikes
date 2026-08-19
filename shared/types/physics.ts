@@ -1,15 +1,15 @@
 import type { ClassifiedBikeFrame, Wheelset } from './catalog'
 
-export type PhysicsSurface =
-  | 'tarmac'
-  | 'brick'
-  | 'wood'
-  | 'cobbles'
-  | 'snow'
-  | 'dirt'
-  | 'grass'
-  | 'sand'
-  | 'gravel'
+export type PhysicsSurface
+  = | 'tarmac'
+    | 'brick'
+    | 'wood'
+    | 'cobbles'
+    | 'snow'
+    | 'dirt'
+    | 'grass'
+    | 'sand'
+    | 'gravel'
 
 export interface RouteGeometryPoint {
   /** Distance from the start of this geometry in metres. */
