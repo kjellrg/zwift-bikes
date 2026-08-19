@@ -34,7 +34,7 @@ const { owned, ownedWheels, load: loadGarage } = useGarage()
 // Read-only here: the controls themselves live in `RiderProfileControls` /
 // `BikeFilterControls` - see the equivalent comment in `routes/[slug].vue`.
 const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
-const { verifiedOnly, myBikesOnly, bikeCategory, setBikeCategory } = usePreferences()
+const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 onMounted(() => {
   loadGarage()
 })
@@ -62,6 +62,9 @@ const recommendQuery = computed(() => ({
   offset: 0,
   // Always sent, never omitted - see the equivalent comment in `routes/[slug].vue`.
   verifiedOnly: verifiedOnly.value ? 'true' : 'false',
+  // Always sent - the endpoint's default is include, the preference's is
+  // exclude (see `usePreferences`).
+  includeHalo: includeHaloBikes.value ? 'true' : 'false',
   ownedOnly: myBikesOnly.value ? 'true' : undefined,
   owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
   ownedWheels: Object.keys(ownedWheels.value).length ? JSON.stringify(Object.keys(ownedWheels.value)) : undefined,
@@ -110,7 +113,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
+watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
 watch(owned, () => refreshFirstPage(), { deep: true })
 watch(ownedWheels, () => refreshFirstPage(), { deep: true })
 
@@ -355,6 +358,7 @@ const segmentAsRoute = computed(() => segmentData.value
           v-if="fastestOverall"
           :fastest-overall="fastestOverall"
           @show-all="setBikeCategory('all')"
+          @include-halo="setIncludeHaloBikes(true)"
         />
         <div
           class="transition-opacity"

@@ -23,7 +23,7 @@ const props = defineProps<{ hideTtCategory?: boolean }>()
 
 const search = defineModel<string>('search', { default: '' })
 
-const { verifiedOnly, myBikesOnly, bikeCategory, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory } = usePreferences()
+const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 onMounted(() => {
   loadPreferences()
@@ -77,6 +77,12 @@ const { openGarage } = useOverlays()
         :model-value="verifiedOnly"
         @update:model-value="(value: boolean) => setVerifiedOnly(value)"
       /><span class="text-sm">Only show verified frames/wheels</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <USwitch
+        :model-value="includeHaloBikes"
+        @update:model-value="(value: boolean) => setIncludeHaloBikes(value)"
+      /><span class="text-sm">Include hard-to-unlock Halo bikes</span>
     </div>
     <div class="flex items-center gap-2">
       <USwitch

@@ -2,14 +2,18 @@
 import type { BikeCategory } from '../../shared/types/catalog'
 
 /**
- * "A bike outside your category is faster" - shown above the ranked results
- * whenever the category filter is hiding the genuinely quickest combo.
+ * "A bike your filters are hiding is faster" - shown above the ranked
+ * results whenever the category filter or the Halo filter is hiding the
+ * genuinely quickest combo.
  *
- * The pages default to the `standard` category, which is the right default
- * for how the site is actually used (TT frames are restricted in a lot of
- * organised events) but would otherwise be a filter quietly withholding the
- * real answer. This line is what makes that trade honest: the fastest combo
- * stays visible and one click away.
+ * The pages default to the `standard` category (TT frames are restricted in
+ * a lot of organised events) and to hiding the three purchasable Halo bikes
+ * (each takes three fully upgraded frames of one brand plus ~20M Drops -
+ * issue #112). Both are the right default for how the site is actually used,
+ * but would otherwise be filters quietly withholding the real answer. This
+ * line is what makes that trade honest: the fastest combo stays visible and
+ * one click away - `reason` says which filter hid it, and picks which
+ * one-click reveal the link offers.
  *
  * It renders from the recommend endpoints' `fastestOverall` field, which is
  * part of the server-rendered response - so this text is in the prerendered
@@ -20,12 +24,13 @@ const props = defineProps<{
   fastestOverall: {
     frameName: string
     category: BikeCategory
+    reason: 'category' | 'halo'
     wheelsetName?: string
     deltaSec: number
   }
 }>()
 
-defineEmits<{ showAll: [] }>()
+defineEmits<{ showAll: [], includeHalo: [] }>()
 
 const equipment = computed(() => props.fastestOverall.wheelsetName
   ? `${props.fastestOverall.frameName} with ${props.fastestOverall.wheelsetName}`
@@ -54,9 +59,16 @@ const gapText = computed(() => {
         class="align-middle"
       />
       &mdash; {{ gapText }} quicker.
-      <template v-if="fastestOverall.category === 'tt'">TT bikes are restricted in many events.</template>
+      <template v-if="fastestOverall.reason === 'halo'">A Halo bike - unlocking it takes three fully upgraded frames of one brand plus ~20 million Drops.</template>
+      <template v-else-if="fastestOverall.category === 'tt'">TT bikes are restricted in many events.</template>
     </span>
     <ULink
+      v-if="fastestOverall.reason === 'halo'"
+      class="text-primary underline cursor-pointer"
+      @click="$emit('includeHalo')"
+    >Include Halo bikes</ULink>
+    <ULink
+      v-else
       class="text-primary underline cursor-pointer"
       @click="$emit('showAll')"
     >Show all categories</ULink>

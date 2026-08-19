@@ -13,7 +13,7 @@ const { owned, ownedWheels, load: loadGarage } = useGarage()
 // `BikeFilterControls`, which bind and persist this same `useState`-backed
 // state - so the query and watchers below keep firing exactly as before.
 const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
-const { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, setBikeCategory } = usePreferences()
+const { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 const bikeSearch = ref('')
 const bikeSearchDebounced = ref('')
@@ -39,6 +39,9 @@ const recommendQuery = computed(() => ({
   // Always sent, never omitted: the endpoint now defaults this to on, so
   // leaving it out when the switch is off would silently keep filtering.
   verifiedOnly: verifiedOnly.value ? 'true' : 'false',
+  // Always sent for the same reason: the endpoint defaults to include, while
+  // this preference defaults to exclude (see `usePreferences`).
+  includeHalo: includeHaloBikes.value ? 'true' : 'false',
   ownedOnly: myBikesOnly.value ? 'true' : undefined,
   owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
   ownedWheels: Object.keys(ownedWheels.value).length ? JSON.stringify(Object.keys(ownedWheels.value)) : undefined,
@@ -158,7 +161,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
+watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
 watch(owned, () => refreshFirstPage(), { deep: true })
 watch(ownedWheels, () => refreshFirstPage(), { deep: true })
 
@@ -479,6 +482,7 @@ useHead(() => {
           v-if="fastestOverall"
           :fastest-overall="fastestOverall"
           @show-all="setBikeCategory('all')"
+          @include-halo="setIncludeHaloBikes(true)"
         />
         <div
           class="transition-opacity"

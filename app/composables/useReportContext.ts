@@ -18,7 +18,7 @@ export function useReportContext() {
   const route = useRoute()
   const colorMode = useColorMode()
   const config = useRuntimeConfig()
-  const { bikeCategory, verifiedOnly, myBikesOnly, load: loadPreferences } = usePreferences()
+  const { bikeCategory, verifiedOnly, myBikesOnly, includeHaloBikes, load: loadPreferences } = usePreferences()
   const { weightKg, heightCm, ftpWatts, wkg, draftMode, tttRiders, defaultUnownedLevel, load: loadProfile } = useRiderProfile()
   const { owned, ownedWheels, load: loadGarage } = useGarage()
 
@@ -56,7 +56,7 @@ export function useReportContext() {
   )
 
   const filters = computed(() =>
-    `category=${bikeCategory.value}, verifiedOnly=${verifiedOnly.value}, myBikesOnly=${myBikesOnly.value}`
+    `category=${bikeCategory.value}, verifiedOnly=${verifiedOnly.value}, myBikesOnly=${myBikesOnly.value}, includeHaloBikes=${includeHaloBikes.value}`
   )
 
   const profile = computed(() => {
