@@ -17,6 +17,10 @@ node_modules
 logs
 *.log
 
+# Spellcheck dictionary generated at postinstall from the zwift-data package
+# by scripts/spell/generate-zwift-dict.mjs - derived, not authored
+.cspell/zwift-data-words.txt
+
 # Race draft calibration dataset - per-rider race results stay local-only.
 # Summary statistics and the charts live in docs/race-drafting.md; the format is
 # documented by scripts/race-draft/field-results.sample.json.

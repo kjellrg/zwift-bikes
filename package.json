@@ -12,9 +12,10 @@
     "events:find-route": "node scripts/events/find-route.mjs",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
+    "postinstall": "nuxt prepare && node scripts/spell/generate-zwift-dict.mjs",
     "prepare": "husky",
     "lint": "eslint .",
+    "spellcheck": "cspell --no-progress",
     "typecheck": "nuxt typecheck",
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
     "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs"
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
     "@types/node": "^22.20.1",
+    "cspell": "^10.0.1",
     "esbuild": "^0.27.7",
     "eslint": "^10.8.1",
     "husky": "^9.1.7",
