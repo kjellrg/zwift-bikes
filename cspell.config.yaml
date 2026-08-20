@@ -1,0 +1,41 @@
+# Spellcheck for the prose that people actually read: event specifications,
+# docs and the README. Code stays out of scope - identifiers are eslint's
+# territory, and widening the net would mostly manufacture false positives.
+# The VS Code "Code Spell Checker" extension picks this file up as-is.
+$schema: https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json
+version: "0.2"
+# House style is British English; "en,en-GB" accepts both so the occasional
+# American spelling (e.g. "catalog") doesn't block a commit.
+language: en,en-GB
+files:
+  - shared/data/events/**/*.json
+  - docs/**/*.md
+  - README.md
+useGitignore: true
+ignorePaths:
+  - node_modules
+  - .nuxt
+  - "**/*.generated.json"
+  - package-lock.json
+dictionaryDefinitions:
+  # Generated at postinstall from the zwift-data package: route, segment,
+  # world, frame and wheel names. Gitignored - regenerate with
+  # `node scripts/spell/generate-zwift-dict.mjs` if it is missing.
+  - name: zwift-data
+    path: ./.cspell/zwift-data-words.txt
+  # Hand-curated domain and project jargon. When cspell flags a legitimate
+  # word, add it here (sorted, one per line). JSON can't carry cspell:ignore
+  # comments, so for the event files this list is the only escape hatch.
+  - name: project-words
+    path: ./.cspell/project-words.txt
+dictionaries:
+  - zwift-data
+  - project-words
+languageSettings:
+  # In markdown, skip fenced code blocks and inline code spans: the Kusto
+  # queries in docs/observability.md and shell/config snippets elsewhere are
+  # code, not prose, and teaching the dictionary their tokens would be noise.
+  - languageId: markdown
+    ignoreRegExpList:
+      - /^\s*```[\s\S]*?^\s*```/gm
+      - /`[^`\n]+`/g

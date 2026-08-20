@@ -1,0 +1,25 @@
+# Hand-curated project jargon - see cspell.config.yaml. Keep sorted.
+alertable
+dealbreaker
+dedup
+funbike
+handbike
+lappability
+lastmod
+paceline
+pacelines
+powerup
+powerups
+prerender
+prerendered
+prerendering
+Racecraft
+rankable
+Strava
+supertuck
+unmodelled
+wheelset
+wheelsets
+WTRL
+zracing
+zwiftmap
