@@ -1,7 +1,11 @@
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
+import { clampRiderWkg } from '#shared/utils/riderBounds'
 
 const STORAGE_KEY = 'zwift-bikes:rider-profile'
+
+/** Upgrade stages run 0 (stock) to 5 (fully upgraded); the API rejects anything outside. */
+const clampUnownedLevel = (value: number) => Math.min(5, Math.max(0, value))
 
 const DEFAULT_WEIGHT_KG = 75
 /**
@@ -61,9 +65,12 @@ export function useRiderProfile() {
       const parsed = JSON.parse(raw)
       if (typeof parsed.weightKg === 'number') weightKg.value = clampWeightKg(parsed.weightKg)
       if (typeof parsed.heightCm === 'number') heightCm.value = Math.min(220, Math.max(100, parsed.heightCm))
-      if (typeof parsed.wkg === 'number') wkg.value = parsed.wkg
+      // Clamped into the API's own bounds (the recommend endpoints 400 on an
+      // out-of-range profile or upgrade stage), so a stored value from before
+      // those bounds existed can never produce a request the API refuses.
+      if (typeof parsed.wkg === 'number') wkg.value = clampRiderWkg(parsed.wkg)
       if (typeof parsed.ftpWatts === 'number') ftpWatts.value = parsed.ftpWatts
-      if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = parsed.defaultUnownedLevel
+      if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = clampUnownedLevel(parsed.defaultUnownedLevel)
       if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') draftMode.value = parsed.draftMode
       if (typeof parsed.tttRiders === 'number') tttRiders.value = clampTttRiders(parsed.tttRiders)
       if (typeof parsed.tttClimbWkg === 'number') tttClimbWkg.value = clampTttClimbWkg(parsed.tttClimbWkg)
@@ -76,7 +83,7 @@ export function useRiderProfile() {
     weightKg.value = clampWeightKg(value)
     // FTP is the fixed quantity here - a rider who corrects their weight has
     // not changed how many watts they can push, so W/kg is what moves.
-    wkg.value = ftpWatts.value / weightKg.value
+    wkg.value = clampRiderWkg(ftpWatts.value / weightKg.value)
     persist()
   }
 
@@ -86,18 +93,18 @@ export function useRiderProfile() {
   }
 
   function setWkg(value: number) {
-    wkg.value = value
+    wkg.value = clampRiderWkg(value)
     persist()
   }
 
   function setFtpWatts(value: number) {
     ftpWatts.value = value
-    wkg.value = value / weightKg.value
+    wkg.value = clampRiderWkg(value / weightKg.value)
     persist()
   }
 
   function setDefaultUnownedLevel(value: number) {
-    defaultUnownedLevel.value = value
+    defaultUnownedLevel.value = clampUnownedLevel(value)
     persist()
   }
 

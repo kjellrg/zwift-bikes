@@ -100,14 +100,23 @@ ok(recommendRouteQuerySchema, 'recommend: defaults', {}, {
   weightKg: undefined
 })
 
-// --- clamps kept, exactly as before ---
-ok(recommendRouteQuerySchema, 'recommend: limit clamps high', { limit: '99' }, { limit: 9 })
-ok(recommendRouteQuerySchema, 'recommend: limit clamps low', { limit: '0' }, { limit: 1 })
-ok(recommendRouteQuerySchema, 'recommend: offset clamps low', { offset: '-5' }, { offset: 0 })
-ok(recommendRouteQuerySchema, 'recommend: offset gains upper bound', { offset: '999999' }, { offset: 1000 })
-ok(recommendRouteQuerySchema, 'recommend: defaultUnownedLevel clamps', { defaultUnownedLevel: '9' }, { defaultUnownedLevel: 5 })
-ok(recommendRouteQuerySchema, 'recommend: tttRiders clamps', { tttRiders: '20' }, { tttRiders: 8 })
+// --- documented ranges: in-range accepted, out-of-range is a 400 ---
+ok(recommendRouteQuerySchema, 'recommend: limit in range', { limit: '5' }, { limit: 5 })
+bad(recommendRouteQuerySchema, 'recommend: limit above range', { limit: '99' }, 'limit')
+bad(recommendRouteQuerySchema, 'recommend: limit below range', { limit: '0' }, 'limit')
+ok(recommendRouteQuerySchema, 'recommend: offset in range', { offset: '40' }, { offset: 40 })
+bad(recommendRouteQuerySchema, 'recommend: negative offset', { offset: '-5' }, 'offset')
+bad(recommendRouteQuerySchema, 'recommend: offset above range', { offset: '999999' }, 'offset')
+ok(recommendRouteQuerySchema, 'recommend: laps in range', { laps: '15' }, { laps: 15 })
+bad(recommendRouteQuerySchema, 'recommend: laps above range', { laps: '999' }, 'laps')
+bad(recommendRouteQuerySchema, 'recommend: laps below range', { laps: '0' }, 'laps')
+ok(recommendRouteQuerySchema, 'recommend: defaultUnownedLevel in range', { defaultUnownedLevel: '3' }, { defaultUnownedLevel: 3 })
+bad(recommendRouteQuerySchema, 'recommend: defaultUnownedLevel above range', { defaultUnownedLevel: '9' }, 'defaultUnownedLevel')
+ok(recommendRouteQuerySchema, 'recommend: tttRiders in range', { tttRiders: '6' }, { tttRiders: 6 })
+bad(recommendRouteQuerySchema, 'recommend: tttRiders above range', { tttRiders: '20' }, 'tttRiders')
 ok(recommendRouteQuerySchema, 'recommend: tttClimbWkg snaps to 0.1', { tttClimbWkg: '4.300000000000001' }, { tttClimbWkg: 4.3 })
+bad(recommendRouteQuerySchema, 'recommend: tttClimbWkg below range', { tttClimbWkg: '1' }, 'tttClimbWkg')
+bad(recommendRouteQuerySchema, 'recommend: maxWheelsetsPerFrame below range', { maxWheelsetsPerFrame: '0' }, 'maxWheelsetsPerFrame')
 ok(recommendRouteQuerySchema, 'recommend: flags parse', { verifiedOnly: 'false', includeHalo: 'false', ownedOnly: 'true', excludeTT: 'true' },
   { verifiedOnly: false, includeHalo: false, ownedOnly: true, excludeTT: true })
 

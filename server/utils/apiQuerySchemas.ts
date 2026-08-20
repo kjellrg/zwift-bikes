@@ -5,17 +5,23 @@ import type { Sport, WorldSlug } from 'zwift-data'
 import type { BikeCategory, RouteFilters } from '../../shared/types/catalog'
 import { getWorlds } from '../../shared/utils/catalog'
 import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/classifyBikeFrame'
-import { clampTttClimbWkg, clampTttRiders } from '../../shared/utils/physics'
+import { clampTttClimbWkg, clampTttRiders, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '../../shared/utils/physics'
+import { RIDER_BOUNDS } from '../../shared/utils/riderBounds'
+import { MAX_LAPS } from '../../shared/utils/routeLaps'
 
 /**
  * Zod schemas for every query parameter the API accepts (issue #45).
  *
- * The contract is "strict on malformed, clamp on out-of-range": a value that
- * is outright wrong - an unknown enum member, a non-numeric number, JSON that
- * doesn't parse - gets a 400 with a message naming the parameter and what it
- * accepts, while a recognizable value outside its supported range is clamped
- * exactly as the handlers always have (so a well-meaning caller sending
- * `limit=50` still gets a page, not an error).
+ * The contract is strict: a value that is outright wrong - an unknown enum
+ * member, a non-numeric number, JSON that doesn't parse - AND a value outside
+ * its documented range (`laps=999`, `limit=50`) both get a 400 with a message
+ * naming the parameter and what it accepts. A silent clamp is
+ * indistinguishable from a bypassed limit to the caller, so out-of-range
+ * values reject rather than degrade. The exceptions are deliberate and
+ * documented on their fields: semantic normalization stays (laps forced to 1
+ * on a point-to-point route, TTT values snapped to their control's step), and
+ * garage upgrade levels clamp because they come from users' persisted
+ * localStorage, where a stale value must not permanently break a page.
  *
  * Deliberately `z.object`, never `z.strictObject`: query strings legitimately
  * carry junk parameters (`utm_*`, `fbclid`) on shared links, so unknown keys
@@ -38,18 +44,10 @@ type ExpectNever<T extends never> = T
 export type _BikeCategoryDriftGuard = ExpectNever<Exclude<BikeCategory, (typeof BIKE_CATEGORIES)[number]>>
 export type _SportDriftGuard = ExpectNever<Exclude<Sport, (typeof SPORTS)[number]>>
 
-/**
- * What counts as a usable rider profile, shared with the MCP server's
- * `parseRiderProfile` so the two surfaces can never disagree. Bounds are
- * strictly wider than anything the site's own controls can produce (weight
- * slider 40-130, height 100-220, FTP-derived wkg <= 10) - they exist to
- * reject nonsense like `weightKg=1e9`, not to police realistic riders.
- */
-export const RIDER_BOUNDS = {
-  weightKg: { min: 30, max: 200 },
-  heightCm: { min: 100, max: 220 },
-  wkg: { min: 0.3, max: 15 }
-} as const
+// Rider profile bounds live in `shared/utils/riderBounds.ts` - shared with
+// the MCP session module and with `useRiderProfile`, which clamps its
+// persisted values against them so the site can never send a profile the
+// schemas below refuse.
 
 /**
  * Browsers and `$fetch` both serialize an unset control as `?param=`, which
@@ -172,11 +170,11 @@ export const routesQuerySchema = z.object({
 const recommendBaseShape = {
   search: qSearch,
   category: qEnum(BIKE_CATEGORIES),
-  limit: qNumber.transform(value => (value === undefined ? 9 : Math.min(9, Math.max(1, value)))),
+  limit: qNumber.pipe(z.number().min(1).max(9).optional()).transform(value => value ?? 9),
   // The upper bound is new: offset feeds `offset + limit + SIMULATED_ORDER_MARGIN`
   // simulations, so an arbitrarily large offset was an arbitrarily large bill.
   // No real pool comes anywhere near 1000 combos deep.
-  offset: qNumber.transform(value => (value === undefined ? 0 : Math.min(1000, Math.max(0, Math.floor(value))))),
+  offset: qNumber.pipe(z.number().min(0).max(1000).optional()).transform(value => (value === undefined ? 0 : Math.floor(value))),
   // Defaults to on: an `estimated` score is a name/style heuristic, and a
   // finish time built on one is a much weaker claim than one built on real
   // bot-test data. Callers opt out with `verifiedOnly=false` - which the
@@ -199,12 +197,14 @@ const recommendBaseShape = {
   // per frame (the fastest wheelset for this route) passes 1. Only ever
   // narrows what is *displayed* - it is applied after ranking, never before,
   // so it can't remove a candidate from consideration.
-  maxWheelsetsPerFrame: qNumber.transform(value => (value === undefined ? undefined : Math.min(99, Math.max(1, Math.round(value))))),
+  maxWheelsetsPerFrame: qNumber.pipe(z.number().min(1).max(99).optional()).transform(value => (value === undefined ? undefined : Math.round(value))),
   // Falls back to the shared constant rather than a local 0, so an
   // unspecified call assumes the same stage the site does - see
   // `DEFAULT_UNOWNED_LEVEL`. The stage changes the ranking, not just the
   // times, so two surfaces disagreeing here recommend different bikes.
-  defaultUnownedLevel: qNumber.transform(value => (value === undefined ? DEFAULT_UNOWNED_LEVEL : Math.min(5, Math.max(0, value)))),
+  // `useRiderProfile` clamps its persisted copy on load, so the site itself
+  // can never send an out-of-range value here.
+  defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(5).optional()).transform(value => value ?? DEFAULT_UNOWNED_LEVEL),
   weightKg: qNumber.pipe(z.number().min(RIDER_BOUNDS.weightKg.min).max(RIDER_BOUNDS.weightKg.max).optional()),
   heightCm: qNumber.pipe(z.number().min(RIDER_BOUNDS.heightCm.min).max(RIDER_BOUNDS.heightCm.max).optional()),
   wkg: qNumber.pipe(z.number().min(RIDER_BOUNDS.wkg.min).max(RIDER_BOUNDS.wkg.max).optional()),
@@ -217,8 +217,10 @@ const recommendBaseShape = {
   // params, which is the whole point of one constant - so its cache key is just
   // `draftMode=race`, and `tttRiders`/`tttClimbWkg` stay TTT-only.
   draftMode: qEnum(['solo', 'ttt', 'race'] as const).transform(value => value ?? 'solo'),
-  tttRiders: qNumber.transform(value => clampTttRiders(value ?? Number.NaN)),
-  tttClimbWkg: qNumber.transform(clampTttClimbWkg)
+  // Range-checked here; `clampTttRiders`/`clampTttClimbWkg` then only supply
+  // the default and snap to the controls' own steps (whole riders, 0.1 W/kg).
+  tttRiders: qNumber.pipe(z.number().min(TTT_MIN_RIDERS).max(TTT_MAX_RIDERS).optional()).transform(value => clampTttRiders(value ?? Number.NaN)),
+  tttClimbWkg: qNumber.pipe(z.number().min(TTT_MIN_CLIMB_WKG).max(TTT_MAX_CLIMB_WKG).optional()).transform(clampTttClimbWkg)
 }
 
 /**
@@ -236,7 +238,9 @@ const riderProfileComplete = (query: { weightKg?: number, heightCm?: number, wkg
 
 export const recommendRouteQuerySchema = z.object({
   ...recommendBaseShape,
-  laps: qNumber,
+  // Bounded here; the handler still runs `clampLaps` for the route-dependent
+  // part (a point-to-point route is forced to 1 lap whatever was asked).
+  laps: qNumber.pipe(z.number().min(1).max(MAX_LAPS).optional()),
   // Event race pages send this when the race format outlaws TT frames (Zwift
   // disables them for points and scratch races - see `ttBikesAllowed` in
   // `shared/utils/events.ts`). It's a LEGALITY filter like ownership, not a

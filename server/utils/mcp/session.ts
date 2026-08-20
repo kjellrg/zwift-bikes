@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { RIDER_BOUNDS } from '../apiQuerySchemas'
+import { RIDER_BOUNDS } from '../../../shared/utils/riderBounds'
 
 /**
  * The rider profile an MCP client sets once per session, so every subsequent

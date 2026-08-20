@@ -1,5 +1,6 @@
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
 import { DEFAULT_UNOWNED_LEVEL } from '../../../shared/utils/classifyBikeFrame'
+import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
 import { clampLaps, computeRouteTotals, MAX_LAPS } from '../../../shared/utils/routeLaps'
 import { BIKE_CATEGORIES } from '../apiQuerySchemas'
 import type { RpcContext } from './protocol'
@@ -165,14 +166,17 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): R
     // so this adapter's behaviour can't drift if that default changes.
     verifiedOnly: isVerifiedOnly(args) ? 'true' : 'false',
     search: typeof args.search === 'string' && args.search ? args.search : undefined,
-    limit: Number.isFinite(Number(args.limit)) ? Number(args.limit) : 9,
-    offset: Number.isFinite(Number(args.offset)) ? Number(args.offset) : 0,
+    // Clamped before forwarding - the same courtesy `upgradeLevel` gets above.
+    // The endpoints now 400 on out-of-range values, and a model asking for
+    // limit 20 deserves the first 9 results, not an error to retry from.
+    limit: Number.isFinite(Number(args.limit)) ? Math.min(9, Math.max(1, Math.round(Number(args.limit)))) : 9,
+    offset: Number.isFinite(Number(args.offset)) ? Math.min(1000, Math.max(0, Math.floor(Number(args.offset)))) : 0,
     // Omitted entirely in solo mode, matching the web pages - a solo request is
     // byte-identical to one from before draft mode existed. Race mode sends the
     // mode and nothing else; it has no parameters.
     draftMode: args.draftMode === 'ttt' ? 'ttt' : args.draftMode === 'race' ? 'race' : undefined,
-    tttRiders: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? Number(args.tttRiders) : undefined,
-    tttClimbWkg: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? Number(args.tttClimbWkg) : undefined
+    tttRiders: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? clampTttRiders(Number(args.tttRiders)) : undefined,
+    tttClimbWkg: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? clampTttClimbWkg(Number(args.tttClimbWkg)) : undefined
   }
 }
 

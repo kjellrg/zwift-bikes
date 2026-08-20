@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { seasonData } from '../data/events'
+import { MAX_LAPS } from './routeLaps'
 
 /**
  * Schema and accessors for the hand-curated racing calendar in
@@ -112,7 +113,9 @@ export const raceCategoryGroupSchema = z.strictObject({
    * when they diverge, which is how a mis-mapped slug gets caught.
    */
   routeName: z.string().optional(),
-  laps: z.number().int().min(1),
+  // Capped at MAX_LAPS: the recommend API rejects lap counts above it, so a
+  // race defined beyond the cap would break its own page's ranking fetch.
+  laps: z.number().int().min(1).max(MAX_LAPS),
   /**
    * Distance/elevation exactly as the organiser publishes them, for this
    * group. Display-only - see the note on the race page: the physics always
