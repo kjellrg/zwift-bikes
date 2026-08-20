@@ -1,20 +1,9 @@
 import { getRoutesWithMeta, getWorlds, toRouteSummary } from '../../../shared/utils/catalog'
 import type { RouteFilters } from '../../../shared/types/catalog'
+import { parseQuery, routesQuerySchema } from '../../utils/apiQuerySchemas'
 
 export default defineEventHandler((event) => {
-  const query = getQuery(event)
-
-  const filters: RouteFilters = {
-    search: typeof query.search === 'string' ? query.search.trim().toLowerCase() : undefined,
-    world: typeof query.world === 'string' && query.world ? (query.world as RouteFilters['world']) : undefined,
-    sport: typeof query.sport === 'string' && query.sport ? (query.sport as RouteFilters['sport']) : undefined,
-    minDistance: query.minDistance ? Number(query.minDistance) : undefined,
-    maxDistance: query.maxDistance ? Number(query.maxDistance) : undefined,
-    minElevation: query.minElevation ? Number(query.minElevation) : undefined,
-    maxElevation: query.maxElevation ? Number(query.maxElevation) : undefined,
-    surface: typeof query.surface === 'string' && query.surface ? (query.surface as RouteFilters['surface']) : undefined,
-    eventOnly: query.eventOnly === 'true' ? true : query.eventOnly === 'false' ? false : undefined
-  }
+  const filters: RouteFilters = parseQuery(event, routesQuerySchema)
 
   const routes = getRoutesWithMeta().filter((route) => {
     if (filters.search && !route.name.toLowerCase().includes(filters.search)) return false
