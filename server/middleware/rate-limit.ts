@@ -53,9 +53,15 @@ export default defineEventHandler((event) => {
 
   const forwarded = getRequestHeader(event, 'x-forwarded-for')
   if (!forwarded) return
-  // The LAST entry is the one Azure's own front end appended, which a client
-  // can't spoof by sending its own x-forwarded-for value.
-  const ip = stripPort((forwarded.split(',').pop() ?? '').trim())
+  // Verified against live Azure (PR #116 preview): the chain arrives as
+  // "<client>, <azure-hop>" - the LAST entry is Azure's own Functions-ingress
+  // hop, identical for every visitor (keying on it collapsed all users into
+  // one shared bucket). The entry BEFORE it is the address the SWA edge
+  // actually accepted the connection from: the edge inserts it itself (a
+  // client that sends no x-forwarded-for still shows up there), so a caller
+  // can only prepend junk in front of it, never replace it.
+  const entries = forwarded.split(',').map(entry => stripPort(entry.trim())).filter(Boolean)
+  const ip = entries.length >= 2 ? entries[entries.length - 2] : entries[0]
   if (!ip) return
 
   const now = Date.now()

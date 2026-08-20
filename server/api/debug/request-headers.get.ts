@@ -23,10 +23,13 @@ export default defineEventHandler((event) => {
     Object.entries(headers).filter(([name]) => /forward|client|real[-_]?ip|azure|^x-ms-|^via$|^host$/i.test(name))
   )
   const forwarded = headers['x-forwarded-for']
-  const entries = forwarded ? forwarded.split(',').map(entry => stripPort(entry.trim())) : []
+  const entries = forwarded ? forwarded.split(',').map(entry => stripPort(entry.trim())).filter(Boolean) : []
   return {
     interesting,
     xffEntries: entries,
-    currentLimiterKey: entries.length ? entries[entries.length - 1] : null
+    // Mirrors the fixed keying in rate-limit.ts: the entry before Azure's
+    // own appended hop, i.e. the address the SWA edge accepted the
+    // connection from.
+    limiterKey: (entries.length >= 2 ? entries[entries.length - 2] : entries[0]) ?? null
   }
 })
