@@ -1,27 +1,14 @@
 import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
 import { getWheelsets } from '../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
-import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
+import { FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
+import { parseQuery, recommendRouteQuerySchema } from '../../utils/apiQuerySchemas'
 import { addTimingMeta, markPhase } from '../../utils/timing'
 
-function parseOwnedLevels(raw: unknown): Record<string, number> {
-  if (typeof raw !== 'string' || !raw) return {}
-  try {
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch { return {} }
-}
-function parseOwnedWheelKeys(raw: unknown): Set<string> {
-  if (typeof raw !== 'string' || !raw) return new Set()
-  try {
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? new Set(parsed) : new Set()
-  } catch { return new Set() }
-}
 export default defineEventHandler((event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing route slug' })
@@ -41,74 +28,37 @@ export default defineEventHandler((event) => {
     return simulateRoute(options)
   }
 
-  const query = getQuery(event)
-  const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : undefined
-  const category = typeof query.category === 'string' && query.category ? (query.category as BikeCategory) : undefined
-  const limit = query.limit ? Math.min(9, Math.max(1, Number(query.limit))) : 9
-  const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
-  // Defaults to on: an `estimated` score is a name/style heuristic, and a
-  // finish time built on one is a much weaker claim than one built on real
-  // bot-test data. Callers opt out with `verifiedOnly=false` - which the
-  // rider-facing pages send explicitly, so this default and
-  // `usePreferences`'s can't drift apart unnoticed. Note it removes the
-  // gravel and fun categories entirely, since neither has any measured frame.
-  const verifiedOnly = query.verifiedOnly !== 'false'
-  // Event race pages send this when the race format outlaws TT frames (Zwift
-  // disables them for points and scratch races - see `ttBikesAllowed` in
-  // `shared/utils/events.ts`). It's a LEGALITY filter like ownership, not a
-  // display trim, and `category` can't express it: a points race allows road
-  // AND gravel frames, just never TT. So it must run in the stage-1
-  // `allFrames` filter below, before anything selects from the pool - that
-  // same pool also feeds the `fastestOverall` disclosure, which would
-  // otherwise advertise a TT bike that's illegal in the race.
-  const excludeTT = query.excludeTT === 'true'
-  // Defaults to include: the three purchasable Halo frames stay in the pool
-  // unless the caller explicitly sends `includeHalo=false`. The rider-facing
-  // pages always send it (and their preference defaults to off - see
-  // `includeHaloBikes` in `usePreferences`); the MCP tools and existing API
-  // consumers never send it, so their behavior is unchanged by design
-  // (issue #112). Unlike `excludeTT` this is a DISPLAY preference, not a
-  // legality filter - it must not shrink `allFrames`, because a hidden Halo
-  // winner still has to surface in the `fastestOverall` disclosure below.
-  const includeHalo = query.includeHalo !== 'false'
-  // How many wheelsets a single frame may occupy in the results. Undefined
-  // keeps `capWheelsetsPerFrame`'s own default; a client that wants one row
-  // per frame (the fastest wheelset for this route) passes 1. Only ever
-  // narrows what is *displayed* - it is applied after ranking, never before,
-  // so it can't remove a candidate from consideration.
-  const rawMaxWheelsets = Number(query.maxWheelsetsPerFrame)
-  const maxWheelsetsPerFrame = Number.isFinite(rawMaxWheelsets) ? Math.max(1, Math.round(rawMaxWheelsets)) : undefined
-  const ownedOnly = query.ownedOnly === 'true'
-  const ownedLevels = parseOwnedLevels(query.owned)
-  const ownedWheelKeys = parseOwnedWheelKeys(query.ownedWheels)
+  // Every parameter's meaning, default and clamp lives on the schema - see
+  // `recommendRouteQuerySchema` and its field comments in
+  // `server/utils/apiQuerySchemas.ts`. An invalid value throws a 400 here.
+  const q = parseQuery(event, recommendRouteQuerySchema)
+  const {
+    search, category, limit, offset, verifiedOnly, excludeTT, includeHalo,
+    maxWheelsetsPerFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
+    defaultUnownedLevel, physics: physicsMode, draftMode, tttRiders
+  } = q
+  // Note `excludeTT` must run in the stage-1 `allFrames` filter below, before
+  // anything selects from the pool - that same pool also feeds the
+  // `fastestOverall` disclosure, which would otherwise advertise a TT bike
+  // that's illegal in the race. `includeHalo` is the opposite: a DISPLAY
+  // preference, not a legality filter - it must not shrink `allFrames`,
+  // because a hidden Halo winner still has to surface in `fastestOverall`.
+  //
   // "Only show my garage items" only makes sense once the rider has actually
   // added something of that kind - with no bikes (or no wheels) in the
   // garage yet, fall back to showing all of them instead of filtering down
   // to zero results.
   const filterFramesByOwnership = ownedOnly && Object.keys(ownedLevels).length > 0
   const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
-  const rawDefaultUnownedLevel = Number(query.defaultUnownedLevel)
-  // Falls back to the shared constant rather than a local 0, so an
-  // unspecified call assumes the same stage the site does - see
-  // `DEFAULT_UNOWNED_LEVEL`. The stage changes the ranking, not just the
-  // times, so two surfaces disagreeing here recommend different bikes.
-  const defaultUnownedLevel = Number.isFinite(rawDefaultUnownedLevel) ? Math.min(5, Math.max(0, rawDefaultUnownedLevel)) : DEFAULT_UNOWNED_LEVEL
-  const weightKg = Number(query.weightKg)
-  const heightCm = Number(query.heightCm)
-  const wkg = Number(query.wkg)
-  const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
-  const laps = clampLaps(route, Number(query.laps))
-  const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
-  // Draft mode (see `physics/draft.ts`). In `ttt` the rider's `wkg` is their own
-  // average over the rotation, and the paceline moves at the speed that
-  // combined effort produces - roughly a solo rider at 1.38x their power on
-  // the flat for an 8-rider team. In `race` the `wkg` is their own race average
-  // and a single field-calibrated saving applies; `race` reads NO further query
-  // params, which is the whole point of one constant - so its cache key is just
-  // `draftMode=race`, and `tttRiders`/`tttClimbWkg` stay TTT-only.
-  const draftMode = query.draftMode === 'ttt' ? 'ttt' : query.draftMode === 'race' ? 'race' : 'solo'
-  const tttRiders = clampTttRiders(Number(query.tttRiders))
-  const tttClimbWkg = draftMode === 'ttt' ? clampTttClimbWkg(Number(query.tttClimbWkg)) : undefined
+  // The schema guarantees the profile arrives complete and in bounds or not
+  // at all. The zero fallbacks are never read: every consumer below is gated
+  // on `hasRiderProfile`, exactly as the old code's NaN values were.
+  const hasRiderProfile = q.weightKg !== undefined && q.heightCm !== undefined && q.wkg !== undefined
+  const weightKg = q.weightKg ?? 0
+  const heightCm = q.heightCm ?? 0
+  const wkg = q.wkg ?? 0
+  const laps = clampLaps(route, q.laps)
+  const tttClimbWkg = draftMode === 'ttt' ? q.tttClimbWkg : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.

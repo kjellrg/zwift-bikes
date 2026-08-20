@@ -1,6 +1,8 @@
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
 import { DEFAULT_UNOWNED_LEVEL } from '../../../shared/utils/classifyBikeFrame'
+import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
 import { clampLaps, computeRouteTotals, MAX_LAPS } from '../../../shared/utils/routeLaps'
+import { BIKE_CATEGORIES } from '../apiQuerySchemas'
 import type { RpcContext } from './protocol'
 import {
   CONFIDENCE_NOTE,
@@ -164,14 +166,17 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): R
     // so this adapter's behaviour can't drift if that default changes.
     verifiedOnly: isVerifiedOnly(args) ? 'true' : 'false',
     search: typeof args.search === 'string' && args.search ? args.search : undefined,
-    limit: Number.isFinite(Number(args.limit)) ? Number(args.limit) : 9,
-    offset: Number.isFinite(Number(args.offset)) ? Number(args.offset) : 0,
+    // Clamped before forwarding - the same courtesy `upgradeLevel` gets above.
+    // The endpoints now 400 on out-of-range values, and a model asking for
+    // limit 20 deserves the first 9 results, not an error to retry from.
+    limit: Number.isFinite(Number(args.limit)) ? Math.min(9, Math.max(1, Math.round(Number(args.limit)))) : 9,
+    offset: Number.isFinite(Number(args.offset)) ? Math.min(1000, Math.max(0, Math.floor(Number(args.offset)))) : 0,
     // Omitted entirely in solo mode, matching the web pages - a solo request is
     // byte-identical to one from before draft mode existed. Race mode sends the
     // mode and nothing else; it has no parameters.
     draftMode: args.draftMode === 'ttt' ? 'ttt' : args.draftMode === 'race' ? 'race' : undefined,
-    tttRiders: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? Number(args.tttRiders) : undefined,
-    tttClimbWkg: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? Number(args.tttClimbWkg) : undefined
+    tttRiders: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? clampTttRiders(Number(args.tttRiders)) : undefined,
+    tttClimbWkg: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? clampTttClimbWkg(Number(args.tttClimbWkg)) : undefined
   }
 }
 
@@ -181,7 +186,7 @@ const RECOMMEND_FILTER_PROPERTIES = {
   heightCm: { type: 'number', description: 'Rider height in centimetres (100-220). Affects aerodynamic drag. Pass together with weightKg and wkg.' },
   wkg: { type: 'number', description: 'Sustained power in watts per kilogram for an effort of this length. Pass together with weightKg and heightCm.' },
   upgradeLevel: { type: 'number', description: `Assume every bike is at this Zwift upgrade stage, 0-5 (0 = stock, just unlocked; 5 = fully upgraded). Defaults to ${DEFAULT_UNOWNED_LEVEL}. Frames upgrade along different per-stage schemes, so this changes which bike wins, not just the times - pass 0 if the user is asking about bikes as they come out of the drop shop.` },
-  category: { type: 'string', enum: ['standard', 'tt', 'gravel', 'handbike', 'funbike'], description: 'Restrict to one Zwift garage category. Note Zwift only lets gravel frames take gravel/mountain wheels and road/TT frames take road wheels, so this also changes which wheelsets appear.' },
+  category: { type: 'string', enum: [...BIKE_CATEGORIES], description: 'Restrict to one Zwift garage category. Note Zwift only lets gravel frames take gravel/mountain wheels and road/TT frames take road wheels, so this also changes which wheelsets appear.' },
   verifiedOnly: { type: 'boolean', description: 'Defaults to true: rank only frames and wheels whose performance comes from real ZwiftInsider bot-test data. Set to false to also include heuristic estimates - necessary for gravel and fun bikes, which have no bot-test data and are therefore absent by default, and worth doing if the user asks about a specific bike that returns no results.' },
   search: { type: 'string', description: 'Only include combos whose frame or wheelset name matches this text. Use to answer "how fast would MY bike be" without ranking the whole catalog.' },
   limit: { type: 'number', description: 'How many combos to return, 1-9. Defaults to 9.' },
@@ -373,7 +378,7 @@ const TOOLS: ToolDefinition[] = [
       type: 'object',
       properties: {
         search: { type: 'string', description: 'Match against the frame name.' },
-        category: { type: 'string', enum: ['standard', 'tt', 'gravel', 'handbike', 'funbike'], description: 'Restrict to one Zwift garage category.' },
+        category: { type: 'string', enum: [...BIKE_CATEGORIES], description: 'Restrict to one Zwift garage category.' },
         limit: { type: 'number', description: 'How many frames to return. Defaults to 40.' }
       },
       additionalProperties: false
@@ -578,5 +583,22 @@ export function listTools(): Omit<ToolDefinition, 'handler'>[] {
 export async function callTool(name: string, args: Record<string, unknown>, context: RpcContext): Promise<ToolResult> {
   const tool = TOOLS.find(candidate => candidate.name === name)
   if (!tool) return failure(`Unknown tool "${name}". Call \`tools/list\` for the available tools.`)
-  return await tool.handler(args, context)
+  try {
+    return await tool.handler(args, context)
+  } catch (error) {
+    // The endpoints validate their query params with zod and 400 on a bad
+    // value (see `server/utils/apiQuerySchemas.ts`). Surfaced as a normal
+    // tool failure carrying zod's message - which names the parameter and
+    // what it accepts - rather than bubbling up into the JSON-RPC layer's
+    // "internal error, a bug in this server" response.
+    if (statusOf(error) === 400) {
+      // For a $fetch error, `data` is the endpoint's parsed error body, whose
+      // `message` carries the per-parameter zod text; the error's own
+      // `message` is just ofetch's "[GET] <url>: 400" wrapper.
+      const body = (error as { data?: { message?: string } }).data
+      const message = body?.message || (error instanceof Error && error.message) || 'check enum values and numeric ranges'
+      return failure(`Invalid arguments: ${message}`)
+    }
+    throw error
+  }
 }

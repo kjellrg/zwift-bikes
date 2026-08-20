@@ -5,6 +5,12 @@ no sensitive user data - rider profile and "garage" data are stored client-side
 in the browser only. Still, if you find a security issue (e.g. XSS, dependency
 vulnerability with real impact, etc.), please report it responsibly.
 
+The API is public and read-only. Its query parameters are strictly validated
+(invalid values return a 400), cross-site browser requests to the REST
+endpoints are rejected, and the expensive endpoints (`/api/recommend/**`,
+`/api/mcp`) carry best-effort per-IP rate limiting - see
+`server/middleware/` and `server/utils/apiQuerySchemas.ts`.
+
 ## Reporting a Vulnerability
 
 Please **do not** open a public GitHub issue for security reports.

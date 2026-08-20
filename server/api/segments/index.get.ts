@@ -1,10 +1,9 @@
 import { getAllSegmentSummaries } from '../../../shared/utils/routeSegments'
 import { getWorlds } from '../../../shared/utils/catalog'
+import { parseQuery, segmentsQuerySchema } from '../../utils/apiQuerySchemas'
 
 export default defineEventHandler((event) => {
-  const query = getQuery(event)
-  const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : undefined
-  const world = typeof query.world === 'string' && query.world ? query.world : undefined
+  const { search, world } = parseQuery(event, segmentsQuerySchema)
 
   const segmentList = getAllSegmentSummaries().filter((segment) => {
     if (search && !segment.name.toLowerCase().includes(search)) return false
