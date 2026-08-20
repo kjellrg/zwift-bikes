@@ -2,27 +2,13 @@ import { getFrames } from '../../../../shared/utils/catalog'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../../../shared/utils/routeSegments'
 import { getWheelsets } from '../../../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
-import { classifyBikeFrame, DEFAULT_UNOWNED_LEVEL, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
-import { clampTttClimbWkg, clampTttRiders, FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
+import { FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
+import { parseQuery, recommendSegmentQuerySchema } from '../../../utils/apiQuerySchemas'
 import { addTimingMeta, markPhase } from '../../../utils/timing'
-
-function parseOwnedLevels(raw: unknown): Record<string, number> {
-  if (typeof raw !== 'string' || !raw) return {}
-  try {
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch { return {} }
-}
-function parseOwnedWheelKeys(raw: unknown): Set<string> {
-  if (typeof raw !== 'string' || !raw) return new Set()
-  try {
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? new Set(parsed) : new Set()
-  } catch { return new Set() }
-}
 
 // Flat lead-up distance simulated before the timed segment itself, long
 // enough for a rider's speed to converge close to steady-state for their
@@ -46,45 +32,28 @@ export default defineEventHandler((event) => {
     return simulateRoute(options)
   }
 
-  const query = getQuery(event)
-  const preferredRoute = typeof query.route === 'string' && query.route ? query.route : undefined
-  const segmentRoute = routeWithMetaForSegment(summary, preferredRoute)
+  // Every parameter's meaning, default and clamp lives on the schema - see
+  // `recommendSegmentQuerySchema` and its field comments in
+  // `server/utils/apiQuerySchemas.ts`. An invalid value throws a 400 here.
+  const q = parseQuery(event, recommendSegmentQuerySchema)
+  const {
+    search, category, limit, offset, verifiedOnly, includeHalo,
+    maxWheelsetsPerFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
+    defaultUnownedLevel, physics: physicsMode, draftMode, tttRiders
+  } = q
+  const segmentRoute = routeWithMetaForSegment(summary, q.route)
 
-  const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : undefined
-  const category = typeof query.category === 'string' && query.category ? (query.category as BikeCategory) : undefined
-  const limit = query.limit ? Math.min(9, Math.max(1, Number(query.limit))) : 9
-  const offset = query.offset ? Math.max(0, Math.floor(Number(query.offset))) : 0
-  // Defaults to on - see the equivalent comment in `recommend/[slug].get.ts`.
-  const verifiedOnly = query.verifiedOnly !== 'false'
-  // Defaults to include - see the equivalent comment in
-  // `recommend/[slug].get.ts`: the pages always send it explicitly, absent
-  // means today's behavior for the MCP tools and API consumers.
-  const includeHalo = query.includeHalo !== 'false'
-  // See the equivalent comment in `recommend/[slug].get.ts`.
-  const rawMaxWheelsets = Number(query.maxWheelsetsPerFrame)
-  const maxWheelsetsPerFrame = Number.isFinite(rawMaxWheelsets) ? Math.max(1, Math.round(rawMaxWheelsets)) : undefined
-  const ownedOnly = query.ownedOnly === 'true'
-  const ownedLevels = parseOwnedLevels(query.owned)
-  const ownedWheelKeys = parseOwnedWheelKeys(query.ownedWheels)
   // See the equivalent comment in `recommend/[slug].get.ts` - fall back to
   // showing everything when the garage doesn't have any of that kind yet.
   const filterFramesByOwnership = ownedOnly && Object.keys(ownedLevels).length > 0
   const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
-  const rawDefaultUnownedLevel = Number(query.defaultUnownedLevel)
-  // Falls back to the shared constant - see the equivalent comment in
-  // `recommend/[slug].get.ts`.
-  const defaultUnownedLevel = Number.isFinite(rawDefaultUnownedLevel) ? Math.min(5, Math.max(0, rawDefaultUnownedLevel)) : DEFAULT_UNOWNED_LEVEL
-  const weightKg = Number(query.weightKg)
-  const heightCm = Number(query.heightCm)
-  const wkg = Number(query.wkg)
-  const hasRiderProfile = Number.isFinite(weightKg) && weightKg > 0 && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 220 && Number.isFinite(wkg) && wkg > 0
-  const physicsMode = query.physics === 'legacy' || query.physics === 'compare' ? query.physics : 'dynamic'
-  // Draft mode - see the equivalent comment in `recommend/[slug].get.ts` and
-  // `physics/draft.ts` for what the rider's power means in each mode, and why
-  // `race` deliberately reads no parameters of its own.
-  const draftMode = query.draftMode === 'ttt' ? 'ttt' : query.draftMode === 'race' ? 'race' : 'solo'
-  const tttRiders = clampTttRiders(Number(query.tttRiders))
-  const tttClimbWkg = draftMode === 'ttt' ? clampTttClimbWkg(Number(query.tttClimbWkg)) : undefined
+  // The schema guarantees the profile arrives complete and in bounds or not
+  // at all - see the equivalent comment in `recommend/[slug].get.ts`.
+  const hasRiderProfile = q.weightKg !== undefined && q.heightCm !== undefined && q.wkg !== undefined
+  const weightKg = q.weightKg ?? 0
+  const heightCm = q.heightCm ?? 0
+  const wkg = q.wkg ?? 0
+  const tttClimbWkg = draftMode === 'ttt' ? q.tttClimbWkg : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
