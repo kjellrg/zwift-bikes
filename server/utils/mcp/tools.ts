@@ -588,7 +588,11 @@ export async function callTool(name: string, args: Record<string, unknown>, cont
     // what it accepts - rather than bubbling up into the JSON-RPC layer's
     // "internal error, a bug in this server" response.
     if (statusOf(error) === 400) {
-      const message = error instanceof Error && error.message ? error.message : 'check enum values and numeric ranges'
+      // For a $fetch error, `data` is the endpoint's parsed error body, whose
+      // `message` carries the per-parameter zod text; the error's own
+      // `message` is just ofetch's "[GET] <url>: 400" wrapper.
+      const body = (error as { data?: { message?: string } }).data
+      const message = body?.message || (error instanceof Error && error.message) || 'check enum values and numeric ranges'
       return failure(`Invalid arguments: ${message}`)
     }
     throw error

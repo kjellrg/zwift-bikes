@@ -44,6 +44,10 @@ function stripPort(value: string): string {
 
 export default defineEventHandler((event) => {
   if (import.meta.prerender) return
+  // In dev the Nuxt proxy in front of the Nitro worker adds its own
+  // `x-forwarded-for: 127.0.0.1` to every request, which would funnel all
+  // local traffic into one shared bucket - skip outright instead.
+  if (import.meta.dev) return
   const path = event.path.split('?')[0] ?? ''
   if (!path.startsWith('/api/recommend/') && path !== '/api/mcp') return
 
@@ -67,7 +71,7 @@ export default defineEventHandler((event) => {
   }
 
   if (bucket.tokens < 1) {
-    setResponseHeader(event, 'Retry-After', String(Math.ceil((1 - bucket.tokens) / REFILL_PER_SEC)))
+    setResponseHeader(event, 'Retry-After', Math.ceil((1 - bucket.tokens) / REFILL_PER_SEC))
     throw createError({
       statusCode: 429,
       statusMessage: 'Too Many Requests',
