@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto'
+import { RIDER_BOUNDS } from '../apiQuerySchemas'
 
 /**
  * The rider profile an MCP client sets once per session, so every subsequent
  * `recommend_*` call can be ranked by predicted finish time rather than by the
- * abstract 0-100 `score`. Same three fields - and the same validity bounds -
- * the HTTP endpoints already take as query params, so the two can't diverge on
- * what counts as a usable profile (see `hasRiderProfile` in
- * `server/api/recommend/[slug].get.ts`).
+ * abstract 0-100 `score`. Same three fields - and the same validity bounds,
+ * imported as `RIDER_BOUNDS` - the HTTP endpoints validate as query params,
+ * so the two can't diverge on what counts as a usable profile (see
+ * `server/utils/apiQuerySchemas.ts`).
  */
 export interface RiderProfile {
   weightKg: number
@@ -107,14 +108,14 @@ export function parseRiderProfile(input: Record<string, unknown>): { profile: Ri
   const heightCm = Number(input.heightCm)
   const wkg = Number(input.wkg)
 
-  if (!Number.isFinite(weightKg) || weightKg <= 0) {
-    return { error: '`weightKg` must be the rider\'s weight in kilograms (a positive number).' }
+  if (!Number.isFinite(weightKg) || weightKg < RIDER_BOUNDS.weightKg.min || weightKg > RIDER_BOUNDS.weightKg.max) {
+    return { error: `\`weightKg\` must be the rider's weight in kilograms, between ${RIDER_BOUNDS.weightKg.min} and ${RIDER_BOUNDS.weightKg.max}.` }
   }
-  if (!Number.isFinite(heightCm) || heightCm < 100 || heightCm > 220) {
-    return { error: '`heightCm` must be the rider\'s height in centimetres, between 100 and 220.' }
+  if (!Number.isFinite(heightCm) || heightCm < RIDER_BOUNDS.heightCm.min || heightCm > RIDER_BOUNDS.heightCm.max) {
+    return { error: `\`heightCm\` must be the rider's height in centimetres, between ${RIDER_BOUNDS.heightCm.min} and ${RIDER_BOUNDS.heightCm.max}.` }
   }
-  if (!Number.isFinite(wkg) || wkg <= 0) {
-    return { error: '`wkg` must be the rider\'s sustained power in watts per kilogram (a positive number), not absolute watts.' }
+  if (!Number.isFinite(wkg) || wkg < RIDER_BOUNDS.wkg.min || wkg > RIDER_BOUNDS.wkg.max) {
+    return { error: `\`wkg\` must be the rider's sustained power in watts per kilogram (e.g. 3.2, between ${RIDER_BOUNDS.wkg.min} and ${RIDER_BOUNDS.wkg.max}), not absolute watts.` }
   }
 
   return { profile: { weightKg, heightCm, wkg } }

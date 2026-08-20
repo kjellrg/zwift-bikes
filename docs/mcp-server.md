@@ -205,7 +205,10 @@ curl -s localhost:3000/api/mcp \
   `localStorage`, which an MCP server has no access to, so the tools always
   rank the full catalog. `search` narrows to a named frame or wheelset, which
   covers "how fast would my bike be?".
-- **No rate limiting.** Azure Static Web Apps provides none, and the endpoint is
-  unauthenticated. The simulator is the expensive path here, so this is worth
-  revisiting if the endpoint attracts real traffic.
+- **Rate limiting is best-effort.** `/api/mcp` and `/api/recommend/**` (the
+  simulator, the expensive path) are limited per client IP - generous enough
+  that normal use never sees it; past it, requests get a 429 with a
+  `Retry-After` header. The counters live in instance memory (see
+  `server/middleware/rate-limit.ts`), so like sessions they reset whenever
+  Azure cold-starts or scales out.
 - **Sessions are best-effort**, for the reasons above.
