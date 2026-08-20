@@ -135,7 +135,7 @@ const recommendQuery = computed(() => ({
 // matches" fetched with the real profile, pinning faster times to the
 // bottom of the list. A query change rolling the key over misses the
 // payload cache, which is exactly what forces the refetch.
-const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecommendations }] = await Promise.all([
+const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecommendations, error: recommendError }] = await Promise.all([
   useAsyncData(
     () => `race-route-${selectedRouteSlug.value ?? 'none'}`,
     () => selectedRouteSlug.value ? $fetch(`/api/routes/${selectedRouteSlug.value}`) : Promise.resolve(null),
@@ -147,6 +147,7 @@ const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecom
     { watch: [] }
   )
 ])
+useRefetchNotice(recommendError, status, refreshRecommendations)
 
 onMounted(() => {
   loadGarage()

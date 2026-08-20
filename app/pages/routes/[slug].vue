@@ -65,11 +65,12 @@ const recommendQuery = computed(() => ({
 
 // Fired together (not sequentially) - the recommend query only depends on `slug` plus rider
 // profile/garage/preference state above, none of which depends on the route lookup resolving first.
-const [{ data: routeData, error: routeError }, { data: recommendData, status, refresh: refreshRecommendations }] = await Promise.all([
+const [{ data: routeData, error: routeError }, { data: recommendData, status, refresh: refreshRecommendations, error: recommendError }] = await Promise.all([
   useFetch(() => `/api/routes/${slug.value}`),
   useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false })
 ])
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: 'Route not found', fatal: true })
+useRefetchNotice(recommendError, status, refreshRecommendations)
 
 useSeoMeta({
   title: () => routeData.value ? `Best Bike for ${routeData.value.name} - ZwiftBikes` : 'ZwiftBikes',

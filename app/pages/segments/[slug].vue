@@ -77,7 +77,8 @@ const recommendQuery = computed(() => ({
   tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
   tttClimbWkg: draftMode.value === 'ttt' ? tttClimbWkg.value : undefined
 }))
-const { data: recommendData, status, refresh: refreshRecommendations } = await useFetch(() => `/api/recommend/segments/${slug.value}`, { query: recommendQuery, watch: false })
+const { data: recommendData, status, refresh: refreshRecommendations, error: recommendError } = await useFetch(() => `/api/recommend/segments/${slug.value}`, { query: recommendQuery, watch: false })
+useRefetchNotice(recommendError, status, refreshRecommendations)
 
 const loadedCombos = ref<ComboScore[]>([])
 const hasMore = ref(true)
