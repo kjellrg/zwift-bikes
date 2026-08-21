@@ -22,16 +22,19 @@ interface SessionRecord {
 }
 
 /**
- * Sessions live in the memory of whichever instance served the request. On
- * Azure Static Web Apps that's a managed function which cold-starts and scales
- * out freely, so a stored profile is a best-effort convenience, never a
- * guarantee: a request landing on a fresh instance sees an unknown session id
- * and gets a 404, which the MCP spec defines as "re-initialize" - the client
- * starts a new session and the rider profile has to be set again.
+ * Sessions live in the memory of whichever Workers isolate served the request,
+ * and consecutive requests routinely land on different isolates (or different
+ * points of presence entirely). This map is therefore a best-effort cache,
+ * never an authority: a session id minted by one isolate is simply adopted by
+ * the next one that sees it (see `adoptSession`) rather than rejected. Before
+ * adoption existed, the unknown-id 404 the MCP spec prescribes fired on nearly
+ * every claude.ai request, because its initialize and tools/list consistently
+ * hit different isolates - the client just looped on re-initialize.
  *
- * That's why every profile-dependent tool also accepts `weightKg`/`heightCm`/
- * `wkg` inline: a caller that never wants to depend on server-side state can
- * pass them on each call and ignore `set_rider_profile` entirely.
+ * The one thing that can still be lost is a stored rider profile, which is why
+ * every profile-dependent tool also accepts `weightKg`/`heightCm`/`wkg`
+ * inline: a caller that never wants to depend on server-side state can pass
+ * them on each call and ignore `set_rider_profile` entirely.
  */
 const sessions = new Map<string, SessionRecord>()
 
@@ -80,6 +83,25 @@ export function touchSession(id: string): boolean {
   // Re-insert so `sessions` stays ordered least-recently-used first.
   sessions.delete(id)
   sessions.set(id, record)
+  return true
+}
+
+/**
+ * Matches the ids `createSession` mints. Adoption is limited to this shape so
+ * arbitrary client-chosen strings can't become session keys - anything else
+ * still gets the spec's 404.
+ */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Accepts a session id minted by another isolate as if it were our own,
+ * with no stored profile. Returns `false` for ids we would never have minted.
+ */
+export function adoptSession(id: string): boolean {
+  if (!UUID_PATTERN.test(id)) return false
+  const now = Date.now()
+  prune(now)
+  sessions.set(id, { lastSeenMs: now })
   return true
 }
 
