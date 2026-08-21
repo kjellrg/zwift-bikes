@@ -1,40 +1,21 @@
-import { randomUUID } from 'node:crypto'
-import type { H3Event } from 'h3'
-import { flushTelemetry, trackRequest } from '../utils/appInsights'
-import { warmup } from '../utils/warmup'
-import { getRequestTiming, phasesObject, roundMs, serverTimingHeader, startRequestTiming } from '../utils/timing'
+import { advanceClock, getRequestTiming, phasesObject, roundMs, serverTimingHeader, startRequestTiming } from '../utils/timing'
 
 /**
- * How many requests this instance has served. Only the first one is marked
- * `cold`, which is the whole point of tracking it: a fresh Static Web Apps
- * managed function pays for the container start, the module graph and this
- * app's lazy catalog init (classifying 166 frames, loading the route surface
- * data) before it can answer, and that cost lands on ONE unlucky rider rather
- * than being spread across the p50. Without this flag those requests look
- * like an unexplained fat tail on otherwise identical work.
+ * How many requests this isolate has served. Only the first one is marked
+ * `cold`, which is what makes cold starts visible in the logs: a fresh
+ * Workers isolate pays for module evaluation plus this app's lazy catalog
+ * init (classifying 166 frames, loading the route surface data) inside the
+ * first request that touches it - it lands in that request's `pool` phase -
+ * and that cost hits ONE unlucky rider rather than being spread across the
+ * p50. Without this flag those requests look like an unexplained fat tail on
+ * otherwise identical work.
  */
 let servedRequests = 0
 
 /**
- * The public hostname the request arrived at, or undefined if neither header
- * is usable. Never throws - a malformed header must not cost a response.
- */
-function requestHost(event: H3Event): string | undefined {
-  const originalUrl = getRequestHeader(event, 'x-ms-original-url')
-  if (originalUrl) {
-    try {
-      return new URL(originalUrl).host
-    } catch {
-      // Fall through to the Host header.
-    }
-  }
-  return getRequestHeader(event, 'host')
-}
-
-/**
- * Request timing -> `Server-Timing` header + one JSON line per request for
- * Application Insights. See server/utils/timing.ts for what the pieces are
- * and docs/observability.md for how to query them.
+ * Request timing -> `Server-Timing` header + one structured JSON line per
+ * request for Workers Logs. See server/utils/timing.ts for what the pieces
+ * are and docs/observability.md for how to query them.
  */
 export default defineNitroPlugin((nitroApp) => {
   // Prerendering pushes all 335 route pages through this same nitro app at
@@ -48,75 +29,51 @@ export default defineNitroPlugin((nitroApp) => {
   })
 
   // `beforeResponse` rather than `afterResponse`: the headers are still
-  // writable here, and the body hasn't been handed to the platform yet.
-  nitroApp.hooks.hook('beforeResponse', (event) => {
+  // writable here, and the body hasn't been handed to the platform yet. The
+  // clock hop is what makes the total include the tail since the handler's
+  // last `markPhase` - see `advanceClock`.
+  nitroApp.hooks.hook('beforeResponse', async (event) => {
     const timing = getRequestTiming(event)
     if (!timing) return
+    await advanceClock()
     setResponseHeader(event, 'Server-Timing', serverTimingHeader(timing, performance.now() - timing.startedMs))
   })
 
-  nitroApp.hooks.hook('afterResponse', async (event) => {
+  nitroApp.hooks.hook('afterResponse', (event) => {
     const timing = getRequestTiming(event)
     if (!timing) return
     const cold = ++servedRequests === 1
 
     // Path only, never the query string: /api/recommend/* carries the
     // rider's weight, height and w/kg in it, and none of that belongs in a
-    // telemetry sink we keep for 90 days. The handlers pass the parts that
-    // are safe and actually explain the duration (route, laps, draft mode)
-    // through `addTimingMeta` instead.
+    // log sink. The handlers pass the parts that are safe and actually
+    // explain the duration (route, laps, draft mode) through `addTimingMeta`
+    // instead.
     const path = event.path.split('?')[0]!
-    // Which environment served this. Preview deployments (one per open PR)
-    // inherit production's application settings, so they report into the SAME
-    // Application Insights resource - without this dimension their rows are
-    // indistinguishable from production's. SWA's front end passes the public
-    // URL it matched in `x-ms-original-url`, which is the preview hostname on
-    // a preview environment; the azure-swa preset reads the path out of that
-    // same header and drops the rest.
-    const host = requestHost(event)
+    // Which environment served this: the Worker sees the public hostname
+    // directly, so production, workers.dev and preview-URL traffic separate
+    // on this one field.
+    const host = getRequestHeader(event, 'host')
     const status = getResponseStatus(event)
+    // The clock is current here without help: sending the response (in
+    // `beforeResponse` above, which also hopped the event loop) was I/O.
     const totalMs = roundMs(performance.now() - timing.startedMs)
-    // Only meaningful on the cold request: Node's `performance.now()` is
-    // relative to process start, so at the first request it reads as
-    // "how long this instance took to become able to serve anything".
-    const bootMs = cold ? roundMs(timing.startedMs) : undefined
-    // Only on the cold request, and only to answer one question: did the
-    // startup warm finish before this request arrived? If it did, the catalog
-    // init is off the request path for good; if `warmedBefore` is false (or
-    // the warm had not run at all), the Functions host loaded the module
-    // lazily inside this invocation and the warm bought nothing. See
-    // server/utils/warmup.ts.
-    const warmupMs = cold ? warmup.durationMs : undefined
-    const warmedBefore = cold
-      ? warmup.finishedAtMs !== undefined && warmup.finishedAtMs <= timing.startedMs
-      : undefined
-    const phases = phasesObject(timing)
-    // Shared by the stdout line and the Application Insights telemetry so a
-    // customEvents row can be joined back to its trace (and vice versa) - the
-    // Functions host stamps its own unrelated operation id on the traces.
-    const operationId = randomUUID().replaceAll('-', '')
-
-    trackRequest({ path, host, method: event.method, status, operationId, totalMs, cold, bootMs, warmupMs, warmedBefore, phases, meta: timing.meta })
+    // Correlates a log line with a bug report or a Workers Logs invocation
+    // when several similar requests land close together.
+    const reqId = crypto.randomUUID().replaceAll('-', '')
 
     if (process.env.TIMING_LOG !== 'off') {
       console.log(JSON.stringify({
         evt: 'request',
-        reqId: operationId,
+        reqId,
         host,
         path,
         status,
         totalMs,
         cold,
-        bootMs,
-        warmupMs,
-        warmedBefore,
-        phases,
+        phases: phasesObject(timing),
         ...timing.meta
       }))
     }
-
-    // Resolves immediately unless this request completed a batch or the last
-    // one went out more than a few seconds ago - see `flushTelemetry`.
-    await flushTelemetry()
   })
 })

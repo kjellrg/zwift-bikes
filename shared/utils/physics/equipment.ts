@@ -1,5 +1,6 @@
 import type { ClassifiedBikeFrame, EquipmentPhysicsDelta, Wheelset } from '../../types/catalog'
 import type { MeasuredEquipmentGap, PhysicsParameters, PhysicsRider } from '../../types/physics'
+import { PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2 } from '../../data/equipmentPhysics'
 import { calculateForces } from './forces'
 
 const BASE_BIKE_MASS_KG = 8
@@ -256,7 +257,19 @@ export function solveWheelEquipmentDelta(gap: MeasuredEquipmentGap): EquipmentPh
 // sources, so plain frame-delta + wheel-delta addition can't capture it -
 // solved once, directly, as its own residual CdA delta at the TT baseline
 // (flat-only; no climb data exists for this specific interaction).
-const TT_DISC_RESIDUAL_CDA_DELTA_M2 = solveEquipmentDelta({ flatGapSec: 15.8, climbGapSec: 0 }, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG).cdaDeltaM2
+//
+// The value itself comes from the precomputed table rather than a
+// module-scope solve: on Workers this module evaluates in the isolate's
+// GLOBAL scope, which has a hard 400ms startup CPU limit, and a nested
+// bisection there is exactly the kind of cost that trips it. The solve
+// lives on in `solveTtDiscResidualCdaDeltaM2()` below, which the
+// equipment-physics generator/validator runs at build time.
+const TT_DISC_RESIDUAL_CDA_DELTA_M2 = PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2
+
+/** Build-time twin of `TT_DISC_RESIDUAL_CDA_DELTA_M2` - see the comment above it. */
+export function solveTtDiscResidualCdaDeltaM2(): number {
+  return solveEquipmentDelta({ flatGapSec: 15.8, climbGapSec: 0 }, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG).cdaDeltaM2
+}
 
 export function equipmentPhysics(frame: ClassifiedBikeFrame, wheelset?: Wheelset): PhysicsParameters {
   const isTT = frame.category === 'tt'

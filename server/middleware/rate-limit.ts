@@ -4,85 +4,63 @@
  * unauthenticated public MCP endpoint. Everything else (catalog lookups,
  * pages) is cheap enough not to bother.
  *
- * Per-instance and in-memory, with the same caveat as MCP sessions
- * (`server/utils/mcp/session.ts`): Azure Static Web Apps cold-starts and
- * scales out freely, so the counters reset whenever it does. That's fine -
- * this exists to cap the cost of a single abusive client, not to meter
- * traffic precisely.
+ * Backed by the Workers rate limiting binding (`ratelimits` in
+ * wrangler.jsonc): 30 requests per 60-second window per client IP, counted
+ * per Cloudflare location and eventually consistent. Looser than a global
+ * counter, and that's fine - this exists to cap the cost of a single abusive
+ * client, not to meter traffic precisely.
  *
- * Requests without `x-forwarded-for` are exempt on purpose: Azure's front
- * end always sets it on external traffic, while Nitro's internal `$fetch`
+ * The client is `cf-connecting-ip`, which Cloudflare's edge sets itself on
+ * every request it proxies. A client cannot forge it - unlike
+ * `x-forwarded-for`, where everything except the edge-appended last entry is
+ * attacker-chosen, which is why keying on that header would hand out both
+ * free limit resets (mint a new chain per request) and targeted lockouts
+ * (send a victim's address).
+ *
+ * Internal traffic is exempt by construction: Nitro's in-process `$fetch`
  * (SSR page renders, the prerender crawl, the MCP tools' in-process API
- * calls - which DO pass through this middleware) and local dev traffic never
- * carry it. One external MCP call therefore costs exactly one token, not one
- * per internal fetch it fans out into.
+ * calls - which DO pass through this middleware) never carries the Workers
+ * platform context, so `limiter` resolves to undefined for it - and the same
+ * absence covers `nuxt dev`, where no binding exists either. One external
+ * MCP call therefore costs exactly one count, not one per internal fetch it
+ * fans out into.
  */
-const buckets = new Map<string, { tokens: number, updatedMs: number }>()
-
-/** Burst allowance per IP - covers a rider fiddling with sliders and paging. */
-const CAPACITY = 30
-/** Sustained refill: 0.5 tokens/sec = 30 requests/min. */
-const REFILL_PER_SEC = 0.5
-/**
- * Hard ceiling on tracked IPs so an unauthenticated endpoint can't grow this
- * map without bound. `buckets` is used as an LRU - every hit re-inserts, so
- * the first key is always the least recently seen.
- */
-const MAX_BUCKETS = 2000
 
 /**
- * Azure's front end appends `ip:port` entries; IPv6 arrives bracketed
- * (`[::1]:port`) or bare. Only strip a trailing `:port` when it can't be part
- * of the address itself.
+ * The Workers rate limiting binding - `{ success: false }` means this key is
+ * over the window's budget. Hand-declared rather than pulled from
+ * `@cloudflare/workers-types`: this one method is the only Workers type the
+ * codebase needs, and that package's ambient globals (fetch, Request,
+ * Response, ...) would fight the Node types everywhere else.
  */
-function stripPort(value: string): string {
-  const bracketed = value.match(/^\[(.+)\]:\d+$/)
-  if (bracketed?.[1]) return bracketed[1]
-  const colons = value.match(/:/g)?.length ?? 0
-  return colons === 1 ? value.replace(/:\d+$/, '') : value
+interface RateLimitBinding {
+  limit(options: { key: string }): Promise<{ success: boolean }>
 }
 
-export default defineEventHandler((event) => {
+/**
+ * What a 429 tells the client to wait. The binding does not expose the
+ * window's remaining time, so this is the full period from wrangler.jsonc -
+ * the honest upper bound. The refetch composable caps its automatic retry at
+ * 30s regardless (see app/composables/useRefetchNotice.ts).
+ */
+const RETRY_AFTER_SEC = 60
+
+export default defineEventHandler(async (event) => {
   if (import.meta.prerender) return
-  // In dev the Nuxt proxy in front of the Nitro worker adds its own
-  // `x-forwarded-for: 127.0.0.1` to every request, which would funnel all
-  // local traffic into one shared bucket - skip outright instead.
-  if (import.meta.dev) return
   const path = event.path.split('?')[0] ?? ''
   if (!path.startsWith('/api/recommend/') && path !== '/api/mcp') return
 
-  const forwarded = getRequestHeader(event, 'x-forwarded-for')
-  if (!forwarded) return
-  // Verified against live Azure (PR #116 preview): the chain arrives as
-  // "<client>, <azure-hop>" - the LAST entry is Azure's own Functions-ingress
-  // hop, identical for every visitor (keying on it collapsed all users into
-  // one shared bucket). The entry BEFORE it is the address the SWA edge
-  // actually accepted the connection from: the edge inserts it itself (a
-  // client that sends no x-forwarded-for still shows up there), so a caller
-  // can only prepend junk in front of it, never replace it.
-  const entries = forwarded.split(',').map(entry => stripPort(entry.trim())).filter(Boolean)
-  const ip = entries.length >= 2 ? entries[entries.length - 2] : entries[0]
-  if (!ip) return
+  const limiter = (event.context.cloudflare as { env?: { RECOMMEND_RATE_LIMITER?: RateLimitBinding } } | undefined)?.env?.RECOMMEND_RATE_LIMITER
+  const ip = getRequestHeader(event, 'cf-connecting-ip')
+  if (!limiter || !ip) return
 
-  const now = Date.now()
-  const bucket = buckets.get(ip) ?? { tokens: CAPACITY, updatedMs: now }
-  bucket.tokens = Math.min(CAPACITY, bucket.tokens + ((now - bucket.updatedMs) / 1000) * REFILL_PER_SEC)
-  bucket.updatedMs = now
-  // Delete-then-set keeps insertion order equal to recency (LRU).
-  buckets.delete(ip)
-  buckets.set(ip, bucket)
-  if (buckets.size > MAX_BUCKETS) {
-    const oldest = buckets.keys().next()
-    if (!oldest.done) buckets.delete(oldest.value)
-  }
-
-  if (bucket.tokens < 1) {
-    setResponseHeader(event, 'Retry-After', Math.ceil((1 - bucket.tokens) / REFILL_PER_SEC))
+  const { success } = await limiter.limit({ key: ip })
+  if (!success) {
+    setResponseHeader(event, 'Retry-After', RETRY_AFTER_SEC)
     throw createError({
       statusCode: 429,
       statusMessage: 'Too Many Requests',
       message: 'Rate limit exceeded for this endpoint. Try again shortly.'
     })
   }
-  bucket.tokens -= 1
 })

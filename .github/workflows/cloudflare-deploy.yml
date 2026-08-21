@@ -1,0 +1,248 @@
+name: Cloudflare Workers CI/CD
+
+# The single PR/push entry point (it calls checks.yml once - see the note on
+# fork_build_job). Replaces the Azure Static Web Apps workflow: Azure keeps
+# serving whatever it last deployed, side by side, but nothing deploys there
+# anymore.
+#
+# What deploys where:
+#   - push to main        -> the `zwift-bikes` Worker (production; the custom
+#                            domain is attached to it in the dashboard)
+#   - non-fork PR         -> its own `zwift-bikes-pr-<n>` Worker at
+#                            https://zwift-bikes-pr-<n>.zwiftbikes.workers.dev,
+#                            linked from a sticky PR comment, redeployed on
+#                            every push
+#   - PR closed           -> that Worker is deleted and the comment updated
+#   - fork PR             -> build only (no repository secrets, so no deploy)
+#
+# `npm run build` runs the full validate suite first, so a deploy can never
+# outrun verification - merge protection on checks.yml covers the merge side.
+#
+# Secrets: CLOUDFLARE_API_TOKEN (Workers Scripts: Edit) and
+# CLOUDFLARE_ACCOUNT_ID. Deploys use the repo's own wrangler via `npx`, so CI
+# ships with exactly the version the lockfile pins.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# Superseded preview runs have nothing left to say, so cancel them. Pushes to
+# main are deliberately excluded: cancelling a half-finished production deploy
+# is a worse outcome than letting it finish and be replaced.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Detect changes
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      # dorny/paths-filter only needs a checkout for non-PR triggers (push,
+      # in this workflow's case) - it uses git diff/merge-base locally there
+      # since there's no PR to query the GitHub API for instead. Omitting
+      # this made push-to-main runs fail with "fatal: not a git repository".
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 20
+          persist-credentials: false
+      - name: Filter relevant paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            app:
+              - "app/**"
+              - "server/**"
+              - "shared/**"
+              - "scripts/**"
+              - "nuxt.config.ts"
+              - "wrangler.jsonc"
+              - "package.json"
+              - "package-lock.json"
+              - ".github/workflows/cloudflare-deploy.yml"
+
+  checks:
+    name: Checks
+    if: github.event.action != 'closed'
+    uses: ./.github/workflows/checks.yml
+    permissions:
+      contents: read # Ceiling for the called workflow, which asks for the same.
+
+  build_and_deploy_job:
+    # Fork PRs are excluded here and picked up by `fork_build_job` below: a
+    # `pull_request` run from a fork gets no repository secrets, so
+    # CLOUDFLARE_API_TOKEN is empty and the deploy can only fail.
+    if: >-
+      github.event_name == 'push'
+      || (github.event_name == 'pull_request'
+      && github.event.action != 'closed'
+      && github.event.pull_request.head.repo.fork == false)
+    needs: [changes, checks]
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    permissions:
+      contents: read
+      pull-requests: write # the sticky preview-link comment below
+    steps:
+      - name: Checkout repository
+        if: needs.changes.outputs.app == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        if: needs.changes.outputs.app == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Install dependencies
+        if: needs.changes.outputs.app == 'true'
+        run: npm ci
+      - name: Build
+        if: needs.changes.outputs.app == 'true'
+        run: npm run build
+        env:
+          # Baked into the bundle by `runtimeConfig.public.buildSha` in
+          # nuxt.config.ts, so a bug report can say which build it came from.
+          #
+          # On a pull_request event `github.sha` is the ephemeral merge
+          # commit, which exists in no branch and can't be checked out later;
+          # the head SHA is the one a preview report should name.
+          #
+          # Not `NUXT_PUBLIC_BUILD_SHA` - see the comment on `buildSha` in
+          # nuxt.config.ts for why that name would defeat the shortening.
+          BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Deploy
+        if: needs.changes.outputs.app == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Empty on a push to main, which is what selects the production
+          # Worker name from wrangler.jsonc.
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then
+            npx wrangler deploy --name "zwift-bikes-pr-$PR_NUMBER"
+          else
+            npx wrangler deploy
+          fi
+      - name: Comment preview link on PR
+        if: github.event_name == 'pull_request' && needs.changes.outputs.app == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # Sticky: one comment per PR, created on the first deploy and edited
+        # on every later one, found again via the invisible marker.
+        run: |
+          MARKER="<!-- cloudflare-preview-comment -->"
+          BODY="$MARKER
+          🚀 **Cloudflare preview**: https://zwift-bikes-pr-$PR_NUMBER.zwiftbikes.workers.dev
+          Deployed from ${HEAD_SHA:0:7}. Redeployed on every push; removed when this PR closes."
+          EXISTING=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"cloudflare-preview-comment\")) | .id" | head -n 1)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$EXISTING" -f body="$BODY"
+          else
+            gh api -X POST "repos/$REPO/issues/$PR_NUMBER/comments" -f body="$BODY"
+          fi
+
+  # Was .github/workflows/build.yml once - see the Azure-era note: one entry
+  # point per event is the only way to run checks.yml exactly once. This is
+  # the sole build coverage a fork PR gets, so unlike the deploy it is not
+  # behind the `changes` paths filter: fork PRs are rare enough that always
+  # building is worth more than the minutes saved.
+  fork_build_job:
+    name: npm run build (fork PR)
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.action != 'closed'
+      && github.event.pull_request.head.repo.fork
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+
+  close_pull_request_job:
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.action == 'closed'
+      && github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    permissions:
+      contents: read
+      pull-requests: write # updates the sticky preview comment below
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Delete preview Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PR_NUMBER: ${{ github.event.number }}
+        # A PR that never deployed a preview (docs-only, or opened before this
+        # workflow existed) has no Worker to delete - that's success, not a
+        # red X on an unrelated PR's close. Any other failure still fails.
+        run: |
+          set +e
+          OUTPUT=$(npx wrangler delete "zwift-bikes-pr-$PR_NUMBER" 2>&1)
+          STATUS=$?
+          echo "$OUTPUT"
+          if [ "$STATUS" -ne 0 ]; then
+            echo "$OUTPUT" | grep -qi "does not exist" || exit "$STATUS"
+            echo "No preview Worker existed for PR #$PR_NUMBER - nothing to delete."
+          fi
+      - name: Mark preview comment removed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          MARKER="<!-- cloudflare-preview-comment -->"
+          BODY="$MARKER
+          🧹 The Cloudflare preview for this PR has been removed."
+          EXISTING=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"cloudflare-preview-comment\")) | .id" | head -n 1)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$EXISTING" -f body="$BODY"
+          fi

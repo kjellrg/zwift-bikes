@@ -113,7 +113,11 @@ const ownedLevelsSchema = z.preprocess(emptyToUndef, z.string().max(5000).option
         ctx.addIssue({ code: 'custom', message: `\`owned\` level for frame "${frameId}" must be a number between 0 and 5` })
         return z.NEVER
       }
-      levels[frameId] = Math.min(5, Math.max(0, level))
+      // Rounded as well as clamped: upgrade stages are whole numbers in
+      // Zwift, and whole stages are all the precomputed physics table
+      // (shared/data/equipmentPhysics.ts) covers - same semantic
+      // normalization family as the laps/TTT snapping documented above.
+      levels[frameId] = Math.min(5, Math.max(0, Math.round(level)))
     }
     return levels
   })
@@ -204,7 +208,8 @@ const recommendBaseShape = {
   // times, so two surfaces disagreeing here recommend different bikes.
   // `useRiderProfile` clamps its persisted copy on load, so the site itself
   // can never send an out-of-range value here.
-  defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(5).optional()).transform(value => value ?? DEFAULT_UNOWNED_LEVEL),
+  // Rounded like the `owned` levels above: whole stages are the domain.
+  defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(5).optional()).transform(value => (value === undefined ? DEFAULT_UNOWNED_LEVEL : Math.round(value))),
   weightKg: qNumber.pipe(z.number().min(RIDER_BOUNDS.weightKg.min).max(RIDER_BOUNDS.weightKg.max).optional()),
   heightCm: qNumber.pipe(z.number().min(RIDER_BOUNDS.heightCm.min).max(RIDER_BOUNDS.heightCm.max).optional()),
   wkg: qNumber.pipe(z.number().min(RIDER_BOUNDS.wkg.min).max(RIDER_BOUNDS.wkg.max).optional()),

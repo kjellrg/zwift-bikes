@@ -32,9 +32,9 @@ dictionaries:
   - zwift-data
   - project-words
 languageSettings:
-  # In markdown, skip fenced code blocks and inline code spans: the Kusto
-  # queries in docs/observability.md and shell/config snippets elsewhere are
-  # code, not prose, and teaching the dictionary their tokens would be noise.
+  # In markdown, skip fenced code blocks and inline code spans: the JSON and
+  # shell/config snippets in the docs are code, not prose, and teaching the
+  # dictionary their tokens would be noise.
   - languageId: markdown
     ignoreRegExpList:
       - /^\s*```[\s\S]*?^\s*```/gm

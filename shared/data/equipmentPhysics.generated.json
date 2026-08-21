@@ -1,0 +1,4154 @@
+{
+ "frames": {
+  "Allied Able": [
+   {
+    "cdaDeltaM2": 0.03781844232668177,
+    "bikeMassDeltaKg": 3.1963268132453413,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.03478133845917611,
+    "bikeMassDeltaKg": 3.1738210309449153,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.03477940691146389,
+    "bikeMassDeltaKg": 2.6241609375796964,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.03554629618498281,
+    "bikeMassDeltaKg": 2.629476268822848,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": 0.03451597247616808,
+    "bikeMassDeltaKg": 2.625583496088317,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": 0.03451597247616808,
+    "bikeMassDeltaKg": 2.625583496088317,
+    "crrDelta": -0.0003
+   }
+  ],
+  "BMC Roadmachine": [
+   {
+    "cdaDeltaM2": -0.001832465673927891,
+    "bikeMassDeltaKg": -0.5002991094513258,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004925573814534706,
+    "bikeMassDeltaKg": -0.5210964318826181,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004956171472950716,
+    "bikeMassDeltaKg": -1.088474132440361,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004670675391020924,
+    "bikeMassDeltaKg": -1.1003587915085045,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005718241349407599,
+    "bikeMassDeltaKg": -1.1035349538970611,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005718241349407599,
+    "bikeMassDeltaKg": -1.1035349538970611,
+    "crrDelta": -0.0003
+   }
+  ],
+  "BMC SLR01": [
+   {
+    "cdaDeltaM2": -0.0018609544633762238,
+    "bikeMassDeltaKg": -0.7241073346871265,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005041639327660801,
+    "bikeMassDeltaKg": -0.7381719994440554,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005072435476718345,
+    "bikeMassDeltaKg": -1.1341859097182332,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004914263585980989,
+    "bikeMassDeltaKg": -1.1240938354747168,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005921526959188822,
+    "bikeMassDeltaKg": -1.1326084036045851,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005750424046165464,
+    "bikeMassDeltaKg": -1.3362326790209882,
+    "crrDelta": -0.0003
+   }
+  ],
+  "BMC TeamMachine": [
+   {
+    "cdaDeltaM2": -0.011032060668286908,
+    "bikeMassDeltaKg": -0.8698522385292695,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0142544657717745,
+    "bikeMassDeltaKg": -0.8835823113886287,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.014293127358185415,
+    "bikeMassDeltaKg": -1.2821574186846836,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.014243043483966739,
+    "bikeMassDeltaKg": -1.2731302009259973,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.015263127112033564,
+    "bikeMassDeltaKg": -1.2815649376889344,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.015093489166093016,
+    "bikeMassDeltaKg": -1.486523600011473,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Bridgestone Anchor RS9s": [
+   {
+    "cdaDeltaM2": -0.0017870601302789886,
+    "bikeMassDeltaKg": -1.0457276696204683,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0030327235285248218,
+    "bikeMassDeltaKg": -1.0436578042785603,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.003518504147765195,
+    "bikeMassDeltaKg": -2.2800941432434376,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0031981402037968565,
+    "bikeMassDeltaKg": -2.287915706878315,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.003495892567176168,
+    "bikeMassDeltaKg": -2.2966349021951453,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.003495892567176168,
+    "bikeMassDeltaKg": -2.2966349021951453,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale CAAD12": [
+   {
+    "cdaDeltaM2": -0.0019533161860983135,
+    "bikeMassDeltaKg": 0.03221505455194683,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006021973730398228,
+    "bikeMassDeltaKg": 0.015063585569342827,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007857775895486557,
+    "bikeMassDeltaKg": -0.5694271752420623,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005774032135051761,
+    "bikeMassDeltaKg": -0.5874841213504358,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005774032135051761,
+    "bikeMassDeltaKg": -0.5874841213504358,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005774032135051761,
+    "bikeMassDeltaKg": -0.5874841213504358,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale CAAD13": [
+   {
+    "cdaDeltaM2": -0.015873094890973632,
+    "bikeMassDeltaKg": -0.5989344334538127,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018938719693211065,
+    "bikeMassDeltaKg": -0.6225038987847502,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01895760734196497,
+    "bikeMassDeltaKg": -1.2170669582470377,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01873691642113165,
+    "bikeMassDeltaKg": -1.2424990525676454,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019775001970724154,
+    "bikeMassDeltaKg": -1.2464336563397542,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019775001970724154,
+    "bikeMassDeltaKg": -1.2464336563397542,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale EVO": [
+   {
+    "cdaDeltaM2": -0.0017923260850261358,
+    "bikeMassDeltaKg": -1.113508260132924,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004895723342179776,
+    "bikeMassDeltaKg": -1.135848102719613,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00491194821084498,
+    "bikeMassDeltaKg": -1.725051114234041,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004657466635752422,
+    "bikeMassDeltaKg": -1.7499043458859167,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005708587395585746,
+    "bikeMassDeltaKg": -1.7534522186202328,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005708587395585746,
+    "bikeMassDeltaKg": -1.7534522186202328,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale R4000 Roller Blade": [
+   {
+    "cdaDeltaM2": -0.03324839392052606,
+    "bikeMassDeltaKg": 0.17228011652904573,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03651146254119966,
+    "bikeMassDeltaKg": 0.15971965948809608,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03657486435213317,
+    "bikeMassDeltaKg": -0.22800527879638066,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03667702553247562,
+    "bikeMassDeltaKg": -0.20638356695379612,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03770928731099962,
+    "bikeMassDeltaKg": -0.21434326443920027,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03754946017628055,
+    "bikeMassDeltaKg": -0.4137320764656427,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale Super Six Evo": [
+   {
+    "cdaDeltaM2": -0.012015063671831056,
+    "bikeMassDeltaKg": -0.9653382422726016,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01521819016851303,
+    "bikeMassDeltaKg": -0.9804602365653428,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015248197841249284,
+    "bikeMassDeltaKg": -1.3890703428358866,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015186162677676723,
+    "bikeMassDeltaKg": -1.3873160205650454,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016200140905870603,
+    "bikeMassDeltaKg": -1.3962958156634575,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016027426900375424,
+    "bikeMassDeltaKg": -1.6063600231294894,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale SuperSix EVO LAB71 Team": [
+   {
+    "cdaDeltaM2": -0.01654372325012307,
+    "bikeMassDeltaKg": -1.2542857269358971,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019748516627394713,
+    "bikeMassDeltaKg": -1.2703569784042865,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019774489143768864,
+    "bikeMassDeltaKg": -1.688815540660308,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019753353728186512,
+    "bikeMassDeltaKg": -1.69429138645318,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02076767543000932,
+    "bikeMassDeltaKg": -1.7036732545290856,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02059294035354589,
+    "bikeMassDeltaKg": -1.9187703789264883,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale SuperSix Evo LAB71": [
+   {
+    "cdaDeltaM2": -0.01624826262152465,
+    "bikeMassDeltaKg": -1.2082501790952525,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019410295546242046,
+    "bikeMassDeltaKg": -1.2238750200030704,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01943726611501187,
+    "bikeMassDeltaKg": -1.6345883260916518,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01937208513637459,
+    "bikeMassDeltaKg": -1.635129012798124,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020373045603692602,
+    "bikeMassDeltaKg": -1.6442905655274482,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020201263261103358,
+    "bikeMassDeltaKg": -1.85541203829056,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale Synapse": [
+   {
+    "cdaDeltaM2": -0.0018570075163901472,
+    "bikeMassDeltaKg": -0.6172838199604693,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00594108164921156,
+    "bikeMassDeltaKg": -0.6345892337460763,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00777908995570395,
+    "bikeMassDeltaKg": -1.228096169083663,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005725184779151543,
+    "bikeMassDeltaKg": -1.2527090720731526,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005725184779151543,
+    "bikeMassDeltaKg": -1.2527090720731526,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005725184779151543,
+    "bikeMassDeltaKg": -1.2527090720731526,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cannondale System Six": [
+   {
+    "cdaDeltaM2": -0.016908998312865325,
+    "bikeMassDeltaKg": -0.1613949690239811,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020035402289874576,
+    "bikeMassDeltaKg": -0.18265340898178506,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020078349266829304,
+    "bikeMassDeltaKg": -0.7571023805276904,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019911251377050215,
+    "bikeMassDeltaKg": -0.7701479191853973,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02096942708775215,
+    "bikeMassDeltaKg": -0.7734349025324794,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02096942708775215,
+    "bikeMassDeltaKg": -0.7734349025324794,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Aeroad 2015": [
+   {
+    "cdaDeltaM2": -0.015758121258071495,
+    "bikeMassDeltaKg": -0.27038959541898366,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01888138109769702,
+    "bikeMassDeltaKg": -0.2916393301337261,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018922710056208908,
+    "bikeMassDeltaKg": -0.866399660424825,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01874917293547365,
+    "bikeMassDeltaKg": -0.8800519643604692,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019806339551348723,
+    "bikeMassDeltaKg": -0.8833332573576418,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019806339551348723,
+    "bikeMassDeltaKg": -0.8833332573576418,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Aeroad 2021": [
+   {
+    "cdaDeltaM2": -0.016230105549663226,
+    "bikeMassDeltaKg": -0.8599595575625396,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01942708445245836,
+    "bikeMassDeltaKg": -0.8744395150953399,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019463380659366286,
+    "bikeMassDeltaKg": -1.276983730465965,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019421075740644972,
+    "bikeMassDeltaKg": -1.2705296895483325,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02043304019496292,
+    "bikeMassDeltaKg": -1.2792445303157725,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020263761633333738,
+    "bikeMassDeltaKg": -1.486206236253245,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Aeroad 2024": [
+   {
+    "cdaDeltaM2": -0.0168761688137469,
+    "bikeMassDeltaKg": -0.9513657458880478,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020090537558156846,
+    "bikeMassDeltaKg": -0.9666869279904442,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020122637074719202,
+    "bikeMassDeltaKg": -1.3781230398967845,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020102945318670323,
+    "bikeMassDeltaKg": -1.377775131153307,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021120304559777398,
+    "bikeMassDeltaKg": -1.3868477911674897,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020947990732140237,
+    "bikeMassDeltaKg": -1.5983553352823132,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Aeroad 2024 / SRAM": [
+   {
+    "cdaDeltaM2": -0.01696488838626578,
+    "bikeMassDeltaKg": -0.9425513742155469,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02024776763082828,
+    "bikeMassDeltaKg": -0.955838322263467,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02029421447967636,
+    "bikeMassDeltaKg": -1.3571695503479968,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020346400999070674,
+    "bikeMassDeltaKg": -1.3491446075167555,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021385238690887293,
+    "bikeMassDeltaKg": -1.357466798354786,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021215924792553936,
+    "bikeMassDeltaKg": -1.5638683200743269,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Aeroad CFR Alpecin Premier-Tech": [
+   {
+    "cdaDeltaM2": -0.01696488838626578,
+    "bikeMassDeltaKg": -0.9425513742155469,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02024776763082828,
+    "bikeMassDeltaKg": -0.955838322263467,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02029421447967636,
+    "bikeMassDeltaKg": -1.3571695503479968,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020346400999070674,
+    "bikeMassDeltaKg": -1.3491446075167555,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021385238690887293,
+    "bikeMassDeltaKg": -1.357466798354786,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021215924792553936,
+    "bikeMassDeltaKg": -1.5638683200743269,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Inflite": [
+   {
+    "cdaDeltaM2": 0.03799675193167476,
+    "bikeMassDeltaKg": 3.725178836675732,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.033982268883091776,
+    "bikeMassDeltaKg": 3.7072139864209612,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.03218501889317735,
+    "bikeMassDeltaKg": 3.154377130027833,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.034713544277746006,
+    "bikeMassDeltaKg": 3.161993039410695,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": 0.034713544277746006,
+    "bikeMassDeltaKg": 3.161993039410695,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": 0.034713544277746006,
+    "bikeMassDeltaKg": 3.161993039410695,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Lux": [
+   {
+    "cdaDeltaM2": 0.06025902125099178,
+    "bikeMassDeltaKg": 8.744528860488412,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.058707889624591586,
+    "bikeMassDeltaKg": 8.748631154324602,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.05782740438995157,
+    "bikeMassDeltaKg": 7.715130094560115,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": 0.058261345298150885,
+    "bikeMassDeltaKg": 7.786938661920354,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": 0.05788887007425733,
+    "bikeMassDeltaKg": 7.7802105892658435,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": 0.05788887007425733,
+    "bikeMassDeltaKg": 7.7802105892658435,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Ultimate": [
+   {
+    "cdaDeltaM2": -0.0018203219189447395,
+    "bikeMassDeltaKg": -0.9644764775662016,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004912532616643511,
+    "bikeMassDeltaKg": -0.9864087846871068,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004931992955725412,
+    "bikeMassDeltaKg": -1.5689575202001644,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004661822719768477,
+    "bikeMassDeltaKg": -1.590057583124199,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005709170579745709,
+    "bikeMassDeltaKg": -1.5935135890523289,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005709170579745709,
+    "bikeMassDeltaKg": -1.5935135890523289,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Ultimate CFR": [
+   {
+    "cdaDeltaM2": -0.0017783636252827477,
+    "bikeMassDeltaKg": -1.1319348446396948,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004971444538640485,
+    "bikeMassDeltaKg": -1.1455922165750185,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005003323135814113,
+    "bikeMassDeltaKg": -1.542003974132037,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004874365228727001,
+    "bikeMassDeltaKg": -1.5332745983183638,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005885480634357316,
+    "bikeMassDeltaKg": -1.541662268492026,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005714184485298007,
+    "bikeMassDeltaKg": -1.7455195835439175,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cervelo R5": [
+   {
+    "cdaDeltaM2": -0.001998978186643768,
+    "bikeMassDeltaKg": -0.9154915044175103,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005032789398698472,
+    "bikeMassDeltaKg": -0.9381162327542047,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00504381372420612,
+    "bikeMassDeltaKg": -1.5206759852414753,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004714881078008465,
+    "bikeMassDeltaKg": -1.5422477859512678,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057427439201236654,
+    "bikeMassDeltaKg": -1.5459414956313045,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057427439201236654,
+    "bikeMassDeltaKg": -1.5459414956313045,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cervelo S3D": [
+   {
+    "cdaDeltaM2": -0.014664017783332567,
+    "bikeMassDeltaKg": 0.036576966760057936,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01781723223846568,
+    "bikeMassDeltaKg": 0.015761637585192112,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017864387733924264,
+    "bikeMassDeltaKg": -0.5554694693588051,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017701011213232892,
+    "bikeMassDeltaKg": -0.5661450959230971,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01876820295421114,
+    "bikeMassDeltaKg": -0.5693033420766862,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01876820295421114,
+    "bikeMassDeltaKg": -0.5693033420766862,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cervelo S5": [
+   {
+    "cdaDeltaM2": -0.017093389435903467,
+    "bikeMassDeltaKg": -0.8423062636878247,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020375418080714164,
+    "bikeMassDeltaKg": -0.8555300956738203,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020422694685374082,
+    "bikeMassDeltaKg": -1.2556423699558157,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020471114289578013,
+    "bikeMassDeltaKg": -1.2464885318367673,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021509694608274815,
+    "bikeMassDeltaKg": -1.2547785895848373,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021340833174065127,
+    "bikeMassDeltaKg": -1.4605528450017649,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cervelo S5 2015": [
+   {
+    "cdaDeltaM2": -0.016796872419371417,
+    "bikeMassDeltaKg": -0.6118269942140198,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01999049985070281,
+    "bikeMassDeltaKg": -0.6321967702587945,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02004192142303099,
+    "bikeMassDeltaKg": -1.2087592694632936,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019958923258889177,
+    "bikeMassDeltaKg": -1.2235375928447279,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02103946243775065,
+    "bikeMassDeltaKg": -1.2265038502724583,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02103946243775065,
+    "bikeMassDeltaKg": -1.2265038502724583,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cervelo S5 2020": [
+   {
+    "cdaDeltaM2": -0.016951197063384466,
+    "bikeMassDeltaKg": -0.6256604828514791,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020176851055416306,
+    "bikeMassDeltaKg": -0.6403729811847181,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020214272466755195,
+    "bikeMassDeltaKg": -1.045913782078522,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020194676357918856,
+    "bikeMassDeltaKg": -1.0404444143244196,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021215614423663126,
+    "bikeMassDeltaKg": -1.0492643350874364,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021045230355355188,
+    "bikeMassDeltaKg": -1.2577570228379007,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Chapter2 Koko": [
+   {
+    "cdaDeltaM2": -0.004322347448653702,
+    "bikeMassDeltaKg": -0.7925948489401056,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007461793350273055,
+    "bikeMassDeltaKg": -0.808851019134416,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00747921122824699,
+    "bikeMassDeltaKg": -1.2192342797335054,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007294319824027645,
+    "bikeMassDeltaKg": -1.2194267480877197,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.008288538706221066,
+    "bikeMassDeltaKg": -1.2287857207678807,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.008113346351024092,
+    "bikeMassDeltaKg": -1.4397084878312607,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Chapter2 Rere": [
+   {
+    "cdaDeltaM2": -0.0039780432883600725,
+    "bikeMassDeltaKg": -0.16630711621041128,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007068264377727035,
+    "bikeMassDeltaKg": -0.18760960785238767,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007098231984395548,
+    "bikeMassDeltaKg": -0.7574549112039146,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006809276717153616,
+    "bikeMassDeltaKg": -0.7694720340487247,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.007855854428328951,
+    "bikeMassDeltaKg": -0.7728049587756023,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.007855854428328951,
+    "bikeMassDeltaKg": -0.7728049587756023,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Chapter2 Tere": [
+   {
+    "cdaDeltaM2": -0.0018562132944505427,
+    "bikeMassDeltaKg": -0.9171177042249572,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005940901640773184,
+    "bikeMassDeltaKg": -0.9334734443569137,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00778385144219676,
+    "bikeMassDeltaKg": -1.5205601306740637,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005744608969408066,
+    "bikeMassDeltaKg": -1.543298794672857,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005744608969408066,
+    "bikeMassDeltaKg": -1.543298794672857,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005744608969408066,
+    "bikeMassDeltaKg": -1.543298794672857,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Chapter2 Toa": [
+   {
+    "cdaDeltaM2": -0.01598018666277931,
+    "bikeMassDeltaKg": -0.8264173337815559,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01906837352364396,
+    "bikeMassDeltaKg": -0.8481819214890645,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01910101377802101,
+    "bikeMassDeltaKg": -1.4285638180532563,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018916228205338642,
+    "bikeMassDeltaKg": -1.4471409898284056,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019961690431649,
+    "bikeMassDeltaKg": -1.4505572015553487,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019961690431649,
+    "bikeMassDeltaKg": -1.4505572015553487,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Colnago V3RS": [
+   {
+    "cdaDeltaM2": -0.0019061455308655713,
+    "bikeMassDeltaKg": -0.6271524929202106,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005062687797080606,
+    "bikeMassDeltaKg": -0.6419718470754598,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005088567397758065,
+    "bikeMassDeltaKg": -1.0412587461370397,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004901316300480713,
+    "bikeMassDeltaKg": -1.0333676930066606,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005901004715947594,
+    "bikeMassDeltaKg": -1.0421563177826916,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005728913571527355,
+    "bikeMassDeltaKg": -1.247427892345748,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cube Litening": [
+   {
+    "cdaDeltaM2": -0.0018495877749375163,
+    "bikeMassDeltaKg": -0.8885044787695828,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004931572418172907,
+    "bikeMassDeltaKg": -0.9087194605877111,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004963932187635605,
+    "bikeMassDeltaKg": -1.4718332689775555,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004685254986237591,
+    "bikeMassDeltaKg": -1.482818150595428,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057290365464463255,
+    "bikeMassDeltaKg": -1.4858240375944471,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057290365464463255,
+    "bikeMassDeltaKg": -1.4858240375944471,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cube Litening C:68X": [
+   {
+    "cdaDeltaM2": -0.0017777262537949372,
+    "bikeMassDeltaKg": -1.095409238515693,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004969422695385113,
+    "bikeMassDeltaKg": -1.1109242788675355,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004990401702301556,
+    "bikeMassDeltaKg": -1.5218016627484947,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004853611333230119,
+    "bikeMassDeltaKg": -1.5228555421097876,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005864250689135347,
+    "bikeMassDeltaKg": -1.5319817632688948,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005687746235396945,
+    "bikeMassDeltaKg": -1.7432070627093954,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Factor One": [
+   {
+    "cdaDeltaM2": -0.014317752085076102,
+    "bikeMassDeltaKg": -0.13342218851099874,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017528873190267663,
+    "bikeMassDeltaKg": -0.14714672171681586,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017572001861387826,
+    "bikeMassDeltaKg": -0.5402829551112025,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017503535267738707,
+    "bikeMassDeltaKg": -0.5252262786048978,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018520075984548606,
+    "bikeMassDeltaKg": -0.5336067097966501,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018353280569474134,
+    "bikeMassDeltaKg": -0.735745563733254,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Felt AR": [
+   {
+    "cdaDeltaM2": -0.01690435724720432,
+    "bikeMassDeltaKg": -0.7638981325068035,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02004209877827559,
+    "bikeMassDeltaKg": -0.7844923523463687,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02008760817049879,
+    "bikeMassDeltaKg": -1.358144324041128,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0199570679551265,
+    "bikeMassDeltaKg": -1.372472779504498,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021018953193808337,
+    "bikeMassDeltaKg": -1.3755361582106294,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021018953193808337,
+    "bikeMassDeltaKg": -1.3755361582106294,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Felt FR": [
+   {
+    "cdaDeltaM2": -0.006895835752618513,
+    "bikeMassDeltaKg": -0.9561066230160482,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01007754608663916,
+    "bikeMassDeltaKg": -0.9700478369740684,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01011085834428574,
+    "bikeMassDeltaKg": -1.3669282504860196,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009996786868029378,
+    "bikeMassDeltaKg": -1.3577453284458652,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.011004223052118928,
+    "bikeMassDeltaKg": -1.3662294660929963,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010834314592024302,
+    "bikeMassDeltaKg": -1.5703062108272339,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Focus Izalco Max": [
+   {
+    "cdaDeltaM2": -0.015225674212512946,
+    "bikeMassDeltaKg": -0.6192771186935393,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018374088541520534,
+    "bikeMassDeltaKg": -0.6411261161362991,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018410355173369503,
+    "bikeMassDeltaKg": -1.2276311616267814,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018269979996630686,
+    "bikeMassDeltaKg": -1.2481432783804602,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01933560940950127,
+    "bikeMassDeltaKg": -1.2515452673877614,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01933560940950127,
+    "bikeMassDeltaKg": -1.2515452673877614,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Giant Propel Advanced SL Disc": [
+   {
+    "cdaDeltaM2": -0.015401725738513367,
+    "bikeMassDeltaKg": -0.4925649488209065,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01862718276817457,
+    "bikeMassDeltaKg": -0.5071211819762387,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018665176786690135,
+    "bikeMassDeltaKg": -0.9104632154781673,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018630069192055704,
+    "bikeMassDeltaKg": -0.903212931948453,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019651007945890836,
+    "bikeMassDeltaKg": -0.911960890475378,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01948090176356196,
+    "bikeMassDeltaKg": -1.1193267259691235,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Giant Propel Advanced SL Team": [
+   {
+    "cdaDeltaM2": -0.016524314420019143,
+    "bikeMassDeltaKg": -0.9449913006847983,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019716464369036762,
+    "bikeMassDeltaKg": -0.9632254851184352,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019730806389881034,
+    "bikeMassDeltaKg": -1.395830761404532,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019679386071806554,
+    "bikeMassDeltaKg": -1.4101865982041129,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020689734226029294,
+    "bikeMassDeltaKg": -1.4204018878608413,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02051008907227095,
+    "bikeMassDeltaKg": -1.6426822071342921,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Giant TCR Advanced SL 2021": [
+   {
+    "cdaDeltaM2": -0.0018376812272403458,
+    "bikeMassDeltaKg": -0.7921565681789597,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004931052786606299,
+    "bikeMassDeltaKg": -0.8124582588338076,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004963938076752967,
+    "bikeMassDeltaKg": -1.3770270647622813,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004691966231700678,
+    "bikeMassDeltaKg": -1.3883475778592849,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057395678693267504,
+    "bikeMassDeltaKg": -1.3913730694244255,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057395678693267504,
+    "bikeMassDeltaKg": -1.3913730694244255,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Giant TCR Advanced SL 2025": [
+   {
+    "cdaDeltaM2": -0.01633962281494164,
+    "bikeMassDeltaKg": -1.009511725592525,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01954755549086637,
+    "bikeMassDeltaKg": -1.0233460037873026,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01958741447758164,
+    "bikeMassDeltaKg": -1.4226776019392484,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019564075318440316,
+    "bikeMassDeltaKg": -1.4143478590224068,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020579463706926343,
+    "bikeMassDeltaKg": -1.422824052541095,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020411280427723583,
+    "bikeMassDeltaKg": -1.6281641869183336,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Giant TCR BikeExchange-Jayco Team": [
+   {
+    "cdaDeltaM2": -0.007030501244809168,
+    "bikeMassDeltaKg": -0.3661614925894203,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010211486372773054,
+    "bikeMassDeltaKg": -0.3800755273578811,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010247463218930747,
+    "bikeMassDeltaKg": -0.77303394001428,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010109758699229282,
+    "bikeMassDeltaKg": -0.759405903297441,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.011117028399301426,
+    "bikeMassDeltaKg": -0.7678432024978785,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010948456254482292,
+    "bikeMassDeltaKg": -0.9698890158649855,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Liv Langma Advanced SL 2021": [
+   {
+    "cdaDeltaM2": -0.0018841792390656698,
+    "bikeMassDeltaKg": -0.7681631914880218,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0040336544267594865,
+    "bikeMassDeltaKg": -0.7731849155753632,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004103346020747828,
+    "bikeMassDeltaKg": -0.9623845541689282,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0037485521418315904,
+    "bikeMassDeltaKg": -0.9853097997340474,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.00366974533697137,
+    "bikeMassDeltaKg": -1.0964451494758483,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.009884849654509392,
+    "bikeMassDeltaKg": -1.0998451846783932,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Liv Langma Advanced SL 2025": [
+   {
+    "cdaDeltaM2": -0.01610841708313973,
+    "bikeMassDeltaKg": -0.9133464601092025,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01931755418686379,
+    "bikeMassDeltaKg": -0.9277934968618733,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01935420663625695,
+    "bikeMassDeltaKg": -1.33149694710955,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0193250678455624,
+    "bikeMassDeltaKg": -1.325870201403283,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020340835930663576,
+    "bikeMassDeltaKg": -1.3345860779903167,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020171026638472728,
+    "bikeMassDeltaKg": -1.542148989722555,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Liv Langma SL Advanced Disc": [
+   {
+    "cdaDeltaM2": -0.006838692186450418,
+    "bikeMassDeltaKg": -0.8082675146858018,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009977533753184359,
+    "bikeMassDeltaKg": -0.8295027671662107,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010009991823515335,
+    "bikeMassDeltaKg": -1.4094301323144331,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009813340002006982,
+    "bikeMassDeltaKg": -1.4278463095161764,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01087604080091023,
+    "bikeMassDeltaKg": -1.4310830107225097,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01087604080091023,
+    "bikeMassDeltaKg": -1.4310830107225097,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Moots Vamoots RCS": [
+   {
+    "cdaDeltaM2": -0.001900167182370599,
+    "bikeMassDeltaKg": 0.14869611629276047,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005103799682507654,
+    "bikeMassDeltaKg": 0.1341873166285188,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005136461240404371,
+    "bikeMassDeltaKg": -0.26205928711271254,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0049638257009941575,
+    "bikeMassDeltaKg": -0.24925925558034878,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0059783608048447345,
+    "bikeMassDeltaKg": -0.257919808905378,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005806837194456987,
+    "bikeMassDeltaKg": -0.46162931994093315,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Mosaic RT-1d": [
+   {
+    "cdaDeltaM2": -0.0019227452255157484,
+    "bikeMassDeltaKg": 0.141143615773891,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005026585324450466,
+    "bikeMassDeltaKg": 0.12007872039755176,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005059162317199634,
+    "bikeMassDeltaKg": -0.4463743873654171,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0047575019069218405,
+    "bikeMassDeltaKg": -0.45571821842325066,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005808699401280566,
+    "bikeMassDeltaKg": -0.45899434489893265,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005808699401280566,
+    "bikeMassDeltaKg": -0.45899434489893265,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Parlee ESX": [
+   {
+    "cdaDeltaM2": -0.007033774079164696,
+    "bikeMassDeltaKg": -0.3244996045877353,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011118753873893689,
+    "bikeMassDeltaKg": -0.3407044050077199,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012970443301884321,
+    "bikeMassDeltaKg": -0.9213532422124122,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010942574305743274,
+    "bikeMassDeltaKg": -0.9385886328894553,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010942574305743274,
+    "bikeMassDeltaKg": -0.9385886328894553,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010942574305743274,
+    "bikeMassDeltaKg": -0.9385886328894553,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Parlee RZ7": [
+   {
+    "cdaDeltaM2": -0.01195044745542187,
+    "bikeMassDeltaKg": -0.2691337429414413,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015155748884754044,
+    "bikeMassDeltaKg": -0.2821845247695971,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015200723436230773,
+    "bikeMassDeltaKg": -0.6701233641781168,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015117892606113209,
+    "bikeMassDeltaKg": -0.6521593329374089,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01613267803744553,
+    "bikeMassDeltaKg": -0.6602717321909419,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01596709733367843,
+    "bikeMassDeltaKg": -0.8597679643595408,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Dogma 65.1": [
+   {
+    "cdaDeltaM2": -0.007080886792549062,
+    "bikeMassDeltaKg": 0.07385379694339013,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010195761805686404,
+    "bikeMassDeltaKg": 0.05243183141633613,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010230051982850069,
+    "bikeMassDeltaKg": -0.5198348961933239,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009975529923396925,
+    "bikeMassDeltaKg": -0.5318853172811582,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.011030256257847454,
+    "bikeMassDeltaKg": -0.5352430018646639,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.011030256257847454,
+    "bikeMassDeltaKg": -0.5352430018646639,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Dogma F 2021": [
+   {
+    "cdaDeltaM2": -0.015071585692300576,
+    "bikeMassDeltaKg": -0.9772147882817914,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01831038491074563,
+    "bikeMassDeltaKg": -0.9919971873134936,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018345363517456498,
+    "bikeMassDeltaKg": -1.4013836803860689,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0183396649051433,
+    "bikeMassDeltaKg": -1.3995810135154083,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019364730138616976,
+    "bikeMassDeltaKg": -1.408460780272598,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01919238776599061,
+    "bikeMassDeltaKg": -1.6189417368720531,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Dogma F 2024": [
+   {
+    "cdaDeltaM2": -0.016568121447497836,
+    "bikeMassDeltaKg": -1.0719089568117606,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01973886808060768,
+    "bikeMassDeltaKg": -1.0880746349039687,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019763801221871408,
+    "bikeMassDeltaKg": -1.5030533860918998,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019702377802596066,
+    "bikeMassDeltaKg": -1.5059813410821126,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020706059458807186,
+    "bikeMassDeltaKg": -1.5153587914267992,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020532787958373683,
+    "bikeMassDeltaKg": -1.7286511916261342,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Dogma F10": [
+   {
+    "cdaDeltaM2": -0.013134577998707458,
+    "bikeMassDeltaKg": -0.5754265716265725,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016341705346146568,
+    "bikeMassDeltaKg": -0.590181160081094,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016376247192702337,
+    "bikeMassDeltaKg": -0.9938450786048141,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01631093429289135,
+    "bikeMassDeltaKg": -0.987425858880052,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017326185456911697,
+    "bikeMassDeltaKg": -0.9962397287413656,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017155447931020334,
+    "bikeMassDeltaKg": -1.2037640222548665,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Dogma F12": [
+   {
+    "cdaDeltaM2": -0.014339468176607278,
+    "bikeMassDeltaKg": -0.6631317294473358,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01753838247713088,
+    "bikeMassDeltaKg": -0.6776189888517554,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017574470416109794,
+    "bikeMassDeltaKg": -1.0790411082718454,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017513495026137554,
+    "bikeMassDeltaKg": -1.0713529318991069,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018526138864785796,
+    "bikeMassDeltaKg": -1.0800589316382552,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01835663421795866,
+    "bikeMassDeltaKg": -1.2864402533120294,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Dogma X": [
+   {
+    "cdaDeltaM2": -0.001837727072084655,
+    "bikeMassDeltaKg": -0.6800559120526013,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004982982602330571,
+    "bikeMassDeltaKg": -0.6949706572644554,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005007631084151005,
+    "bikeMassDeltaKg": -1.0943310678014844,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004810904093386498,
+    "bikeMassDeltaKg": -1.086775643876941,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005807048810017895,
+    "bikeMassDeltaKg": -1.0955953448747455,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005635012783389376,
+    "bikeMassDeltaKg": -1.300900308643016,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello F8": [
+   {
+    "cdaDeltaM2": -0.011072973054507357,
+    "bikeMassDeltaKg": -0.47917789126172083,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.014193910540521298,
+    "bikeMassDeltaKg": -0.5015144218031158,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.014222113078886073,
+    "bikeMassDeltaKg": -1.0884522674859416,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.014020516045962966,
+    "bikeMassDeltaKg": -1.1093636618828024,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.015077175059497377,
+    "bikeMassDeltaKg": -1.112929465661828,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.015077175059497377,
+    "bikeMassDeltaKg": -1.112929465661828,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Ribble Endurance": [
+   {
+    "cdaDeltaM2": -0.005485607432049927,
+    "bikeMassDeltaKg": -0.10778370193852237,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009613963632192774,
+    "bikeMassDeltaKg": -0.1237202430739406,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0114883995994213,
+    "bikeMassDeltaKg": -0.7040949713735851,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009454823335371315,
+    "bikeMassDeltaKg": -0.7204724967407476,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.009454823335371315,
+    "bikeMassDeltaKg": -0.7204724967407476,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.009454823335371315,
+    "bikeMassDeltaKg": -0.7204724967407476,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Ridley Helium": [
+   {
+    "cdaDeltaM2": -0.0019626376095749627,
+    "bikeMassDeltaKg": -0.36597744900021967,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005019940618636393,
+    "bikeMassDeltaKg": -0.3880400052928583,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005039462769949128,
+    "bikeMassDeltaKg": -0.9633224579417781,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0047116833714642425,
+    "bikeMassDeltaKg": -0.9792349985667745,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005747378889198713,
+    "bikeMassDeltaKg": -0.9827891078047704,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005747378889198713,
+    "bikeMassDeltaKg": -0.9827891078047704,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Ridley Noah Fast 2019": [
+   {
+    "cdaDeltaM2": -0.014266697991186378,
+    "bikeMassDeltaKg": -0.16515145956068222,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017512601554343116,
+    "bikeMassDeltaKg": -0.17832555420955787,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01756008709328763,
+    "bikeMassDeltaKg": -0.570342475614162,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017527688117519785,
+    "bikeMassDeltaKg": -0.5542485476017665,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01855512567493897,
+    "bikeMassDeltaKg": -0.5624421376927349,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018388432357319823,
+    "bikeMassDeltaKg": -0.7640339615485705,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Scott Addict RC": [
+   {
+    "cdaDeltaM2": -0.013414714181914283,
+    "bikeMassDeltaKg": -1.0924632544816215,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016542009858452195,
+    "bikeMassDeltaKg": -1.1146052043896684,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016570824074240292,
+    "bikeMassDeltaKg": -1.7053016878637304,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016416224586787848,
+    "bikeMassDeltaKg": -1.7297506962728373,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017474878882061923,
+    "bikeMassDeltaKg": -1.7332215957209844,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017474878882061923,
+    "bikeMassDeltaKg": -1.7332215957209844,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Scott Foil 2015": [
+   {
+    "cdaDeltaM2": -0.0039476543148461996,
+    "bikeMassDeltaKg": -0.5050667221744409,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007037430157873419,
+    "bikeMassDeltaKg": -0.52710716910449,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007060005503202543,
+    "bikeMassDeltaKg": -1.10708652006435,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0067824933937471734,
+    "bikeMassDeltaKg": -1.1253480784349317,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.007828974647545256,
+    "bikeMassDeltaKg": -1.1288609671670922,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.007828974647545256,
+    "bikeMassDeltaKg": -1.1288609671670922,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Scott Foil 2023": [
+   {
+    "cdaDeltaM2": -0.0153927293574945,
+    "bikeMassDeltaKg": -0.5420280642825124,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018572720930309344,
+    "bikeMassDeltaKg": -0.5569283270087699,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018606795398100756,
+    "bikeMassDeltaKg": -0.9592670861432357,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018528653946151746,
+    "bikeMassDeltaKg": -0.9519699217854831,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01953534853108549,
+    "bikeMassDeltaKg": -0.9608173653341301,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01936596871390525,
+    "bikeMassDeltaKg": -1.1676467278053129,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Aethos S-Works": [
+   {
+    "cdaDeltaM2": -0.011947468011144186,
+    "bikeMassDeltaKg": -1.3176351465382443,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013548172005482112,
+    "bikeMassDeltaKg": -1.3226341390373837,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013578219357395144,
+    "bikeMassDeltaKg": -2.253046288078317,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013479159363278898,
+    "bikeMassDeltaKg": -2.2648006736973025,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.013890991121744495,
+    "bikeMassDeltaKg": -2.2677732578892824,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.013784079273648192,
+    "bikeMassDeltaKg": -2.581081170935229,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Allez": [
+   {
+    "cdaDeltaM2": -0.001915454967204716,
+    "bikeMassDeltaKg": 0.09423598745218788,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0060296278317660545,
+    "bikeMassDeltaKg": 0.07754086566885922,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007890673270016496,
+    "bikeMassDeltaKg": -0.5065993552969208,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005818731463476917,
+    "bikeMassDeltaKg": -0.5242286197093544,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005818731463476917,
+    "bikeMassDeltaKg": -0.5242286197093544,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005818731463476917,
+    "bikeMassDeltaKg": -0.5242286197093544,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Allez Sprint": [
+   {
+    "cdaDeltaM2": -0.010729698347753364,
+    "bikeMassDeltaKg": -0.5298693650398794,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013843019389297079,
+    "bikeMassDeltaKg": -0.5505494970305809,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01388261738779592,
+    "bikeMassDeltaKg": -1.1199495926804768,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013677465975451913,
+    "bikeMassDeltaKg": -1.132102965555013,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.014731450153447151,
+    "bikeMassDeltaKg": -1.1352257025349748,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.014731450153447151,
+    "bikeMassDeltaKg": -1.1352257025349748,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Amira": [
+   {
+    "cdaDeltaM2": -0.0018762057062830235,
+    "bikeMassDeltaKg": -0.7786825332659721,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005960683265836514,
+    "bikeMassDeltaKg": -0.7951568588171294,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0078036054223187545,
+    "bikeMassDeltaKg": -1.3820929203058578,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005758544772535763,
+    "bikeMassDeltaKg": -1.4042521122268208,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005758544772535763,
+    "bikeMassDeltaKg": -1.4042521122268208,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005758544772535763,
+    "bikeMassDeltaKg": -1.4042521122268208,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Amira S-Works": [
+   {
+    "cdaDeltaM2": -0.0018223160122168014,
+    "bikeMassDeltaKg": -0.9618452657508878,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004914275088549996,
+    "bikeMassDeltaKg": -0.984095416733815,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0049313106629773895,
+    "bikeMassDeltaKg": -1.569864181062322,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00466001433987237,
+    "bikeMassDeltaKg": -1.592614621959918,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005707305257771106,
+    "bikeMassDeltaKg": -1.596156676401883,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005707305257771106,
+    "bikeMassDeltaKg": -1.596156676401883,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized PROJECT 74": [
+   {
+    "cdaDeltaM2": -0.034297329616216815,
+    "bikeMassDeltaKg": 0.3854800572458794,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03757382449307842,
+    "bikeMassDeltaKg": 0.37239214406000887,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03763628714074682,
+    "bikeMassDeltaKg": -0.01944826810567024,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.037749201572728514,
+    "bikeMassDeltaKg": 0.00021858358495930048,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.038785634465429514,
+    "bikeMassDeltaKg": -0.007951602854084697,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03862458637213742,
+    "bikeMassDeltaKg": -0.20943243910595966,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Roubaix": [
+   {
+    "cdaDeltaM2": -0.001917474074872333,
+    "bikeMassDeltaKg": -0.46286548259804094,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004997980249819318,
+    "bikeMassDeltaKg": -0.4846087841219249,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0050208412524364865,
+    "bikeMassDeltaKg": -1.0599932989492022,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004719887394570382,
+    "bikeMassDeltaKg": -1.0760093269512576,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005763316952048098,
+    "bikeMassDeltaKg": -1.0794529363171175,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005763316952048098,
+    "bikeMassDeltaKg": -1.0794529363171175,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Roubaix S-Works": [
+   {
+    "cdaDeltaM2": -0.0018576166169475272,
+    "bikeMassDeltaKg": -0.765857623233209,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004007211589869026,
+    "bikeMassDeltaKg": -0.7708793538131924,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004076907074411801,
+    "bikeMassDeltaKg": -0.9600789858053456,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.003722003759704245,
+    "bikeMassDeltaKg": -0.9829973182434704,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0036431925466502697,
+    "bikeMassDeltaKg": -1.094132662208843,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.009858645799829008,
+    "bikeMassDeltaKg": -1.0975327156175676,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Ruby": [
+   {
+    "cdaDeltaM2": -0.0019354059434108228,
+    "bikeMassDeltaKg": -0.43921750294769213,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0059883559001425455,
+    "bikeMassDeltaKg": -0.4573659387779041,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007806882807523592,
+    "bikeMassDeltaKg": -1.0542387067999566,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005735017496972445,
+    "bikeMassDeltaKg": -1.0797798180926388,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005735017496972445,
+    "bikeMassDeltaKg": -1.0797798180926388,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005735017496972445,
+    "bikeMassDeltaKg": -1.0797798180926388,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Ruby S-Works": [
+   {
+    "cdaDeltaM2": -0.0016862447839933459,
+    "bikeMassDeltaKg": -0.7678033396613917,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004859445065545059,
+    "bikeMassDeltaKg": -0.7889385785527527,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004890851288962744,
+    "bikeMassDeltaKg": -1.3710668534372341,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004691628492359019,
+    "bikeMassDeltaKg": -1.3904994609678947,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005766003222353128,
+    "bikeMassDeltaKg": -1.3936855633817724,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005766003222353128,
+    "bikeMassDeltaKg": -1.3936855633817724,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized S-Works Tarmac SL8": [
+   {
+    "cdaDeltaM2": -0.01630751766720903,
+    "bikeMassDeltaKg": -1.31425651449721,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01948085658223711,
+    "bikeMassDeltaKg": -1.3292610493344132,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019511406941282256,
+    "bikeMassDeltaKg": -1.7367241992336555,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019463395254046306,
+    "bikeMassDeltaKg": -1.735233025891453,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02046789661936102,
+    "bikeMassDeltaKg": -1.7441636822665392,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020297197373096626,
+    "bikeMassDeltaKg": -1.9536421723175788,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Tarmac": [
+   {
+    "cdaDeltaM2": -0.0018176852023402417,
+    "bikeMassDeltaKg": -0.9305976707816153,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0049220692193539806,
+    "bikeMassDeltaKg": -0.951471912064513,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004950516583072968,
+    "bikeMassDeltaKg": -1.5242783063153449,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004693278651374726,
+    "bikeMassDeltaKg": -1.5401360757682805,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005744608969408066,
+    "bikeMassDeltaKg": -1.543298794672857,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.005744608969408066,
+    "bikeMassDeltaKg": -1.543298794672857,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Tarmac Pro": [
+   {
+    "cdaDeltaM2": -0.010684168101498609,
+    "bikeMassDeltaKg": -1.1133554047820478,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013785278628579006,
+    "bikeMassDeltaKg": -1.1356873993629715,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013808689161766557,
+    "bikeMassDeltaKg": -1.725244644152618,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013611030223422277,
+    "bikeMassDeltaKg": -1.749654909514938,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.014661054607236351,
+    "bikeMassDeltaKg": -1.7531986797198802,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.014661054607236351,
+    "bikeMassDeltaKg": -1.7531986797198802,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Tarmac SL7": [
+   {
+    "cdaDeltaM2": -0.013442572780315437,
+    "bikeMassDeltaKg": -1.0921438122602676,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016669536397748347,
+    "bikeMassDeltaKg": -1.1077152624855349,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016698101424128614,
+    "bikeMassDeltaKg": -1.5229553093686907,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016672563655999922,
+    "bikeMassDeltaKg": -1.5257399107733742,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017693939954380206,
+    "bikeMassDeltaKg": -1.5349297752892785,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01751915886168956,
+    "bikeMassDeltaKg": -1.748393319807398,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Tarmac SL8": [
+   {
+    "cdaDeltaM2": -0.016131676097770026,
+    "bikeMassDeltaKg": -1.105527942603565,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01931749226659782,
+    "bikeMassDeltaKg": -1.1206709737466345,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019348479836020976,
+    "bikeMassDeltaKg": -1.529038040051184,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019302729566445603,
+    "bikeMassDeltaKg": -1.5274195328506361,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02031116075389386,
+    "bikeMassDeltaKg": -1.5364039482488825,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020139951645530202,
+    "bikeMassDeltaKg": -1.7463391341042116,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Tarmac SL9": [
+   {
+    "cdaDeltaM2": -0.0166100081151834,
+    "bikeMassDeltaKg": -1.3133710723960728,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019838234734532195,
+    "bikeMassDeltaKg": -1.3275969159781122,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019875468900524024,
+    "bikeMassDeltaKg": -1.73384525233076,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019884612270150787,
+    "bikeMassDeltaKg": -1.7308976072747764,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020906301232073626,
+    "bikeMassDeltaKg": -1.7395676874966246,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02073567415304786,
+    "bikeMassDeltaKg": -1.9484614531419102,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Venge 2015": [
+   {
+    "cdaDeltaM2": -0.016676904030448386,
+    "bikeMassDeltaKg": -0.2159098818499463,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019816693883227127,
+    "bikeMassDeltaKg": -0.23605274245827745,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019868299849793686,
+    "bikeMassDeltaKg": -0.8009653496563165,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01971738427981176,
+    "bikeMassDeltaKg": -0.8091476098237611,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02077994455611651,
+    "bikeMassDeltaKg": -0.8121200189261155,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02077994455611651,
+    "bikeMassDeltaKg": -0.8121200189261155,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Venge S-Works 2019": [
+   {
+    "cdaDeltaM2": -0.016971207964914276,
+    "bikeMassDeltaKg": -0.7475450134606736,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020242939695199053,
+    "bikeMassDeltaKg": -0.7606753960896735,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020290698846751803,
+    "bikeMassDeltaKg": -1.1585009640980029,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020324816833039855,
+    "bikeMassDeltaKg": -1.1476261465262705,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02136019277295767,
+    "bikeMassDeltaKg": -1.1558635508456878,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021192159162972096,
+    "bikeMassDeltaKg": -1.3604612101452953,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Trek Emonda": [
+   {
+    "cdaDeltaM2": -0.0017930433901017506,
+    "bikeMassDeltaKg": -1.037832301328827,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0033910624885677703,
+    "bikeMassDeltaKg": -1.0427016194627545,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0034149189200260725,
+    "bikeMassDeltaKg": -1.9605793099958437,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0032330701344785717,
+    "bikeMassDeltaKg": -1.9683865370953337,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0036443082672684424,
+    "bikeMassDeltaKg": -1.9713039599247604,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0035355870739814106,
+    "bikeMassDeltaKg": -2.280400343068586,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Trek Emonda SL": [
+   {
+    "cdaDeltaM2": -0.0018309987151312328,
+    "bikeMassDeltaKg": -0.8756764002700872,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.003896048668145275,
+    "bikeMassDeltaKg": -0.8705158670478927,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0037286435420985915,
+    "bikeMassDeltaKg": -2.124288478075889,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.003520972768051495,
+    "bikeMassDeltaKg": -2.1019593077367835,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.003520972768051495,
+    "bikeMassDeltaKg": -2.1019593077367835,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.003520972768051495,
+    "bikeMassDeltaKg": -2.1019593077367835,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Trek Madone": [
+   {
+    "cdaDeltaM2": -0.015715132680082483,
+    "bikeMassDeltaKg": -0.5149925752073803,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01895018469596424,
+    "bikeMassDeltaKg": -0.528861978419521,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018992583501330068,
+    "bikeMassDeltaKg": -0.927743104034541,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018971567892637348,
+    "bikeMassDeltaKg": -0.9173874809953948,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0199955137917128,
+    "bikeMassDeltaKg": -0.9258714373789947,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019826991265192412,
+    "bikeMassDeltaKg": -1.1309717390116494,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Uranium Nuclear": [
+   {
+    "cdaDeltaM2": -0.012665009032265112,
+    "bikeMassDeltaKg": -0.611950698961643,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015763663267143763,
+    "bikeMassDeltaKg": -0.634892703894288,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01578657000352604,
+    "bikeMassDeltaKg": -1.226657469902229,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015578108247252725,
+    "bikeMassDeltaKg": -1.2505725902409854,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016627304472540932,
+    "bikeMassDeltaKg": -1.2543114611822186,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016627304472540932,
+    "bikeMassDeltaKg": -1.2543114611822186,
+    "crrDelta": -0.0003
+   }
+  ],
+  "VanRysel EDR CF": [
+   {
+    "cdaDeltaM2": -0.001919480924464673,
+    "bikeMassDeltaKg": -0.34823186960232233,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.004989575464517754,
+    "bikeMassDeltaKg": -0.3687537185880312,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.005021705024250949,
+    "bikeMassDeltaKg": -0.929511673706791,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0047090517894985695,
+    "bikeMassDeltaKg": -0.937769499643927,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057488975371280115,
+    "bikeMassDeltaKg": -0.9408987563078388,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0057488975371280115,
+    "bikeMassDeltaKg": -0.9408987563078388,
+    "crrDelta": -0.0003
+   }
+  ],
+  "VanRysel RCR Pro": [
+   {
+    "cdaDeltaM2": -0.015579389917327296,
+    "bikeMassDeltaKg": -1.1092652288631295,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01875913061853543,
+    "bikeMassDeltaKg": -1.1299654783754742,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.018803620137269023,
+    "bikeMassDeltaKg": -1.7122425282060552,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01871813049125373,
+    "bikeMassDeltaKg": -1.73168584000144,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0197940936507979,
+    "bikeMassDeltaKg": -1.7347229254572407,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0197940936507979,
+    "bikeMassDeltaKg": -1.7347229254572407,
+    "crrDelta": -0.0003
+   }
+  ],
+  "VanRysel RCR-F": [
+   {
+    "cdaDeltaM2": -0.0163015803058498,
+    "bikeMassDeltaKg": -0.8747413709126097,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019533556415548187,
+    "bikeMassDeltaKg": -0.8869990085271051,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01958393013766127,
+    "bikeMassDeltaKg": -1.2750639812640183,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019582380098486923,
+    "bikeMassDeltaKg": -1.2583833092215078,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020605344471103487,
+    "bikeMassDeltaKg": -1.2662435275228252,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02044087003541875,
+    "bikeMassDeltaKg": -1.4658517211050897,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Ventum NS1": [
+   {
+    "cdaDeltaM2": -0.013576170422421902,
+    "bikeMassDeltaKg": -0.12877045981503743,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016669740413425865,
+    "bikeMassDeltaKg": -0.1504871907281351,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016704647769972852,
+    "bikeMassDeltaKg": -0.7254049146349284,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.016480931046959663,
+    "bikeMassDeltaKg": -0.739184821807108,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017528306478581085,
+    "bikeMassDeltaKg": -0.7426250784949597,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017528306478581085,
+    "bikeMassDeltaKg": -0.7426250784949597,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Wilier Filante SLR ID2 Team": [
+   {
+    "cdaDeltaM2": -0.016875508107358578,
+    "bikeMassDeltaKg": -0.9149770623125089,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02011210653010362,
+    "bikeMassDeltaKg": -0.9307646736763009,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020142514916341753,
+    "bikeMassDeltaKg": -1.3476902943110853,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.020141688175731393,
+    "bikeMassDeltaKg": -1.3507406863743578,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021165996648799507,
+    "bikeMassDeltaKg": -1.3600175142379878,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020991578750322953,
+    "bikeMassDeltaKg": -1.5743337506487554,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Zwift Aero": [
+   {
+    "cdaDeltaM2": -0.013464666395102437,
+    "bikeMassDeltaKg": -0.018382316233847458,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017521908408122483,
+    "bikeMassDeltaKg": -0.035857334325661835,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019358435547770253,
+    "bikeMassDeltaKg": -0.6238292189061174,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.017350750956640654,
+    "bikeMassDeltaKg": -0.6429290108533148,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017350750956640654,
+    "bikeMassDeltaKg": -0.6429290108533148,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017350750956640654,
+    "bikeMassDeltaKg": -0.6429290108533148,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Zwift Carbon": [
+   {
+    "cdaDeltaM2": -3.0556860460743215e-16,
+    "bikeMassDeltaKg": -7.54868923779329e-15,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0039786726666228,
+    "bikeMassDeltaKg": -0.01921279784266216,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00575558364251874,
+    "bikeMassDeltaKg": -0.6146936127622458,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.003628256004080316,
+    "bikeMassDeltaKg": -0.6381693249826204,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.003628256004080316,
+    "bikeMassDeltaKg": -0.6381693249826204,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.003628256004080316,
+    "bikeMassDeltaKg": -0.6381693249826204,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Zwift Concept Z1": [
+   {
+    "cdaDeltaM2": -0.031157949735319573,
+    "bikeMassDeltaKg": -0.45648571792441617,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03436960611676751,
+    "bikeMassDeltaKg": -0.47118352132285013,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03441534016013112,
+    "bikeMassDeltaKg": -0.8751975174196711,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0344721427849862,
+    "bikeMassDeltaKg": -0.8672721622932689,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03548829121841071,
+    "bikeMassDeltaKg": -0.8760752453816072,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03532285336648991,
+    "bikeMassDeltaKg": -1.0837641849081971,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Zwift Golden Concept Z1": [
+   {
+    "cdaDeltaM2": -0.031157949735319573,
+    "bikeMassDeltaKg": -0.45648571792441617,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03436960611676751,
+    "bikeMassDeltaKg": -0.47118352132285013,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.03441534016013112,
+    "bikeMassDeltaKg": -0.8751975174196711,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0344721427849862,
+    "bikeMassDeltaKg": -0.8672721622932689,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03548829121841071,
+    "bikeMassDeltaKg": -0.8760752453816072,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03532285336648991,
+    "bikeMassDeltaKg": -1.0837641849081971,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Zwift Steel": [
+   {
+    "cdaDeltaM2": 0.0008630099425268875,
+    "bikeMassDeltaKg": 0.7707670881747015,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0031544214114347102,
+    "bikeMassDeltaKg": 0.7532484172260956,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00496554214010933,
+    "bikeMassDeltaKg": 0.17718121689814215,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0028165524635635204,
+    "bikeMassDeltaKg": 0.16550986635376486,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0028165524635635204,
+    "bikeMassDeltaKg": 0.16550986635376486,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0028165524635635204,
+    "bikeMassDeltaKg": 0.16550986635376486,
+    "crrDelta": -0.0003
+   }
+  ]
+ },
+ "ttFrames": {
+  "BMC Timemachine01": [
+   {
+    "cdaDeltaM2": -0.0049151917727507655,
+    "bikeMassDeltaKg": -0.4284363148339798,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006965053657453562,
+    "bikeMassDeltaKg": -0.43540283844195304,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006976550413304389,
+    "bikeMassDeltaKg": -0.7915350948508353,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006614533469420897,
+    "bikeMassDeltaKg": -0.788917214414945,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012651174708502438,
+    "bikeMassDeltaKg": -0.8220748540455167,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012651174708502438,
+    "bikeMassDeltaKg": -0.8220748540455167,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cadex Tri": [
+   {
+    "cdaDeltaM2": -0.010923448997674584,
+    "bikeMassDeltaKg": -0.5655183947104456,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013044059600217345,
+    "bikeMassDeltaKg": -0.5757829716845118,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013118220332710845,
+    "bikeMassDeltaKg": -0.773709490791739,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012741918322940776,
+    "bikeMassDeltaKg": -0.781723595606544,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012667306709018028,
+    "bikeMassDeltaKg": -0.8976581375603336,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018789865212178652,
+    "bikeMassDeltaKg": -0.9160368030117718,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Speedmax": [
+   {
+    "cdaDeltaM2": -0.00493618358685069,
+    "bikeMassDeltaKg": -0.43373131866226,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006982305846067877,
+    "bikeMassDeltaKg": -0.4395992001021307,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007003816772024635,
+    "bikeMassDeltaKg": -0.7805256055917562,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006643272719722398,
+    "bikeMassDeltaKg": -0.7649529179590422,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012669035026937198,
+    "bikeMassDeltaKg": -0.7943269729952727,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012669035026937198,
+    "bikeMassDeltaKg": -0.7943269729952727,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Speedmax CF SLX Disc": [
+   {
+    "cdaDeltaM2": -0.009967581576776158,
+    "bikeMassDeltaKg": -0.5033504435335692,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012088582007738463,
+    "bikeMassDeltaKg": -0.5138729765449535,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012161448656948598,
+    "bikeMassDeltaKg": -0.7133106546894146,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011774464089550768,
+    "bikeMassDeltaKg": -0.7235892668500208,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01169911228146106,
+    "bikeMassDeltaKg": -0.8403995523988579,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.017823293783604227,
+    "bikeMassDeltaKg": -0.8594377446472015,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Canyon Speedmax CFR": [
+   {
+    "cdaDeltaM2": -0.011080175064158898,
+    "bikeMassDeltaKg": -0.7617562211313702,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01321754548154766,
+    "bikeMassDeltaKg": -0.7723582052380289,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013290892493263456,
+    "bikeMassDeltaKg": -0.97405409300766,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012944111664930452,
+    "bikeMassDeltaKg": -0.9884464732278468,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012868142935080457,
+    "bikeMassDeltaKg": -1.1065823835133335,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019038237415857945,
+    "bikeMassDeltaKg": -1.1257208837973485,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cervelo P5": [
+   {
+    "cdaDeltaM2": -0.006858731494970932,
+    "bikeMassDeltaKg": -0.7147704064530762,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.008917539347238851,
+    "bikeMassDeltaKg": -0.7200199877983744,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00894523914881859,
+    "bikeMassDeltaKg": -1.0558839341947452,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.008631950203347977,
+    "bikeMassDeltaKg": -1.0365440886348916,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.014693615984972236,
+    "bikeMassDeltaKg": -1.0639137786322772,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.014693615984972236,
+    "bikeMassDeltaKg": -1.0639137786322772,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cervelo PX-Series": [
+   {
+    "cdaDeltaM2": -0.008962128854378554,
+    "bikeMassDeltaKg": -0.4388953278816894,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012042556642036711,
+    "bikeMassDeltaKg": -0.46409800263101264,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012063752800565791,
+    "bikeMassDeltaKg": -0.8977872066364716,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01179895215640911,
+    "bikeMassDeltaKg": -0.8856013756399852,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012774062136957115,
+    "bikeMassDeltaKg": -0.8980761829679897,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012604469010885605,
+    "bikeMassDeltaKg": -1.1203996613657035,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Cube Aerium": [
+   {
+    "cdaDeltaM2": -0.004941705391196621,
+    "bikeMassDeltaKg": -0.4611647808847783,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007043015881043252,
+    "bikeMassDeltaKg": -0.4726305514575051,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007109160717371804,
+    "bikeMassDeltaKg": -0.6767566046628906,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00664957907022376,
+    "bikeMassDeltaKg": -0.694938186489801,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0065715574435149795,
+    "bikeMassDeltaKg": -0.8144592202205194,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01264224420037921,
+    "bikeMassDeltaKg": -0.8359493366327149,
+    "crrDelta": -0.0003
+   }
+  ],
+  "DiamondBack Andean": [
+   {
+    "cdaDeltaM2": -0.004904404754182939,
+    "bikeMassDeltaKg": -0.5852304013823106,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007006553491958195,
+    "bikeMassDeltaKg": -0.5957241003617719,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0070768558883927135,
+    "bikeMassDeltaKg": -0.7939133145519088,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006628151227677488,
+    "bikeMassDeltaKg": -0.8030624219271862,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.006552384963812524,
+    "bikeMassDeltaKg": -0.9191415258576319,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012624890984883258,
+    "bikeMassDeltaKg": -0.9381520417408842,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Felt IA": [
+   {
+    "cdaDeltaM2": -0.008950641602872927,
+    "bikeMassDeltaKg": -0.45548615092816025,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011081284482091974,
+    "bikeMassDeltaKg": -0.46628749818572945,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011153238434988583,
+    "bikeMassDeltaKg": -0.6679805464093613,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010768049673676755,
+    "bikeMassDeltaKg": -0.6816396332222121,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010691667565940893,
+    "bikeMassDeltaKg": -0.799762739082289,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016843723688022866,
+    "bikeMassDeltaKg": -0.8194785434990104,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Felt IA 2.0": [
+   {
+    "cdaDeltaM2": -0.008825346053100952,
+    "bikeMassDeltaKg": -0.7424260162870349,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010970059997230969,
+    "bikeMassDeltaKg": -0.7532158632926587,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011042341014851548,
+    "bikeMassDeltaKg": -0.9564833873886949,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010686166762105404,
+    "bikeMassDeltaKg": -0.9733785819279239,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01060920322386591,
+    "bikeMassDeltaKg": -1.0924303601174392,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016801065994261705,
+    "bikeMassDeltaKg": -1.1120179116778877,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Bolide": [
+   {
+    "cdaDeltaM2": -0.004991714619746041,
+    "bikeMassDeltaKg": -0.17763183333075624,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007037883931042904,
+    "bikeMassDeltaKg": -0.1831186688183015,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007063806504826713,
+    "bikeMassDeltaKg": -0.5175651252489866,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006696218417009485,
+    "bikeMassDeltaKg": -0.49563881286305556,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012722224401668009,
+    "bikeMassDeltaKg": -0.5236625787514209,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012722224401668009,
+    "bikeMassDeltaKg": -0.5236625787514209,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Bolide TT": [
+   {
+    "cdaDeltaM2": -0.005015191708728522,
+    "bikeMassDeltaKg": -0.10872503334257197,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007116841015727876,
+    "bikeMassDeltaKg": -0.11927942021268567,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007187653191041116,
+    "bikeMassDeltaKg": -0.3165711772634472,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0067205508254611634,
+    "bikeMassDeltaKg": -0.3227881643427475,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.006645094565393056,
+    "bikeMassDeltaKg": -0.4383338449077234,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01271635468213353,
+    "bikeMassDeltaKg": -0.45758043349550004,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Pinarello Espada": [
+   {
+    "cdaDeltaM2": -0.022424577157252573,
+    "bikeMassDeltaKg": 0.4766333160878755,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.024610631680524214,
+    "bikeMassDeltaKg": 0.46694727057074736,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.024696148956332403,
+    "bikeMassDeltaKg": 0.2713266044712075,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.024463833362646098,
+    "bikeMassDeltaKg": 0.27187430099923837,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.024392002761360304,
+    "bikeMassDeltaKg": 0.1572736399772818,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03069523978817852,
+    "bikeMassDeltaKg": 0.14037944609909478,
+    "crrDelta": -0.0003
+   }
+  ],
+  "QuintanaRoo Roo V-PR": [
+   {
+    "cdaDeltaM2": -0.0049243020643394975,
+    "bikeMassDeltaKg": -0.4860716401659966,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007012892064327619,
+    "bikeMassDeltaKg": -0.4963871255658807,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.00708339907365238,
+    "bikeMassDeltaKg": -0.6923171054465831,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006613656718156252,
+    "bikeMassDeltaKg": -0.6977345872333194,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.006538738244189907,
+    "bikeMassDeltaKg": -0.8124929613390828,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012572708498008206,
+    "bikeMassDeltaKg": -0.8311174848132827,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Scott Plasma": [
+   {
+    "cdaDeltaM2": -0.004874554645323131,
+    "bikeMassDeltaKg": -0.7340001687449478,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006920860288702063,
+    "bikeMassDeltaKg": -0.7399474450217349,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006940599415435317,
+    "bikeMassDeltaKg": -1.0835814288244388,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006590823000996698,
+    "bikeMassDeltaKg": -1.0712666859429385,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012616973762066247,
+    "bikeMassDeltaKg": -1.1009656152624894,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012616973762066247,
+    "bikeMassDeltaKg": -1.1009656152624894,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Scott Plasma RC Ultimate": [
+   {
+    "cdaDeltaM2": -0.008912334481236711,
+    "bikeMassDeltaKg": -0.7580704310442092,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011025185926192366,
+    "bikeMassDeltaKg": -0.768818286993743,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011095870464938956,
+    "bikeMassDeltaKg": -0.9698787501667221,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01069804421413098,
+    "bikeMassDeltaKg": -0.9837102643553726,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010621922436260506,
+    "bikeMassDeltaKg": -1.1014650313051186,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016723419228186737,
+    "bikeMassDeltaKg": -1.12105521319456,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Shiv": [
+   {
+    "cdaDeltaM2": -0.004926515089060807,
+    "bikeMassDeltaKg": -0.4475676649405136,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0070291101095524555,
+    "bikeMassDeltaKg": -0.45730226281754316,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007103046412186426,
+    "bikeMassDeltaKg": -0.6502185231580802,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006653973621808779,
+    "bikeMassDeltaKg": -0.650561872108292,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0065801944851890115,
+    "bikeMassDeltaKg": -0.7635774973517107,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012653599005906319,
+    "bikeMassDeltaKg": -0.7806926259428133,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Shiv Disc": [
+   {
+    "cdaDeltaM2": -0.008414508544849014,
+    "bikeMassDeltaKg": -0.4524159367384266,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01053956870654435,
+    "bikeMassDeltaKg": -0.4623586805411515,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010614841704098571,
+    "bikeMassDeltaKg": -0.658106061900205,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010222409698512097,
+    "bikeMassDeltaKg": -0.6624316924732261,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01014816460511822,
+    "bikeMassDeltaKg": -0.7771014113056163,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016284132383592637,
+    "bikeMassDeltaKg": -0.7946680179416683,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Specialized Shiv S-Works": [
+   {
+    "cdaDeltaM2": -0.004851345008030832,
+    "bikeMassDeltaKg": -0.7672260420153156,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0069589806635901585,
+    "bikeMassDeltaKg": -0.7766809261925891,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007033893579820066,
+    "bikeMassDeltaKg": -0.9689443843611878,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.006604812345527483,
+    "bikeMassDeltaKg": -0.9692052693466531,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.006531300125262679,
+    "bikeMassDeltaKg": -1.0818529530367949,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01261876011745447,
+    "bikeMassDeltaKg": -1.0981893814556463,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Trek Speed Concept SLR 9": [
+   {
+    "cdaDeltaM2": -0.009072321767852304,
+    "bikeMassDeltaKg": 0.6022591028168645,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011207699293698109,
+    "bikeMassDeltaKg": 0.5923813628443586,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011285743285035815,
+    "bikeMassDeltaKg": 0.3992157546986821,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.010872690828821946,
+    "bikeMassDeltaKg": 0.40248752857859493,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010799423319391127,
+    "bikeMassDeltaKg": 0.2893379647269878,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.016964756463432235,
+    "bikeMassDeltaKg": 0.27179099765056414,
+    "crrDelta": -0.0003
+   }
+  ],
+  "VanRysel RCR-X": [
+   {
+    "cdaDeltaM2": -0.009486338324918603,
+    "bikeMassDeltaKg": -0.4228559592671184,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011619220923887646,
+    "bikeMassDeltaKg": -0.43283875080856316,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011695119577662644,
+    "bikeMassDeltaKg": -0.6292739164990371,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.011320318887224429,
+    "bikeMassDeltaKg": -0.6344247822265947,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.011245999952469027,
+    "bikeMassDeltaKg": -0.7494967097381879,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01740377339171248,
+    "bikeMassDeltaKg": -0.7671439728757514,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Ventum One": [
+   {
+    "cdaDeltaM2": -0.006588995512160106,
+    "bikeMassDeltaKg": 0.34558706699143293,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009658095871351219,
+    "bikeMassDeltaKg": 0.3214575745960051,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009685181394207626,
+    "bikeMassDeltaKg": -0.09903233271902767,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.009363160006881616,
+    "bikeMassDeltaKg": -0.07566145695570636,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010334904811422657,
+    "bikeMassDeltaKg": -0.08766088940051642,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.010168796316336465,
+    "bikeMassDeltaKg": -0.30322811356852863,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Zwift TT": [
+   {
+    "cdaDeltaM2": -1.9387518300175193e-16,
+    "bikeMassDeltaKg": -8.007216684574177e-15,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.007998717178665266,
+    "bikeMassDeltaKg": -0.016333480846319595,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.008018362730241563,
+    "bikeMassDeltaKg": -0.3241188283266263,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0075981529627087985,
+    "bikeMassDeltaKg": -0.34749623247085193,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0075981529627087985,
+    "bikeMassDeltaKg": -0.34749623247085193,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.0075981529627087985,
+    "bikeMassDeltaKg": -0.34749623247085193,
+    "crrDelta": -0.0003
+   }
+  ]
+ },
+ "wheels": {
+  "Bontrager Aeolus5": {
+   "cdaDeltaM2": -0.0049949506473214444,
+   "bikeMassDeltaKg": 0.1363613614158874,
+   "crrDelta": 0
+  },
+  "Cadex 36": {
+   "cdaDeltaM2": -0.0013607350582307276,
+   "bikeMassDeltaKg": -0.15139735814245414,
+   "crrDelta": 0
+  },
+  "Cadex 42": {
+   "cdaDeltaM2": -0.004062650389021288,
+   "bikeMassDeltaKg": -0.12893088011421883,
+   "crrDelta": 0
+  },
+  "Cadex 65": {
+   "cdaDeltaM2": -0.008952213621833377,
+   "bikeMassDeltaKg": 0.03499538726594319,
+   "crrDelta": 0
+  },
+  "Cadex Max 50": {
+   "cdaDeltaM2": -0.00881168770167387,
+   "bikeMassDeltaKg": -0.19008081920025388,
+   "crrDelta": 0
+  },
+  "Campagnolo Bora Ultra 35": {
+   "cdaDeltaM2": 0.00017469595509897473,
+   "bikeMassDeltaKg": -0.0800589542000618,
+   "crrDelta": 0
+  },
+  "Campagnolo Bora Ultra 50": {
+   "cdaDeltaM2": -0.006913443256108348,
+   "bikeMassDeltaKg": -0.03718843010107474,
+   "crrDelta": 0
+  },
+  "DTSwiss ARC 1100 DICUT 62": {
+   "cdaDeltaM2": -0.011105777468796235,
+   "bikeMassDeltaKg": 0.12398576895846868,
+   "crrDelta": 0
+  },
+  "DTSwiss ARC 1100 DICUT 65": {
+   "cdaDeltaM2": -0.012505558170391645,
+   "bikeMassDeltaKg": 0.030587653535243398,
+   "crrDelta": 0
+  },
+  "DTSwiss ARC 1100 DICUT 85/Disc": {
+   "cdaDeltaM2": -0.014506827047498644,
+   "bikeMassDeltaKg": 0.6804952420806876,
+   "crrDelta": 0
+  },
+  "DTSwiss ARC 1100 DICUT DISC": {
+   "cdaDeltaM2": -0.01407800939242751,
+   "bikeMassDeltaKg": 0.7716320626219124,
+   "crrDelta": 0
+  },
+  "Enve SES 2.2": {
+   "cdaDeltaM2": 0.000059335071938365895,
+   "bikeMassDeltaKg": -0.11522370947860548,
+   "crrDelta": 0
+  },
+  "Enve SES 3.4": {
+   "cdaDeltaM2": -0.0067689013908243945,
+   "bikeMassDeltaKg": -0.08040462449502382,
+   "crrDelta": 0
+  },
+  "Enve SES 4.5 PRO": {
+   "cdaDeltaM2": -0.011202326825057257,
+   "bikeMassDeltaKg": -0.11906084061477219,
+   "crrDelta": 0
+  },
+  "Enve SES 6.7": {
+   "cdaDeltaM2": -0.008635537556875489,
+   "bikeMassDeltaKg": -0.015317142269246194,
+   "crrDelta": 0
+  },
+  "Enve SES 7.8": {
+   "cdaDeltaM2": -0.012768253838071036,
+   "bikeMassDeltaKg": 0.160712812023454,
+   "crrDelta": 0
+  },
+  "Enve SES 8.9": {
+   "cdaDeltaM2": -0.013367719912834836,
+   "bikeMassDeltaKg": 0.37234755330398794,
+   "crrDelta": 0
+  },
+  "FFWD RYOT55": {
+   "cdaDeltaM2": -0.006750293860326134,
+   "bikeMassDeltaKg": 0.26764834292054385,
+   "crrDelta": 0
+  },
+  "Giant SLR 0": {
+   "cdaDeltaM2": -0.005803136515573376,
+   "bikeMassDeltaKg": -0.09642384683329698,
+   "crrDelta": 0
+  },
+  "HED Vanquish RC6 Pro": {
+   "cdaDeltaM2": -0.004114778530105529,
+   "bikeMassDeltaKg": 0.1265519522606633,
+   "crrDelta": 0
+  },
+  "Lightweight Lightweight Meilenstein": {
+   "cdaDeltaM2": -0.0031780820085887955,
+   "bikeMassDeltaKg": -0.21692239644321676,
+   "crrDelta": 0
+  },
+  "Mavic Comete Pro Carbon SL UST": {
+   "cdaDeltaM2": -0.00692974686765932,
+   "bikeMassDeltaKg": 0.17091655166263653,
+   "crrDelta": 0
+  },
+  "Mavic Cosmic CXR60c": {
+   "cdaDeltaM2": -0.005980652394009661,
+   "bikeMassDeltaKg": 0.36301271505484234,
+   "crrDelta": 0
+  },
+  "Mavic Cosmic Ultimate UST": {
+   "cdaDeltaM2": -0.004952829069996807,
+   "bikeMassDeltaKg": -0.10594952813935567,
+   "crrDelta": 0
+  },
+  "Miche Deva RD 62": {
+   "cdaDeltaM2": -0.012056211765052144,
+   "bikeMassDeltaKg": -0.0523415176742863,
+   "crrDelta": 0
+  },
+  "Novatec Novatec R4": {
+   "cdaDeltaM2": -0.0008159410949370166,
+   "bikeMassDeltaKg": 0.13922655892876268,
+   "crrDelta": 0
+  },
+  "Princeton  Mach TSV2/Blur Disc ": {
+   "cdaDeltaM2": -0.013849619456925838,
+   "bikeMassDeltaKg": 0.7613425541795413,
+   "crrDelta": 0
+  },
+  "Princeton Alta 3532": {
+   "cdaDeltaM2": -0.0078999933798026,
+   "bikeMassDeltaKg": -0.28873720455113316,
+   "crrDelta": 0
+  },
+  "Princeton Wake 6560 Lava": {
+   "cdaDeltaM2": -0.012284334033414751,
+   "bikeMassDeltaKg": -0.19263254611166003,
+   "crrDelta": 0
+  },
+  "Princeton Wake 6560 White": {
+   "cdaDeltaM2": -0.012284334033414751,
+   "bikeMassDeltaKg": -0.19263254611166003,
+   "crrDelta": 0
+  },
+  "Reserve 34/37": {
+   "cdaDeltaM2": -0.007642219480008011,
+   "bikeMassDeltaKg": -0.18501584768139123,
+   "crrDelta": 0
+  },
+  "Reserve 57/64": {
+   "cdaDeltaM2": -0.011735721075419897,
+   "bikeMassDeltaKg": 0.001199280560618918,
+   "crrDelta": 0
+  },
+  "Roval Alpinist CLX": {
+   "cdaDeltaM2": -0.003072110943792311,
+   "bikeMassDeltaKg": -0.20770017374871186,
+   "crrDelta": 0
+  },
+  "Roval CLX64": {
+   "cdaDeltaM2": -0.00954319678064533,
+   "bikeMassDeltaKg": 0.005232305866123894,
+   "crrDelta": 0
+  },
+  "Roval Rapide CLX": {
+   "cdaDeltaM2": -0.007629690996469791,
+   "bikeMassDeltaKg": -0.05256645793570369,
+   "crrDelta": 0
+  },
+  "Roval Sprint CLX": {
+   "cdaDeltaM2": -0.012038007352533936,
+   "bikeMassDeltaKg": -0.03956102580388386,
+   "crrDelta": 0
+  },
+  "Shimano C40": {
+   "cdaDeltaM2": -0.0027493922024590394,
+   "bikeMassDeltaKg": -0.03695165351400266,
+   "crrDelta": 0
+  },
+  "Shimano DURA-ACE C36": {
+   "cdaDeltaM2": -0.004420118149521063,
+   "bikeMassDeltaKg": -0.14053520018496402,
+   "crrDelta": 0
+  },
+  "Shimano DURA-ACE C50": {
+   "cdaDeltaM2": -0.005426856613489156,
+   "bikeMassDeltaKg": 0.11258057122373889,
+   "crrDelta": 0
+  },
+  "Shimano DURA-ACE C60": {
+   "cdaDeltaM2": -0.00731258566354434,
+   "bikeMassDeltaKg": 0.19596672931861914,
+   "crrDelta": 0
+  },
+  "SwissSide HADRON Ultimate 650": {
+   "cdaDeltaM2": -0.013112131598115556,
+   "bikeMassDeltaKg": -0.009351660103696247,
+   "crrDelta": 0
+  },
+  "SwissSide HADRON Ultimate Disc": {
+   "cdaDeltaM2": -0.014506827047498644,
+   "bikeMassDeltaKg": 0.6804952420806876,
+   "crrDelta": 0
+  },
+  "Zipp 202": {
+   "cdaDeltaM2": -0.0009976269435240381,
+   "bikeMassDeltaKg": -0.06955235841242978,
+   "crrDelta": 0
+  },
+  "Zipp 353 NSW": {
+   "cdaDeltaM2": -0.007597603747764997,
+   "bikeMassDeltaKg": -0.1699156790864227,
+   "crrDelta": 0
+  },
+  "Zipp 404": {
+   "cdaDeltaM2": -0.008553657203208248,
+   "bikeMassDeltaKg": 0.06171886932029569,
+   "crrDelta": 0
+  },
+  "Zipp 454": {
+   "cdaDeltaM2": -0.009481207663786378,
+   "bikeMassDeltaKg": -0.11498684086207998,
+   "crrDelta": 0
+  },
+  "Zipp 808": {
+   "cdaDeltaM2": -0.010223959314499181,
+   "bikeMassDeltaKg": 0.17126951960924774,
+   "crrDelta": 0
+  },
+  "Zipp 808/Super9": {
+   "cdaDeltaM2": -0.013034794562528401,
+   "bikeMassDeltaKg": 0.7057131246828385,
+   "crrDelta": 0
+  },
+  "Zipp 858": {
+   "cdaDeltaM2": -0.011182641189255632,
+   "bikeMassDeltaKg": 0.07810738038924915,
+   "crrDelta": 0
+  },
+  "Zipp 858/Super9": {
+   "cdaDeltaM2": -0.014078174103973246,
+   "bikeMassDeltaKg": 0.6602137504629946,
+   "crrDelta": 0
+  },
+  "Zwift 32mm Carbon": {
+   "cdaDeltaM2": -3.0556860460743215e-16,
+   "bikeMassDeltaKg": -7.54868923779329e-15,
+   "crrDelta": 0
+  },
+  "Zwift 50mm Carbon": {
+   "cdaDeltaM2": -0.0033005051855049816,
+   "bikeMassDeltaKg": 0.09406991968199117,
+   "crrDelta": 0
+  },
+  "Zwift Buffalo Fahrrad": {
+   "cdaDeltaM2": 0.0015398806667523963,
+   "bikeMassDeltaKg": 0.5189278949600657,
+   "crrDelta": 0
+  },
+  "Zwift Classic": {
+   "cdaDeltaM2": 0.00155185300393676,
+   "bikeMassDeltaKg": 0.27944930805690316,
+   "crrDelta": 0
+  },
+  "Zwift Groovy Time Trial Wheels": {
+   "cdaDeltaM2": -0.010196568439495762,
+   "bikeMassDeltaKg": 0.7677604798211144,
+   "crrDelta": 0
+  },
+  "Zwift Plain": {
+   "cdaDeltaM2": -0.006848248420288554,
+   "bikeMassDeltaKg": 0.21158141666979535,
+   "crrDelta": 0
+  },
+  "Zwift Pride On Disc": {
+   "cdaDeltaM2": -0.010196568439495762,
+   "bikeMassDeltaKg": 0.7677604798211144,
+   "crrDelta": 0
+  },
+  "Zwift Safety": {
+   "cdaDeltaM2": -0.00009099718371888304,
+   "bikeMassDeltaKg": 0.8280097154166617,
+   "crrDelta": 0
+  },
+  "Zwift Supersonic Wheelset": {
+   "cdaDeltaM2": -0.0010248945088297827,
+   "bikeMassDeltaKg": 0.003634042394204508,
+   "crrDelta": 0
+  },
+  "Zwift Tri Spoke // Disc Wheel": {
+   "cdaDeltaM2": -0.008629637259225525,
+   "bikeMassDeltaKg": 0.7219755109476944,
+   "crrDelta": 0
+  },
+  "Zwift Zwift Baseline Wheels": {
+   "cdaDeltaM2": 0.00011668002209311293,
+   "bikeMassDeltaKg": -0.003905969850287229,
+   "crrDelta": 0
+  }
+ },
+ "ttDiscResidualCdaDeltaM2": -0.003955893258179105
+}

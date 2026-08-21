@@ -111,8 +111,34 @@ function crossBoundaries(
  */
 const DEFAULT_DT_SEC = 0.1
 
+/**
+ * Above this total distance the default step grows linearly with distance
+ * (capped at `MAX_DT_SEC`), holding the step COUNT roughly constant instead
+ * of letting a 174km route cost 16x an 11km one. Workers production CPU
+ * made this matter: the PRL Full's ~60-sim page ran 2.5-10.7s of `simulate`
+ * phase there (docs/observability.md), and the step count is that cost.
+ *
+ * Why this doesn't degrade results (measured 2026-08-21 against a dt=0.02
+ * reference, 24 physics-distinct combos, routes 64-174km - the sweep lives
+ * in the PR discussion): the growing step's error stays inside the noise
+ * the 0.1 baseline already has on long routes. At the cap (PRL Full, 174km,
+ * 5.6h): absolute error 17.6s (0.087%, vs the baseline's own 5.7s),
+ * adjacent-combo gap error 5.95s (vs 2.54s), and NO ordering changes; at
+ * intermediate lengths ordering changes are confined to combos within
+ * ~0.6s of each other on multi-hour rides - pairs the 0.1 baseline
+ * itself also flips (its gran-fondo run flips a 0.608s pair). Every route
+ * at or under the knee is bit-identical to before. Cost on the PRL Full:
+ * 38 -> 15ms per simulation locally, the same factor on the Worker.
+ */
+const ADAPTIVE_DT_KNEE_DISTANCE_M = 60_000
+const MAX_DT_SEC = 0.3
+
+function defaultDtSec(totalDistanceM: number): number {
+  return Math.min(MAX_DT_SEC, Math.max(DEFAULT_DT_SEC, DEFAULT_DT_SEC * totalDistanceM / ADAPTIVE_DT_KNEE_DISTANCE_M))
+}
+
 export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationResult {
-  const dt = options.dtSec ?? DEFAULT_DT_SEC
+  const dt = options.dtSec ?? defaultDtSec(options.geometry.totalDistanceM)
   if (dt <= 0) throw new Error('dtSec must be positive')
   if (options.geometry.points.length < 2) throw new Error('Route geometry requires at least two points')
 

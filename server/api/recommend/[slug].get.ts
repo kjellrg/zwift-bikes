@@ -9,7 +9,7 @@ import type { BikeCategory } from '../../../shared/types/catalog'
 import { parseQuery, recommendRouteQuerySchema } from '../../utils/apiQuerySchemas'
 import { addTimingMeta, markPhase } from '../../utils/timing'
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing route slug' })
   const route = getRouteBySlug(slug)
@@ -102,7 +102,7 @@ export default defineEventHandler((event) => {
   const frames = category ? rankable.filter(f => f.category === category) : rankable
   // Includes this instance's lazy catalog init on a cold start - frame
   // classification and the route surface data both load on first touch.
-  markPhase(event, 'pool')
+  await markPhase(event, 'pool')
 
   // `rankCombos` scores every frame x wheelset pair internally regardless of
   // the `limit` passed in - it only truncates the *returned* array at the
@@ -110,7 +110,7 @@ export default defineEventHandler((event) => {
   // fetch the full candidate pool so both the search filter below and the
   // ranking step that follows see every candidate, not an arbitrary slice.
   const rankedCombos = rankCombos(route, frames, wheelsets, frames.length * wheelsets.length)
-  markPhase(event, 'rank')
+  await markPhase(event, 'rank')
 
   // Once we know the rider's weight/power, `estimateFinishTimeSec` (cheap -
   // a ~40-iteration bisection, no per-meter simulation) is a far more
@@ -149,7 +149,7 @@ export default defineEventHandler((event) => {
   const powerScaleAtSpeed = draftMode === 'ttt'
     ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps)
     : draftMode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined
-  markPhase(event, 'geometry')
+  await markPhase(event, 'geometry')
 
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
@@ -157,7 +157,7 @@ export default defineEventHandler((event) => {
       .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
-  markPhase(event, 'estimate')
+  await markPhase(event, 'estimate')
 
   // `capWheelsetsPerFrame` must never run before `search` gets to look at
   // the full pool - see its doc comment - so it's skipped entirely while
@@ -166,7 +166,7 @@ export default defineEventHandler((event) => {
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
-  markPhase(event, 'filter')
+  await markPhase(event, 'filter')
 
   // The cheap estimate got the pool into roughly the right order, but it is
   // NOT the signal this endpoint displays: in `dynamic` mode every time a
@@ -189,7 +189,7 @@ export default defineEventHandler((event) => {
     filteredRankedCombos = ordering.ordered
     for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
   }
-  markPhase(event, 'simulate')
+  await markPhase(event, 'simulate')
 
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
@@ -210,7 +210,7 @@ export default defineEventHandler((event) => {
     if (physicsMode === 'compare') pageCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
-  markPhase(event, 'page')
+  await markPhase(event, 'page')
 
   // "Riding as a TTT saves X vs solo": ONE extra simulation per request (top
   // combo, first page, dynamic mode only) of the same rider at the same
@@ -316,7 +316,7 @@ export default defineEventHandler((event) => {
     }
   }
 
-  markPhase(event, 'extras')
+  await markPhase(event, 'extras')
   // What the phases above cost is only half the story - these are the inputs
   // that predict it. Route distance x laps is what `simulate` scales with;
   // `sims` is how many times that distance was integrated.

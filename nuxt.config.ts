@@ -69,7 +69,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-30',
 
   nitro: {
-    preset: 'azure-swa',
+    preset: 'cloudflare_module',
     azure: {
       config: {
         globalHeaders: {
