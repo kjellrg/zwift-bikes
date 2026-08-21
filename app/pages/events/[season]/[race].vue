@@ -117,24 +117,35 @@ const recommendQuery = computed(() => ({
 
 // `useAsyncData` rather than `useFetch` here: the selected category group can
 // change which route is being shown, and can have no route at all, which a
-// `useFetch` URL can't express. Both are keyed on the slug so switching
-// category fetches that group's route instead of reusing the previous one.
-// The recommend call watches nothing itself (`watch: []` - `useAsyncData`'s
-// spelling of `useFetch`'s `watch: false`) + the explicit refresh watcher
-// below, matching the route/segment pages.
+// `useFetch` URL can't express. The route lookup is keyed on the slug so
+// switching category fetches that group's route instead of reusing the
+// previous one.
 //
-// The recommend key includes the serialized query, not just the slug. This
-// mirrors what `useFetch` does implicitly on the route/segment pages (its
-// auto-key hashes the query values) and it is load-bearing: while Nuxt is
-// still hydrating, ANY `refresh()` - the manual one below included - is
-// answered from the server-rendered payload for the current key instead of
-// hitting the network (see `getDefaultCachedData` in Nuxt's `asyncData`).
-// The rider's stored profile loads from localStorage inside that hydration
-// window, so with a slug-only key the post-load refresh was silently
-// swallowed and page one kept the default-profile times - while "Show more
-// matches" fetched with the real profile, pinning faster times to the
-// bottom of the list. A query change rolling the key over misses the
-// payload cache, which is exactly what forces the refetch.
+// The recommend call's key is deliberately STATIC (fixed per race page), and
+// the explicit watchers below are its only refetch trigger (`watch: []` -
+// `useAsyncData`'s spelling of `useFetch`'s `watch: false`). A key that
+// changes with the query looks equivalent but is not: a reactive key change
+// itself executes the fetch (Nuxt watches the key with `flush: 'sync'`, so it
+// fires once per mutated ref), and a weight change writes `weightKg` and then
+// the derived `wkg` - so a query-shaped key fired three requests per slider
+// move: two key-triggered (the first with a stale `wkg`) plus the explicit
+// watcher's own refresh. `useFetch({ watch: false })` opts out of
+// key-triggered execution internally (`_keyTriggersExecute`), which is why
+// the route/segment pages never had this. A slug-shaped key has the same
+// problem one level up: a category switch can change slug and laps together,
+// double-fetching from the key watcher plus the laps watcher.
+//
+// The custom `getCachedData` is what makes the static key safe. Nuxt's
+// default answers ANY `refresh()` from the server-rendered payload while the
+// app is still hydrating (see `getDefaultCachedData` in Nuxt's `asyncData`),
+// and the rider's stored profile loads from localStorage inside that
+// hydration window - so with a plain static key the post-load refresh was
+// silently swallowed and page one kept the default-profile times, while
+// "Show more matches" fetched with the real profile, pinning faster times to
+// the bottom of the list. Refusing to serve the cache for manual refreshes
+// keeps hydration itself free (the initial load still reuses the payload)
+// while guaranteeing every `refreshRecommendations()` call hits the network.
+const recommendKey = `race-recommend-${seasonSlug.value}-${raceSlug.value}`
 const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecommendations, error: recommendError }] = await Promise.all([
   useAsyncData(
     () => `race-route-${selectedRouteSlug.value ?? 'none'}`,
@@ -142,9 +153,15 @@ const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecom
     { watch: [selectedRouteSlug] }
   ),
   useAsyncData(
-    () => `race-recommend-${selectedRouteSlug.value ?? 'none'}-${JSON.stringify(recommendQuery.value)}`,
+    recommendKey,
     () => selectedRouteSlug.value ? $fetch(`/api/recommend/${selectedRouteSlug.value}`, { query: recommendQuery.value }) : Promise.resolve(null),
-    { watch: [] }
+    {
+      watch: [],
+      getCachedData: (key, nuxtApp, ctx) => {
+        if (ctx.cause === 'refresh:manual') return undefined
+        return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : nuxtApp.static.data[key]
+      }
+    }
   )
 ])
 useRefetchNotice(recommendError, status, refreshRecommendations)
