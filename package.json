@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run validate && nuxt build && node scripts/trim-swa-config.mjs",
+    "build": "npm run validate && nuxt build",
     "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas",
     "validate:equipment-physics": "node scripts/equipment-physics/compute-equipment-physics.mjs --check",
     "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",
