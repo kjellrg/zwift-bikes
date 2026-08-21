@@ -37,8 +37,20 @@ permissions:
 # Superseded preview runs have nothing left to say, so cancel them. Pushes to
 # main are deliberately excluded: cancelling a half-finished production deploy
 # is a worse outcome than letting it finish and be replaced.
+#
+# `head_ref || ref`, not plain `ref`: for a CLOSED pull request the
+# `refs/pull/<n>/merge` test ref no longer exists, so `github.ref` falls back
+# to the base branch - putting the preview-cleanup run in the same group as
+# the production deploy the very same merge just triggered. GitHub keeps only
+# the newest WAITING request per group (`cancel-in-progress: false` protects
+# only runs already in progress), so the still-queued deploy lost that race
+# and was cancelled - or, when the race flipped, sat waiting behind the
+# cleanup. `head_ref` is set on every pull_request event (closed included)
+# and empty on push, so deploys get their own group and all of a PR's runs -
+# preview deploys and its cleanup - share one, which also stops a redeploy
+# racing the Worker deletion when a PR closes mid-push.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
