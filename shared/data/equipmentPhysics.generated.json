@@ -4024,9 +4024,29 @@
    "bikeMassDeltaKg": -0.03956102580388386,
    "crrDelta": 0
   },
+  "Shimano C36": {
+   "cdaDeltaM2": -0.0075215077568636934,
+   "bikeMassDeltaKg": -0.19677258849063906,
+   "crrDelta": 0
+  },
   "Shimano C40": {
    "cdaDeltaM2": -0.0027493922024590394,
    "bikeMassDeltaKg": -0.03695165351400266,
+   "crrDelta": 0
+  },
+  "Shimano C50": {
+   "cdaDeltaM2": -0.011094926355779494,
+   "bikeMassDeltaKg": -0.1514420155316505,
+   "crrDelta": 0
+  },
+  "Shimano C60": {
+   "cdaDeltaM2": -0.011831370377943379,
+   "bikeMassDeltaKg": -0.09381970642758876,
+   "crrDelta": 0
+  },
+  "Shimano C99/Disc": {
+   "cdaDeltaM2": -0.015046817334029988,
+   "bikeMassDeltaKg": 0.6657302993173664,
    "crrDelta": 0
   },
   "Shimano DURA-ACE C36": {

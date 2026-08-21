@@ -1,5 +1,6 @@
 import { bikeFrontWheels, bikeRearWheels } from 'zwift-data'
 import type { ClassificationScores, ClassifiedWheel, EquipmentPhysicsDelta, ScoreConfidence, Wheelset } from '../types/catalog'
+import { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, applyWheelSupplement } from '../data/wheelSupplement'
 import { classifyFrontWheel, classifyRearWheel } from './classifyWheel'
 
 /**
@@ -51,8 +52,10 @@ let cachedWheelsets: Wheelset[] | undefined
 export function getWheelsets(): Wheelset[] {
   if (cachedWheelsets) return cachedWheelsets
 
-  const classifiedFront = bikeFrontWheels.filter(w => !INTEGRATED_ONLY_WHEELS.has(w.name)).map(classifyFrontWheel)
-  const classifiedRear = bikeRearWheels.filter(w => !INTEGRATED_ONLY_WHEELS.has(w.name)).map(classifyRearWheel)
+  const allFront = applyWheelSupplement(bikeFrontWheels, SUPPLEMENT_FRONT_WHEELS)
+  const allRear = applyWheelSupplement(bikeRearWheels, SUPPLEMENT_REAR_WHEELS)
+  const classifiedFront = allFront.filter(w => !INTEGRATED_ONLY_WHEELS.has(w.name)).map(classifyFrontWheel)
+  const classifiedRear = allRear.filter(w => !INTEGRATED_ONLY_WHEELS.has(w.name)).map(classifyRearWheel)
 
   const frontByName = new Map(classifiedFront.map(w => [w.name, w]))
   const rearByName = new Map(classifiedRear.map(w => [w.name, w]))

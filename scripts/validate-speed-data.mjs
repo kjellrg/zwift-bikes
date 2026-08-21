@@ -19,6 +19,11 @@
 //     `bikeFrames` name, or a TT key whose frame isn't TT-classified
 //   - a `FRAME_UPGRADE_SCHEMES` key that isn't a `bikeFrames` name
 //   - an `INTEGRATED_ONLY_WHEELS` name that isn't in both wheel catalogs
+//   - a `wheelSupplement.ts` entry that zwift-data now ships (by id or
+//     name) - the supplement only bridges the gap until upstream catches up
+//
+// Wheel-name checks run against the zwift-data catalog MERGED with
+// `wheelSupplement.ts`, mirroring the runtime catalog in `getWheelsets()`.
 //
 // On a mismatch the closest catalog candidate (case/whitespace-insensitive)
 // is printed with the codepoints of the differing span.
@@ -26,6 +31,7 @@ import { bikeFrames, bikeFrontWheels, bikeRearWheels } from 'zwift-data'
 import { loadSharedModule } from './route-surfaces/loadShared.mjs'
 
 const { WHEEL_SPEED_DATA } = loadSharedModule('shared/data/wheelSpeedData.ts')
+const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, applyWheelSupplement } = loadSharedModule('shared/data/wheelSupplement.ts')
 const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/frameSpeedData.ts')
 const { FRAME_UPGRADE_SCHEMES } = loadSharedModule('shared/data/frameUpgradeSchemes.ts')
 
@@ -65,12 +71,40 @@ function checkKeys(label, keys, catalogNames) {
   }
 }
 
-const frontWheelNames = bikeFrontWheels.map(w => w.name)
-const rearWheelNames = new Set(bikeRearWheels.map(w => w.name))
+// The wheel catalog is zwift-data plus the supplement (wheels live in the
+// game but not yet shipped upstream - see `shared/data/wheelSupplement.ts`),
+// merged exactly the way `getWheelsets()` merges them at runtime.
+const frontWheelNames = applyWheelSupplement(bikeFrontWheels, SUPPLEMENT_FRONT_WHEELS).map(w => w.name)
+const rearWheelNames = new Set(applyWheelSupplement(bikeRearWheels, SUPPLEMENT_REAR_WHEELS).map(w => w.name))
 // `classifyWheel` looks rows up for front AND rear wheels, and some wheels
 // are rear-only in the catalog (disc rears like "Zipp 808/Super9") - so the
 // valid key domain is the union of both lists.
 const anyWheelNames = [...new Set([...frontWheelNames, ...rearWheelNames])]
+
+// Supplement staleness: the runtime merge silently prefers upstream on any
+// name/id collision, so a zwift-data release can never break the app - but
+// the moment upstream ships a supplemented wheel, its entry here is dead
+// weight (and a *near-miss* name spelling would leave BOTH wheels in the
+// catalog). Fail the build with the exact cleanup instruction instead of
+// letting either state linger.
+for (const [label, supplement, upstream] of [
+  ['SUPPLEMENT_FRONT_WHEELS', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels],
+  ['SUPPLEMENT_REAR_WHEELS', SUPPLEMENT_REAR_WHEELS, bikeRearWheels]
+]) {
+  const upstreamByNormalized = new Map(upstream.map(w => [normalize(w.name), w]))
+  const upstreamById = new Map(upstream.map(w => [w.id, w]))
+  for (const wheel of supplement) {
+    const byId = upstreamById.get(wheel.id)
+    const byName = upstreamByNormalized.get(normalize(wheel.name))
+    if (!byId && !byName) continue
+    const upstreamName = (byId ?? byName).name
+    if (upstreamName === wheel.name) {
+      errors.push(`${label}: zwift-data now ships ${JSON.stringify(wheel.name)} - delete its supplement entry`)
+    } else {
+      errors.push(`${label}: zwift-data now ships supplement entry ${JSON.stringify(wheel.name)} (id ${wheel.id}) under the name ${JSON.stringify(upstreamName)} - delete the supplement entry and re-key any speed data/garage identity on the upstream spelling - first differing span:\n${diffSpan(wheel.name, upstreamName)}`)
+    }
+  }
+}
 const frameNames = bikeFrames.map(f => f.name)
 
 checkKeys('WHEEL_SPEED_DATA', Object.keys(WHEEL_SPEED_DATA), anyWheelNames)
