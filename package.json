@@ -3,8 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run validate && nuxt build && node scripts/trim-swa-config.mjs",
-    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:race-draft && npm run validate:api-schemas",
+    "build": "npm run validate && nuxt build",
+    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas",
+    "validate:equipment-physics": "node scripts/equipment-physics/compute-equipment-physics.mjs --check",
+    "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",
     "validate:api-schemas": "node scripts/validate-api-schemas.mjs",
     "validate:events": "node scripts/events/validate-events.mjs",
     "validate:speed-data": "node scripts/validate-speed-data.mjs",
@@ -40,6 +42,7 @@
     "eslint": "^10.8.1",
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
-    "vue-tsc": "^3.3.10"
+    "vue-tsc": "^3.3.10",
+    "wrangler": "^4.125.0"
   }
 }

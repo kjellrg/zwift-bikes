@@ -1,6 +1,7 @@
 import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
-import type { ClassificationScores, ClassifiedWheel, WheelCategory } from '../types/catalog'
+import type { ClassificationScores, ClassifiedWheel, EquipmentPhysicsDelta, WheelCategory } from '../types/catalog'
 import { WHEEL_SPEED_DATA } from '../data/wheelSpeedData'
+import { precomputedWheelDelta } from '../data/equipmentPhysics'
 import { solveWheelEquipmentDelta } from './physics/equipment'
 
 /**
@@ -172,13 +173,25 @@ function classify(wheel: { id: number, name: string, imageName: string }): Class
       gravel,
       cobble
     }
-    const physics = solveWheelEquipmentDelta({ flatGapSec: measured.flatGapSec, climbGapSec: measured.climbGapSec })
+    const physics = precomputedWheelDelta(wheel.name)
     return { ...wheel, category, crrClass, scores, confidence: 'measured', physics }
   }
 
   const preset = scoresForCategory(category, depthMm)
   const scores: ClassificationScores = { aero: preset.aero, climb: preset.climb, gravel, cobble }
   return { ...wheel, category, crrClass, scores, confidence: 'estimated' }
+}
+
+/**
+ * The real numerical solve behind the precomputed table - what `classify`
+ * used to run per measured wheel at runtime. See the same-named frame helper
+ * in `classifyBikeFrame.ts` for why this only runs from
+ * `scripts/equipment-physics/compute-equipment-physics.mjs`.
+ */
+export function solveMeasuredWheelPhysics(name: string): EquipmentPhysicsDelta | undefined {
+  const measured = WHEEL_SPEED_DATA[name]
+  if (!measured) return undefined
+  return solveWheelEquipmentDelta({ flatGapSec: measured.flatGapSec, climbGapSec: measured.climbGapSec })
 }
 
 export function classifyFrontWheel(wheel: BikeFrontWheel): ClassifiedWheel {

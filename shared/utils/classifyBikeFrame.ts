@@ -1,7 +1,8 @@
 import type { BikeFrame } from 'zwift-data'
-import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame } from '../types/catalog'
+import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame, EquipmentPhysicsDelta } from '../types/catalog'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor, type StageChart, type StageCurve } from '../data/frameUpgradeSchemes'
+import { precomputedFrameDelta } from '../data/equipmentPhysics'
 import { solveFrameEquipmentDelta } from './physics/equipment'
 
 /**
@@ -305,10 +306,10 @@ const classifiedByFrame = new WeakMap<BikeFrame, Map<number, ClassifiedBikeFrame
 export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFrame {
   // Only whole levels 0-5 are cached, which is the entire real domain (see
   // `DEFAULT_UNOWNED_LEVEL` and the garage). Anything else - a fraction, a
-  // negative, a level past 5 - still classifies normally and is simply not
-  // stored, so a caller passing arbitrary numbers (the `owned` query
-  // parameter is rider-supplied JSON) can neither change an answer nor grow
-  // this map without bound.
+  // negative, a level past 5 - still classifies (as its rounded/clamped
+  // stage, see `classifyFrame`) and is simply not stored, so a caller
+  // passing arbitrary numbers (the `owned` query parameter is rider-supplied
+  // JSON) can neither change an answer nor grow this map without bound.
   if (!Number.isInteger(level) || level < 0 || level > 5) return classifyFrame(frame, level)
 
   let byLevel = classifiedByFrame.get(frame)
@@ -328,7 +329,12 @@ export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFr
 function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
   const category = classifyBikeCategory(frame)
   const hasFixedWheels = FIXED_WHEEL_FRAMES.has(frame.name)
-  const clampedLevel = Math.min(5, Math.max(0, level))
+  // Rounded, not just clamped: Zwift's upgrade stages are whole numbers, and
+  // whole stages 0-5 are the entire domain the precomputed physics table
+  // (`../data/equipmentPhysics.ts`) covers. The API schemas already snap
+  // incoming levels to integers; rounding again here makes the classifier
+  // total for any numeric input a direct caller might pass.
+  const clampedLevel = Math.min(5, Math.max(0, Math.round(level)))
 
   if (category === 'standard') {
     const style = classifyBikeStyle(frame.name)
@@ -337,15 +343,15 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
 
     if (measured) {
       const chart = frameStageChart(frame.name)
-      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, level, chart?.flat)
-      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, level, chart?.climb)
+      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat)
+      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb)
       const scores: ClassificationScores = {
         aero: scoreFromGap(flatGap, FLAT_GAP_RANGE),
         climb: scoreFromGap(climbGap, CLIMB_GAP_RANGE),
         gravel: preset.gravel,
         cobble: preset.cobble
       }
-      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, false, drivetrainCrrDeltaForLevel(clampedLevel))
+      const physics = precomputedFrameDelta(frame.name, clampedLevel, false)
       return { ...frame, category, style, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
     }
 
@@ -358,15 +364,15 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
 
     if (measured) {
       const chart = frameStageChart(frame.name)
-      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, level, chart?.flat)
-      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, level, chart?.climb)
+      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat)
+      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb)
       const scores: ClassificationScores = {
         aero: scoreFromGap(flatGap, TT_FLAT_GAP_RANGE),
         climb: scoreFromGap(climbGap, TT_CLIMB_GAP_RANGE),
         gravel: preset.gravel,
         cobble: preset.cobble
       }
-      const physics = solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, true, drivetrainCrrDeltaForLevel(clampedLevel))
+      const physics = precomputedFrameDelta(frame.name, clampedLevel, true)
       return { ...frame, category, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
     }
 
@@ -374,4 +380,26 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
   }
 
   return { ...frame, category, scores: CATEGORY_PRESETS[category], confidence: 'estimated', hasFixedWheels, level: clampedLevel }
+}
+
+/**
+ * The real numerical solve behind the precomputed table - the exact inputs
+ * `classifyFrame` used to hand `solveFrameEquipmentDelta` at runtime, for a
+ * measured frame at a whole upgrade stage. NOT called at runtime: each solve
+ * is a nested bisection, and running it for the full catalog cost 4-11.5s of
+ * CPU per fresh isolate on Workers (the `pool` phase in
+ * docs/observability.md). Used by
+ * `scripts/equipment-physics/compute-equipment-physics.mjs` to generate
+ * `shared/data/equipmentPhysics.generated.json`, and by its `--check` mode
+ * (wired into `npm run validate`) to prove the committed table still matches
+ * the speed data.
+ */
+export function solveMeasuredFramePhysics(name: string, level: number, isTT: boolean): EquipmentPhysicsDelta | undefined {
+  const measured = (isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[name]
+  if (!measured) return undefined
+  const clampedLevel = Math.min(5, Math.max(0, Math.round(level)))
+  const chart = frameStageChart(name)
+  const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat)
+  const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb)
+  return solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, isTT, drivetrainCrrDeltaForLevel(clampedLevel))
 }

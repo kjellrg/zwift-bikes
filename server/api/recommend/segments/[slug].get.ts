@@ -16,7 +16,7 @@ import { addTimingMeta, markPhase } from '../../../utils/timing'
 // why a standing-start simulation would badly distort segment rankings.
 const WARMUP_DISTANCE_M = 2000
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing segment slug' })
   const summary = getSegmentSummary(slug)
@@ -91,7 +91,7 @@ export default defineEventHandler((event) => {
   const rankable = allFrames.filter(f => !isHiddenHalo(f))
   const frames = category ? rankable.filter(f => f.category === category) : rankable
   // Carries this instance's lazy catalog init on a cold start.
-  markPhase(event, 'pool')
+  await markPhase(event, 'pool')
 
   // See the equivalent comments in `recommend/[slug].get.ts` - `rankCombos`
   // scores every candidate internally regardless of `limit`, so it's always
@@ -101,7 +101,7 @@ export default defineEventHandler((event) => {
   // unlike real finish time). Otherwise a genuinely faster combo could rank
   // outside `score`'s view of "the best candidates" and never surface.
   const rankedCombos = rankCombos(segmentRoute, frames, wheelsets, frames.length * wheelsets.length)
-  markPhase(event, 'rank')
+  await markPhase(event, 'rank')
 
   const rider = { weightKg, heightCm, powerW: weightKg * wkg }
   const segmentGeometry = hasRiderProfile && physicsMode !== 'legacy'
@@ -147,7 +147,7 @@ export default defineEventHandler((event) => {
   const simulateSegmentSec = (combo: typeof rankedCombos[number]) =>
     countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmedGeometry!, powerSegmentsW: warmedPowerSegmentsW, powerScaleAtSpeed }).elapsedSec
     - countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry: warmupOnlyGeometry!, powerScaleAtSpeed }).elapsedSec
-  markPhase(event, 'geometry')
+  await markPhase(event, 'geometry')
 
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
@@ -155,7 +155,7 @@ export default defineEventHandler((event) => {
       .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
-  markPhase(event, 'estimate')
+  await markPhase(event, 'estimate')
 
   // See the equivalent comment in `recommend/[slug].get.ts` - capping is
   // skipped entirely while searching, and matches are ordered frame-name
@@ -163,7 +163,7 @@ export default defineEventHandler((event) => {
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
     : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
-  markPhase(event, 'filter')
+  await markPhase(event, 'filter')
 
   // See the equivalent comment in `recommend/[slug].get.ts` - the reachable
   // window is re-ordered by real simulated time before pagination, because
@@ -175,7 +175,7 @@ export default defineEventHandler((event) => {
     filteredRankedCombos = ordering.ordered
     for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
   }
-  markPhase(event, 'simulate')
+  await markPhase(event, 'simulate')
 
   const pageCombos = filteredRankedCombos.slice(offset, offset + limit)
 
@@ -194,7 +194,7 @@ export default defineEventHandler((event) => {
     if (physicsMode === 'compare') pageCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
   }
-  markPhase(event, 'page')
+  await markPhase(event, 'page')
 
   // "TTT saves X vs solo" - the same rider at the same power and pacing, with
   // the draft scaling removed from both halves of the subtraction, so the
@@ -277,7 +277,7 @@ export default defineEventHandler((event) => {
     }
   }
 
-  markPhase(event, 'extras')
+  await markPhase(event, 'extras')
   addTimingMeta(event, {
     segment: summary.slug,
     route: segmentRoute.slug,

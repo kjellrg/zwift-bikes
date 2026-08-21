@@ -1,0 +1,48 @@
+{
+  "name": "zwift-bikes",
+  "main": ".output/server/index.mjs",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": ".output/public",
+    "binding": "ASSETS",
+    // The prerendered pages are written as /routes/<slug>/index.html, and
+    // the default ("auto-trailing-slash") 307s the canonical bare URL
+    // /routes/<slug> onto /routes/<slug>/ - inverting the site's
+    // trailingSlash:'never' policy (nuxt.config.ts): every internal link,
+    // the sitemap and the in-page canonical tag all use the bare form.
+    // "drop-trailing-slash" serves index.html at the bare path and redirects
+    // the slashed form back onto it, matching that policy.
+    "html_handling": "drop-trailing-slash"
+  },
+  "limits": {
+    // Runaway guard, not a throttle: past this the request is killed
+    // mid-flight ("Worker exceeded CPU time limit", a 503). The legitimate
+    // worst case is a long-route recommend request: ~60 full route
+    // integrations for the 173km PRL Full, ~2.5s of CPU on Azure hardware
+    // and unmeasured on Workers, where machine-load variance ran 3x on the
+    // (since precomputed) catalog init - see docs/observability.md. Kept
+    // generous pending a post-deploy re-baseline from Workers Logs; CPU
+    // overage bills at $0.02 per million ms, so generosity here is
+    // effectively free.
+    "cpu_ms": 30000
+  },
+  "ratelimits": [
+    // Backs server/middleware/rate-limit.ts: 30 requests per 60s window per
+    // client IP on the expensive endpoints (/api/recommend/**, /api/mcp).
+    // Counters are per Cloudflare location and eventually consistent.
+    {
+      "name": "RECOMMEND_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

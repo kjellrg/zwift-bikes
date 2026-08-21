@@ -55,11 +55,9 @@ export default defineNuxtConfig({
     // browsers (and any proxy in front) may cache them briefly instead of
     // invoking the SSR function for every repeated fetch. Exact-path rules on
     // purpose: the slug and recommend endpoints stay uncached. Applied at
-    // runtime inside the Nitro app - they add nothing to the generated
-    // staticwebapp.config.json and its 20KB Azure limit (see
-    // scripts/trim-swa-config.mjs). Deliberately NOT Nitro `swr`/`cache`
-    // rules: on azure-swa that cache is per-instance memory, all correctness
-    // risk for almost no win over plain browser caching.
+    // runtime inside the Nitro app. Deliberately NOT Nitro `swr`/`cache`
+    // rules: that cache is per-instance memory, all correctness risk for
+    // almost no win over plain browser caching.
     '/api/routes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/bikes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/segments': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
@@ -69,7 +67,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-30',
 
   nitro: {
-    preset: 'azure-swa',
+    preset: 'cloudflare_module',
     azure: {
       config: {
         globalHeaders: {

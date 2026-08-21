@@ -58,3 +58,5 @@ scripts/race-draft/segment-efforts.json
 .claude/skills/nuxtjs-*
 .claude/skills/skilld-*
 CLAUDE.md
+# Wrangler local dev state
+.wrangler
