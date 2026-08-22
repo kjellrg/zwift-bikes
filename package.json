@@ -18,6 +18,7 @@
     "postinstall": "nuxt prepare && node scripts/spell/generate-zwift-dict.mjs",
     "prepare": "husky",
     "lint": "eslint .",
+    "test": "vitest run",
     "spellcheck": "cspell --no-progress",
     "typecheck": "nuxt typecheck",
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
@@ -42,6 +43,7 @@
     "eslint": "^10.8.1",
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
     "vue-tsc": "^3.3.10",
     "wrangler": "^4.125.0"
   }
