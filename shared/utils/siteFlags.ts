@@ -43,9 +43,19 @@ const motdShape = {
   expiresAt: z.iso.datetime({ offset: true }).optional(),
   /**
    * Optional destination rendered as the banner's action button -
-   * announcements usually want one. Site-relative ("/routes") or absolute.
+   * announcements usually want one. Site-relative ("/routes") or absolute
+   * https. The scheme check is defense-in-depth against a compromised
+   * flags-push path: the value lands in a link the whole site renders, so
+   * without it, KV write access (a leaked API token) converts to a
+   * `javascript:` URL on every page in seconds, with no deploy and no git
+   * trail. Enforced by the runtime parse too, where a violating config
+   * fails open to no-MOTD rather than rendering the link.
    */
-  href: z.string().min(1).max(500).optional(),
+  href: z.string().min(1).max(500)
+    .refine(value => value.startsWith('/') || value.startsWith('https://'), {
+      message: '`motd.href` must be a site-relative path ("/routes") or an https:// URL'
+    })
+    .optional(),
   /** The action button's label; `href` without it falls back to "Read more". */
   linkText: z.string().min(1).max(60).optional()
 }

@@ -1,0 +1,19 @@
+# Security headers for STATICALLY SERVED responses only: the assets binding
+# (wrangler.jsonc `assets`) answers prerendered pages and public/ files
+# before the Worker runs, so Nitro middleware never sees them. This file is
+# parsed by Workers static assets (same syntax as Pages) and never served
+# itself. Worker-generated responses (SSR pages, /api/**, errors) get the
+# SAME set from server/middleware/00.security-headers.ts - keep the two in
+# sync.
+#
+# No full script CSP on purpose: Nuxt hydration relies on inline scripts, so
+# anything stronger than frame-ancestors would need 'unsafe-inline' and
+# protect nothing. frame-ancestors 'none' (+ the X-Frame-Options fallback)
+# is the part that's free.
+# No Strict-Transport-Security or X-Content-Type-Options here: the zone sets
+# both at the Cloudflare edge - see the note in 00.security-headers.ts.
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), geolocation=(), microphone=()

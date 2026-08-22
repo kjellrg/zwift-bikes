@@ -1,7 +1,7 @@
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
 import { DEFAULT_UNOWNED_LEVEL } from '../../../shared/utils/classifyBikeFrame'
 import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
-import { clampLaps, computeRouteTotals, MAX_LAPS } from '../../../shared/utils/routeLaps'
+import { clampLaps, computeRouteTotals, MAX_LAPS, MAX_TOTAL_DISTANCE_KM, maxLapsForRoute } from '../../../shared/utils/routeLaps'
 import { BIKE_CATEGORIES } from '../apiQuerySchemas'
 import type { RpcContext } from './protocol'
 import {
@@ -315,7 +315,7 @@ const TOOLS: ToolDefinition[] = [
         `- Slug: \`${route.slug}\``,
         `- Lap: ${route.distance} km, ${route.elevation} m`,
         route.leadInDistance ? `- Lead-in (ridden once): ${route.leadInDistance} km, ${route.leadInElevation ?? 0} m` : undefined,
-        `- Lappable: ${route.lap ? `yes, up to ${MAX_LAPS} laps` : 'no - point to point, ridden once'}`,
+        `- Lappable: ${route.lap ? `yes, up to ${maxLapsForRoute(route)} laps` : 'no - point to point, ridden once'}`,
         `- Terrain: ${route.terrain.category} (${Math.round(route.terrain.climbRatio)} m/km)`,
         `- Surface: ${formatSurface(route.surface)}`,
         `- Event only: ${route.eventOnly ? 'yes' : 'no'}`,
@@ -450,7 +450,7 @@ const TOOLS: ToolDefinition[] = [
       type: 'object',
       properties: {
         route: { type: 'string', description: 'Route slug, e.g. "watopia-big-foot-hills". Use list_routes to find it.' },
-        laps: { type: 'number', description: `How many laps to ride, 1-${MAX_LAPS}. Defaults to 1, and is forced to 1 on point-to-point routes.` },
+        laps: { type: 'number', description: `How many laps to ride, 1-${MAX_LAPS}. Defaults to 1, is forced to 1 on point-to-point routes, and is capped so the total ride stays within ${MAX_TOTAL_DISTANCE_KM} km (get_route reports each route's own maximum).` },
         ...RECOMMEND_FILTER_PROPERTIES
       },
       required: ['route'],

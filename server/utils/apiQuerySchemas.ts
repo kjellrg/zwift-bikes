@@ -175,10 +175,13 @@ const recommendBaseShape = {
   search: qSearch,
   category: qEnum(BIKE_CATEGORIES),
   limit: qNumber.pipe(z.number().min(1).max(9).optional()).transform(value => value ?? 9),
-  // The upper bound is new: offset feeds `offset + limit + SIMULATED_ORDER_MARGIN`
-  // simulations, so an arbitrarily large offset was an arbitrarily large bill.
-  // No real pool comes anywhere near 1000 combos deep.
-  offset: qNumber.pipe(z.number().min(0).max(1000).optional()).transform(value => (value === undefined ? 0 : Math.floor(value))),
+  // Offset feeds `offset + limit + SIMULATED_ORDER_MARGIN` simulations, so
+  // its upper bound IS the per-request CPU bound: at the old max of 1000 a
+  // single crafted request measurably rode the full 30s `cpu_ms` kill limit
+  // (~$0.02/M CPU-ms, 30/min per IP allowed). 100 keeps ~11 "Show more"
+  // pages reachable - deeper than any real browsing - at ~154 simulations
+  // worst case.
+  offset: qNumber.pipe(z.number().min(0).max(100).optional()).transform(value => (value === undefined ? 0 : Math.floor(value))),
   // Defaults to on: an `estimated` score is a name/style heuristic, and a
   // finish time built on one is a much weaker claim than one built on real
   // bot-test data. Callers opt out with `verifiedOnly=false` - which the
@@ -244,7 +247,10 @@ const riderProfileComplete = (query: { weightKg?: number, heightCm?: number, wkg
 export const recommendRouteQuerySchema = z.object({
   ...recommendBaseShape,
   // Bounded here; the handler still runs `clampLaps` for the route-dependent
-  // part (a point-to-point route is forced to 1 lap whatever was asked).
+  // parts (a point-to-point route is forced to 1 lap whatever was asked, and
+  // the total ride is capped at MAX_TOTAL_DISTANCE_KM - simulation CPU is
+  // linear in total distance, so the cap is what keeps a long lappable route
+  // from multiplying into an arbitrarily expensive request).
   laps: qNumber.pipe(z.number().min(1).max(MAX_LAPS).optional()),
   // Event race pages send this when the race format outlaws TT frames (Zwift
   // disables them for points and scratch races - see `ttBikesAllowed` in

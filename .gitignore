@@ -6,10 +6,6 @@
 .cache
 dist
 
-# Auto-generated at repo root by the nitro azure preset on every build -
-# the real config lives in the nitro.azure.config block in nuxt.config.ts
-/staticwebapp.config.json
-
 # Node dependencies
 node_modules
 

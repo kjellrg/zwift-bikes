@@ -27,14 +27,18 @@
   "limits": {
     // Runaway guard, not a throttle: past this the request is killed
     // mid-flight ("Worker exceeded CPU time limit", a 503). The legitimate
-    // worst case is a long-route recommend request: ~60 full route
-    // integrations for the 173km PRL Full, ~2.5s of CPU on Azure hardware
-    // and unmeasured on Workers, where machine-load variance ran 3x on the
-    // (since precomputed) catalog init - see docs/observability.md. Kept
-    // generous pending a post-deploy re-baseline from Workers Logs; CPU
-    // overage bills at $0.02 per million ms, so generosity here is
-    // effectively free.
-    "cpu_ms": 30000
+    // worst case is a long-route recommend request at the query bounds the
+    // schemas enforce (offset <= 100, total ride <= 200km via
+    // MAX_TOTAL_DISTANCE_KM): ~154 full route integrations of up to 200km,
+    // ~8.5s CPU extrapolated from the per-km cost in docs/observability.md.
+    // 15000 is ~2x headroom over that. The old 30000 was "generous pending a
+    // re-baseline" - a probe then showed a single crafted request riding the
+    // full 30s ($0.02 per million CPU-ms, at 30 req/min/IP allowed by the
+    // rate limit), so the cap is now sized to the worst LEGAL request, not
+    // kept generous. Killed requests never emit the app's own timing line
+    // (afterResponse dies with them) but DO get an invocation log - query
+    // $workers.cpuTimeMs near this value to count kills.
+    "cpu_ms": 15000
   },
   "ratelimits": [
     // Backs server/middleware/rate-limit.ts: 30 requests per 60s window per

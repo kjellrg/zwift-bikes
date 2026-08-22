@@ -196,6 +196,15 @@ for (const season of getAllSeasons()) {
         if (race.hidden || seasonHidden || !isRacePublishable(race)) continue
 
         const totals = computeRouteTotals(route, group.laps)
+        // computeRouteTotals clamps through clampLaps, which since the
+        // MAX_TOTAL_DISTANCE_KM cap can return fewer laps than asked. An
+        // event listing above the cap would render a ranking for a shorter
+        // ride than the race - fail the build so the cap gets raised
+        // deliberately instead of clamping silently.
+        if (totals.laps !== group.laps) {
+          errors.push(`${where}: ${cats} is set to ${group.laps} laps of "${route.slug}", but the recommend API caps this route at ${totals.laps} lap(s) `
+            + `(total ride would exceed MAX_TOTAL_DISTANCE_KM - see shared/utils/routeLaps.ts)`)
+        }
         if (group.officialDistanceKm !== undefined) {
           const diff = Math.abs(group.officialDistanceKm - totals.distanceKm) / group.officialDistanceKm
           if (diff > DISTANCE_TOLERANCE) {

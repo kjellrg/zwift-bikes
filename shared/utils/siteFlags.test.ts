@@ -60,6 +60,18 @@ describe('parseSiteFlags', () => {
     expect(parseSiteFlags(JSON.stringify({ killSwitches: { recommend: 'yes' } }))).toBeNull()
     expect(parseSiteFlags(JSON.stringify({ motd: { id: 'x', message: '' } }))).toBeNull()
   })
+
+  // The href lands in a link every page renders, so only site-relative paths
+  // and https URLs pass - a `javascript:` value written straight to KV must
+  // fail the runtime parse open to no-MOTD, not reach the banner.
+  it('rejects motd hrefs that are not site-relative or https', () => {
+    const withHref = (href: string) => JSON.stringify({ motd: { id: 'x', message: 'hi', href } })
+    expect(parseSiteFlags(withHref('/routes'))).not.toBeNull()
+    expect(parseSiteFlags(withHref('https://zwiftinsider.com/crr/'))).not.toBeNull()
+    expect(parseSiteFlags(withHref('javascript:alert(1)'))).toBeNull()
+    expect(parseSiteFlags(withHref('http://example.com'))).toBeNull()
+    expect(parseSiteFlags(withHref('data:text/html,x'))).toBeNull()
+  })
 })
 
 describe('siteFlagsStrictSchema', () => {
