@@ -489,6 +489,7 @@ useHead(() => {
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this route
       </h2>
+      <RecommendDataNotice />
       <BikeFilterControls
         v-model:search="bikeSearch"
         class="mb-6"

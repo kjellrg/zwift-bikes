@@ -67,5 +67,11 @@ export function useSiteFlags() {
   const eventsVisible = computed(() => flags.value.sections.events.mode !== 'hidden')
   const eventsNotice = computed(() => flags.value.sections.events.notice)
 
-  return { load, activeMotd, dismissMotd, eventsVisible, eventsNotice }
+  /**
+   * The inline results caveat - the recommend kill switch's softer sibling,
+   * shown above every ranking while set (see `RecommendDataNotice.vue`).
+   */
+  const recommendNotice = computed(() => flags.value.notices.recommend)
+
+  return { load, activeMotd, dismissMotd, eventsVisible, eventsNotice, recommendNotice }
 }

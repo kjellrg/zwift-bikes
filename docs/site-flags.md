@@ -42,9 +42,10 @@ longer provides.
 
 | Field | Effect |
 |---|---|
-| `motd` | Site-wide banner under the header (`SiteMotdBanner.vue`). `id` keys dismissal - a new message needs a new id or riders who dismissed the old one won't see it. `tone` is `info`/`warning`/`error`; `expiresAt` self-removes it. |
+| `motd` | Site-wide banner under the header (`SiteMotdBanner.vue`). `id` keys dismissal - a new message needs a new id or riders who dismissed the old one won't see it. `tone` is `info`/`warning`/`error`; `startsAt`/`expiresAt` bound its display window (stage a banner ahead of a game update; let it self-remove after); `href` + `linkText` render an action button. |
 | `sections.events.mode: "hidden"` | Hides the Events nav entries and the homepage teaser, swaps the three events pages' content for an unavailable notice (with `notice` as its wording), and 503s `/api/events/**`. |
-| `killSwitches.recommend` | 503s `/api/recommend/**` - for when serving wrong rankings (mid-rebalance) is worse than serving none. |
+| `notices.recommend` | A warning rendered above every results list (`RecommendDataNotice.vue`) while set - the kill switch's softer sibling. A Zwift rebalance is a three-position dial: normal → caveated (`notices.recommend`) → killed (`killSwitches.recommend`). |
+| `killSwitches.recommend` | 503s `/api/recommend/**` - for when serving wrong rankings (mid-rebalance) is worse than serving caveated ones. The refetch toast shows this state's own wording. |
 | `killSwitches.mcp` | 503s `/api/mcp`. |
 
 ## How it hangs together

@@ -13,6 +13,18 @@ const TONE_ICONS = {
   warning: 'i-lucide-triangle-alert',
   error: 'i-lucide-octagon-alert'
 } as const
+
+/** The optional destination, as the alert's single action button. */
+const actions = computed(() => {
+  if (!activeMotd.value?.href) return undefined
+  return [{
+    label: activeMotd.value.linkText ?? 'Read more',
+    to: activeMotd.value.href,
+    color: 'neutral' as const,
+    variant: 'outline' as const,
+    size: 'xs' as const
+  }]
+})
 </script>
 
 <template>
@@ -25,6 +37,7 @@ const TONE_ICONS = {
       variant="subtle"
       :icon="TONE_ICONS[activeMotd.tone]"
       :description="activeMotd.message"
+      :actions="actions"
       :close="activeMotd.dismissible"
       @update:open="dismissMotd"
     />

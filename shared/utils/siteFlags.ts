@@ -33,12 +33,21 @@ const motdShape = {
   tone: z.enum(['info', 'warning', 'error']).default('info'),
   dismissible: z.boolean().default(true),
   /**
-   * ISO timestamp after which the message stops showing - self-cleaning
-   * announcements need no follow-up push to remove. Checked on both sides
-   * (server projection and client render) because a cached response can
-   * outlive the moment of expiry.
+   * ISO window the message shows within, either end optional. `startsAt`
+   * lets a banner be staged ahead of a scheduled moment (a game update, a
+   * season start); `expiresAt` self-removes it - no follow-up push either
+   * way. Checked on both sides (server projection and client render)
+   * because a cached response can outlive either boundary.
    */
-  expiresAt: z.iso.datetime({ offset: true }).optional()
+  startsAt: z.iso.datetime({ offset: true }).optional(),
+  expiresAt: z.iso.datetime({ offset: true }).optional(),
+  /**
+   * Optional destination rendered as the banner's action button -
+   * announcements usually want one. Site-relative ("/routes") or absolute.
+   */
+  href: z.string().min(1).max(500).optional(),
+  /** The action button's label; `href` without it falls back to "Read more". */
+  linkText: z.string().min(1).max(60).optional()
 }
 
 const sectionShape = {
@@ -49,6 +58,18 @@ const sectionShape = {
 
 const sectionsShape = {
   events: z.object(sectionShape).prefault({})
+}
+
+/**
+ * Inline caveats, rendered next to what they qualify rather than site-wide
+ * like the MOTD. `recommend` shows above every results list - the softer
+ * sibling of the recommend kill switch, for when serving rankings WITH a
+ * "being re-verified" warning beats serving none (a Zwift rebalance is a
+ * three-position dial: normal, caveated, killed). Not dismissible: a caveat
+ * on live numbers stays as long as it applies.
+ */
+const noticesShape = {
+  recommend: z.string().min(1).max(500).optional()
 }
 
 /**
@@ -68,6 +89,7 @@ const siteFlagsShape = {
   version: z.literal(1).default(1),
   motd: z.object(motdShape).nullable().default(null),
   sections: z.object(sectionsShape).prefault({}),
+  notices: z.object(noticesShape).prefault({}),
   killSwitches: z.object(killSwitchesShape).prefault({}),
   /** Stamped by `flags:push`, never authored by hand. */
   updatedAt: z.iso.datetime({ offset: true }).optional()
@@ -81,6 +103,7 @@ export const siteFlagsStrictSchema = z.strictObject({
   sections: z.strictObject({
     events: z.strictObject(sectionShape).prefault({})
   }).prefault({}),
+  notices: z.strictObject(noticesShape).prefault({}),
   killSwitches: z.strictObject(killSwitchesShape).prefault({})
 })
 
@@ -88,13 +111,14 @@ export type SiteFlags = z.output<typeof siteFlagsSchema>
 export type SiteMotd = NonNullable<SiteFlags['motd']>
 
 /** What `/api/site-flags` exposes: only what the client renders from. */
-export type PublicSiteFlags = Pick<SiteFlags, 'motd' | 'sections'>
+export type PublicSiteFlags = Pick<SiteFlags, 'motd' | 'sections' | 'notices'>
 
 export const DEFAULT_SITE_FLAGS: SiteFlags = siteFlagsSchema.parse({})
 
 export const DEFAULT_PUBLIC_SITE_FLAGS: PublicSiteFlags = {
   motd: DEFAULT_SITE_FLAGS.motd,
-  sections: DEFAULT_SITE_FLAGS.sections
+  sections: DEFAULT_SITE_FLAGS.sections,
+  notices: DEFAULT_SITE_FLAGS.notices
 }
 
 /**
@@ -113,16 +137,18 @@ export function parseSiteFlags(raw: string): SiteFlags | null {
   return result.success ? result.data : null
 }
 
-/** Whether `motd` should currently show (an unset expiry never expires). */
+/** Whether `motd` is inside its display window (either bound optional). */
 export function isMotdActive(motd: SiteMotd, now: Date = new Date()): boolean {
-  if (motd.expiresAt === undefined) return true
-  return now.getTime() < Date.parse(motd.expiresAt)
+  if (motd.startsAt !== undefined && now.getTime() < Date.parse(motd.startsAt)) return false
+  if (motd.expiresAt !== undefined && now.getTime() >= Date.parse(motd.expiresAt)) return false
+  return true
 }
 
-/** The client-facing slice of `flags`, with an expired MOTD already dropped. */
+/** The client-facing slice of `flags`, with an out-of-window MOTD dropped. */
 export function toPublicSiteFlags(flags: SiteFlags, now: Date = new Date()): PublicSiteFlags {
   return {
     motd: flags.motd && isMotdActive(flags.motd, now) ? flags.motd : null,
-    sections: flags.sections
+    sections: flags.sections,
+    notices: flags.notices
   }
 }

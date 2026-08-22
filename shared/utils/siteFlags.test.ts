@@ -6,7 +6,10 @@ const fullMotd = {
   message: 'Zwift 1.84 rebalanced wheels - rankings are being re-verified.',
   tone: 'warning',
   dismissible: true,
-  expiresAt: '2026-09-01T00:00:00Z'
+  startsAt: '2026-08-20T00:00:00Z',
+  expiresAt: '2026-09-01T00:00:00Z',
+  href: '/routes',
+  linkText: 'See the rankings'
 }
 
 describe('parseSiteFlags', () => {
@@ -16,6 +19,7 @@ describe('parseSiteFlags', () => {
       version: 1,
       motd: null,
       sections: { events: { mode: 'on' } },
+      notices: {},
       killSwitches: { recommend: false, mcp: false }
     })
     expect(flags).toEqual(DEFAULT_SITE_FLAGS)
@@ -25,11 +29,13 @@ describe('parseSiteFlags', () => {
     const flags = parseSiteFlags(JSON.stringify({
       motd: fullMotd,
       sections: { events: { mode: 'hidden', notice: 'Back next season.' } },
+      notices: { recommend: 'Rankings are being re-verified.' },
       killSwitches: { recommend: true },
       updatedAt: '2026-08-22T12:00:00Z'
     }))
     expect(flags?.motd).toEqual(fullMotd)
     expect(flags?.sections.events).toEqual({ mode: 'hidden', notice: 'Back next season.' })
+    expect(flags?.notices).toEqual({ recommend: 'Rankings are being re-verified.' })
     // A partial killSwitches object still defaults the unmentioned switch.
     expect(flags?.killSwitches).toEqual({ recommend: true, mcp: false })
   })
@@ -64,6 +70,7 @@ describe('siteFlagsStrictSchema', () => {
     expect(siteFlagsStrictSchema.safeParse({ futureKnob: true }).success).toBe(false)
     expect(siteFlagsStrictSchema.safeParse({ motd: { ...fullMotd, tune: 'info' } }).success).toBe(false)
     expect(siteFlagsStrictSchema.safeParse({ sections: { event: {} } }).success).toBe(false)
+    expect(siteFlagsStrictSchema.safeParse({ notices: { recommends: 'x' } }).success).toBe(false)
     expect(siteFlagsStrictSchema.safeParse({ killSwitches: { recomend: true } }).success).toBe(false)
   })
 
@@ -80,13 +87,16 @@ describe('siteFlagsStrictSchema', () => {
 describe('isMotdActive', () => {
   const motd = parseSiteFlags(JSON.stringify({ motd: fullMotd }))!.motd!
 
-  it('shows before expiry, hides after', () => {
+  it('shows inside the window, hides outside it', () => {
+    expect(isMotdActive(motd, new Date('2026-08-19T23:59:59Z'))).toBe(false)
+    expect(isMotdActive(motd, new Date('2026-08-20T00:00:00Z'))).toBe(true)
     expect(isMotdActive(motd, new Date('2026-08-31T23:59:59Z'))).toBe(true)
     expect(isMotdActive(motd, new Date('2026-09-01T00:00:00Z'))).toBe(false)
   })
 
-  it('never expires without an expiresAt', () => {
-    const { expiresAt: _dropped, ...rest } = motd
+  it('treats both bounds as optional', () => {
+    const { startsAt: _s, expiresAt: _e, ...rest } = motd
+    expect(isMotdActive(rest, new Date('2000-01-01T00:00:00Z'))).toBe(true)
     expect(isMotdActive(rest, new Date('2999-01-01T00:00:00Z'))).toBe(true)
   })
 })
@@ -95,6 +105,7 @@ describe('toPublicSiteFlags', () => {
   const flags = parseSiteFlags(JSON.stringify({
     motd: fullMotd,
     sections: { events: { mode: 'hidden' } },
+    notices: { recommend: 'Being re-verified.' },
     killSwitches: { recommend: true, mcp: true }
   }))!
 
@@ -102,12 +113,14 @@ describe('toPublicSiteFlags', () => {
     const publicFlags = toPublicSiteFlags(flags, new Date('2026-08-22T00:00:00Z'))
     expect(publicFlags).toEqual({
       motd: fullMotd,
-      sections: { events: { mode: 'hidden' } }
+      sections: { events: { mode: 'hidden' } },
+      notices: { recommend: 'Being re-verified.' }
     })
     expect('killSwitches' in publicFlags).toBe(false)
   })
 
-  it('drops an expired motd server-side', () => {
+  it('drops an out-of-window motd server-side', () => {
     expect(toPublicSiteFlags(flags, new Date('2026-09-02T00:00:00Z')).motd).toBeNull()
+    expect(toPublicSiteFlags(flags, new Date('2026-08-19T00:00:00Z')).motd).toBeNull()
   })
 })

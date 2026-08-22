@@ -5,13 +5,19 @@
     "message": "Example announcement - give each new message a fresh id so riders who dismissed the previous one see it.",
     "tone": "info",
     "dismissible": true,
-    "expiresAt": "2026-09-01T00:00:00Z"
+    "startsAt": "2026-08-25T00:00:00Z",
+    "expiresAt": "2026-09-01T00:00:00Z",
+    "href": "/routes",
+    "linkText": "See the rankings"
   },
   "sections": {
     "events": {
       "mode": "on",
       "notice": "Shown on the events pages instead of their content whenever mode is \"hidden\"."
     }
+  },
+  "notices": {
+    "recommend": "Shown as a warning above every results list while set - the kill switch's softer sibling for serving rankings with a caveat."
   },
   "killSwitches": {
     "recommend": false,

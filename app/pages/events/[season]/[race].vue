@@ -1072,6 +1072,7 @@ useHead(() => {
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this race
       </h2>
+      <RecommendDataNotice />
 
       <UAlert
         v-if="groupHasNoRoute"
