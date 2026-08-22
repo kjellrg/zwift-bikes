@@ -138,6 +138,24 @@ describe('every route in the assembled catalog', () => {
     expect(bad).toEqual([])
   })
 
+  it('has no implausibly flat measured profiles (bad altitude streams are dropped at generation)', () => {
+    // 16 community Strava segments carried flat/garbage altitude streams -
+    // routes with up to 262m of official climbing modelled as 0m. The
+    // normalizer discards those profiles (synthesis fallback applies); this
+    // mirrors that guard so a regeneration can't smuggle one back in.
+    const bad = routes.filter((r) => {
+      const profile = r.terrain.elevationProfile
+      if (!profile || profile.length < 2 || r.elevation <= 20) return false
+      let ascent = 0
+      for (let i = 1; i < profile.length; i++) {
+        const delta = profile[i]!.elevationM - profile[i - 1]!.elevationM
+        if (delta > 0) ascent += delta
+      }
+      return ascent < r.elevation * 0.25
+    }).map(r => r.slug)
+    expect(bad).toEqual([])
+  })
+
   it('has monotonic, finite elevation profiles when measured', () => {
     const bad = routes.filter((r) => {
       const profile = r.terrain.elevationProfile

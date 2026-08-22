@@ -120,15 +120,17 @@ for (const route of routesToProcess) {
     // alignment. Uses the effective (event-override-corrected) lead-in, the
     // same one geometryForRouteLaps cuts the ride with.
     const leadInKm = eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation).leadInDistance ?? 0
-    const { entry, classification } = normalizeRouteSurfaceEntry({
+    const { entry, classification, profileDropped } = normalizeRouteSurfaceEntry({
       composition,
       segments,
       ...(elevationProfile ? { elevationProfile } : {}),
       generatedAt: new Date().toISOString(),
       stravaSegmentId: route.stravaSegmentId
-    }, route.distance, leadInKm)
+    }, route.distance, leadInKm, route.elevation)
     results[route.slug] = entry
-    const elevationNote = elevationProfile ? `, ${elevationProfile.length} elevation points` : ', no altitude stream'
+    const elevationNote = profileDropped
+      ? ', FLAT ALTITUDE STREAM - elevation profile discarded (synthesis fallback applies)'
+      : elevationProfile ? `, ${elevationProfile.length} elevation points` : ', no altitude stream'
     const alignmentNote = classification === 'ride-split' ? ', trace covered lead-in - split' : classification === 'ambiguous' ? ', ALIGNMENT AMBIGUOUS - check trace end vs lap distance' : ''
     console.log(Object.entries(entry.composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${entry.segments.length} segments${elevationNote}${alignmentNote})`)
   } catch (err) {

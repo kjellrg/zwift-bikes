@@ -3538,16 +3538,6 @@
     "type": "cobbles"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 6595.2,
-    "elevationM": 0
-   }
-  ],
   "generatedAt": "2026-08-10T15:01:21.954Z",
   "stravaSegmentId": 37539085
  },
@@ -5528,17 +5518,7 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 12538.5,
-    "elevationM": 0
-   }
-  ],
-  "generatedAt": "2026-08-10T15:02:21.912Z",
+  "generatedAt": "2026-08-22T07:40:55.133Z",
   "stravaSegmentId": 18993345
  },
  "lutscher": {
@@ -10778,16 +10758,6 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 6430.3,
-    "elevationM": 0
-   }
-  ],
   "generatedAt": "2026-08-10T15:04:22.418Z",
   "stravaSegmentId": 18993582
  },
@@ -14849,16 +14819,6 @@
     "fromKm": 2.5605,
     "toKm": 4.0898,
     "type": "tarmac"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 4089.8,
-    "elevationM": 1
    }
   ],
   "generatedAt": "2026-08-10T15:06:32.964Z",
@@ -32014,16 +31974,6 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 7952,
-    "elevationM": 0
-   }
-  ],
   "generatedAt": "2026-08-10T15:14:42.164Z",
   "stravaSegmentId": 18993284
  },
@@ -32057,16 +32007,6 @@
     "fromKm": 2.770200000000001,
     "toKm": 8.045399999999999,
     "type": "tarmac"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 8045.4,
-    "elevationM": 0
    }
   ],
   "generatedAt": "2026-08-10T15:14:52.206Z",
@@ -39194,16 +39134,6 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 6127.1,
-    "elevationM": 0
-   }
-  ],
   "generatedAt": "2026-08-10T15:20:07.806Z",
   "stravaSegmentId": 37501292
  },
@@ -39238,16 +39168,6 @@
     "fromKm": 3.353,
     "toKm": 9.231900000000001,
     "type": "tarmac"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 9231.900000000001,
-    "elevationM": 0
    }
   ],
   "generatedAt": "2026-08-10T15:20:17.945Z",
@@ -45909,16 +45829,6 @@
     "fromKm": 0,
     "toKm": 10.9476,
     "type": "cobbles"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 10947.6,
-    "elevationM": 0
    }
   ],
   "generatedAt": "2026-08-10T15:38:20.709Z",
@@ -55559,16 +55469,6 @@
     "fromKm": 0,
     "toKm": 4.8914,
     "type": "cobbles"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 4891.4,
-    "elevationM": 0
    }
   ],
   "generatedAt": "2026-08-10T15:43:23.225Z",
@@ -67667,16 +67567,6 @@
     "fromKm": 0,
     "toKm": 6.6366000000000005,
     "type": "cobbles"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 6636.6,
-    "elevationM": 1
    }
   ],
   "generatedAt": "2026-08-10T16:12:39.520Z",
@@ -82370,16 +82260,6 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 5826.400000000001,
-    "elevationM": 0
-   }
-  ],
   "generatedAt": "2026-08-10T16:18:01.491Z",
   "stravaSegmentId": 37495683
  },
@@ -83289,16 +83169,6 @@
     "fromKm": 6.7322,
     "toKm": 9.196399999999999,
     "type": "tarmac"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 9196.4,
-    "elevationM": 0
    }
   ],
   "generatedAt": "2026-08-10T16:18:41.208Z",
@@ -88223,16 +88093,6 @@
     "fromKm": 0,
     "toKm": 3.0286999999999997,
     "type": "tarmac"
-   }
-  ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 3028.7,
-    "elevationM": 0
    }
   ],
   "generatedAt": "2026-08-10T16:20:42.455Z",
@@ -106745,16 +106605,6 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 2978.1,
-    "elevationM": 0
-   }
-  ],
   "generatedAt": "2026-08-10T16:29:14.885Z",
   "stravaSegmentId": 37502819
  },
@@ -117266,31 +117116,11 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 10619.900000000001,
-    "elevationM": 0
-   }
-  ],
   "leadInSegments": [
    {
     "fromKm": 0,
     "toKm": 0.537,
     "type": "tarmac"
-   }
-  ],
-  "leadInElevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 537,
-    "elevationM": 0
    }
   ],
   "traceCoveredLeadIn": true,

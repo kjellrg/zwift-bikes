@@ -44,6 +44,12 @@ nothing in `app/`, `server/`, or the Nuxt build runs these scripts.
    the same transform over the whole committed file (offline, no Strava) -
    idempotent, run it after any hand edit. A trace matching neither lap nor
    lap+lead-in within tolerance is reported as ambiguous and left untouched.
+   The same pass discards implausibly flat elevation profiles (ascent under
+   25% of the route's official elevation - 16 community segments ship a
+   flat/garbage altitude stream) so the physics falls back to synthesizing
+   the official elevation instead of trusting a pancake-flat lie; fixing one
+   of those for real means re-pointing the entry's `stravaSegmentId` at a
+   community segment with good altitude data and refetching with `--only`.
    Note ~13 committed entries carry `stravaSegmentId`s that exist only in
    the generated file itself (hand-sourced for routes zwift-data gives no
    segment id) - never regenerate from scratch or those ids are lost.

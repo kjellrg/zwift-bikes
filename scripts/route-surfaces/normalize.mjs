@@ -48,10 +48,56 @@ function compositionFromSegments(segments) {
 }
 
 /**
- * @returns {{ entry: object, classification: 'lap' | 'ride-split' | 'ambiguous' | 'no-trace' | 'lead-in-too-small' }}
+ * A handful of community Strava segments carry a flat/garbage altitude
+ * stream: the profile RDP-simplifies to two points with ~0m of ascent on a
+ * route officially climbing 33-262m (16 routes as of 2026-08, jons-route
+ * and most `-run` segments among them). Keeping such a profile is worse
+ * than having none - the geometry builder trusts it and models the route
+ * pancake-flat, where the no-profile fallback synthesizes the official
+ * elevation. Discard it (surfaces are lat/lng-based and stay fine) when the
+ * measured ascent is implausibly below the official figure on a route with
+ * real climbing.
+ */
+function profileAscentM(profile) {
+  let ascent = 0
+  for (let i = 1; i < profile.length; i++) {
+    const delta = profile[i].elevationM - profile[i - 1].elevationM
+    if (delta > 0) ascent += delta
+  }
+  return ascent
+}
+
+const FLAT_PROFILE_MIN_OFFICIAL_M = 20
+const FLAT_PROFILE_ASCENT_FRACTION = 0.25
+
+/**
+ * @returns {{ entry: object, classification: 'lap' | 'ride-split' | 'already-split' | 'ambiguous' | 'no-trace' | 'lead-in-too-small', profileDropped: boolean }}
  * `entry` is the input object itself when nothing changed.
  */
-export function normalizeRouteSurfaceEntry(entry, lapKm, leadInKm) {
+export function normalizeRouteSurfaceEntry(entry, lapKm, leadInKm, officialElevationM = undefined) {
+  let profileDropped = false
+  if (entry.elevationProfile?.length >= 2 && officialElevationM > FLAT_PROFILE_MIN_OFFICIAL_M
+    && profileAscentM(entry.elevationProfile) < officialElevationM * FLAT_PROFILE_ASCENT_FRACTION) {
+    // The lead-in profile comes from the same altitude stream, so it is the
+    // same garbage - drop both together, never one without the other.
+    entry = { ...entry }
+    delete entry.elevationProfile
+    delete entry.leadInElevationProfile
+    profileDropped = true
+  }
+
+  const aligned = alignEntry(entry, lapKm, leadInKm)
+  return { ...aligned, profileDropped }
+}
+
+function alignEntry(entry, lapKm, leadInKm) {
+  // Already split by a previous run - structurally final, never re-derive.
+  // The arithmetic alone is NOT idempotent on the borderline: cirque-du-suffer's
+  // GPS-short trace ends nearer the ride mark than the lap mark even after
+  // its lead-in has been split off, and re-running the nearest-mark rule on
+  // it would shave another lead-in's worth off the lap.
+  if (entry.traceCoveredLeadIn) return { entry, classification: 'already-split' }
+
   const segments = entry.segments
   if (!segments?.length) return { entry, classification: 'no-trace' }
 
