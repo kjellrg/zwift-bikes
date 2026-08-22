@@ -7,7 +7,8 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/ui',
     '@nuxtjs/sitemap',
-    '@nuxtjs/robots'
+    '@nuxtjs/robots',
+    'nuxt-og-image'
   ],
 
   devtools: {
@@ -176,6 +177,22 @@ export default defineNuxtConfig({
         'lucide:tractor',
         'lucide:sandwich'
       ]
+    }
+  },
+
+  ogImage: {
+    // Every page that defines a card (routes, events, home, about) is in the
+    // prerender list above, so the cards render at build time and ship as
+    // static assets - nothing (no Wasm renderer, no font loading) lands in
+    // the Worker bundle. Segment pages are the one dynamic surface without a
+    // card; they keep the world-minimap image until runtime generation is
+    // worth its Worker cost (issue #59 phase 2).
+    zeroRuntime: true,
+    // 1200x630 (not the module's 1200x600 default): the documented OG size
+    // every large-card scraper (Facebook, Discord, Slack, X) crops to.
+    defaults: {
+      width: 1200,
+      height: 630
     }
   },
 

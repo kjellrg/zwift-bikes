@@ -9,6 +9,12 @@ useSeoMeta({
   ogTitle: title,
   ogDescription: description
 })
+
+// Issue #59: same generated brand card as the homepage - what's shared from
+// here is the site, not a specific route or race.
+defineOgImage('SiteCard', {}, {
+  alt: 'ZwiftBikes - find the fastest bike and wheelset for any Zwift route'
+})
 </script>
 
 <template>

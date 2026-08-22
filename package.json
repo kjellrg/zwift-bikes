@@ -30,7 +30,9 @@
     "@nuxt/ui": "^4.10.0",
     "@nuxtjs/robots": "^6.1.4",
     "@nuxtjs/sitemap": "^8.3.4",
+    "@takumi-rs/core": "^2.10.0",
     "nuxt": "^4.5.2",
+    "nuxt-og-image": "^6.7.8",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3",
     "zwift-data": "^1.50.0"

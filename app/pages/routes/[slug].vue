@@ -80,18 +80,57 @@ useSeoMeta({
   ogTitle: () => routeData.value ? routeData.value.name : undefined,
   ogDescription: () => routeData.value
     ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}.`
-    : undefined,
-  // Full object, not just the URL: the app-level default in app.vue emits
-  // og:image:width/height/alt, which unhead dedupes per-tag, so replacing
-  // only og:image would leave the default image's dimensions attached to
-  // this page's world artwork.
-  ogImage: () => {
-    if (!routeData.value) return undefined
-    const img = getWorldImage(routeData.value.world)
-    return img ? { ...img, alt: `${routeData.value.worldName} route map` } : undefined
-  },
-  twitterImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined
+    : undefined
 })
+
+/**
+ * Elevation silhouette for the share card: elevations sampled at even
+ * distances across lead-in + one lap, normalized to 0..1 of the route's own
+ * height range. A 30 m floor on that range keeps genuinely flat routes
+ * (crit circuits) reading as flat instead of amplifying meter-level noise
+ * to full card height.
+ */
+function ogElevationProfile(route: NonNullable<typeof routeData.value>): number[] {
+  const points = geometryForRouteLaps(route, 1).points
+  const totalM = points[points.length - 1]?.distanceM ?? 0
+  if (totalM <= 0) return []
+  const samples = 120
+  const values: number[] = []
+  let j = 0
+  for (let i = 0; i < samples; i++) {
+    const d = (i / (samples - 1)) * totalM
+    while (j < points.length - 2 && points[j + 1]!.distanceM < d) j++
+    const a = points[j]!
+    const b = points[j + 1] ?? a
+    const t = b.distanceM > a.distanceM ? (d - a.distanceM) / (b.distanceM - a.distanceM) : 0
+    values.push(a.elevationM + (b.elevationM - a.elevationM) * t)
+  }
+  const min = Math.min(...values)
+  const range = Math.max(Math.max(...values) - min, 30)
+  return values.map(v => Math.round(((v - min) / range) * 100) / 100)
+}
+
+// Issue #59: a generated card replaces the old hotlinked world minimap.
+// Snapshotted once at setup, which is exactly the build-time prerender pass
+// (zeroRuntime never re-renders): the top combo is therefore the DEFAULT
+// rider profile's - the same ranking the prerendered page itself shows -
+// and combo names, not a finish time, go on the card because a time is only
+// meaningful for a specific rider.
+if (routeData.value) {
+  const totals = computeRouteTotals(routeData.value, 1)
+  const ogTopCombo = recommendData.value?.combos?.[0]
+  defineOgImage('RouteCard', {
+    title: routeData.value.name,
+    world: routeData.value.worldName,
+    distance: formatDistance(totals.distanceKm),
+    elevation: formatElevation(totals.elevationM),
+    frameName: ogTopCombo?.frame.name,
+    wheelName: ogTopCombo?.wheelset?.name,
+    profile: ogElevationProfile(routeData.value)
+  }, {
+    alt: `Best bike for ${routeData.value.name} in ${routeData.value.worldName}: route profile and the fastest bike and wheel setup`
+  })
+}
 
 onMounted(() => {
   loadGarage()
