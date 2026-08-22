@@ -26,7 +26,6 @@ watch(bikeSearch, (value) => {
 })
 const pageSize = 9
 const laps = ref(1)
-const lapOptions = Array.from({ length: MAX_LAPS }, (_, i) => ({ label: `${i + 1} lap${i === 0 ? '' : 's'}`, value: i + 1 }))
 
 const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
@@ -71,6 +70,21 @@ const [{ data: routeData, error: routeError }, { data: recommendData, status, re
 ])
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: 'Route not found', fatal: true })
 useRefetchNotice(recommendError, status, refreshRecommendations)
+
+// Per-route rather than a flat 1..MAX_LAPS: `maxLapsForRoute` also caps the
+// total ride at MAX_TOTAL_DISTANCE_KM, and offering a lap count the server's
+// `clampLaps` would then quietly shrink shows totals for a ride nobody gets.
+// Declared AFTER the fetch above: `watch` reads its source eagerly on the
+// client, so referencing `routeData` any earlier is a TDZ crash on hydration.
+const lapOptions = computed(() => Array.from(
+  { length: routeData.value ? maxLapsForRoute(routeData.value) : MAX_LAPS },
+  (_, i) => ({ label: `${i + 1} lap${i === 0 ? '' : 's'}`, value: i + 1 })
+))
+// A selection made on one route can outlive navigation to a shorter one -
+// snap it back rather than sending a lap count the picker no longer offers.
+watch(lapOptions, (options) => {
+  if (laps.value > options.length) laps.value = 1
+})
 
 useSeoMeta({
   title: () => routeData.value ? `Best Bike for ${routeData.value.name} - ZwiftBikes` : 'ZwiftBikes',
