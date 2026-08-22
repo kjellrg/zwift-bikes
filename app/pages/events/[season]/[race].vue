@@ -191,8 +191,15 @@ const [{ data: routeData }, { data: recommendEnvelope, status, refresh: refreshR
 const recommendData = computed(() => recommendEnvelope.value?.result ?? null)
 useRefetchNotice(recommendError, status, refreshRecommendations)
 
+// Runtime site flags: with the events section hidden, this page swaps its
+// content for the unavailable notice post-mount - the prerendered HTML
+// always carries the content (server/middleware/site-flags-gate.ts gates
+// the section's data endpoints meanwhile).
+const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
+
 onMounted(() => {
   loadGarage()
+  loadSiteFlags()
   // Normally the two control components load these themselves - but when the
   // selected group has no catalog route the controls aren't mounted at all,
   // and the query still wants the rider's stored profile. `load()` is an
@@ -588,7 +595,14 @@ useHead(() => {
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-10">
+  <EventsUnavailableNotice
+    v-if="!eventsVisible"
+    :notice="eventsNotice"
+  />
+  <UContainer
+    v-else
+    class="py-10 space-y-10"
+  >
     <div>
       <UButton
         :to="`/events/${season!.slug}`"
@@ -1058,6 +1072,7 @@ useHead(() => {
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this race
       </h2>
+      <RecommendDataNotice />
 
       <UAlert
         v-if="groupHasNoRoute"

@@ -12,6 +12,14 @@
 // modal itself.
 const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport } = useOverlays()
 
+// Runtime site flags (docs/site-flags.md): fetched once post-mount, so the
+// prerendered markup and the first client render agree on the defaults
+// (no MOTD, every section visible) and a live flag applies as an update.
+// The nav's Events entries hide with the section; direct visits are handled
+// by the events pages themselves.
+const { load: loadSiteFlags, eventsVisible } = useSiteFlags()
+onMounted(loadSiteFlags)
+
 // UHeader's mobile panel closes itself when an entry navigates. These
 // entries deliberately don't navigate any more, so close it by hand - but
 // only when a modal actually opened: a modifier-click falls through to the
@@ -120,6 +128,7 @@ useHead({
       <template #right>
         <div class="hidden items-center gap-1.5 lg:flex">
           <UButton
+            v-if="eventsVisible"
             to="/events"
             icon="i-lucide-calendar-days"
             label="Events"
@@ -171,6 +180,7 @@ useHead({
       <template #body>
         <div class="flex flex-col gap-1.5">
           <UButton
+            v-if="eventsVisible"
             to="/events"
             icon="i-lucide-calendar-days"
             label="Events"
@@ -232,6 +242,8 @@ useHead({
       :seed-kind="reportSeed?.kind"
       :seed-item="reportSeed?.item"
     />
+
+    <SiteMotdBanner />
 
     <UMain>
       <NuxtPage />

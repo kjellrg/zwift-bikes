@@ -325,6 +325,7 @@ const segmentAsRoute = computed(() => segmentData.value
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this segment
       </h2>
+      <RecommendDataNotice />
       <BikeFilterControls
         v-model:search="bikeSearch"
         class="mb-6"

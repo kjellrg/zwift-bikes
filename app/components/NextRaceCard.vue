@@ -15,9 +15,16 @@ import type { PublishableRace } from '../../shared/utils/events'
 // has switched the teasers off.
 const { showUpcomingRaces, load: loadPreferences } = usePreferences()
 
+// Hides with the events section (runtime site flags) - a teaser must not
+// link into a section whose pages and data are gated off. Loaded here too
+// (idempotently, like preferences) so the card is correct even if a future
+// layout stops loading the flags itself.
+const { eventsVisible, load: loadSiteFlags } = useSiteFlags()
+
 const nextRace = ref<PublishableRace>()
 onMounted(() => {
   loadPreferences()
+  loadSiteFlags()
   nextRace.value = getNextUpcomingRace(new Date().toISOString().slice(0, 10))
 })
 
@@ -28,7 +35,7 @@ const courseNames = computed(() => {
 </script>
 
 <template>
-  <UCard v-if="showUpcomingRaces && nextRace">
+  <UCard v-if="showUpcomingRaces && eventsVisible && nextRace">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <p class="text-xs text-muted uppercase tracking-wide">

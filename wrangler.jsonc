@@ -49,6 +49,18 @@
       }
     }
   ],
+  // Runtime site flags (server/utils/siteFlags.ts): one JSON value under the
+  // key "site-flags", written by `npm run flags:push`, read fail-open at
+  // request time - so a MOTD or section gate changes in seconds instead of
+  // riding a full build. The preview env below binds its OWN namespace: all
+  // PR Workers share it, which is what makes "push to preview, eyeball it on
+  // any open PR, then push to prod" the rehearsal flow for flag changes.
+  "kv_namespaces": [
+    {
+      "binding": "SITE_FLAGS",
+      "id": "d912dcb12efb4cde97e4a1b69aca07fb"
+    }
+  ],
   "observability": {
     "enabled": true
   },
@@ -56,9 +68,11 @@
   // zwift-bikes-pr-<n>` in cloudflare-deploy.yml) live on workers.dev, so the
   // route is re-enabled just for them. Everything else (main, assets, limits,
   // observability, preview_urls) is inherited from the top level - except
-  // ratelimits, which wrangler does not inherit into environments and drops
-  // with only a warning, breaking server/middleware/rate-limit.ts. Keep this
-  // block a copy of the top-level one.
+  // bindings (ratelimits, kv_namespaces), which wrangler does not inherit
+  // into environments and drops with only a warning, breaking
+  // server/middleware/rate-limit.ts. Keep the ratelimits block a copy of the
+  // top-level one; kv_namespaces deliberately differs by ID only - the
+  // preview namespace, shared by every PR Worker.
   "env": {
     "preview": {
       "workers_dev": true,
@@ -70,6 +84,12 @@
             "limit": 30,
             "period": 60
           }
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "SITE_FLAGS",
+          "id": "28c20c90c30942e58f3402f8fbc976a5"
         }
       ]
     }

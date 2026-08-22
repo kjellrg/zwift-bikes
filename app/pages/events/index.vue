@@ -33,8 +33,16 @@ const seriesGroups = computed(() => {
  * render show every season in place (content stays in the DOM for crawlers);
  * the regrouping is a brief post-mount reflow.
  */
+// Runtime site flags: with the events section hidden, this page swaps its
+// content for the unavailable notice post-mount (the prerendered HTML always
+// carries the content - same discipline as the "past seasons" regrouping
+// below). The section's data endpoints 503 meanwhile, so this isn't just
+// cosmetic - see server/middleware/site-flags-gate.ts.
+const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
+
 const pastSeasonSlugs = ref(new Set<string>())
 onMounted(() => {
+  loadSiteFlags()
   const today = new Date().toISOString().slice(0, 10)
   pastSeasonSlugs.value = new Set(seasons
     .filter(season => getVisibleSeasonRaces(season).every(race => raceEndDate(race) < today))
@@ -68,7 +76,14 @@ useHead({
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-10">
+  <EventsUnavailableNotice
+    v-if="!eventsVisible"
+    :notice="eventsNotice"
+  />
+  <UContainer
+    v-else
+    class="py-10 space-y-10"
+  >
     <div>
       <UButton
         to="/"
