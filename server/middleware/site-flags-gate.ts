@@ -42,7 +42,9 @@ export default defineEventHandler(async (event) => {
 
   const { killSwitches, sections } = await getSiteFlags(event)
   if (isRecommend && killSwitches.recommend) {
-    unavailable(event, 'Recommendations are temporarily paused for maintenance. Try again shortly.')
+    // No trailing "try again" imperative: useRefetchNotice shows this text
+    // verbatim in a toast and appends its own stale-results line.
+    unavailable(event, 'Recommendations are temporarily paused for maintenance.')
   }
   if (isMcp && killSwitches.mcp) {
     unavailable(event, 'The MCP endpoint is temporarily paused for maintenance. Try again shortly.')

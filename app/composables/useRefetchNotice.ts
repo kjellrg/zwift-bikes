@@ -9,7 +9,10 @@
  * error in this watcher is always a live browser talking to the API. A 429
  * gets one automatic retry after the server's `Retry-After` window (the
  * bucket refills quickly, and the rider's own IP is usually only throttled
- * because something outside the browser has been hammering the API); any
+ * because something outside the browser has been hammering the API); a 503
+ * is the site-flags kill switch (server/middleware/site-flags-gate.ts) and
+ * shows that gate's own wording with no retry - its Retry-After is minutes,
+ * not seconds, and "maintenance" reads very differently from "failed"; any
  * other failure, or a retry that fails again, gets a toast saying the shown
  * results are the previous ones.
  */
@@ -18,6 +21,15 @@
 interface RefetchError {
   statusCode?: number
   response?: { headers?: { get?: (name: string) => string | null } }
+  /** The error response body - `unknown` to stay assignable from
+   * `NuxtError<unknown>`; h3's `createError` message is narrowed out at use. */
+  data?: unknown
+}
+
+/** The `message` h3's `createError` put in the error body, if one survived. */
+function bodyMessage(err: RefetchError): string | undefined {
+  const message = (err.data as { message?: unknown } | null | undefined)?.message
+  return typeof message === 'string' && message ? message : undefined
 }
 
 export function useRefetchNotice(
@@ -55,6 +67,15 @@ export function useRefetchNotice(
     // should not stack a toast per failed request.
     if (now - lastToastMs < 5000) return
     lastToastMs = now
+    if (err.statusCode === 503) {
+      toast.add({
+        title: 'Calculations are paused',
+        description: `${bodyMessage(err) ?? 'Temporarily unavailable for maintenance.'} The results shown are the previous ones.`,
+        color: 'warning',
+        icon: 'i-lucide-wrench'
+      })
+      return
+    }
     toast.add({
       title: 'Couldn\'t update the results',
       description: 'Showing the previous ones - try again in a moment.',
