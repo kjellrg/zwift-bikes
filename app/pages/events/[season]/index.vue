@@ -23,9 +23,16 @@ const title = computed(() => `${season.seriesName} ${season.label}`)
  * for crawlers); past races regroup into the collapsible in a brief
  * post-mount reflow.
  */
+// Runtime site flags: with the events section hidden, this page swaps its
+// content for the unavailable notice post-mount, and /api/events/** answers
+// 503 meanwhile (server/middleware/site-flags-gate.ts) - so the useFetch
+// above coming back empty on a client-side visit is expected, not an error.
+const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
+
 const nextRaceSlug = ref<string>()
 const pastRaceSlugs = ref(new Set<string>())
 onMounted(() => {
+  loadSiteFlags()
   const today = new Date().toISOString().slice(0, 10)
   const visible = sortRacesByDate(getVisibleSeasonRaces(season))
   // A week-long stage that's mid-window still counts as the next race.
@@ -83,7 +90,14 @@ useHead(() => ({
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-10">
+  <EventsUnavailableNotice
+    v-if="!eventsVisible"
+    :notice="eventsNotice"
+  />
+  <UContainer
+    v-else
+    class="py-10 space-y-10"
+  >
     <div>
       <UButton
         to="/events"
