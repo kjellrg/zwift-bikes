@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "motd": {
+    "id": "2026-08-example",
+    "message": "Example announcement - give each new message a fresh id so riders who dismissed the previous one see it.",
+    "tone": "info",
+    "dismissible": true,
+    "expiresAt": "2026-09-01T00:00:00Z"
+  },
+  "sections": {
+    "events": {
+      "mode": "on",
+      "notice": "Shown on the events pages instead of their content whenever mode is \"hidden\"."
+    }
+  },
+  "killSwitches": {
+    "recommend": false,
+    "mcp": false
+  }
+}
