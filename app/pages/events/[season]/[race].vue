@@ -145,8 +145,24 @@ const recommendQuery = computed(() => ({
 // the bottom of the list. Refusing to serve the cache for manual refreshes
 // keeps hydration itself free (the initial load still reuses the payload)
 // while guaranteeing every `refreshRecommendations()` call hits the network.
+//
+// The cached entry is an envelope `{ forQuery, result }` so the cache can
+// answer the question the route/segment pages get for free from `useFetch`'s
+// query-hashing auto-key: was this data computed for the query I'm about to
+// send? It matters on client-side navigation: these pages are prerendered
+// with the DEFAULT rider profile, and Nuxt's payload plugin prefetches the
+// target page's `_payload.json` into `nuxtApp.static.data` under exactly
+// this static key. The profile watchers below can't correct a stale hit -
+// the profile loaded into app state long before this page's setup ran, so
+// nothing changes and nothing refreshes - which froze default-profile times
+// on every navigation from the calendar until a slider moved (issue #121).
+// Serving `static.data` only when the stored query matches the current one
+// keeps the prerendered payload answering client-side navigations for
+// default-profile riders while sending everyone else to the network - the
+// route pages' exact contract. (The old query-shaped key dodged #121 by
+// accident, and reintroducing it would reintroduce the multi-fetch bug.)
 const recommendKey = `race-recommend-${seasonSlug.value}-${raceSlug.value}`
-const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecommendations, error: recommendError }] = await Promise.all([
+const [{ data: routeData }, { data: recommendEnvelope, status, refresh: refreshRecommendations, error: recommendError }] = await Promise.all([
   useAsyncData(
     () => `race-route-${selectedRouteSlug.value ?? 'none'}`,
     () => selectedRouteSlug.value ? $fetch(`/api/routes/${selectedRouteSlug.value}`) : Promise.resolve(null),
@@ -154,16 +170,25 @@ const [{ data: routeData }, { data: recommendData, status, refresh: refreshRecom
   ),
   useAsyncData(
     recommendKey,
-    () => selectedRouteSlug.value ? $fetch(`/api/recommend/${selectedRouteSlug.value}`, { query: recommendQuery.value }) : Promise.resolve(null),
+    async () => {
+      // Serialized before the await: the envelope must record the query this
+      // result was fetched WITH, not whatever the refs hold when it lands.
+      const forQuery = JSON.stringify(recommendQuery.value)
+      const result = selectedRouteSlug.value ? await $fetch(`/api/recommend/${selectedRouteSlug.value}`, { query: recommendQuery.value }) : null
+      return { forQuery, result }
+    },
     {
       watch: [],
       getCachedData: (key, nuxtApp, ctx) => {
         if (ctx.cause === 'refresh:manual') return undefined
-        return nuxtApp.isHydrating ? nuxtApp.payload.data[key] : nuxtApp.static.data[key]
+        if (nuxtApp.isHydrating) return nuxtApp.payload.data[key]
+        const cached = nuxtApp.static.data[key]
+        return cached?.forQuery === JSON.stringify(recommendQuery.value) ? cached : undefined
       }
     }
   )
 ])
+const recommendData = computed(() => recommendEnvelope.value?.result ?? null)
 useRefetchNotice(recommendError, status, refreshRecommendations)
 
 onMounted(() => {

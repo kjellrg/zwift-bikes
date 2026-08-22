@@ -66,7 +66,19 @@ export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
   'Roval CLX64': { flatGapSec: 33.9, climbGapSec: 3.9 },
   'Roval Rapide CLX': { flatGapSec: 27.2, climbGapSec: 5.3 },
   'Roval Sprint CLX': { flatGapSec: 43, climbGapSec: 6.7 },
+  // The plain "Shimano Cxx" names are the August 2026 revisions (catalog
+  // entries supplied by `wheelSupplement.ts` until zwift-data ships them,
+  // imageNames "Wheel_ShimanoDuraAceCxx2026"). ZwiftInsider's sheet titles
+  // these rows "Shimano DURA-ACE C36" etc. and retitles the older revisions
+  // below "... C36 2025" / "... C50 2021" / "... C60 2019" - but in the
+  // game dictionary the OLD wheels keep the "Shimano DURA-ACE Cxx" names
+  // unchanged, so both generations' keys here follow the game, not the
+  // sheet.
+  'Shimano C36': { flatGapSec: 27.2, climbGapSec: 10.8 },
   'Shimano C40': { flatGapSec: 9.8, climbGapSec: 2.6 },
+  'Shimano C50': { flatGapSec: 39.9, climbGapSec: 10.6 },
+  'Shimano C60': { flatGapSec: 42.4, climbGapSec: 8.7 },
+  'Shimano C99/Disc': { flatGapSec: 52, climbGapSec: -19.2 },
   'Shimano DURA-ACE C36': { flatGapSec: 16, climbGapSec: 7.3 },
   'Shimano DURA-ACE C50': { flatGapSec: 18.9, climbGapSec: -2 },
   'Shimano DURA-ACE C60': { flatGapSec: 25.4, climbGapSec: -4.4 },
