@@ -1,4 +1,4 @@
-trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run lint && npm run spellcheck && npm run typecheck && npm run validate
+trufflehog --no-update git file://. --since-commit HEAD --results=verified,unknown --fail --trust-local-git-config && zizmor .github/workflows && npm run lint && npm run spellcheck && npm run typecheck && npm run validate && npm run test
 
 # `npm run build` used to run here, conditionally, whenever a staged path could
 # affect build output. It prerenders all 335 route pages and takes ~9 minutes,
@@ -13,5 +13,6 @@ trufflehog --no-update git file://. --since-commit HEAD --results=verified,unkno
 # commit somebody is.
 #
 # What stays here is everything that is fast enough to never be worth skipping:
-# secret scanning, workflow auditing, lint, spellcheck, typecheck and the
-# validators - about 25 seconds of work plus trufflehog.
+# secret scanning, workflow auditing, lint, spellcheck, typecheck, the
+# validators and the vitest unit suite (~2s) - about 25 seconds of work plus
+# trufflehog.
