@@ -85,9 +85,6 @@ describe('simulator mechanics', () => {
   })
 
   it('a rougher surface under road wheels costs time (dirt Crr > tarmac Crr)', () => {
-    // The elevation profile has a point at the surface boundary so the
-    // steady-state early exit can't extrapolate across it - see the known
-    // limitation documented in the `it.fails` test below.
     const paved = geometry([{ distanceM: 0, elevationM: 0 }, { distanceM: 5000, elevationM: 7.5 }, { distanceM: 10000, elevationM: 15 }])
     const halfDirt = geometry(
       [{ distanceM: 0, elevationM: 0 }, { distanceM: 5000, elevationM: 7.5 }, { distanceM: 10000, elevationM: 15 }],
@@ -98,15 +95,12 @@ describe('simulator mechanics', () => {
     expect(dirtSec).toBeGreaterThan(pavedSec)
   })
 
-  // KNOWN LIMITATION, documented as an expected failure: the steady-state
-  // early exit checks grade and power boundaries but NOT surface boundaries,
-  // so on a geometry whose elevation profile is a single straight line (as
-  // `geometryForSegment` builds, with `prependWarmup` delivering the rider
-  // already at steady speed) a surface change after the exit point is
-  // extrapolated over at the previous surface's speed - here 5km of dirt
-  // costs exactly nothing. When the early exit learns about surface
-  // boundaries this test starts passing; remove the `.fails` then.
-  it.fails('the steady-state early exit accounts for surface changes on a 2-point elevation profile', () => {
+  // Issue #124's regression tests: the steady-state early exit must not
+  // extrapolate across a surface join still ahead. A 2-point elevation
+  // profile (what `geometryForSegment` builds, with `prependWarmup`
+  // delivering the rider already at steady speed) is the vulnerable shape -
+  // before the fix, 5km of dirt here cost exactly nothing.
+  it('the steady-state early exit accounts for surface changes on a 2-point elevation profile', () => {
     const paved = geometry([{ distanceM: 0, elevationM: 0 }, { distanceM: 10000, elevationM: 15 }])
     const halfDirt = geometry(
       [{ distanceM: 0, elevationM: 0 }, { distanceM: 10000, elevationM: 15 }],
@@ -115,6 +109,27 @@ describe('simulator mechanics', () => {
     const pavedSec = simulateRoute({ rider: RIDER, frame: frame(), wheelset: wheelset(), geometry: paved }).elapsedSec
     const dirtSec = simulateRoute({ rider: RIDER, frame: frame(), wheelset: wheelset(), geometry: halfDirt }).elapsedSec
     expect(dirtSec).toBeGreaterThan(pavedSec)
+  })
+
+  it('a sparse multi-surface geometry agrees with its dense (grade knots at every join) twin', () => {
+    // The property the #124 fix restores. The dense twin defeats the early
+    // exit's grade guard on every interior stretch, so it always integrates
+    // through every surface - the sparse geometry must reach the same answer.
+    // Surfaces mirror the real Alpe segment shape that exposed the bug
+    // (short tarmac, wood, long dirt, long tarmac finish), on a climb grade.
+    const surfaces: RouteSurfaceSegment[] = [
+      { fromM: 0, toM: 300, surface: 'tarmac' },
+      { fromM: 300, toM: 400, surface: 'wood' },
+      { fromM: 400, toM: 1900, surface: 'dirt' },
+      { fromM: 1900, toM: 12000, surface: 'tarmac' }
+    ]
+    const grade = 1000 / 12000
+    const sparse = geometry([{ distanceM: 0, elevationM: 0 }, { distanceM: 12000, elevationM: 1000 }], surfaces)
+    const densePoints = [0, 300, 400, 1900, 12000].map(d => ({ distanceM: d, elevationM: grade * d }))
+    const dense = geometry(densePoints, surfaces)
+    const sparseSec = simulateRoute({ rider: RIDER, frame: frame(), wheelset: wheelset(), geometry: sparse }).elapsedSec
+    const denseSec = simulateRoute({ rider: RIDER, frame: frame(), wheelset: wheelset(), geometry: dense }).elapsedSec
+    expect(Math.abs(sparseSec - denseSec)).toBeLessThan(0.5)
   })
 
   it('power overrides change the outcome only when they change the power', () => {

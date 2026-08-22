@@ -133,7 +133,7 @@ flowchart TD
     F1["calculateForces at v"]
     F2["calculateForces again<br/>at the midpoint v<br/>RK2 · Euler overshoots ~5.8 s"]
     ADV["Advance at the midpoint v<br/>partial dt on the last step"]
-    STEADY{"Steady state on<br/>the final segment?"}
+    STEADY{"Steady state, no grade,<br/>surface or power<br/>boundary still ahead?"}
     COAST["Skip ahead ·<br/>remaining distance / v"]
     DONE(["elapsedSec, distanceM,<br/>averageSpeedMps"])
 
@@ -151,6 +151,17 @@ resistance and aerodynamic drag — and returns the resulting acceleration.
 Grade and surface are looked up **independently** — real surface transitions
 do not line up with grade changes, so they are two separate binary searches
 over two separate arrays.
+
+The steady-state skip only fires once every boundary that could change the
+equilibrium is behind the step's **start** position: the final grade segment
+must reach the finish, and the last interior surface join and the last power
+override must both be passed (issue #124 — before the surface guard, a
+2-point segment geometry extrapolated one surface's speed across every join
+after steady state, costing the Alpe segment's 1.5 km of dirt nothing). The
+final surface segment's own end is deliberately not a boundary: measured
+surface data routinely stops a few metres short of the official distance, and
+treating that trailing gap as a join would disable the skip on essentially
+every route.
 
 Not shown, because it is optional instrumentation rather than part of the
 physics: when `boundariesM` is passed, each step also records the elapsed time
