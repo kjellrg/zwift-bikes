@@ -28,9 +28,20 @@ import generated from './routeSurfaces.generated.json'
  */
 interface GeneratedRouteSurface {
   composition: SurfaceComposition
+  /** LAP-relative (normalized - see `scripts/route-surfaces/normalize.mjs` and issue #126). */
   segments?: SurfaceSegment[]
-  /** Real per-lap elevation profile from the same GPS trace, simplified - see `shared/utils/elevationGeometry.ts`. */
+  /** Real per-lap elevation profile from the same GPS trace, simplified - see `shared/utils/elevationGeometry.ts`. Lap-relative, first point `{0,0}`. */
   elevationProfile?: RouteElevationPoint[]
+  /**
+   * Present only when the source trace covered the lead-in as well
+   * (`traceCoveredLeadIn`): the lead-in's own measured surface stretches and
+   * elevation shape, km/m relative to the RIDE start (which is the lead-in's
+   * own start). Split off by the normalizer so the lap arrays above stay
+   * purely lap-relative without throwing the lead-in's real data away.
+   */
+  leadInSegments?: SurfaceSegment[]
+  leadInElevationProfile?: RouteElevationPoint[]
+  traceCoveredLeadIn?: boolean
   generatedAt: string
   stravaSegmentId: number
 }

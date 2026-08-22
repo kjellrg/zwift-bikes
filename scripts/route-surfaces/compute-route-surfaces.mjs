@@ -35,9 +35,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { routes } from 'zwift-data'
 import { loadSharedModule } from './loadShared.mjs'
+import { normalizeRouteSurfaceEntry } from './normalize.mjs'
 
 const { computeSurfaceProfile } = loadSharedModule('shared/utils/surfaceGeometry.ts')
 const { computeElevationProfile } = loadSharedModule('shared/utils/elevationGeometry.ts')
+const { eventLeadIn } = loadSharedModule('shared/data/routeEventLeadIns.ts')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '../..')
@@ -94,15 +96,23 @@ for (const route of routesToProcess) {
     const { latlng, distance, altitude } = await fetchStreams(route.stravaSegmentId)
     const { composition, segments } = computeSurfaceProfile(route.world, latlng, distance)
     const elevationProfile = altitude ? computeElevationProfile(distance, altitude) : undefined
-    results[route.slug] = {
+    // The community Strava segment may cover lead-in + lap instead of the lap
+    // alone; normalize every fresh fetch to the lap-relative convention (see
+    // normalize.mjs / issue #126) so regeneration can't reintroduce mixed
+    // alignment. Uses the effective (event-override-corrected) lead-in, the
+    // same one geometryForRouteLaps cuts the ride with.
+    const leadInKm = eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation).leadInDistance ?? 0
+    const { entry, classification } = normalizeRouteSurfaceEntry({
       composition,
       segments,
       ...(elevationProfile ? { elevationProfile } : {}),
       generatedAt: new Date().toISOString(),
       stravaSegmentId: route.stravaSegmentId
-    }
+    }, route.distance, leadInKm)
+    results[route.slug] = entry
     const elevationNote = elevationProfile ? `, ${elevationProfile.length} elevation points` : ', no altitude stream'
-    console.log(Object.entries(composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${segments.length} segments${elevationNote})`)
+    const alignmentNote = classification === 'ride-split' ? ', trace covered lead-in - split' : classification === 'ambiguous' ? ', ALIGNMENT AMBIGUOUS - check trace end vs lap distance' : ''
+    console.log(Object.entries(entry.composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${entry.segments.length} segments${elevationNote}${alignmentNote})`)
   } catch (err) {
     console.log(`FAILED: ${err.message}`)
   }
