@@ -176,6 +176,16 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   // finish, which would silently skip any power change still ahead - never
   // take it before the last override boundary is behind us.
   const lastPowerBoundaryM = powerSegments?.length ? powerSegments[powerSegments.length - 1]!.toM : 0
+  // Same rule for surface changes (issue #124): a join still ahead means a
+  // different Crr ahead, and extrapolating the current surface's speed across
+  // it skipped e.g. the Alpe segment's 1.5km of dirt entirely on the segment
+  // endpoint's 2-point geometry. The last INTERIOR join is the guard - the
+  // final segment's own `toM` is deliberately not treated as a boundary,
+  // because measured surface data routinely stops a few metres short of the
+  // official distance (see `routeGeometry.ts`'s trailing-gap note), and using
+  // it would disable the exit on essentially every route for nothing.
+  const surfaceSegments = options.geometry.surfaceSegments
+  const lastSurfaceBoundaryM = surfaceSegments.length > 1 ? surfaceSegments[surfaceSegments.length - 2]!.toM : 0
 
   // Guard against a simulation that never reaches the finish line. It has to
   // scale with the route AND with `dt`, or a smaller `dt` silently truncates
@@ -230,7 +240,13 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     state.elapsedSec += stepSec
     boundaryIndex = crossBoundaries(options.boundariesM, boundaryIndex, boundaryCrossings, previousDistance, previousElapsedSec, state.distanceM, state.elapsedSec)
 
-    if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM && state.distanceM >= lastPowerBoundaryM) {
+    // Both boundary guards compare the step's START position, not where the
+    // step landed: `forces` (whose near-zero acceleration is what justifies
+    // extrapolating) were evaluated at the start, so a step that CROSSES the
+    // last boundary is still carrying the old surface's/power's equilibrium -
+    // exiting on it extrapolated the Alpe segment's dirt-converged speed over
+    // 10km of tarmac (issue #124's verification caught this).
+    if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM && previousDistance >= lastPowerBoundaryM && previousDistance >= lastSurfaceBoundaryM) {
       const beforeRemainingDistance = state.distanceM
       const beforeRemainingElapsedSec = state.elapsedSec
       const remainingM = options.geometry.totalDistanceM - state.distanceM
