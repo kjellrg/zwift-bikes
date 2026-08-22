@@ -9,6 +9,13 @@ useSeoMeta({
   ogTitle: title
 })
 
+// Issue #59: the homepage previously fell back to app.vue's static
+// /og-image.png; the generated brand card keeps every share on the same
+// visual system as the route/event cards.
+defineOgImage('SiteCard', {}, {
+  alt: 'ZwiftBikes - find the fastest bike and wheelset for any Zwift route'
+})
+
 const search = ref('')
 const searchDebounced = ref('')
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined

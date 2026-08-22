@@ -492,9 +492,28 @@ useSeoMeta({
   ogTitle: () => `${raceHeading.value} - ${routeNamesLabel.value}`,
   ogDescription: () => hasSplitCourses(race!)
     ? `The fastest legal bike and wheel combo for ${raceTitle.value} - ${routeNamesByCategory.value}.`
-    : `The fastest legal bike and wheel combo for ${raceTitle.value} on ${routeNamesLabel.value}.`,
-  ogImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined,
-  twitterImage: () => routeData.value ? getWorldImageUrl(routeData.value.world) : undefined
+    : `The fastest legal bike and wheel combo for ${raceTitle.value} on ${routeNamesLabel.value}.`
+})
+
+// Issue #59: a generated card replaces the old hotlinked world minimap.
+// Snapshotted once at setup - the build-time prerender pass (zeroRuntime
+// never re-renders) - so the combo is the DEFAULT rider profile's, matching
+// what the prerendered page shows. Only races whose categories ride
+// different ROUTES skip the combo line (one combo would be wrong for most
+// readers) - deliberately narrower than `hasSplitCourses`, which also
+// splits on lap count: same route with more laps is the same terrain mix,
+// so the fastest combo holds.
+const ogRouteCount = new Set(race!.categories.map(group => group.routeSlug ?? group.routeName ?? '')).size
+const ogTopCombo = ogRouteCount > 1 ? undefined : topCombo.value
+defineOgImage('EventCard', {
+  series: `${season!.seriesName} ${season!.label}`,
+  title: raceHeading.value,
+  course: `${routeNamesLabel.value} · ${formatLabel.value}`,
+  date: formatRaceDate(race!.date),
+  frameName: ogTopCombo?.frame.name,
+  wheelName: ogTopCombo?.wheelset?.name
+}, {
+  alt: `${raceTitle.value} on ${routeNamesLabel.value}: date, format and the fastest legal bike and wheel setup`
 })
 
 useHead(() => {
