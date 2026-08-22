@@ -29,6 +29,13 @@
 // resume - already-computed routes in the existing output file are skipped
 // unless --force is passed. Paced to stay under Strava's ~100 req/15min rate
 // limit; on a 429 it backs off and retries rather than failing the run.
+//
+// To refetch specific routes only (a targeted fix, e.g. a bad altitude
+// stream), pass --only with one or more slugs - implies --force for exactly
+// those routes and touches nothing else:
+//
+//   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only jons-route
+//   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only jons-route --only ocean-blvd
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
@@ -52,6 +59,7 @@ if (!token) {
 }
 
 const force = process.argv.includes('--force')
+const onlySlugs = new Set(process.argv.flatMap((arg, i) => (arg === '--only' && process.argv[i + 1] ? [process.argv[i + 1]] : [])))
 const requestDelayMs = 9_500 // ~1 req/9.5s, comfortably under Strava's 100 req/15min
 
 const existing = existsSync(outPath) ? JSON.parse(readFileSync(outPath, 'utf-8')) : {}
@@ -85,8 +93,18 @@ async function fetchStreams(stravaSegmentId) {
   return { latlng, distance, altitude }
 }
 
-const routesToProcess = routes.filter(r => r.slug && r.stravaSegmentId && (force || !existing[r.slug]))
+const routesToProcess = routes.filter(r => r.slug && r.stravaSegmentId
+  && (onlySlugs.size > 0 ? onlySlugs.has(r.slug) : (force || !existing[r.slug])))
 console.log(`${routesToProcess.length} routes to process (${routes.length - routesToProcess.length} already done or skippable)\n`)
+
+// A typoed --only slug (or one whose route has no stravaSegmentId in
+// zwift-data - including the ~13 entries whose segment ids exist only in the
+// generated file) would otherwise just silently fetch nothing.
+for (const slug of onlySlugs) {
+  if (!routesToProcess.some(r => r.slug === slug)) {
+    console.warn(`WARNING: --only ${slug} matches no fetchable route (unknown slug, or no stravaSegmentId in zwift-data - see the README on hand-sourced segment ids).`)
+  }
+}
 
 const results = { ...existing }
 let done = 0
