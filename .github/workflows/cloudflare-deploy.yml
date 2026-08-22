@@ -19,8 +19,11 @@ name: Cloudflare Workers CI/CD
 # outrun verification - merge protection on checks.yml covers the merge side.
 #
 # Secrets: CLOUDFLARE_API_TOKEN (Workers Scripts: Edit) and
-# CLOUDFLARE_ACCOUNT_ID. Deploys use the repo's own wrangler via `npx`, so CI
-# ships with exactly the version the lockfile pins.
+# CLOUDFLARE_ACCOUNT_ID, plus two mask-only secrets - CLOUDFLARE_ACCOUNT_EMAIL
+# and CLOUDFLARE_ACCOUNT_NAME (see the job-level `env` notes). Deploys use the
+# repo's own wrangler via `npx`, so CI ships with exactly the version the
+# lockfile pins. Preview deletion does NOT use wrangler - see the comment on
+# that step.
 
 on:
   push:
@@ -110,6 +113,15 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # the sticky preview-link comment below
+    # Mask-only, never read: wrangler's auth-error diagnostics print the
+    # token's user email and the account name ("<email>'s Account") into the
+    # public log on a failed deploy. The runner only redacts secret values it
+    # has been handed, so referencing them here is what turns on masking for
+    # this job's entire log. Update the secrets if the Cloudflare account
+    # email or name ever changes - masking stops silently otherwise.
+    env:
+      MASK_CLOUDFLARE_ACCOUNT_EMAIL: ${{ secrets.CLOUDFLARE_ACCOUNT_EMAIL }}
+      MASK_CLOUDFLARE_ACCOUNT_NAME: ${{ secrets.CLOUDFLARE_ACCOUNT_NAME }}
     steps:
       - name: Checkout repository
         if: needs.changes.outputs.app == 'true'
@@ -213,36 +225,42 @@ jobs:
     runs-on: ubuntu-latest
     name: Close Pull Request Job
     permissions:
-      contents: read
       pull-requests: write # updates the sticky preview comment below
+    # Mask-only, never read - same as build_and_deploy_job: the error path
+    # below cats the raw Cloudflare API response, which can name the account.
+    env:
+      MASK_CLOUDFLARE_ACCOUNT_EMAIL: ${{ secrets.CLOUDFLARE_ACCOUNT_EMAIL }}
+      MASK_CLOUDFLARE_ACCOUNT_NAME: ${{ secrets.CLOUDFLARE_ACCOUNT_NAME }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.19.0
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
       - name: Delete preview Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           PR_NUMBER: ${{ github.event.number }}
-        # A PR that never deployed a preview (docs-only, or opened before this
-        # workflow existed) has no Worker to delete - that's success, not a
-        # red X on an unrelated PR's close. Any other failure still fails.
+        # A straight API call, not `wrangler delete`: wrangler follows the
+        # deletion with a KV-namespace listing (legacy Workers Sites cleanup)
+        # that the least-privilege token (Workers Scripts: Edit) cannot make,
+        # failing the step after the Worker is already gone - and its
+        # auth-error diagnostics print the account email into the public log.
+        # This is also the only reason this job needed a checkout, Node and
+        # `npm ci` at all. `force=true` matches wrangler's non-interactive
+        # behavior; nothing binds to a preview Worker anyway.
+        #
+        # A 404 means no preview was ever deployed (docs-only PR, or opened
+        # before this workflow existed) - that's success, not a red X on an
+        # unrelated PR's close. Any other failure still fails.
         run: |
-          set +e
-          OUTPUT=$(npx wrangler delete "zwift-bikes-pr-$PR_NUMBER" 2>&1)
-          STATUS=$?
-          echo "$OUTPUT"
-          if [ "$STATUS" -ne 0 ]; then
-            echo "$OUTPUT" | grep -qi "does not exist" || exit "$STATUS"
+          STATUS=$(curl -s -o response.json -w "%{http_code}" -X DELETE \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/zwift-bikes-pr-$PR_NUMBER?force=true")
+          if [ "$STATUS" = "200" ]; then
+            echo "Deleted preview Worker zwift-bikes-pr-$PR_NUMBER."
+          elif [ "$STATUS" = "404" ]; then
             echo "No preview Worker existed for PR #$PR_NUMBER - nothing to delete."
+          else
+            echo "Cloudflare API returned HTTP $STATUS:"
+            cat response.json
+            exit 1
           fi
       - name: Mark preview comment removed
         env:
