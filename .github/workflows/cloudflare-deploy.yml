@@ -159,11 +159,16 @@ jobs:
           # Empty on a push to main, which is what selects the production
           # Worker name from wrangler.jsonc.
           PR_NUMBER: ${{ github.event.number }}
+        # `--env preview` because production pins workers_dev off (see
+        # wrangler.jsonc) and preview Workers have no other URL - the preview
+        # environment exists solely to turn workers.dev back on for them.
         run: |
           if [ -n "$PR_NUMBER" ]; then
-            npx wrangler deploy --name "zwift-bikes-pr-$PR_NUMBER"
+            npx wrangler deploy --env preview --name "zwift-bikes-pr-$PR_NUMBER"
           else
-            npx wrangler deploy
+            # --env "" explicitly targets the top-level environment, silencing
+            # wrangler's "no target environment specified" warning.
+            npx wrangler deploy --env ""
           fi
       - name: Comment preview link on PR
         if: github.event_name == 'pull_request' && needs.changes.outputs.app == 'true'
