@@ -80,7 +80,7 @@ export function estimateSurface(route: Route): SurfaceEstimate {
   const measured = getGeneratedRouteSurface(route.slug)
   if (measured) {
     const composition = normalizeSurfaceComposition(measured.composition)
-    return { ...coarsenSurfaceComposition(composition), composition, segments: measured.segments, confidence: 'measured' }
+    return { ...coarsenSurfaceComposition(composition), composition, segments: measured.segments, leadInSegments: measured.leadInSegments, confidence: 'measured' }
   }
 
   const curated = CURATED_SURFACE[route.slug]
@@ -124,5 +124,13 @@ export function computeTerrain(route: Route): TerrainProfile {
     cobble: 0
   }
 
-  return { climbRatio, category, weights, climbs: getRouteClimbs(route), elevationProfile: getGeneratedRouteSurface(route.slug)?.elevationProfile }
+  const measured = getGeneratedRouteSurface(route.slug)
+  return {
+    climbRatio,
+    category,
+    weights,
+    climbs: getRouteClimbs(route),
+    elevationProfile: measured?.elevationProfile,
+    leadInElevationProfile: measured?.leadInElevationProfile
+  }
 }

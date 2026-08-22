@@ -73,19 +73,26 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
     cachedRoutes = routes
       // Routes without a stable slug can't be linked to reliably.
       .filter(r => r.slug)
-      .map(route => ({
-        ...route,
+      .map((route) => {
         // Applied here, once, so every consumer sees the same ride: route
         // totals, the finish-time estimate, the simulator's geometry and the
         // MCP tools all read `leadInDistance` and would otherwise disagree
         // about how long the event actually is. Almost always a no-op - see
         // `EVENT_LEAD_IN_OVERRIDES` for the three routes where Zwift's own
         // figure is wrong and why we only override with published evidence.
-        ...eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation),
-        worldName: getWorldName(route.world),
-        terrain: computeTerrain(route),
-        surface: estimateSurface(route)
-      }))
+        // Applied BEFORE computeTerrain/estimateSurface so the climb/sprint
+        // frame decision (`placementsAreRideRelative`) and the geometry
+        // reconstruction (`expandOccurrencesForLaps`, `geometryForRouteLaps`)
+        // work from the same lead-in - previously the raw route leaked into
+        // terrain classification (issue #126's exploration, "trap 2").
+        const corrected = { ...route, ...eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation) }
+        return {
+          ...corrected,
+          worldName: getWorldName(route.world),
+          terrain: computeTerrain(corrected),
+          surface: estimateSurface(corrected)
+        }
+      })
   }
   return cachedRoutes
 }

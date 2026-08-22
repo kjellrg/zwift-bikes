@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { RouteElevationPoint, RouteSegmentPlacement, RouteWithMeta } from '../../shared/types/catalog'
 import type { RouteClimbOccurrence, SegmentOccurrence } from '../../shared/utils/routeClimbs'
+import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 
 const props = defineProps<{
   route: RouteWithMeta
@@ -121,51 +122,23 @@ function monotoneCubicSegments(pts: { x: number, y: number }[]): CurveSegment[] 
 
 const lapCount = computed(() => Math.max(1, Math.floor(props.laps ?? 1)))
 
-/** Despite its doc comment, `terrain.elevationProfile` is measured `distanceM: 0` at the true ride
- * start (Strava segment recording start) - lead-in included, not the lap start - confirmed by
- * cross-checking known climb positions (which *are* documented as ride-start-relative via
- * `rideFromKm`) against where the profile actually shows their elevation gain. So `distanceM: 0`
- * here already lines up with `rideFromKm: 0` with no lead-in adjustment needed. */
-function interpolateElevationAt(profile: RouteElevationPoint[], distanceM: number): number {
-  if (distanceM <= profile[0]!.distanceM) return profile[0]!.elevationM
-  for (let i = 0; i < profile.length - 1; i++) {
-    const a = profile[i]!
-    const b = profile[i + 1]!
-    if (distanceM >= a.distanceM && distanceM <= b.distanceM) {
-      const span = b.distanceM - a.distanceM
-      const t = span > 0 ? (distanceM - a.distanceM) / span : 0
-      return a.elevationM + t * (b.elevationM - a.elevationM)
-    }
-  }
-  return profile[profile.length - 1]!.elevationM
-}
-
 /**
- * The measured profile only covers one ride (lead-in once, then one lap). For additional laps,
- * repeat just the lap portion (from the lead-in's end onward) - using the *official* per-lap
- * distance as the repeat spacing, matching `rideFromKm`'s own lap offset, so climb/sprint markers
- * for later laps line up with the curve they're drawn over.
+ * The ride's full shape - lead-in once, then every lap - in ride coordinates
+ * (`distanceM: 0` at the true ride start), built by the same
+ * `geometryForRouteLaps` the physics simulates over, so the curve, the
+ * climb/sprint markers (`rideFromKm`-positioned) and the predicted times all
+ * describe the identical ride by construction. `terrain.elevationProfile` is
+ * lap-relative (normalized at generation time - see `routeSurfaces.ts`);
+ * the geometry builder handles the lead-in prefix (measured shape where the
+ * trace covered it, a straight line at the official average grade
+ * otherwise) and the exact official lap spacing the marker offsets use.
+ * Still gated on a measured profile existing: this card shows real GPS
+ * shape or nothing, never the synthetic fallback geometry alone.
  */
 const points = computed<RouteElevationPoint[]>(() => {
   const profile = props.route.terrain.elevationProfile
   if (!profile || profile.length < 2) return []
-  if (lapCount.value <= 1) return profile
-
-  const leadInM = (props.route.leadInDistance ?? 0) * 1000
-  const lapDistanceM = props.route.distance * 1000
-  const lapTail = [
-    { distanceM: leadInM, elevationM: interpolateElevationAt(profile, leadInM) },
-    ...profile.filter(p => p.distanceM > leadInM)
-  ]
-
-  const result: RouteElevationPoint[] = [...profile]
-  for (let lap = 1; lap < lapCount.value; lap++) {
-    const offset = lap * lapDistanceM
-    for (const point of lapTail) {
-      result.push({ distanceM: offset + point.distanceM, elevationM: point.elevationM })
-    }
-  }
-  return result
+  return geometryForRouteLaps(props.route, lapCount.value).points
 })
 
 const totalDistanceM = computed(() => points.value.at(-1)?.distanceM ?? 0)

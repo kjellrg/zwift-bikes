@@ -75,50 +75,6 @@ function appendMeasuredLap(
   return { distanceM: startDistanceM + lapDistanceM, elevationM: startElevationM + (profile[profile.length - 1]?.elevationM ?? 0) }
 }
 
-/** Elevation at `distanceM` in a real measured profile, linearly interpolated - same technique as
- * `RouteElevationProfile.vue`'s own `interpolateElevationAt`, needed here to cut a clean split point
- * even though a raw GPS sample rarely lands exactly on the lead-in/lap boundary. */
-function interpolateProfileElevationAt(profile: RouteElevationPoint[], distanceM: number): number {
-  if (distanceM <= profile[0]!.distanceM) return profile[0]!.elevationM
-  for (let i = 0; i < profile.length - 1; i++) {
-    const a = profile[i]!
-    const b = profile[i + 1]!
-    if (distanceM >= a.distanceM && distanceM <= b.distanceM) {
-      const span = b.distanceM - a.distanceM
-      const t = span > 0 ? (distanceM - a.distanceM) / span : 0
-      return a.elevationM + t * (b.elevationM - a.elevationM)
-    }
-  }
-  return profile[profile.length - 1]!.elevationM
-}
-
-/**
- * Splits `route.terrain.elevationProfile` at `splitDistanceM` (the lead-in
- * length) into a lead-in-relative prefix and a lap-relative remainder.
- *
- * The profile is measured from the TRUE ride start - lead-in included, not
- * the lap start (confirmed against real climb positions - see
- * `RouteElevationProfile.vue`'s own doc comment on this exact fact). Passing
- * the WHOLE profile straight into `appendMeasuredLap` for the lap, as this
- * function's caller used to, replays the lead-in's own real shape a second
- * time as if it were the start of the lap (`appendMeasuredLap` rescales the
- * *entire* profile to fit `lapDistanceM`, unaware that its own leading
- * portion already belongs to the lead-in segment placed immediately before
- * it) - shifting every real lap feature later than it should be, and making
- * the lead-in fall back to a straight line despite real data existing for
- * it. `suffix` is rebased so its own first point is `{0,0}`, matching what
- * `appendMeasuredLap` requires (`prefix` already satisfies this as-is, since
- * the source profile's own first point already is `{0,0}`).
- */
-function splitMeasuredProfile(profile: RouteElevationPoint[], splitDistanceM: number): { prefix: RouteElevationPoint[], suffix: RouteElevationPoint[] } {
-  const splitElevationM = interpolateProfileElevationAt(profile, splitDistanceM)
-  const splitPoint = { distanceM: splitDistanceM, elevationM: splitElevationM }
-  const prefix = [...profile.filter(p => p.distanceM < splitDistanceM), splitPoint]
-  const suffix = [splitPoint, ...profile.filter(p => p.distanceM > splitDistanceM)]
-    .map(p => ({ distanceM: p.distanceM - splitDistanceM, elevationM: p.elevationM - splitElevationM }))
-  return { prefix, suffix }
-}
-
 /** A single straight-line segment at a uniform average grade. */
 function appendStraightLine(
   points: RouteGeometryPoint[],
@@ -259,20 +215,18 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
 
   points.push({ distanceM, elevationM })
 
-  const measuredProfile = route.terrain.elevationProfile
-  const hasMeasuredProfile = !!measuredProfile && measuredProfile.length > 1
-  // Split once, up front - the lead-in gets the real GPS shape for its own
-  // stretch (rather than always falling back to a straight line), and the
-  // lap gets only the remainder, not the lead-in's shape replayed a second
-  // time - see `splitMeasuredProfile`'s own doc comment for why.
-  const { prefix: measuredLeadIn, suffix: measuredLap } = hasMeasuredProfile && leadInDistanceM > 0
-    ? splitMeasuredProfile(measuredProfile, leadInDistanceM)
-    : { prefix: undefined, suffix: measuredProfile }
+  // Both measured arrays are lap-/lead-in-relative by the generation-time
+  // normalization (issue #126): `elevationProfile` covers exactly one lap
+  // starting `{0,0}`, and `leadInElevationProfile`/`leadInSegments` exist
+  // only for the few routes whose source trace covered the lead-in too.
+  // No runtime splitting - the old `splitMeasuredProfile` assumed every
+  // profile was ride-relative, which carved the lap's own first `leadIn` km
+  // off as "the lead-in" on ~300 lap-aligned routes and stretched the rest.
+  const measuredLap = route.terrain.elevationProfile
+  const measuredLeadIn = route.terrain.leadInElevationProfile
 
   if (leadInDistanceM > 0) {
-    // `route.surface.segments` covers the lap's own Strava segment, not the
-    // lead-in - no measured data for it, so it always uses the fallback.
-    surfaceSegments.push({ fromM: distanceM, toM: distanceM + leadInDistanceM, surface: fallbackSurface })
+    surfaceSegments.push(...sliceSurfaceSegments(route.surface.leadInSegments, 0, leadInDistanceM / 1000, fallbackSurface, distanceM))
     const result = measuredLeadIn && measuredLeadIn.length > 1
       ? appendMeasuredLap(points, distanceM, elevationM, leadInDistanceM, measuredLeadIn)
       : leadInClimbs.length > 0
