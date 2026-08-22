@@ -69,7 +69,7 @@ describe('every route in the assembled catalog', () => {
     expect(bad).toEqual([])
   })
 
-  it('has ordered surface segments whose coverage ends near the lap (or lap + lead-in)', () => {
+  it('has ordered, LAP-relative surface segments (the single alignment convention)', () => {
     const bad = routes.filter((r) => {
       const segments = r.surface.segments
       if (!segments?.length) return false
@@ -79,19 +79,42 @@ describe('every route in the assembled catalog', () => {
         if (segment.fromKm < previousFrom - 0.01 || segment.toKm < segment.fromKm) return true
         previousFrom = segment.fromKm
       }
-      // The measured GPS traces are heterogeneous as of 2026-08: most cover
-      // exactly one lap, ~21 routes (e.g. lutscher, ocean-blvd) cover
-      // lead-in + lap, and a handful sit a few percent off either mark from
-      // GPS noise (three-sisters-rev runs ~4.6% long). So the honest
-      // structural bound is a band, not an exact figure: coverage must end
-      // somewhere between most-of-a-lap and a full ride plus noise. Note the
-      // pipeline itself currently assumes BOTH alignments in different
-      // places (`splitMeasuredProfile` lead-in-inclusive, `lapSurfaceSegments`
-      // lap-only) - tightening this band is the test-side half of resolving
-      // that.
+      // Every measured trace is normalized to lap-relative at generation time
+      // (issue #126 - `scripts/route-surfaces/normalize.mjs` splits traces
+      // that covered the lead-in into `leadInSegments` + lap). So coverage
+      // must end near the LAP distance alone - no lead-in allowance - with
+      // slack matching the normalizer's own tolerance: lead-ins at or below
+      // it are deliberately left unsplit (macaron carries its 0.17km one),
+      // and GPS noise runs a few percent either way (three-sisters-rev is
+      // ~4.6% long).
       const end = segments[segments.length - 1]!.toKm
-      const slack = Math.max(0.1, r.distance * 0.05)
-      return end < r.distance * 0.85 || end > r.distance + (r.leadInDistance ?? 0) + slack
+      const slack = Math.max(0.3, r.distance * 0.05)
+      return end < r.distance * 0.85 || end > r.distance + slack
+    }).map(r => r.slug)
+    expect(bad).toEqual([])
+  })
+
+  it('has lead-in surface/elevation data that is rebased and spans the lead-in when present', () => {
+    const bad = routes.filter((r) => {
+      const leadInKm = r.leadInDistance ?? 0
+      const leadInSegments = r.surface.leadInSegments
+      const leadInProfile = r.terrain.leadInElevationProfile
+      if (!leadInSegments && !leadInProfile) return false
+      if (leadInKm <= 0) return true
+      if (leadInSegments) {
+        if (leadInSegments[0]!.fromKm < -0.01) return true
+        const end = leadInSegments[leadInSegments.length - 1]!.toKm
+        if (Math.abs(end - leadInKm) > Math.max(0.1, leadInKm * 0.05)) return true
+      }
+      if (leadInProfile) {
+        if (leadInProfile.length < 2) return true
+        if (Math.abs(leadInProfile[0]!.distanceM) > 1 || Math.abs(leadInProfile[0]!.elevationM) > 1) return true
+        for (let i = 1; i < leadInProfile.length; i++) {
+          if (!finite(leadInProfile[i]!.distanceM) || !finite(leadInProfile[i]!.elevationM)) return true
+          if (leadInProfile[i]!.distanceM < leadInProfile[i - 1]!.distanceM) return true
+        }
+      }
+      return false
     }).map(r => r.slug)
     expect(bad).toEqual([])
   })
@@ -101,6 +124,16 @@ describe('every route in the assembled catalog', () => {
       !finite(climb.fromKm) || !finite(climb.toKm) || !finite(climb.lengthKm)
       || !finite(climb.elevationM) || !finite(climb.avgGradePercent)
       || climb.fromKm < 0 || climb.toKm < climb.fromKm || climb.lengthKm <= 0 || climb.elevationM < 0
+    )).map(r => r.slug)
+    expect(bad).toEqual([])
+  })
+
+  it('keeps per-lap climbs within the lap (the placement-frame decision holds)', () => {
+    // A perLap climb's positions are lap-relative, so its end can't sit
+    // meaningfully past the lap distance - that was exactly the symptom of
+    // reading ride-relative positions with the wrong frame (issue #126).
+    const bad = routes.filter(r => r.terrain.climbs.some(climb =>
+      climb.perLap && climb.toKm > r.distance + Math.max(0.3, r.distance * 0.05)
     )).map(r => r.slug)
     expect(bad).toEqual([])
   })

@@ -152,6 +152,19 @@ Grade and surface are looked up **independently** — real surface transitions
 do not line up with grade changes, so they are two separate binary searches
 over two separate arrays.
 
+**The alignment convention** (normative — every code comment about measured
+positions defers here): all measured per-route data is **lap-relative**.
+`route.surface.segments` and `route.terrain.elevationProfile` cover exactly
+one lap, starting at the lap's own start; climb/sprint placements with
+`perLap: true` are lap-relative too. The lead-in is separate data: the few
+routes whose GPS trace covered it carry `leadInSegments` /
+`leadInElevationProfile` (relative to the ride start), and ride-relative
+placement positions exist only on the routes `placementsAreRideRelative`
+detects. This is enforced at generation time by
+`scripts/route-surfaces/normalize.mjs` (issue #126 — before normalization,
+consumers guessed the alignment and guessed differently, shifting elevation
+shapes, surfaces and segment slices by up to the lead-in length).
+
 The steady-state skip only fires once every boundary that could change the
 equilibrium is behind the step's **start** position: the final grade segment
 must reach the finish, and the last interior surface join and the last power

@@ -451,9 +451,9 @@ has not shifted underneath us in between.
 
 An earlier version of this section reported the Mech Isle effort at +0.09%. That
 number was wrong twice over: it used a generic "typical" bike rather than the
-rider's own, and the lap it simulated was missing 13 m of climbing (see the note
-on `splitMeasuredProfile` above). Both are fixed, and −1.44% is the honest
-figure.
+rider's own, and the lap it simulated was missing 13 m of climbing (the
+since-removed runtime lead-in split - see the historical note in §6). Both are
+fixed, and −1.44% is the honest figure.
 
 **What the error actually was.** Distance. The same activity recorded 20,772 m
 in total against the 18,394 m segment: 2,378 m ridden outside the lap, at
@@ -520,17 +520,19 @@ distance parameter:
   which builds the lap with the lead-in set to zero so the simulated lap is
   exactly the segment.
 
-  That last detail is not a formality. `geometryForRouteLaps` feeds its lead-in
-  from `splitMeasuredProfile`, which carves the lead-in's shape out of the
-  *lap's* measured profile - the profile is the lap's own Strava segment, and no
-  measured data for the lead-in exists. Trimming a lead-in back off therefore
-  returns a lap missing its first `leadInDistance` of terrain. At the 85 m
-  `zwift-data` reported that was invisible; at the corrected 2.06 km it removed
-  13 m of climbing from Mech Isle Mayhem's lap and made the check 1.4% too fast
-  until it was caught. On shipped predictions the same approximation is worth
-  0.05% (Hell of the North) to 0.35% (Urumaze, Mech Isle Mayhem) - real, but far
-  too small to justify changing the geometry builder and re-fitting the constant
-  behind it.
+  That last detail used to be load-bearing rather than a formality:
+  `geometryForRouteLaps` once fed its lead-in from a runtime split
+  (`splitMeasuredProfile`) that carved the lead-in's shape out of the *lap's*
+  measured profile, so a trimmed geometry handed back a lap missing its first
+  `leadInDistance` of terrain - 13 m of climbing off Mech Isle Mayhem's lap,
+  worth 0.05% (Hell of the North) to 0.35% (Urumaze, Mech Isle Mayhem) on
+  shipped predictions. Issue #126 removed that approximation: the measured
+  data is normalized to lap-relative at generation time (with the lead-in's
+  own shape stored separately where the trace covered it), so the lap profile
+  is the lap, whole, and the zero-lead-in construction is now just the
+  simplest way to ask for exactly the segment. The 311-route validator sweep
+  passed unchanged across that fix, so the fitted constant needed no
+  re-calibration.
 
 **The two dirt races are excluded from the constant**, and §4 gives the reason
 in full: on a loose surface the implied saving is dominated by the

@@ -102,9 +102,11 @@ export type SurfaceComposition = Partial<Record<ZwiftSurfaceType, number>>
 
 /**
  * A contiguous stretch of one surface type, at its real position along a
- * single lap (`fromKm`/`toKm` relative to the lap start, i.e. `0..route.distance`
- * - the underlying Strava segment covers the lap itself, not the lead-in).
- * See `shared/utils/surfaceGeometry.ts`'s `computeSurfaceProfile`.
+ * single lap (`fromKm`/`toKm` relative to the lap start, i.e. `0..route.distance`).
+ * Guaranteed lap-relative by generation-time normalization - source traces
+ * that covered the lead-in are split, with the lead-in's stretches moved to
+ * `SurfaceEstimate.leadInSegments` (see `scripts/route-surfaces/normalize.mjs`,
+ * issue #126). See `shared/utils/surfaceGeometry.ts`'s `computeSurfaceProfile`.
  */
 export interface SurfaceSegment {
   fromKm: number
@@ -120,6 +122,8 @@ export interface SurfaceEstimate {
   composition?: SurfaceComposition
   /** Real position-tagged surface stretches for one lap, when measured (see `confidence: 'measured'`) - lets the dynamic physics model use the real surface at each point instead of one blended value for the whole route. */
   segments?: SurfaceSegment[]
+  /** The lead-in's own measured surface stretches (km relative to the RIDE start), present only for the few routes whose source trace covered the lead-in - see `routeSurfaces.ts`. */
+  leadInSegments?: SurfaceSegment[]
   /**
    * - `measured`: computed from the route's real GPS trace intersected against zwiftmap's world
    *   surface polygons - see `shared/data/routeSurfaces.ts` and `scripts/route-surfaces/`.
@@ -160,12 +164,19 @@ export interface RouteClimb {
   /** Strava-style climb category, steepest to gentlest: HC, 1, 2, 3, 4. Not all climbs are categorized. */
   climbType?: 'HC' | '4' | '3' | '2' | '1'
   /**
-   * `zwift-data`'s `segmentsOnRoute` positions are measured from the true
-   * start of a ride on this route, lead-in included - not from the
-   * repeating lap's start. `true` if this climb falls at/after the lead-in
-   * (so it recurs once per lap, and `fromKm`/`toKm` are relative to the lap
-   * start); `false` if it falls entirely within the one-time lead-in (so
-   * `fromKm`/`toKm` are relative to the ride start instead).
+   * `true` when this climb sits on the repeating lap (`fromKm`/`toKm`
+   * relative to the lap start, recurring once per lap); `false` when it
+   * falls entirely within the one-time lead-in (`fromKm`/`toKm` relative to
+   * the ride start).
+   *
+   * `zwift-data`'s `segmentsOnRoute` positions are LAP-relative on almost
+   * every route, but ride-relative (lead-in included) on a few - lutscher's
+   * 13.7km lap has a 10.8km lead-in, and its Innsbruck KOM placements only
+   * make sense measured from the ride start (km 3.1-10.6 inside the lead-in,
+   * km 16.8-24.2 on the lap). Which frame a route uses is detected from its
+   * own placements - see `placementsAreRideRelative` in `routeClimbs.ts`
+   * (issue #126: assuming ride-relative everywhere shifted almost every
+   * placement `leadIn` km early, slicing phantom surfaces into segment pages).
    */
   perLap: boolean
 }
@@ -193,8 +204,12 @@ export interface TerrainProfile {
    * dynamic physics model use the route's actual measured shape instead of
    * the synthetic named-climb/rolling-lap approximation - see
    * `geometryForRouteLaps`. Undefined for routes with no Strava segment.
+   * Guaranteed lap-relative (first point `{0,0}` at the lap start) by the
+   * same generation-time normalization as `SurfaceSegment`.
    */
   elevationProfile?: RouteElevationPoint[]
+  /** The lead-in's own measured elevation shape (`distanceM: 0` at the ride start), present only when the source trace covered the lead-in. */
+  leadInElevationProfile?: RouteElevationPoint[]
 }
 
 /**

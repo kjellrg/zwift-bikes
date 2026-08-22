@@ -6,7 +6,7 @@ import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
 import { getRoutesWithMeta, getWorldName } from './catalog'
 import { computeTerrain } from './routeTerrain'
-import { expandOccurrencesForLaps, type SegmentOccurrence } from './routeClimbs'
+import { expandOccurrencesForLaps, placementsAreRideRelative, type SegmentOccurrence } from './routeClimbs'
 
 /**
  * `zwift-data`'s `segments` catalog also has real sprint segments (61 of
@@ -21,6 +21,9 @@ const segmentsBySlug = new Map(segments.map(segment => [segment.slug, segment]))
 export function getRouteSprints(route: Route): RouteSegmentPlacement[] {
   if (!route.segmentsOnRoute?.length) return []
   const leadInKm = route.leadInDistance ?? 0
+  // Same per-route frame decision as `getRouteClimbs` - the two must never
+  // disagree about whether this route's positions include the lead-in.
+  const rideRelative = placementsAreRideRelative(route)
 
   const sprints: RouteSegmentPlacement[] = []
   for (const placement of route.segmentsOnRoute) {
@@ -34,8 +37,8 @@ export function getRouteSprints(route: Route): RouteSegmentPlacement[] {
       ? (segment.avgIncline / 100) * lengthKm * 1000
       : (segment.elevation ?? 0))
     const avgGradePercent = segment.avgIncline ?? (elevationM > 0 ? (elevationM / (lengthKm * 1000)) * 100 : 0)
-    const perLap = placement.from >= leadInKm
-    const fromKm = perLap ? placement.from - leadInKm : placement.from
+    const perLap = !rideRelative || placement.from >= leadInKm
+    const fromKm = rideRelative && perLap ? placement.from - leadInKm : placement.from
 
     sprints.push({
       name: segment.name,

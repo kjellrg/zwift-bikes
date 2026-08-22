@@ -77,16 +77,12 @@ const equipment = SCENARIOS.map((scenario) => {
  * The Strava segment covers the route's LAP, so the comparison has to be
  * against the lap alone.
  *
- * Built by asking for the route with NO lead-in, rather than by trimming the
- * lead-in off a full geometry. Trimming looks equivalent and is not:
- * `geometryForRouteLaps` feeds the lead-in from `splitMeasuredProfile`, which
- * carves the lead-in's shape out of the *lap's* measured profile - the profile
- * is the lap's own Strava segment, and there is no measured data for the
- * lead-in at all. So a trimmed geometry hands back a lap that is missing its
- * first `leadInDistance` of real terrain, stretched to full length. At the 85 m
- * `zwift-data` used to report for these routes that was invisible; at the
- * corrected 2.06 km it silently removed 13 m of climbing from Mech Isle
- * Mayhem's lap and made the model 1.4% too fast.
+ * Built by asking for the route with NO lead-in. Since issue #126 the
+ * measured profile is lap-relative by construction (normalized at generation
+ * time), so this is simply the cleanest way to get exactly one lap - the
+ * historical trap where a runtime lead-in split carved real terrain out of
+ * the lap (13 m of climbing off Mech Isle Mayhem, 1.4% too fast here) is
+ * gone with the split itself.
  */
 function lapOnlyGeometry(route) {
   return geometryForRouteLaps({ ...route, leadInDistance: 0, leadInElevation: 0 }, 1)

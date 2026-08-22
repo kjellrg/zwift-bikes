@@ -35,6 +35,19 @@ nothing in `app/`, `server/`, or the Nuxt build runs these scripts.
    whenever it's available. Re-run this whenever `zwift-data` adds new
    routes, or periodically to catch any Zwift road-surface changes.
 
+   **Alignment normalization (issue #126):** the community Strava segments
+   are heterogeneous - most cover exactly one lap, some cover lead-in + lap.
+   Every fetched entry is normalized to the LAP-relative convention via
+   `normalize.mjs`: lead-in-inclusive traces are split, with the lead-in's
+   measured shape stored in `leadInSegments`/`leadInElevationProfile` and
+   `traceCoveredLeadIn: true` recorded. `normalize-route-surfaces.mjs` runs
+   the same transform over the whole committed file (offline, no Strava) -
+   idempotent, run it after any hand edit. A trace matching neither lap nor
+   lap+lead-in within tolerance is reported as ambiguous and left untouched.
+   Note ~13 committed entries carry `stravaSegmentId`s that exist only in
+   the generated file itself (hand-sourced for routes zwift-data gives no
+   segment id) - never regenerate from scratch or those ids are lost.
+
    Entries generated before `elevationProfile` was added won't have it until
    re-run with `--force` (see below) - existing routes are otherwise skipped.
 
