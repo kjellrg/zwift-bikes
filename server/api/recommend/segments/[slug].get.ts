@@ -8,6 +8,7 @@ import { FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, or
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
 import type { BikeCategory } from '../../../../shared/types/catalog'
 import { parseQuery, recommendSegmentQuerySchema } from '../../../utils/apiQuerySchemas'
+import { defineCachedRecommendHandler } from '../../../utils/recommendCache'
 import { addTimingMeta, markPhase } from '../../../utils/timing'
 
 // Flat lead-up distance simulated before the timed segment itself, long
@@ -16,7 +17,8 @@ import { addTimingMeta, markPhase } from '../../../utils/timing'
 // why a standing-start simulation would badly distort segment rankings.
 const WARMUP_DISTANCE_M = 2000
 
-export default defineEventHandler(async (event) => {
+// Wrapped in the edge cache for the same reason as `recommend/[slug].get.ts`.
+export default defineCachedRecommendHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing segment slug' })
   const summary = getSegmentSummary(slug)
