@@ -31,10 +31,17 @@ const contactMailto = `mailto:${contactAddress}`
       list.
     </p>
 
+    <p>
+      It's a small hobby project from one cyclist and Zwifter, built in
+      spare evenings out of pre-race indecision about which frame and
+      wheels to bring to the start line - and shared with fellow riders in
+      the same generous spirit as the community data it's built on.
+    </p>
+
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">
+      <h2 class="font-medium text-highlighted">
         Where the numbers come from
-      </p>
+      </h2>
       <p>
         Frame and wheel ratings use real ZwiftInsider bot speed-test data
         wherever it exists. Where it doesn't, the app falls back to a clearly
@@ -71,18 +78,13 @@ const contactMailto = `mailto:${contactAddress}`
     </div>
 
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">
+      <h2 class="font-medium text-highlighted">
         Built on
+      </h2>
+      <p>
+        Nothing here would exist without work the community shares freely:
       </p>
       <ul class="list-disc space-y-1.5 pl-5">
-        <li>
-          <ULink
-            to="https://www.npmjs.com/package/zwift-data"
-            target="_blank"
-            class="underline"
-          >zwift-data</ULink>
-          - the catalog of every route, frame, wheel and segment in the game.
-        </li>
         <li>
           <ULink
             to="https://zwiftinsider.com/"
@@ -92,6 +94,14 @@ const contactMailto = `mailto:${contactAddress}`
           - bot speed-test results for frames and wheels, plus Zwift's
           rolling-resistance values per surface. Their painstaking, publicly
           shared testing is what makes these numbers possible at all.
+        </li>
+        <li>
+          <ULink
+            to="https://www.npmjs.com/package/zwift-data"
+            target="_blank"
+            class="underline"
+          >zwift-data</ULink>
+          - the catalog of every route, frame, wheel and segment in the game.
         </li>
         <li>
           <ULink
@@ -112,29 +122,51 @@ const contactMailto = `mailto:${contactAddress}`
           the route data is generated. No Strava account or connection is
           needed to use this site.
         </li>
+        <li>
+          <ULink
+            to="https://www.wtrl.racing/"
+            target="_blank"
+            class="underline"
+          >WTRL</ULink>
+          - the Zwift Racing League schedules behind the race calendar,
+          typed in by hand from their published rounds together with Zwift's
+          own event announcements. Every race links back to where its
+          details came from.
+        </li>
       </ul>
     </div>
 
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">
+      <h2 class="font-medium text-highlighted">
         Your data
-      </p>
+      </h2>
       <p>
-        No accounts, no cookies, no analytics, no tracking, no database. Your
-        garage and rider profile are saved only in your own browser's local
-        storage.
+        No accounts, no analytics, no tracking, no database, and no cookies
+        of our own. Your garage and rider profile are saved only in your own
+        browser's local storage.
       </p>
       <p>
         Your weight, height and power are sent to the server with each
-        recommendation request purely to compute that answer - never stored,
-        never shared, never used for anything else.
+        recommendation request purely to compute that answer - never logged,
+        never shared, never used for anything else. Computed answers may be
+        cached briefly at the network edge to keep the site fast; the cache
+        holds the question and its answer, never who asked.
+      </p>
+      <p>
+        One cookie can still appear: <code>cf_clearance</code>, set by
+        Cloudflare, the network this site runs on. When Cloudflare's
+        protection asks your browser to prove it isn't a bot, this cookie
+        remembers that you passed, so you aren't re-checked on every click.
+        It exists purely to keep the site online under attack - it doesn't
+        identify you, isn't used for tracking, can't be turned off, and
+        expires on its own.
       </p>
     </div>
 
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">
+      <h2 class="font-medium text-highlighted">
         Reporting an issue
-      </p>
+      </h2>
       <p>
         The
         <a
@@ -156,9 +188,9 @@ const contactMailto = `mailto:${contactAddress}`
     </div>
 
     <div class="flex flex-col gap-2">
-      <p class="font-medium text-highlighted">
+      <h2 class="font-medium text-highlighted">
         Getting in touch
-      </p>
+      </h2>
       <p>
         A question, a suggestion, or anything that isn't a bug?
         <ClientOnly>

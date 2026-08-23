@@ -19,7 +19,7 @@ defineOgImage('SiteCard', {}, {
 
 <template>
   <UContainer class="py-10 space-y-8">
-    <div>
+    <div class="max-w-2xl">
       <h1 class="text-3xl font-bold text-highlighted">
         About ZwiftBikes
       </h1>

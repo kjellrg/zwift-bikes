@@ -256,15 +256,15 @@ useHead({
         <p class="text-sm text-muted">
           Data from
           <ULink
-            to="https://www.npmjs.com/package/zwift-data"
-            target="_blank"
-            class="underline"
-          >zwift-data</ULink>,
-          <ULink
             to="https://zwiftinsider.com/"
             target="_blank"
             class="underline"
-          >ZwiftInsider</ULink>
+          >ZwiftInsider</ULink>,
+          <ULink
+            to="https://www.npmjs.com/package/zwift-data"
+            target="_blank"
+            class="underline"
+          >zwift-data</ULink>
           and
           <ULink
             to="https://zwiftmap.com"
