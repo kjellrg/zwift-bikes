@@ -7,9 +7,13 @@ import { FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTim
 import { clampLaps } from '../../../shared/utils/routeLaps'
 import type { BikeCategory } from '../../../shared/types/catalog'
 import { parseQuery, recommendRouteQuerySchema } from '../../utils/apiQuerySchemas'
+import { defineCachedRecommendHandler } from '../../utils/recommendCache'
 import { addTimingMeta, markPhase } from '../../utils/timing'
 
-export default defineEventHandler(async (event) => {
+// Wrapped in the edge cache (see `recommendCache.ts`): everything below is a
+// pure function of path + query + the deployed bundle, so a computed response
+// is served from the colo's cache until the next deploy.
+export default defineCachedRecommendHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing route slug' })
   const route = getRouteBySlug(slug)
