@@ -3,7 +3,7 @@ import { bikeFrames } from 'zwift-data'
 import type { RouteGeometry, RouteGeometryPoint } from '../../types/physics'
 import { classifyBikeFrame } from '../classifyBikeFrame'
 import { getWheelsets } from '../wheelsets'
-import { TTT_MAX_CLIMB_WKG, TTT_MIN_CLIMB_WKG } from './draft'
+import { TTT_MAX_CLIMB_WKG, TTT_MIN_CLIMB_WKG, tttPowerPlan } from './draft'
 import { buildRacePlan } from './racePlan'
 
 function geometry(points: RouteGeometryPoint[]): RouteGeometry {
@@ -53,5 +53,20 @@ describe('race plan climb rows are independent of the climb pace', () => {
     const hard = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, climbWkg: 8 }).find(item => item.type === 'climb')!
     const minutes = (item: { detail: string }) => Number(/est\. (\d+) min/.exec(item.detail)![1])
     expect(minutes(hard)).toBeLessThan(minutes(easy))
+  })
+})
+
+describe('race plan panel and TTT pacing plan agree', () => {
+  // Anti-drift guard: the panel's climb rows and the endpoints' pacing plan
+  // are the same concept computed on two surfaces. The original climb-pace
+  // bug got fixed in `tttPowerPlan` but survived in `buildRacePlan` because
+  // nothing tied the two together - this does.
+  it('the panel shows exactly the blocks the pacing plan rides', () => {
+    for (const climbWkg of [2.5, 4.0, 7.5]) {
+      const plan = tttPowerPlan(CLIMB_GEOMETRY, climbWkg, OPTIONS.weightKg, OPTIONS.riderPowerW)!
+      const rows = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, climbWkg }).filter(item => item.type === 'climb')
+      expect(rows.map(row => [row.fromKm, row.toKm]), `${climbWkg} W/kg`)
+        .toEqual(plan.blocks.map(block => [block.fromM / 1000, block.toM / 1000]))
+    }
   })
 })
