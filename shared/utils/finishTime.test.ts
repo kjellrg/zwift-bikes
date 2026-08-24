@@ -84,6 +84,25 @@ describe('estimateFinishTimeSec against the bot-test protocol', () => {
     const at300 = estimateFinishTimeSec(CLIMB_BOT_COURSE, baselineFrame(), baselineWheels(), RIDER.weightKg, RIDER.heightCm, 300)
     expect(at300).toBeLessThan(at225)
   })
+
+  it('finish time is strictly monotonic in power across the sliders\' full range', () => {
+    // Guards against any hidden cap or discontinuity inside the range the
+    // power sliders can actually set (100-1500 W): every extra watt must buy
+    // time on every course shape and in every draft mode, or a slider stops
+    // responding somewhere and the rankings above that point are stale.
+    const frame = baselineFrame()
+    const wheels = baselineWheels()
+    for (const route of [FLAT_BOT_COURSE, CLIMB_BOT_COURSE]) {
+      for (const draft of [undefined, { mode: 'race' as const }, { mode: 'ttt' as const, riders: 8 }]) {
+        let previous = Number.POSITIVE_INFINITY
+        for (let powerW = 100; powerW <= 1500; powerW += 25) {
+          const timeSec = estimateFinishTimeSec(route, frame, wheels, RIDER.weightKg, RIDER.heightCm, powerW, 1, draft)
+          expect(timeSec, `${route.distance} km route, draft ${draft?.mode ?? 'solo'}, ${powerW} W`).toBeLessThan(previous)
+          previous = timeSec
+        }
+      }
+    }
+  })
 })
 
 describe('laps and lead-in', () => {

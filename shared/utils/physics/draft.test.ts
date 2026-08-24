@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { bikeFrames } from 'zwift-data'
 import type { RouteGeometry, RouteGeometryPoint } from '../../types/physics'
-import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS, TTT_MAX_RIDERS, TTT_MIN_RIDERS, tttPowerPlan } from './draft'
+import { classifyBikeFrame } from '../classifyBikeFrame'
+import { getWheelsets } from '../wheelsets'
+import { simulateRoute } from './simulator'
+import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS, tttPowerPlan, tttPowerScaleAtSpeed } from './draft'
 
 function geometry(points: RouteGeometryPoint[]): RouteGeometry {
   const totalDistanceM = points[points.length - 1]!.distanceM
@@ -72,5 +76,31 @@ describe('tttPowerPlan climb detection is independent of the climb power', () =>
     expect(hard.blocks[0]!.climbSpeedMps).toBeGreaterThan(easy.blocks[0]!.climbSpeedMps)
     expect(hard.blocks[0]!.estDurationSec).toBeLessThan(easy.blocks[0]!.estDurationSec)
     expect(hard.climbPowerW).toBe(5 * RIDER.weightKg)
+  })
+
+  it('simulated total time is strictly monotonic in climb power across the slider\'s full range', () => {
+    // The end-to-end guard, composed exactly like the recommend endpoints
+    // (plan -> powerSegmentsW -> simulateRoute with the TTT draft scaling).
+    // On the old climb-power-based detection this fails at the point where
+    // the block's solo speed crosses the 21.1 km/h cutoff (~4.1 W/kg on this
+    // grade): the block vanished and total time jumped UP, then flatlined.
+    const frame = classifyBikeFrame(bikeFrames.find(f => f.name === 'Zwift Carbon')!, 0)
+    const wheelset = getWheelsets().find(w => w.name === 'Zwift 32mm Carbon')!
+    const rider = { weightKg: RIDER.weightKg, heightCm: 183, powerW: RIDER.powerW }
+    let previous = Number.POSITIVE_INFINITY
+    for (let climbWkg = TTT_MIN_CLIMB_WKG; climbWkg <= TTT_MAX_CLIMB_WKG; climbWkg += 0.5) {
+      const plan = tttPowerPlan(CLIMB_GEOMETRY, climbWkg, RIDER.weightKg, RIDER.powerW)
+      expect(plan, `${climbWkg} W/kg`).toBeDefined()
+      const { elapsedSec } = simulateRoute({
+        rider,
+        frame,
+        wheelset,
+        geometry: CLIMB_GEOMETRY,
+        powerSegmentsW: plan!.powerSegmentsW,
+        powerScaleAtSpeed: speedMps => tttPowerScaleAtSpeed(TTT_DEFAULT_RIDERS, speedMps)
+      })
+      expect(elapsedSec, `${climbWkg} W/kg`).toBeLessThan(previous)
+      previous = elapsedSec
+    }
   })
 })
