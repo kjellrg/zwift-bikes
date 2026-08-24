@@ -131,12 +131,15 @@ bad(recommendRouteQuerySchema, 'recommend: ownedWheels not an array', { ownedWhe
 bad(recommendRouteQuerySchema, 'recommend: ownedWheels non-string entry', { ownedWheels: '[1]' }, 'ownedWheels')
 
 // --- rider profile: all-or-nothing, bounded ---
-ok(recommendRouteQuerySchema, 'recommend: full profile', { weightKg: '75', heightCm: '183', wkg: '3.2' },
-  { weightKg: 75, heightCm: 183, wkg: 3.2 })
+ok(recommendRouteQuerySchema, 'recommend: full profile', { weightKg: '75', heightCm: '183', powerW: '250' },
+  { weightKg: 75, heightCm: 183, powerW: 250 })
+ok(recommendRouteQuerySchema, 'recommend: legacy wkg alias converts to watts', { weightKg: '75', heightCm: '183', wkg: '3.2' },
+  { weightKg: 75, heightCm: 183, powerW: 240 })
 bad(recommendRouteQuerySchema, 'recommend: partial profile', { weightKg: '75' }, 'together')
-bad(recommendRouteQuerySchema, 'recommend: non-numeric weight', { weightKg: 'abc', heightCm: '183', wkg: '3.2' }, 'weightKg')
-bad(recommendRouteQuerySchema, 'recommend: absurd weight', { weightKg: '1e9', heightCm: '183', wkg: '3.2' }, 'weightKg')
-bad(recommendRouteQuerySchema, 'recommend: height below bound', { weightKg: '75', heightCm: '95', wkg: '3.2' }, 'heightCm')
+bad(recommendRouteQuerySchema, 'recommend: non-numeric weight', { weightKg: 'abc', heightCm: '183', powerW: '250' }, 'weightKg')
+bad(recommendRouteQuerySchema, 'recommend: absurd weight', { weightKg: '1e9', heightCm: '183', powerW: '250' }, 'weightKg')
+bad(recommendRouteQuerySchema, 'recommend: height below bound', { weightKg: '75', heightCm: '95', powerW: '250' }, 'heightCm')
+bad(recommendRouteQuerySchema, 'recommend: absurd powerW', { weightKg: '75', heightCm: '183', powerW: '99999' }, 'powerW')
 bad(recommendRouteQuerySchema, 'recommend: absurd wkg', { weightKg: '75', heightCm: '183', wkg: '99' }, 'wkg')
 
 // --- modes: strict where the old code silently defaulted ---
@@ -148,7 +151,7 @@ bad(recommendRouteQuerySchema, 'recommend: non-numeric limit', { limit: 'abc' },
 // --- segment variant ---
 ok(recommendSegmentQuerySchema, 'segment recommend: unknown route slug passes through', { route: 'not-a-real-route' }, { route: 'not-a-real-route' })
 ok(recommendSegmentQuerySchema, 'segment recommend: empty route means default', { route: '' }, { route: undefined })
-bad(recommendSegmentQuerySchema, 'segment recommend: partial profile', { wkg: '3.2' }, 'together')
+bad(recommendSegmentQuerySchema, 'segment recommend: partial profile', { powerW: '250' }, 'together')
 
 if (failures > 0) {
   console.error(`\napi-schemas: ${failures} assertion(s) failed`)

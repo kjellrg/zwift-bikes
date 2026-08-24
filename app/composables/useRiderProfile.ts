@@ -1,6 +1,6 @@
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
-import { clampRiderWkg } from '#shared/utils/riderBounds'
+import { clampPowerW, clampSprintPowerW, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, storedPowerW } from '#shared/utils/riderBounds'
 
 const STORAGE_KEY = 'zwift-bikes:rider-profile'
 
@@ -16,9 +16,14 @@ const DEFAULT_WEIGHT_KG = 75
 const MIN_WEIGHT_KG = 40
 const MAX_WEIGHT_KG = 130
 const clampWeightKg = (value: number) => Math.min(MAX_WEIGHT_KG, Math.max(MIN_WEIGHT_KG, Math.round(value)))
-const DEFAULT_HEIGHT_CM = 183
+const DEFAULT_HEIGHT_CM = 175
 const DEFAULT_FTP_WATTS = 225
-const DEFAULT_WKG = DEFAULT_FTP_WATTS / DEFAULT_WEIGHT_KG
+// The FTP slider's own range - wider bounds make no sense for a threshold
+// power a human sustains for an hour. The power sliders' ranges live in
+// `shared/utils/riderBounds.ts`; FTP feeds only the profile page's readout.
+const MIN_FTP_WATTS = 100
+const MAX_FTP_WATTS = 500
+const clampFtpWatts = (value: number) => Math.min(MAX_FTP_WATTS, Math.max(MIN_FTP_WATTS, Math.round(value)))
 // `DEFAULT_UNOWNED_LEVEL` deliberately isn't defined here: the recommend
 // endpoints and the MCP tools have to assume the same stage, so it lives in
 // `shared/utils/classifyBikeFrame.ts` alongside the level semantics.
@@ -30,7 +35,12 @@ const DEFAULT_WKG = DEFAULT_FTP_WATTS / DEFAULT_WEIGHT_KG
 export function useRiderProfile() {
   const weightKg = useState<number>('rider-weight-kg', () => DEFAULT_WEIGHT_KG)
   const heightCm = useState<number>('rider-height-cm', () => DEFAULT_HEIGHT_CM)
-  const wkg = useState<number>('rider-wkg', () => DEFAULT_WKG)
+  // Power is stored in absolute watts and stays put when weight changes -
+  // the sliders show W/kg only as a derived readout. Sprint segments get
+  // their own value: a sprint effort is a different physical quantity from
+  // race-pace power, and cranking one must never drag the other along.
+  const powerW = useState<number>('rider-power-w', () => DEFAULT_POWER_W)
+  const sprintPowerW = useState<number>('rider-sprint-power-w', () => DEFAULT_SPRINT_POWER_W)
   const ftpWatts = useState<number>('rider-ftp-watts', () => DEFAULT_FTP_WATTS)
   const defaultUnownedLevel = useState<number>('rider-default-unowned-level', () => DEFAULT_UNOWNED_LEVEL)
   // Draft mode (see `shared/utils/physics/draft.ts`): 'solo' is a lone rider;
@@ -48,7 +58,8 @@ export function useRiderProfile() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       weightKg: weightKg.value,
       heightCm: heightCm.value,
-      wkg: wkg.value,
+      powerW: powerW.value,
+      sprintPowerW: sprintPowerW.value,
       ftpWatts: ftpWatts.value,
       defaultUnownedLevel: defaultUnownedLevel.value,
       draftMode: draftMode.value,
@@ -65,11 +76,15 @@ export function useRiderProfile() {
       const parsed = JSON.parse(raw)
       if (typeof parsed.weightKg === 'number') weightKg.value = clampWeightKg(parsed.weightKg)
       if (typeof parsed.heightCm === 'number') heightCm.value = Math.min(220, Math.max(100, parsed.heightCm))
-      // Clamped into the API's own bounds (the recommend endpoints 400 on an
-      // out-of-range profile or upgrade stage), so a stored value from before
-      // those bounds existed can never produce a request the API refuses.
-      if (typeof parsed.wkg === 'number') wkg.value = clampRiderWkg(parsed.wkg)
-      if (typeof parsed.ftpWatts === 'number') ftpWatts.value = parsed.ftpWatts
+      // Clamped into the sliders' own ranges (well inside the API's bounds,
+      // so a stored value can never produce a request the API refuses).
+      // `storedPowerW` also migrates pre-watt payloads that stored `wkg`,
+      // converting at the weight loaded just above - which is why weight is
+      // read first.
+      const migratedPowerW = storedPowerW(parsed, weightKg.value)
+      if (migratedPowerW !== undefined) powerW.value = migratedPowerW
+      if (typeof parsed.sprintPowerW === 'number') sprintPowerW.value = clampSprintPowerW(parsed.sprintPowerW)
+      if (typeof parsed.ftpWatts === 'number') ftpWatts.value = clampFtpWatts(parsed.ftpWatts)
       if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = clampUnownedLevel(parsed.defaultUnownedLevel)
       if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') draftMode.value = parsed.draftMode
       if (typeof parsed.tttRiders === 'number') tttRiders.value = clampTttRiders(parsed.tttRiders)
@@ -80,10 +95,10 @@ export function useRiderProfile() {
   }
 
   function setWeightKg(value: number) {
+    // Power is stored in watts, so it stays put by construction - a rider
+    // who corrects their weight has not changed how many watts they can
+    // push. Only the derived W/kg readouts move.
     weightKg.value = clampWeightKg(value)
-    // FTP is the fixed quantity here - a rider who corrects their weight has
-    // not changed how many watts they can push, so W/kg is what moves.
-    wkg.value = clampRiderWkg(ftpWatts.value / weightKg.value)
     persist()
   }
 
@@ -92,14 +107,18 @@ export function useRiderProfile() {
     persist()
   }
 
-  function setWkg(value: number) {
-    wkg.value = clampRiderWkg(value)
+  function setPowerW(value: number) {
+    powerW.value = clampPowerW(value)
+    persist()
+  }
+
+  function setSprintPowerW(value: number) {
+    sprintPowerW.value = clampSprintPowerW(value)
     persist()
   }
 
   function setFtpWatts(value: number) {
-    ftpWatts.value = value
-    wkg.value = clampRiderWkg(value / weightKg.value)
+    ftpWatts.value = clampFtpWatts(value)
     persist()
   }
 
@@ -118,7 +137,7 @@ export function useRiderProfile() {
     persist()
   }
 
-  // Deliberately independent of `wkg`: the pages seed the control from the
+  // Deliberately independent of `powerW`: the pages seed the control from the
   // rider's normal power the first time it is shown, but once a team climb
   // pace exists it is never dragged along by later power changes.
   function setTttClimbWkg(value: number | undefined) {
@@ -129,7 +148,8 @@ export function useRiderProfile() {
   return {
     weightKg,
     heightCm,
-    wkg,
+    powerW,
+    sprintPowerW,
     ftpWatts,
     defaultUnownedLevel,
     draftMode,
@@ -138,7 +158,8 @@ export function useRiderProfile() {
     load,
     setWeightKg,
     setHeightCm,
-    setWkg,
+    setPowerW,
+    setSprintPowerW,
     setFtpWatts,
     setDefaultUnownedLevel,
     setDraftMode,

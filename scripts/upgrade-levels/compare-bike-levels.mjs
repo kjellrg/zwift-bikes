@@ -76,8 +76,8 @@ function wheelFor(route, f) {
   if (forcedWheel) return forcedWheel
   if (wheelMode === 'auto') {
     return measuredRoadWheels.reduce((best, w) => {
-      const a = estimateFinishTimeSec(route, f, w, rider.kg, rider.cm, rider.wkg)
-      const b = estimateFinishTimeSec(route, f, best, rider.kg, rider.cm, rider.wkg)
+      const a = estimateFinishTimeSec(route, f, w, rider.kg, rider.cm, rider.kg * rider.wkg)
+      const b = estimateFinishTimeSec(route, f, best, rider.kg, rider.cm, rider.kg * rider.wkg)
       return a < b ? w : best
     })
   }
@@ -86,7 +86,7 @@ function wheelFor(route, f) {
 
 function time(route, name, level) {
   const f = frame(name, level)
-  return estimateFinishTimeSec(route, f, wheelFor(route, f), rider.kg, rider.cm, rider.wkg)
+  return estimateFinishTimeSec(route, f, wheelFor(route, f), rider.kg, rider.cm, rider.kg * rider.wkg)
 }
 const schemeOf = (n) => {
   const s = FRAME_UPGRADE_SCHEMES[n]

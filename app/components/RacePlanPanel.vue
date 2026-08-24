@@ -8,7 +8,7 @@ const props = defineProps<{
   laps: number
   weightKg: number
   heightCm: number
-  wkg: number
+  powerW: number
   /** The combo the surface watt-costs are quoted for - the same one the speed/surface chart profiles. */
   frame: ClassifiedBikeFrame
   wheelset?: Wheelset
@@ -21,7 +21,7 @@ const props = defineProps<{
 const items = computed(() => buildRacePlan(geometryForRouteLaps(props.route, props.laps), {
   weightKg: props.weightKg,
   heightCm: props.heightCm,
-  riderPowerW: props.wkg * props.weightKg,
+  riderPowerW: props.powerW,
   climbWkg: props.tttClimbWkg,
   riders: props.tttRiders,
   frame: props.frame,

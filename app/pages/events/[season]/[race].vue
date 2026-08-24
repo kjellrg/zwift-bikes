@@ -26,7 +26,7 @@ const round = getRoundForRace(season, race)
 const { owned, ownedWheels, load: loadGarage } = useGarage()
 // Read-only plus `setDraftMode` (for the format hint below): the controls
 // themselves live in `RiderProfileControls` / `BikeFilterControls`.
-const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, setDraftMode, load: loadRiderProfile } = useRiderProfile()
+const { weightKg, heightCm, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, setDraftMode, load: loadRiderProfile } = useRiderProfile()
 const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, setBikeCategory, setIncludeHaloBikes, load: loadPreferences } = usePreferences()
 
 const bikeSearch = ref('')
@@ -104,7 +104,7 @@ const recommendQuery = computed(() => ({
   defaultUnownedLevel: defaultUnownedLevel.value,
   weightKg: weightKg.value,
   heightCm: heightCm.value,
-  wkg: wkg.value,
+  powerW: powerW.value,
   laps: laps.value,
   // The whole point of an event page: rank only what the rider is allowed to
   // start on. See `excludeTT` in `server/api/recommend/[slug].get.ts`.
@@ -126,10 +126,13 @@ const recommendQuery = computed(() => ({
 // `useAsyncData`'s spelling of `useFetch`'s `watch: false`). A key that
 // changes with the query looks equivalent but is not: a reactive key change
 // itself executes the fetch (Nuxt watches the key with `flush: 'sync'`, so it
-// fires once per mutated ref), and a weight change writes `weightKg` and then
-// the derived `wkg` - so a query-shaped key fired three requests per slider
-// move: two key-triggered (the first with a stale `wkg`) plus the explicit
-// watcher's own refresh. `useFetch({ watch: false })` opts out of
+// fires once per mutated ref), and back when weight changes re-derived the
+// stored W/kg, a weight commit wrote two refs - so a query-shaped key fired
+// three requests per slider move: two key-triggered (the first with a stale
+// power) plus the explicit watcher's own refresh. Power is stored in watts
+// now and a weight commit writes one ref, but the multi-ref hazard remains
+// (a category switch changes slug and laps together), so the key stays
+// static. `useFetch({ watch: false })` opts out of
 // key-triggered execution internally (`_keyTriggersExecute`), which is why
 // the route/segment pages never had this. A slug-shaped key has the same
 // problem one level up: a category switch can change slug and laps together,
@@ -420,7 +423,7 @@ const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeD
 // power, never on `tttClimbWkg`, so the climb pace can't decide its own
 // slider's visibility.
 const hasLongClimb = computed(() => routeData.value
-  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), wkg.value * weightKg.value, weightKg.value).length > 0
+  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), powerW.value, weightKg.value).length > 0
   : true)
 
 const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
@@ -441,7 +444,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, laps, selectedRouteSlug, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, effectiveDraftMode, tttRiders, tttClimbWkg], () => {
+watch([weightKg, heightCm, powerW, laps, selectedRouteSlug, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, effectiveDraftMode, tttRiders, tttClimbWkg], () => {
   refreshRecommendations()
 })
 watch(owned, () => {
@@ -1010,7 +1013,7 @@ useHead(() => {
       :wheelset="topCombo.wheelset"
       :weight-kg="weightKg"
       :height-cm="heightCm"
-      :wkg="wkg"
+      :power-w="powerW"
       :draft-mode="effectiveDraftMode"
       :ttt-riders="tttRiders"
       :ttt-climb-wkg="tttClimbWkg"
@@ -1162,7 +1165,7 @@ useHead(() => {
               :route="routeInfo"
               :weight-kg="weightKg"
               :height-cm="heightCm"
-              :wkg="wkg"
+              :power-w="powerW"
               :laps="resultsLaps"
               :fastest-time-sec="fastestTimeSec"
               :owned="owned"
@@ -1183,7 +1186,7 @@ useHead(() => {
                 :route="routeInfo"
                 :weight-kg="weightKg"
                 :height-cm="heightCm"
-                :wkg="wkg"
+                :power-w="powerW"
                 :laps="resultsLaps"
                 :fastest-time-sec="fastestTimeSec"
                 :owned="owned"

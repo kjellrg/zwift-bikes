@@ -160,8 +160,8 @@ for (const archetype of ARCHETYPES) {
   const geometry = geometryForRouteLaps(route, 1)
   const soloSec = simulateRoute({ rider: RIDER, frame, wheelset, geometry }).elapsedSec
   const raceSec = simulateRoute({ rider: RIDER, frame, wheelset, geometry, powerScaleAtSpeed: racePowerScaleAtSpeed }).elapsedSec
-  const estimateSoloSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1)
-  const estimateRaceSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1, { mode: 'race' })
+  const estimateSoloSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1)
+  const estimateRaceSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1, { mode: 'race' })
 
   const gainPct = (1 - raceSec / soloSec) * 100
   const estimateGainPct = (1 - estimateRaceSec / estimateSoloSec) * 100
@@ -223,8 +223,8 @@ for (const archetype of ARCHETYPES.slice(0, 3)) {
   const a = simulateRoute({ rider: RIDER, frame, wheelset, geometry }).elapsedSec
   const b = simulateRoute({ rider: RIDER, frame, wheelset, geometry, powerScaleAtSpeed: undefined }).elapsedSec
   check(a === b, `${archetype.slug}: passing powerScaleAtSpeed=undefined changed the simulated time (${a} vs ${b})`)
-  const c = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1)
-  const d = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1, undefined)
+  const c = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1)
+  const d = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1, undefined)
   check(c === d, `${archetype.slug}: passing draft=undefined changed the estimate (${c} vs ${d})`)
 }
 
@@ -240,7 +240,7 @@ for (const route of getRoutesWithMeta()) {
   }
   let profile
   try {
-    profile = computeRouteSurfaceSpeedProfile(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, { mode: 'race' })
+    profile = computeRouteSurfaceSpeedProfile(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, { mode: 'race' })
   } catch (error) {
     errors.push(`${route.slug}: the speed profile threw in race mode - ${error.message}`)
     continue

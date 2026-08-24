@@ -33,11 +33,18 @@ useSeoMeta({
 const { owned, ownedWheels, load: loadGarage } = useGarage()
 // Read-only here: the controls themselves live in `RiderProfileControls` /
 // `BikeFilterControls` - see the equivalent comment in `routes/[slug].vue`.
-const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
 const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 onMounted(() => {
   loadGarage()
 })
+
+// Sprint segments rank at the rider's separate sprint power (see
+// `sprintPowerW` in `useRiderProfile`); everything else at their normal
+// power. `segmentData` resolves in setup (awaited fetch above), so this is
+// stable by the time the controls mount.
+const isSprint = computed(() => segmentData.value?.type === 'sprint')
+const activePowerW = computed(() => isSprint.value ? sprintPowerW.value : powerW.value)
 
 const bikeSearch = ref('')
 const bikeSearchDebounced = ref('')
@@ -71,7 +78,7 @@ const recommendQuery = computed(() => ({
   defaultUnownedLevel: defaultUnownedLevel.value,
   weightKg: weightKg.value,
   heightCm: heightCm.value,
-  wkg: wkg.value,
+  powerW: activePowerW.value,
   // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
   draftMode: draftMode.value === 'solo' ? undefined : draftMode.value,
   tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
@@ -114,7 +121,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
+watch([weightKg, heightCm, powerW, sprintPowerW, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
 watch(owned, () => refreshFirstPage(), { deep: true })
 watch(ownedWheels, () => refreshFirstPage(), { deep: true })
 
@@ -140,7 +147,7 @@ const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.ra
 // the simulator's Crr, and climb detection reads nothing but the geometry's
 // points - this is the same 2-point line the endpoint builds.
 const hasLongClimb = computed(() => segmentData.value
-  ? detectLongClimbBlocks(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, []), wkg.value * weightKg.value, weightKg.value).length > 0
+  ? detectLongClimbBlocks(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, []), powerW.value, weightKg.value).length > 0
   : true)
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
@@ -333,6 +340,7 @@ const segmentAsRoute = computed(() => segmentData.value
 
       <RiderProfileControls
         :has-long-climb="hasLongClimb"
+        :sprint-power="isSprint"
         class="mb-6"
       />
 
@@ -373,7 +381,7 @@ const segmentAsRoute = computed(() => segmentData.value
             :route="segmentAsRoute"
             :weight-kg="weightKg"
             :height-cm="heightCm"
-            :wkg="wkg"
+            :power-w="activePowerW"
             :laps="1"
             :fastest-time-sec="fastestTimeSec"
             :owned="owned"
@@ -391,7 +399,7 @@ const segmentAsRoute = computed(() => segmentData.value
               :route="segmentAsRoute"
               :weight-kg="weightKg"
               :height-cm="heightCm"
-              :wkg="wkg"
+              :power-w="activePowerW"
               :laps="1"
               :fastest-time-sec="fastestTimeSec"
               :owned="owned"

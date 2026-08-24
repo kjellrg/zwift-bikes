@@ -19,7 +19,7 @@ export function useReportContext() {
   const colorMode = useColorMode()
   const config = useRuntimeConfig()
   const { bikeCategory, verifiedOnly, myBikesOnly, includeHaloBikes, load: loadPreferences } = usePreferences()
-  const { weightKg, heightCm, ftpWatts, wkg, draftMode, tttRiders, defaultUnownedLevel, load: loadProfile } = useRiderProfile()
+  const { weightKg, heightCm, powerW, draftMode, tttRiders, defaultUnownedLevel, load: loadProfile } = useRiderProfile()
   const { owned, ownedWheels, load: loadGarage } = useGarage()
 
   /** Opt-in, default off. Owned by the form; exposed so it can be a checkbox. */
@@ -60,8 +60,11 @@ export function useReportContext() {
   )
 
   const profile = computed(() => {
-    const base = `${weightKg.value} kg, ${heightCm.value} cm, ${ftpWatts.value} W `
-      + `(${wkg.value.toFixed(2)} W/kg), unowned bikes assumed at level ${defaultUnownedLevel.value}`
+    // The rider's normal page power - what route/event rankings actually
+    // used. (A sprint segment page ranks at the separate sprint power; this
+    // composable has no page context, so that value isn't threaded in here.)
+    const base = `${weightKg.value} kg, ${heightCm.value} cm, ${powerW.value} W `
+      + `(${(powerW.value / weightKg.value).toFixed(2)} W/kg), unowned bikes assumed at level ${defaultUnownedLevel.value}`
     // Only spell out team size when it can actually affect the numbers - race
     // mode has no parameters at all, so its name is the whole story.
     const draft = draftMode.value === 'ttt'

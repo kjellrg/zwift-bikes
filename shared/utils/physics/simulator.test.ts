@@ -236,8 +236,8 @@ describe('SIMULATED_ORDER_MARGIN holds on a rolling course', () => {
       })
 
     const byEstimate = [...pool].sort((a, b) =>
-      estimateFinishTimeSec(rollingRoute, a.frame, a.wheelset, 75, 183, 4)
-      - estimateFinishTimeSec(rollingRoute, b.frame, b.wheelset, 75, 183, 4))
+      estimateFinishTimeSec(rollingRoute, a.frame, a.wheelset, 75, 183, 300)
+      - estimateFinishTimeSec(rollingRoute, b.frame, b.wheelset, 75, 183, 300))
     const simulatedSec = new Map(pool.map(combo => [combo, simulateRoute({
       rider: { weightKg: 75, heightCm: 183, powerW: 300 },
       frame: combo.frame,

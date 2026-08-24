@@ -8,8 +8,8 @@ import { raceGroupSpeedMps, tttGroupSpeedMps } from './physics/draft'
 /**
  * Rough physics-based estimate of how long a rider would take to finish a
  * route on a given frame+wheelset combo, given their weight and sustained
- * power output (expressed as W/kg, matching how Zwift riders usually think
- * about their own effort).
+ * power output in absolute watts (matching the power sliders, which hold
+ * watts constant when the rider's weight changes).
  *
  * This is a simplified constant-power/constant-speed model - it does NOT
  * simulate pack dynamics, coasting on descents, or Zwift's exact physics
@@ -19,7 +19,7 @@ import { raceGroupSpeedMps, tttGroupSpeedMps } from './physics/draft'
  * faster for me on this route" comparison, not a precise real-world time
  * prediction.
  *
- * Method: for a rider sustaining `wkg * weightKg` watts, solve the standard
+ * Method: for a rider sustaining `powerW` watts, solve the standard
  * cycling power-speed equation
  *
  *   P = (Crr * m * g * cos(theta) + m * g * sin(theta) + 0.5 * rho * CdA * v^2) * v / efficiency
@@ -80,8 +80,8 @@ function blendedCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): numbe
 
 /**
  * Estimates finish time in seconds for a route ridden on a specific
- * frame+wheelset combo, by a rider of `weightKg`/`heightCm` sustaining `wkg`
- * watts/kg. `wheelset` is optional/ignored for `frame.hasFixedWheels` frames
+ * frame+wheelset combo, by a rider of `weightKg`/`heightCm` sustaining
+ * `powerW` watts. `wheelset` is optional/ignored for `frame.hasFixedWheels` frames
  * (no real wheel choice - see `classifyBikeFrame.ts`).
  *
  * `laps` (default 1, clamped via `clampLaps` - forced to 1 for non-lap
@@ -100,11 +100,11 @@ function blendedCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): numbe
  *
  * - `{ mode: 'ttt', riders }` makes every speed solve a `tttGroupSpeedMps`
  *   fixed point rather than a plain `speedForPower` - each rider averages
- *   `wkg`, and the group moves at the speed their combined effort produces.
+ *   `powerW`, and the group moves at the speed their combined effort produces.
  * - `{ mode: 'ttt', climb }` (the aggregate of `tttPowerPlan`'s blocks over the
  *   WHOLE ride, laps and lead-in included) additionally splits the estimate
  *   into two closed-form phases: the plan's climb distance at the team climb
- *   power on the climbs' own average grade, the remainder at `wkg` on the
+ *   power on the climbs' own average grade, the remainder at `powerW` on the
  *   remaining average grade.
  * - `{ mode: 'race' }` solves `raceGroupSpeedMps` instead - one field-calibrated
  *   saving, no rider count and no power plan, because race mode has neither
@@ -121,11 +121,10 @@ export function estimateFinishTimeSec(
   wheelset: Wheelset | undefined,
   weightKg: number,
   heightCm: number,
-  wkg: number,
+  powerW: number,
   laps = 1,
   draft?: { mode: 'ttt', riders: number, climb?: { distanceM: number, elevationM: number, powerW: number } } | { mode: 'race' }
 ): number {
-  const powerW = wkg * weightKg
   const grade = route.terrain.climbRatio / 1000 // m/km -> m/m
 
   const { cdaM2, bikeMassKg, crrDelta } = equipmentPhysics(frame, wheelset)
@@ -190,7 +189,7 @@ export function estimateSurfaceTimePenaltySec(
   wheelset: Wheelset | undefined,
   weightKg: number,
   heightCm: number,
-  wkg: number,
+  powerW: number,
   laps = 1
 ): number {
   if (route.surface.gravel === 0 && route.surface.cobble === 0) return 0
@@ -205,7 +204,7 @@ export function estimateSurfaceTimePenaltySec(
       confidence: route.surface.confidence
     }
   }
-  const actualTimeSec = estimateFinishTimeSec(route, frame, wheelset, weightKg, heightCm, wkg, laps)
-  const pavedTimeSec = estimateFinishTimeSec(pavedRoute, frame, wheelset, weightKg, heightCm, wkg, laps)
+  const actualTimeSec = estimateFinishTimeSec(route, frame, wheelset, weightKg, heightCm, powerW, laps)
+  const pavedTimeSec = estimateFinishTimeSec(pavedRoute, frame, wheelset, weightKg, heightCm, powerW, laps)
   return actualTimeSec - pavedTimeSec
 }

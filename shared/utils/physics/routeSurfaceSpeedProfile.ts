@@ -167,7 +167,7 @@ export function computeRouteSurfaceSpeedProfile(
   wheelset: Wheelset | undefined,
   weightKg: number,
   heightCm: number,
-  wkg: number,
+  powerW: number,
   draft?: { mode: 'ttt', riders: number, climbWkg?: number } | { mode: 'race' }
 ): RouteSurfaceSpeedProfile | undefined {
   if (!route.terrain.elevationProfile || route.terrain.elevationProfile.length < 2) return undefined
@@ -182,7 +182,7 @@ export function computeRouteSurfaceSpeedProfile(
   const surfaceBoundariesM = geometry.surfaceSegments.slice(0, -1).map(segment => segment.toM)
   const boundariesM = Array.from(new Set([...gradeBoundariesM, ...surfaceBoundariesM])).sort((a, b) => a - b)
 
-  const rider = { weightKg, heightCm, powerW: wkg * weightKg }
+  const rider = { weightKg, heightCm, powerW }
   // Chart is per-lap (single lap geometry), so the TTT plan here is built on
   // that same single-lap geometry - independent of the endpoints' per-request
   // plans, which cover the full laps+lead-in ride.

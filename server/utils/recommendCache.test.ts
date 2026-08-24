@@ -17,8 +17,8 @@ import { getRequestTiming, startRequestTiming } from './timing'
 
 describe('recommendCacheKey', () => {
   it('is insensitive to query parameter order', () => {
-    expect(recommendCacheKey('/api/recommend/watopia-flat-route?weightKg=75&wkg=3.2&heightCm=180', 'abc1234'))
-      .toBe(recommendCacheKey('/api/recommend/watopia-flat-route?heightCm=180&wkg=3.2&weightKg=75', 'abc1234'))
+    expect(recommendCacheKey('/api/recommend/watopia-flat-route?weightKg=75&powerW=240&heightCm=180', 'abc1234'))
+      .toBe(recommendCacheKey('/api/recommend/watopia-flat-route?heightCm=180&powerW=240&weightKg=75', 'abc1234'))
   })
 
   it('keeps a repeated key\'s values in arrival order while sorting keys', () => {

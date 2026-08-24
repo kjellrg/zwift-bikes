@@ -215,12 +215,17 @@ const recommendBaseShape = {
   defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(5).optional()).transform(value => (value === undefined ? DEFAULT_UNOWNED_LEVEL : Math.round(value))),
   weightKg: qNumber.pipe(z.number().min(RIDER_BOUNDS.weightKg.min).max(RIDER_BOUNDS.weightKg.max).optional()),
   heightCm: qNumber.pipe(z.number().min(RIDER_BOUNDS.heightCm.min).max(RIDER_BOUNDS.heightCm.max).optional()),
+  powerW: qNumber.pipe(z.number().min(RIDER_BOUNDS.powerW.min).max(RIDER_BOUNDS.powerW.max).optional()),
+  // Deprecated alias for `powerW`, from before the power sliders switched to
+  // absolute watts. Still accepted so pre-rename clients (old JS in flight
+  // during a deploy window, external callers) keep their finish times -
+  // `resolveLegacyWkg` below converts it. Removable in a later release.
   wkg: qNumber.pipe(z.number().min(RIDER_BOUNDS.wkg.min).max(RIDER_BOUNDS.wkg.max).optional()),
   physics: qEnum(['dynamic', 'legacy', 'compare'] as const).transform(value => value ?? 'dynamic'),
-  // Draft mode (see `physics/draft.ts`). In `ttt` the rider's `wkg` is their own
-  // average over the rotation, and the paceline moves at the speed that
+  // Draft mode (see `physics/draft.ts`). In `ttt` the rider's `powerW` is their
+  // own average over the rotation, and the paceline moves at the speed that
   // combined effort produces - roughly a solo rider at 1.38x their power on
-  // the flat for an 8-rider team. In `race` the `wkg` is their own race average
+  // the flat for an 8-rider team. In `race` the `powerW` is their own race average
   // and a single field-calibrated saving applies; `race` reads NO further query
   // params, which is the whole point of one constant - so its cache key is just
   // `draftMode=race`, and `tttRiders`/`tttClimbWkg` stay TTT-only.
@@ -237,12 +242,24 @@ const recommendBaseShape = {
  * code silently dropped into no-profile mode, which read as "the API ignored
  * my weight" rather than "I forgot a parameter".
  */
-const riderProfileComplete = (query: { weightKg?: number, heightCm?: number, wkg?: number }, ctx: z.RefinementCtx) => {
-  const provided = [query.weightKg, query.heightCm, query.wkg].filter(value => value !== undefined).length
+const riderProfileComplete = (query: { weightKg?: number, heightCm?: number, wkg?: number, powerW?: number }, ctx: z.RefinementCtx) => {
+  const provided = [query.weightKg, query.heightCm, query.powerW ?? query.wkg].filter(value => value !== undefined).length
   if (provided > 0 && provided < 3) {
-    ctx.addIssue({ code: 'custom', message: 'Pass `weightKg`, `heightCm` and `wkg` together, or none of them' })
+    ctx.addIssue({ code: 'custom', message: 'Pass `weightKg`, `heightCm` and `powerW` together, or none of them' })
   }
 }
+
+/**
+ * Folds the deprecated `wkg` alias into `powerW` once the profile is known
+ * complete. Rounded to whole watts so the derived value is stable (no float
+ * dust like 3.2 x 75 = 240.00000000000003 reaching handlers or logs); it
+ * always lands inside `RIDER_BOUNDS.powerW`, which is exactly the wkg bounds
+ * multiplied out across the weight bounds. An explicit `powerW` wins.
+ */
+const resolveLegacyWkg = <Q extends { weightKg?: number, wkg?: number, powerW?: number }>(query: Q): Q =>
+  query.powerW === undefined && query.wkg !== undefined && query.weightKg !== undefined
+    ? { ...query, powerW: Math.round(query.wkg * query.weightKg) }
+    : query
 
 export const recommendRouteQuerySchema = z.object({
   ...recommendBaseShape,
@@ -258,7 +275,7 @@ export const recommendRouteQuerySchema = z.object({
   // display trim, and `category` can't express it: a points race allows road
   // AND gravel frames, just never TT.
   excludeTT: qBool(false)
-}).superRefine(riderProfileComplete)
+}).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
 
 export const recommendSegmentQuerySchema = z.object({
   ...recommendBaseShape,
@@ -266,7 +283,7 @@ export const recommendSegmentQuerySchema = z.object({
   // loose: an unknown slug falls back to the segment's first hosting route
   // (see `routeWithMetaForSegment`), which client-side navigation relies on.
   route: z.preprocess(emptyToUndef, z.string().max(200).optional())
-}).superRefine(riderProfileComplete)
+}).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
 
 export type RecommendRouteQuery = z.output<typeof recommendRouteQuerySchema>
 export type RecommendSegmentQuery = z.output<typeof recommendSegmentQuerySchema>
