@@ -22,5 +22,8 @@ unmodelled
 wheelset
 wheelsets
 WTRL
+zizmor
 zracing
+zwiftbikes
+Zwifters
 zwiftmap
