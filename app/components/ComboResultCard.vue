@@ -60,8 +60,8 @@ const draftEstimate = computed(() => {
   if (props.draftMode === 'race') return { mode: 'race' as const }
   if (props.draftMode !== 'ttt') return undefined
   const riders = props.tttRiders ?? TTT_DEFAULT_RIDERS
-  if (!props.tttClimbWkg || !props.weightKg || !props.route?.terrain) return { mode: 'ttt' as const, riders, climb: undefined }
-  const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg)
+  if (!props.tttClimbWkg || !props.weightKg || !props.powerW || !props.route?.terrain) return { mode: 'ttt' as const, riders, climb: undefined }
+  const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg, props.powerW)
   return { mode: 'ttt' as const, riders, climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined }
 })
 

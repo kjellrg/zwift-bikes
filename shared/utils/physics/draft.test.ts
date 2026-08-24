@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS, TTT_MAX_RIDERS, TTT_MIN_RIDERS } from './draft'
+import type { RouteGeometry, RouteGeometryPoint } from '../../types/physics'
+import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS, TTT_MAX_RIDERS, TTT_MIN_RIDERS, tttPowerPlan } from './draft'
+
+function geometry(points: RouteGeometryPoint[]): RouteGeometry {
+  const totalDistanceM = points[points.length - 1]!.distanceM
+  return {
+    routeSlug: 'test-geometry',
+    points,
+    surfaceSegments: [{ fromM: 0, toM: totalDistanceM, surface: 'tarmac' }],
+    totalDistanceM
+  }
+}
 
 describe('clampTttRiders', () => {
   it('rounds to whole riders and clamps to the supported range', () => {
@@ -29,5 +40,37 @@ describe('clampTttClimbWkg', () => {
     // The slider's binary-float accumulation must not leak into query strings.
     expect(clampTttClimbWkg(4.300000000000001)).toBe(4.3)
     expect(clampTttClimbWkg(3.14)).toBe(3.1)
+  })
+})
+
+describe('tttPowerPlan climb detection is independent of the climb power', () => {
+  // A 3 km climb at 5% after a flat lead-up - long and steep enough to
+  // qualify at any rider pace the sliders allow.
+  const CLIMB_GEOMETRY = geometry([
+    { distanceM: 0, elevationM: 0 },
+    { distanceM: 2000, elevationM: 0 },
+    { distanceM: 5000, elevationM: 150 },
+    { distanceM: 7000, elevationM: 150 }
+  ])
+  const RIDER = { weightKg: 79, powerW: 260 }
+
+  it('the same blocks exist at every climb pace (the control must not gate its own applicability)', () => {
+    // Regression: blocks used to be detected at the CLIMB power, so raising
+    // the climb pace past the block's speed cutoff silently deleted the
+    // block - a higher climb power produced a slower, then constant, finish
+    // time (Greater London 8, 4.0 -> 4.1 W/kg).
+    const plans = [2.5, 4.0, 4.1, 9].map(climbWkg => tttPowerPlan(CLIMB_GEOMETRY, climbWkg, RIDER.weightKg, RIDER.powerW))
+    for (const plan of plans) {
+      expect(plan).toBeDefined()
+      expect(plan!.blocks.map(b => [b.fromM, b.toM])).toEqual(plans[0]!.blocks.map(b => [b.fromM, b.toM]))
+    }
+  })
+
+  it('blocks are re-timed at the climb power actually ridden', () => {
+    const easy = tttPowerPlan(CLIMB_GEOMETRY, 3, RIDER.weightKg, RIDER.powerW)!
+    const hard = tttPowerPlan(CLIMB_GEOMETRY, 5, RIDER.weightKg, RIDER.powerW)!
+    expect(hard.blocks[0]!.climbSpeedMps).toBeGreaterThan(easy.blocks[0]!.climbSpeedMps)
+    expect(hard.blocks[0]!.estDurationSec).toBeLessThan(easy.blocks[0]!.estDurationSec)
+    expect(hard.climbPowerW).toBe(5 * RIDER.weightKg)
   })
 })

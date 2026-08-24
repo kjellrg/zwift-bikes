@@ -186,7 +186,7 @@ export function computeRouteSurfaceSpeedProfile(
   // Chart is per-lap (single lap geometry), so the TTT plan here is built on
   // that same single-lap geometry - independent of the endpoints' per-request
   // plans, which cover the full laps+lead-in ride.
-  const tttPlan = draft?.mode === 'ttt' && draft.climbWkg ? tttPowerPlan(geometry, draft.climbWkg, weightKg) : undefined
+  const tttPlan = draft?.mode === 'ttt' && draft.climbWkg ? tttPowerPlan(geometry, draft.climbWkg, weightKg, powerW) : undefined
   const powerScaleAtSpeed = draft?.mode === 'ttt'
     ? (speedMps: number) => tttPowerScaleAtSpeed(draft.riders, speedMps)
     : draft?.mode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined

@@ -143,7 +143,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // for the estimate's two-phase split, so build one just for it (geometry
   // construction is cheap; simulation is the expensive part).
   const tttPlan = hasRiderProfile && tttClimbWkg
-    ? tttPowerPlan(geometry ?? geometryForRouteLaps(route, laps), tttClimbWkg, weightKg)
+    ? tttPowerPlan(geometry ?? geometryForRouteLaps(route, laps), tttClimbWkg, weightKg, powerW)
     : undefined
   // The one object every draft-aware call site threads through: the draft
   // scaling for the simulator, and its closed-form twin for the estimate.

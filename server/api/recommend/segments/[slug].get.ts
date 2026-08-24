@@ -134,7 +134,8 @@ export default defineCachedRecommendHandler(async (event) => {
     ? tttPowerPlan(
         segmentGeometry ?? geometryForSegment(segmentRoute.slug, segmentRoute.distance, segmentRoute.elevation, sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')),
         tttClimbWkg,
-        weightKg
+        weightKg,
+        powerW
       )
     : undefined
   const warmedPowerSegmentsW = tttPlan?.powerSegmentsW.map(segment => ({ ...segment, fromM: segment.fromM + WARMUP_DISTANCE_M, toM: segment.toM + WARMUP_DISTANCE_M }))
