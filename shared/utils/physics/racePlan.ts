@@ -1,7 +1,7 @@
 import type { ClassifiedBikeFrame, Wheelset } from '../../types/catalog'
 import type { PhysicsSurface, RouteGeometry, RouteGeometryPoint } from '../../types/physics'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
-import { detectLongClimbBlocks, tttGroupSpeedMps } from './draft'
+import { detectLongClimbBlocks, tttGroupSpeedMps, tttPowerPlan } from './draft'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { powerForSpeed, speedForPower } from './forces'
 
@@ -98,10 +98,18 @@ export function buildRacePlan(geometry: RouteGeometry, options: RacePlanOptions)
 
   const items: RacePlanItem[] = []
 
-  // When no team climb W/kg is set the blocks are still worth flagging -
-  // estimate their duration at the rider's normal power instead.
-  const climbPowerW = options.climbWkg ? options.climbWkg * options.weightKg : options.riderPowerW
-  for (const block of detectLongClimbBlocks(geometry, climbPowerW, options.weightKg)) {
+  // Blocks are always DETECTED at the rider's normal power - never at the
+  // team climb pace, which must not gate its own applicability (the same
+  // rule as `tttPowerPlan`; detecting at the climb power made this panel's
+  // climb row vanish when the pace was raised past the block's speed
+  // cutoff). With a climb pace set, `tttPowerPlan` re-times the blocks at
+  // that pace so the estimated duration matches how the climb is actually
+  // ridden; without one, the duration is estimated at the rider's normal
+  // power instead.
+  const climbBlocks = options.climbWkg
+    ? tttPowerPlan(geometry, options.climbWkg, options.weightKg, options.riderPowerW)?.blocks ?? []
+    : detectLongClimbBlocks(geometry, options.riderPowerW, options.weightKg)
+  for (const block of climbBlocks) {
     items.push({
       type: 'climb',
       fromKm: block.fromM / 1000,

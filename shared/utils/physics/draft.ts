@@ -369,20 +369,23 @@ const CLIMB_BLOCK_MIN_DURATION_SEC = 150
 
 /**
  * Finds the route's long climbs - contiguous rising stretches of
- * `geometry.points` whose estimated speed at `climbPowerW` is at or below
+ * `geometry.points` whose estimated speed at `powerW` is at or below
  * `CLIMB_BLOCK_MAX_SPEED_MPS` and which last at least
  * `CLIMB_BLOCK_MIN_DURATION_SEC`. See the constants above for why the test is
- * speed rather than grade. Works on geometry positions directly (NOT
+ * speed rather than grade. `powerW` is the rider's NORMAL power everywhere
+ * this is called - the pace the formation would otherwise ride - never the
+ * team climb power, which must not gate its own applicability (see
+ * `tttPowerPlan`). Works on geometry positions directly (NOT
  * `route.terrain.climbs`, whose per-lap km positions don't map onto
  * lap-repeated/lead-in-offset geometry). Adjacent stretches separated by less
  * than 200 m merge before the speed test runs.
  *
- * The speed used is the SOLO speed at `climbPowerW`, not the drafted group
+ * The speed used is the SOLO speed at `powerW`, not the drafted group
  * speed. At these speeds the two are within a few percent (the draft being
  * nearly gone is the whole premise), and using the solo speed keeps this a
  * plain solve instead of a fixed point.
  */
-export function detectLongClimbBlocks(geometry: RouteGeometry, climbPowerW: number, riderWeightKg: number): TttClimbBlock[] {
+export function detectLongClimbBlocks(geometry: RouteGeometry, powerW: number, riderWeightKg: number): TttClimbBlock[] {
   const points = geometry.points
   const massKg = riderWeightKg + REPRESENTATIVE_BIKE_MASS_KG
   const raw: { fromM: number, toM: number, elevationM: number }[] = []
@@ -427,7 +430,7 @@ export function detectLongClimbBlocks(geometry: RouteGeometry, climbPowerW: numb
     .map((block) => {
       const distanceM = block.toM - block.fromM
       const avgGrade = block.elevationM / distanceM
-      const climbSpeedMps = speedForPower(climbPowerW, massKg, avgGrade, REPRESENTATIVE_CRR, REPRESENTATIVE_CDA_M2)
+      const climbSpeedMps = speedForPower(powerW, massKg, avgGrade, REPRESENTATIVE_CRR, REPRESENTATIVE_CDA_M2)
       return {
         fromM: block.fromM,
         toM: block.toM,
@@ -460,11 +463,31 @@ export interface TttPowerPlan {
  * Returns `undefined` when the route has no qualifying climb - callers then
  * change nothing at all. Compute this ONCE per request and share it across
  * combos - see the note on `REPRESENTATIVE_CDA_M2`.
+ *
+ * Blocks are detected at `riderPowerW` - the rider's own average, i.e. the
+ * pace the formation would otherwise ride the climb at - NOT at the climb
+ * power. "Does the rotation break up here?" is a property of the route and
+ * the team's normal pace; the climb pace only decides how the broken-up
+ * stretch is ridden. Detecting at the climb power (as this used to) let the
+ * control gate its own applicability: nudging the climb pace up could push a
+ * block's solo speed past `CLIMB_BLOCK_MAX_SPEED_MPS`, silently deleting the
+ * block, so a HIGHER climb power produced a SLOWER, then constant, finish
+ * time (seen on Greater London 8 at 4.0 -> 4.1 W/kg). It also
+ * kept plan detection consistent-in-name-only with the pages' `hasLongClimb`
+ * visibility check, which always used the rider's normal power for exactly
+ * this reason. The returned blocks' `climbSpeedMps`/`estDurationSec` are
+ * re-timed at the climb power - that is the pace they are actually ridden
+ * at, and what the race plan panel shows.
  */
-export function tttPowerPlan(geometry: RouteGeometry, climbWkg: number, weightKg: number): TttPowerPlan | undefined {
+export function tttPowerPlan(geometry: RouteGeometry, climbWkg: number, weightKg: number, riderPowerW: number): TttPowerPlan | undefined {
   const climbPowerW = climbWkg * weightKg
-  const blocks = detectLongClimbBlocks(geometry, climbPowerW, weightKg)
-  if (blocks.length === 0) return undefined
+  const detected = detectLongClimbBlocks(geometry, riderPowerW, weightKg)
+  if (detected.length === 0) return undefined
+  const massKg = weightKg + REPRESENTATIVE_BIKE_MASS_KG
+  const blocks = detected.map((block) => {
+    const climbSpeedMps = speedForPower(climbPowerW, massKg, block.avgGrade, REPRESENTATIVE_CRR, REPRESENTATIVE_CDA_M2)
+    return { ...block, climbSpeedMps, estDurationSec: block.distanceM / climbSpeedMps }
+  })
   return {
     blocks,
     powerSegmentsW: blocks.map(block => ({ fromM: block.fromM, toM: block.toM, powerW: climbPowerW })),

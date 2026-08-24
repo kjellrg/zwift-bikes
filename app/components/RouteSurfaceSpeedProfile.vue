@@ -10,7 +10,7 @@ const props = defineProps<{
   wheelset?: Wheelset
   weightKg: number
   heightCm: number
-  wkg: number
+  powerW: number
   draftMode?: DraftMode
   tttRiders?: number
   tttClimbWkg?: number
@@ -61,7 +61,7 @@ const profile = computed(() => hasOpened.value
       props.wheelset,
       props.weightKg,
       props.heightCm,
-      props.wkg,
+      props.powerW,
       props.draftMode === 'ttt'
         ? { mode: 'ttt' as const, riders: props.tttRiders ?? TTT_DEFAULT_RIDERS, climbWkg: props.tttClimbWkg }
         : props.draftMode === 'race' ? { mode: 'race' as const } : undefined

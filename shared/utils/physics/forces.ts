@@ -35,7 +35,10 @@ export function powerForSpeed(velocityMps: number, massKg: number, grade: number
  */
 export function speedForPower(powerW: number, massKg: number, grade: number, crr: number, cdaM2: number): number {
   let low = 0.1
-  let high = 30 // m/s, ~108 km/h ceiling
+  // ~108 km/h ceiling. Verified against the sprint slider's 1500 W maximum:
+  // even at 1500 W a 75 kg rider is ~19 m/s on the flat and ~26 m/s on a
+  // -10% descent, so the bracket cannot saturate at any settable power.
+  let high = 30
   for (let i = 0; i < 40; i++) {
     const mid = (low + high) / 2
     if (powerForSpeed(mid, massKg, grade, crr, cdaM2) < powerW) low = mid

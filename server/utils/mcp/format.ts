@@ -10,7 +10,7 @@ import { formatDuration, formatDurationGap } from '../../../shared/utils/duratio
 export interface RecommendPhysics {
   mode: 'dynamic' | 'legacy' | 'compare'
   geometry?: 'measured' | 'known-climbs-compatibility' | 'aggregate-compatibility'
-  rider: { weightKg: number, heightCm: number, wkg: number }
+  rider: { weightKg: number, heightCm: number, powerW: number }
   note: string
   /** Present only in TTT draft mode - see `shared/utils/physics/draft.ts`. `riderPowerW` is each rider's own rotation average; the pull/last-wheel figures are what that swings between. */
   ttt?: {

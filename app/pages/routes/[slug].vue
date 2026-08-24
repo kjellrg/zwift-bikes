@@ -12,7 +12,7 @@ const { owned, ownedWheels, load: loadGarage } = useGarage()
 // category/search/switches) live in `RiderProfileControls` /
 // `BikeFilterControls`, which bind and persist this same `useState`-backed
 // state - so the query and watchers below keep firing exactly as before.
-const { weightKg, heightCm, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
 const { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 const bikeSearch = ref('')
@@ -47,7 +47,7 @@ const recommendQuery = computed(() => ({
   defaultUnownedLevel: defaultUnownedLevel.value,
   weightKg: weightKg.value,
   heightCm: heightCm.value,
-  wkg: wkg.value,
+  powerW: powerW.value,
   laps: laps.value,
   // Omitted entirely in solo mode, which is also the default: everything in
   // this query renders server-side from the DEFAULT rider profile and
@@ -183,7 +183,7 @@ const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeD
 // decide its own slider's visibility, or the control vanishes under the
 // user's cursor as they drag it.
 const hasLongClimb = computed(() => routeData.value
-  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), wkg.value * weightKg.value, weightKg.value).length > 0
+  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), powerW.value, weightKg.value).length > 0
   : true)
 
 // `recommendData` keeps its previous value while a refetch (filter/rider
@@ -215,7 +215,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, wkg, laps, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
+watch([weightKg, heightCm, powerW, laps, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
 watch(owned, () => refreshFirstPage(), { deep: true })
 watch(ownedWheels, () => refreshFirstPage(), { deep: true })
 
@@ -429,7 +429,7 @@ useHead(() => {
       :wheelset="topCombo.wheelset"
       :weight-kg="weightKg"
       :height-cm="heightCm"
-      :wkg="wkg"
+      :power-w="powerW"
       :draft-mode="draftMode"
       :ttt-riders="tttRiders"
       :ttt-climb-wkg="tttClimbWkg"
@@ -441,7 +441,7 @@ useHead(() => {
       :laps="laps"
       :weight-kg="weightKg"
       :height-cm="heightCm"
-      :wkg="wkg"
+      :power-w="powerW"
       :frame="topCombo.frame"
       :wheelset="topCombo.wheelset"
       :ttt-riders="tttRiders"
@@ -550,7 +550,7 @@ useHead(() => {
             :route="routeData"
             :weight-kg="weightKg"
             :height-cm="heightCm"
-            :wkg="wkg"
+            :power-w="powerW"
             :laps="resultsLaps"
             :fastest-time-sec="fastestTimeSec"
             :owned="owned"
@@ -571,7 +571,7 @@ useHead(() => {
               :route="routeData"
               :weight-kg="weightKg"
               :height-cm="heightCm"
-              :wkg="wkg"
+              :power-w="powerW"
               :laps="resultsLaps"
               :fastest-time-sec="fastestTimeSec"
               :owned="owned"

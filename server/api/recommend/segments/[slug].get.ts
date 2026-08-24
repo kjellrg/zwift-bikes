@@ -15,6 +15,10 @@ import { addTimingMeta, markPhase } from '../../../utils/timing'
 // enough for a rider's speed to converge close to steady-state for their
 // power before entering the segment - see `prependWarmup`'s doc comment for
 // why a standing-start simulation would badly distort segment rankings.
+// The warm-up is ridden at the request's own power - even a 1500 W sprint
+// setting. That's deliberate: warm-up-only time is subtracted back out, so
+// its sole effect is entering the segment at steady-state speed for that
+// power (a flying sprint), applied identically to every combo.
 const WARMUP_DISTANCE_M = 2000
 
 // Wrapped in the edge cache for the same reason as `recommend/[slug].get.ts`.
@@ -51,10 +55,10 @@ export default defineCachedRecommendHandler(async (event) => {
   const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
   // The schema guarantees the profile arrives complete and in bounds or not
   // at all - see the equivalent comment in `recommend/[slug].get.ts`.
-  const hasRiderProfile = q.weightKg !== undefined && q.heightCm !== undefined && q.wkg !== undefined
+  const hasRiderProfile = q.weightKg !== undefined && q.heightCm !== undefined && q.powerW !== undefined
   const weightKg = q.weightKg ?? 0
   const heightCm = q.heightCm ?? 0
-  const wkg = q.wkg ?? 0
+  const powerW = q.powerW ?? 0
   const tttClimbWkg = draftMode === 'ttt' ? q.tttClimbWkg : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
@@ -105,7 +109,7 @@ export default defineCachedRecommendHandler(async (event) => {
   const rankedCombos = rankCombos(segmentRoute, frames, wheelsets, frames.length * wheelsets.length)
   await markPhase(event, 'rank')
 
-  const rider = { weightKg, heightCm, powerW: weightKg * wkg }
+  const rider = { weightKg, heightCm, powerW }
   const segmentGeometry = hasRiderProfile && physicsMode !== 'legacy'
     ? geometryForSegment(
         segmentRoute.slug,
@@ -130,7 +134,8 @@ export default defineCachedRecommendHandler(async (event) => {
     ? tttPowerPlan(
         segmentGeometry ?? geometryForSegment(segmentRoute.slug, segmentRoute.distance, segmentRoute.elevation, sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')),
         tttClimbWkg,
-        weightKg
+        weightKg,
+        powerW
       )
     : undefined
   const warmedPowerSegmentsW = tttPlan?.powerSegmentsW.map(segment => ({ ...segment, fromM: segment.fromM + WARMUP_DISTANCE_M, toM: segment.toM + WARMUP_DISTANCE_M }))
@@ -154,7 +159,7 @@ export default defineCachedRecommendHandler(async (event) => {
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, draftEstimate) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, powerW, 1, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
   await markPhase(event, 'estimate')
@@ -185,7 +190,7 @@ export default defineCachedRecommendHandler(async (event) => {
     for (const combo of pageCombos) {
       // Already computed in the full-pool ranking pass above.
       const legacyFinishTimeSec = combo.finishTimeSec!
-      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1)
+      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, powerW, 1)
       if (physicsMode === 'legacy' || !warmedGeometry || !warmupOnlyGeometry) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
@@ -252,7 +257,7 @@ export default defineCachedRecommendHandler(async (event) => {
     const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
     if (hiddenFrames.length) {
       let candidates = rankCombos(segmentRoute, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
-        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, wkg, 1, draftEstimate) }))
+        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(segmentRoute, combo.frame, combo.wheelset, weightKg, heightCm, powerW, 1, draftEstimate) }))
         .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
       let overallTopSec = candidates[0]?.finishTimeSec
       if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic') {
@@ -320,7 +325,7 @@ export default defineCachedRecommendHandler(async (event) => {
           mode: physicsMode,
           ttt,
           race,
-          rider: { weightKg, heightCm, wkg },
+          rider: { weightKg, heightCm, powerW: Math.round(powerW) },
           summary: (physicsMode === 'legacy'
             ? 'Every time below is estimated for your weight, height and power at this segment’s average grade.'
             : 'Every time below is simulated for your weight, height and power, entered at racing speed rather than from a standing start.') + draftSummary,

@@ -10,7 +10,7 @@ const props = defineProps<{
   route?: RouteWithMeta
   weightKg?: number
   heightCm?: number
-  wkg?: number
+  powerW?: number
   /** Lap count to assume for finish-time/distance display when computing a fallback client-side estimate (see `finishTimeSec` below) - the server already bakes laps into `combo.finishTimeSec` when a rider profile is set, so this is mostly a fallback/display concern. Defaults to 1. */
   laps?: number
   /** Fastest `finishTimeSec` among all currently-shown combos, used to show a "+Xs slower" gap instead of this card's own absolute time. */
@@ -60,21 +60,21 @@ const draftEstimate = computed(() => {
   if (props.draftMode === 'race') return { mode: 'race' as const }
   if (props.draftMode !== 'ttt') return undefined
   const riders = props.tttRiders ?? TTT_DEFAULT_RIDERS
-  if (!props.tttClimbWkg || !props.weightKg || !props.route?.terrain) return { mode: 'ttt' as const, riders, climb: undefined }
-  const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg)
+  if (!props.tttClimbWkg || !props.weightKg || !props.powerW || !props.route?.terrain) return { mode: 'ttt' as const, riders, climb: undefined }
+  const plan = tttPowerPlan(geometryForRouteLaps(props.route, props.laps ?? 1), props.tttClimbWkg, props.weightKg, props.powerW)
   return { mode: 'ttt' as const, riders, climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined }
 })
 
 const finishTimeSec = computed(() => {
   if (props.combo.finishTimeSec !== undefined) return props.combo.finishTimeSec
-  if (!props.route || !props.weightKg || !props.heightCm || !props.wkg) return undefined
+  if (!props.route || !props.weightKg || !props.heightCm || !props.powerW) return undefined
   return estimateFinishTimeSec(
     props.route,
     props.combo.frame,
     props.combo.wheelset,
     props.weightKg,
     props.heightCm,
-    props.wkg,
+    props.powerW,
     props.laps ?? 1,
     draftEstimate.value
   )

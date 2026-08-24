@@ -12,7 +12,7 @@ import { RIDER_BOUNDS } from '../../../shared/utils/riderBounds'
 export interface RiderProfile {
   weightKg: number
   heightCm: number
-  /** Sustained power in watts per kilogram; absolute watts are derived as `weightKg * wkg`. */
+  /** Sustained power in watts per kilogram - the MCP contract's unit; the recommend endpoints take absolute watts, derived as `weightKg * wkg` in `recommendQuery`. */
   wkg: number
 }
 

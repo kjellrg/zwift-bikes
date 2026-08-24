@@ -25,6 +25,13 @@
 //      exactly what they return with race mode absent from the codebase.
 //   5. Every route in the catalog, in race mode, producing finite speeds - no
 //      exceptions, no NaN.
+//   6. Monotonicity and continuity across the sliders' real ranges, on real
+//      catalog geometry. More power / a higher team climb pace must never
+//      cost time, and one slider step must never move a finish time by a
+//      cliff. Synthetic-fixture unit tests can't see threshold interactions
+//      that only real routes hit - the climb-pace cap (issues #141/#142) bit
+//      on Greater London 8 precisely because its climb sat near the
+//      21.1 km/h detection cutoff at a plausible rider's settings.
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
@@ -40,11 +47,16 @@ const { geometryForRouteLaps } = loadSharedModule('shared/utils/physics/routeGeo
 const { computeRouteSurfaceSpeedProfile } = loadSharedModule('shared/utils/physics/routeSurfaceSpeedProfile.ts')
 const { speedForPower } = loadSharedModule('shared/utils/physics/forces.ts')
 const {
+  detectLongClimbBlocks,
   DRAFT_SCALE_REFERENCE_SPEED_MPS,
   draftSavingsSpeedScale,
   raceGroupSpeedMps,
   racePowerScaleAtSpeed,
-  RACE_DRAFT_SAVING
+  RACE_DRAFT_SAVING,
+  TTT_MAX_CLIMB_WKG,
+  TTT_MIN_CLIMB_WKG,
+  tttPowerPlan,
+  tttPowerScaleAtSpeed
 } = loadSharedModule('shared/utils/physics/draft.ts')
 const { estimateFinishTimeSec } = loadSharedModule('shared/utils/finishTime.ts')
 
@@ -160,8 +172,8 @@ for (const archetype of ARCHETYPES) {
   const geometry = geometryForRouteLaps(route, 1)
   const soloSec = simulateRoute({ rider: RIDER, frame, wheelset, geometry }).elapsedSec
   const raceSec = simulateRoute({ rider: RIDER, frame, wheelset, geometry, powerScaleAtSpeed: racePowerScaleAtSpeed }).elapsedSec
-  const estimateSoloSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1)
-  const estimateRaceSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1, { mode: 'race' })
+  const estimateSoloSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1)
+  const estimateRaceSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1, { mode: 'race' })
 
   const gainPct = (1 - raceSec / soloSec) * 100
   const estimateGainPct = (1 - estimateRaceSec / estimateSoloSec) * 100
@@ -223,8 +235,8 @@ for (const archetype of ARCHETYPES.slice(0, 3)) {
   const a = simulateRoute({ rider: RIDER, frame, wheelset, geometry }).elapsedSec
   const b = simulateRoute({ rider: RIDER, frame, wheelset, geometry, powerScaleAtSpeed: undefined }).elapsedSec
   check(a === b, `${archetype.slug}: passing powerScaleAtSpeed=undefined changed the simulated time (${a} vs ${b})`)
-  const c = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1)
-  const d = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, 1, undefined)
+  const c = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1)
+  const d = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1, undefined)
   check(c === d, `${archetype.slug}: passing draft=undefined changed the estimate (${c} vs ${d})`)
 }
 
@@ -240,7 +252,7 @@ for (const route of getRoutesWithMeta()) {
   }
   let profile
   try {
-    profile = computeRouteSurfaceSpeedProfile(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, WKG, { mode: 'race' })
+    profile = computeRouteSurfaceSpeedProfile(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, { mode: 'race' })
   } catch (error) {
     errors.push(`${route.slug}: the speed profile threw in race mode - ${error.message}`)
     continue
@@ -273,6 +285,110 @@ for (const route of getRoutesWithMeta()) {
   }
 }
 
+// ------------------------------------ 6. slider monotonicity and continuity
+
+// 6a. Team climb pace, estimate path, over every catalog route that has a
+// qualifying climb for the reference rider. Sweeps the slider's own 0.1
+// steps. Three invariants per route: the block set never changes with the
+// pace (the control must not gate its own applicability - issues #141/#142),
+// time never goes up, and no single step moves time by more than 8% (a
+// legitimate 0.1 W/kg step on even a pure climb is ~5%; a cliff means a
+// structural jump, whichever direction it points).
+const CLIMB_SWEEP_STEP = 0.1
+const CLIMB_STEP_MAX_DELTA = 0.08
+let climbSweptRoutes = 0
+for (const route of getRoutesWithMeta()) {
+  const geometry = geometryForRouteLaps(route, 1)
+  if (detectLongClimbBlocks(geometry, RIDER.powerW, RIDER.weightKg).length === 0) continue
+  climbSweptRoutes++
+  let referenceBlocks
+  let previousSec = Number.POSITIVE_INFINITY
+  for (let climbWkg = TTT_MIN_CLIMB_WKG; climbWkg <= TTT_MAX_CLIMB_WKG + 1e-9; climbWkg += CLIMB_SWEEP_STEP) {
+    const plan = tttPowerPlan(geometry, climbWkg, RIDER.weightKg, RIDER.powerW)
+    if (!plan) {
+      errors.push(`${route.slug}: the climb plan vanished at a climb pace of ${climbWkg.toFixed(1)} W/kg - the pace is gating its own applicability again`)
+      break
+    }
+    const blockKey = plan.blocks.map(block => `${block.fromM}-${block.toM}`).join(',')
+    referenceBlocks ??= blockKey
+    if (blockKey !== referenceBlocks) {
+      errors.push(`${route.slug}: the climb block set changed at ${climbWkg.toFixed(1)} W/kg (${blockKey} vs ${referenceBlocks})`)
+      break
+    }
+    const timeSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1,
+      { mode: 'ttt', riders: 8, climb: { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } })
+    if (timeSec >= previousSec + 1e-9) {
+      errors.push(`${route.slug}: raising the climb pace to ${climbWkg.toFixed(1)} W/kg made the estimate SLOWER (${timeSec.toFixed(1)}s after ${previousSec.toFixed(1)}s)`)
+      break
+    }
+    if (Number.isFinite(previousSec) && (previousSec - timeSec) / previousSec > CLIMB_STEP_MAX_DELTA) {
+      errors.push(`${route.slug}: one ${CLIMB_SWEEP_STEP} W/kg climb-pace step moved the estimate by ${(((previousSec - timeSec) / previousSec) * 100).toFixed(1)}% at ${climbWkg.toFixed(1)} W/kg - a structural cliff, not pacing`)
+      break
+    }
+    previousSec = timeSec
+  }
+}
+
+// 6b. Rider power, estimate path, across the sliders' full 100-1500 W range
+// on every archetype, in each draft mode. A 25 W step at the bottom of the
+// range is a 25% power jump, worth at most ~20% of time on a pure climb -
+// anything past 25% is a cap or a discontinuity, not physics.
+const POWER_STEP_MAX_DELTA = 0.25
+for (const archetype of ARCHETYPES) {
+  const route = getRouteBySlug(archetype.slug)
+  if (!route) continue
+  for (const draft of [undefined, { mode: 'race' }, { mode: 'ttt', riders: 8 }]) {
+    let previousSec = Number.POSITIVE_INFINITY
+    for (let powerW = 100; powerW <= 1500; powerW += 25) {
+      const timeSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, powerW, 1, draft)
+      if (timeSec >= previousSec) {
+        errors.push(`${archetype.slug} (${draft?.mode ?? 'solo'}): more power is not faster at ${powerW} W (${timeSec.toFixed(1)}s after ${previousSec.toFixed(1)}s)`)
+        break
+      }
+      if (Number.isFinite(previousSec) && (previousSec - timeSec) / previousSec > POWER_STEP_MAX_DELTA) {
+        errors.push(`${archetype.slug} (${draft?.mode ?? 'solo'}): one 25 W step moved the estimate by ${(((previousSec - timeSec) / previousSec) * 100).toFixed(1)}% at ${powerW} W`)
+        break
+      }
+      previousSec = timeSec
+    }
+  }
+}
+
+// 6c. The simulator itself, on the route the climb-pace cap was actually
+// reported on. The estimate sweeps above guard the ranking key; this guards
+// the displayed time, through the same composition the endpoints use
+// (plan -> powerSegmentsW -> simulateRoute with the TTT draft scaling).
+{
+  const route = getRouteBySlug('greater-london-8')
+  if (!route) {
+    errors.push('greater-london-8 is no longer in the catalog - pick a replacement climb-threshold route for the simulator climb sweep')
+  } else {
+    const geometry = geometryForRouteLaps(route, 1)
+    let previousSec = Number.POSITIVE_INFINITY
+    for (let climbWkg = TTT_MIN_CLIMB_WKG; climbWkg <= TTT_MAX_CLIMB_WKG + 1e-9; climbWkg += CLIMB_SWEEP_STEP) {
+      const plan = tttPowerPlan(geometry, climbWkg, RIDER.weightKg, RIDER.powerW)
+      if (!plan) {
+        errors.push(`greater-london-8: the simulator climb sweep lost its plan at ${climbWkg.toFixed(1)} W/kg`)
+        break
+      }
+      const { elapsedSec } = simulateRoute({
+        rider: RIDER, frame, wheelset, geometry,
+        powerSegmentsW: plan.powerSegmentsW,
+        powerScaleAtSpeed: speedMps => tttPowerScaleAtSpeed(8, speedMps)
+      })
+      if (elapsedSec >= previousSec + 1e-9) {
+        errors.push(`greater-london-8: raising the climb pace to ${climbWkg.toFixed(1)} W/kg made the SIMULATED time slower (${elapsedSec.toFixed(1)}s after ${previousSec.toFixed(1)}s)`)
+        break
+      }
+      if (Number.isFinite(previousSec) && (previousSec - elapsedSec) / previousSec > CLIMB_STEP_MAX_DELTA) {
+        errors.push(`greater-london-8: one ${CLIMB_SWEEP_STEP} W/kg climb-pace step moved the simulated time by ${(((previousSec - elapsedSec) / previousSec) * 100).toFixed(1)}% at ${climbWkg.toFixed(1)} W/kg`)
+        break
+      }
+      previousSec = elapsedSec
+    }
+  }
+}
+
 // ----------------------------------------------------------------- report
 
 console.log(`Race draft mode: saving ${(RACE_DRAFT_SAVING * 100).toFixed(0)}%, reference speed ${DRAFT_SCALE_REFERENCE_SPEED_MPS} m/s (${(DRAFT_SCALE_REFERENCE_SPEED_MPS * 3.6).toFixed(0)} km/h)`)
@@ -292,6 +408,7 @@ for (const row of strengthRows) {
   console.log(`  ${row.wkg.toFixed(1)}   ${row.raceSpeedKmh.toFixed(1).padStart(9)} ${row.soloSec.toFixed(0).padStart(9)} ${row.raceSec.toFixed(0).padStart(9)} ${row.gainPct.toFixed(2).padStart(8)} ${draftSavingsSpeedScale(row.raceSpeedKmh / 3.6).toFixed(2).padStart(13)}`)
 }
 console.log(`\nSpeed-chart sweep: ${swept} routes in race mode (${skipped} without measured elevation+surface data, skipped)`)
+console.log(`Monotonicity sweep: climb pace ${TTT_MIN_CLIMB_WKG}-${TTT_MAX_CLIMB_WKG} W/kg on ${climbSweptRoutes} routes with climb blocks, power 100-1500 W on ${ARCHETYPES.length} archetypes x 3 draft modes, simulator climb sweep on greater-london-8`)
 
 if (errors.length) {
   console.error(`\nvalidate-race-draft: ${errors.length} error(s)\n`)

@@ -57,10 +57,10 @@ export default defineCachedRecommendHandler(async (event) => {
   // The schema guarantees the profile arrives complete and in bounds or not
   // at all. The zero fallbacks are never read: every consumer below is gated
   // on `hasRiderProfile`, exactly as the old code's NaN values were.
-  const hasRiderProfile = q.weightKg !== undefined && q.heightCm !== undefined && q.wkg !== undefined
+  const hasRiderProfile = q.weightKg !== undefined && q.heightCm !== undefined && q.powerW !== undefined
   const weightKg = q.weightKg ?? 0
   const heightCm = q.heightCm ?? 0
-  const wkg = q.wkg ?? 0
+  const powerW = q.powerW ?? 0
   const laps = clampLaps(route, q.laps)
   const tttClimbWkg = draftMode === 'ttt' ? q.tttClimbWkg : undefined
 
@@ -135,7 +135,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // FULL pool by the cheap estimate up front - before search/pagination -
   // fixes that at the source instead of only patching what a page happens
   // to already contain.
-  const rider = { weightKg, heightCm, powerW: weightKg * wkg }
+  const rider = { weightKg, heightCm, powerW }
   const geometry = hasRiderProfile && physicsMode !== 'legacy' ? geometryForRouteLaps(route, laps) : undefined
   // Computed ONCE per request and shared by every combo - a per-combo plan
   // would poison `orderBySimulatedTime`'s physics-keyed dedupe cache (see
@@ -143,7 +143,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // for the estimate's two-phase split, so build one just for it (geometry
   // construction is cheap; simulation is the expensive part).
   const tttPlan = hasRiderProfile && tttClimbWkg
-    ? tttPowerPlan(geometry ?? geometryForRouteLaps(route, laps), tttClimbWkg, weightKg)
+    ? tttPowerPlan(geometry ?? geometryForRouteLaps(route, laps), tttClimbWkg, weightKg, powerW)
     : undefined
   // The one object every draft-aware call site threads through: the draft
   // scaling for the simulator, and its closed-form twin for the estimate.
@@ -158,7 +158,7 @@ export default defineCachedRecommendHandler(async (event) => {
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, draftEstimate) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps, draftEstimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
   await markPhase(event, 'estimate')
@@ -202,7 +202,7 @@ export default defineCachedRecommendHandler(async (event) => {
       // Already computed in the full-pool ranking pass above - reuse it
       // instead of recalculating the same closed-form estimate twice.
       const legacyFinishTimeSec = combo.finishTimeSec!
-      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps)
+      combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps)
       if (physicsMode === 'legacy' || !geometry) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
@@ -285,7 +285,7 @@ export default defineCachedRecommendHandler(async (event) => {
     const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
     if (hiddenFrames.length) {
       let candidates = rankCombos(route, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
-        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, wkg, laps, draftEstimate) }))
+        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps, draftEstimate) }))
         .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
       let overallTopSec = candidates[0]?.finishTimeSec
       // Same estimate-then-simulate discipline as the main path: the estimate
@@ -368,7 +368,7 @@ export default defineCachedRecommendHandler(async (event) => {
           geometry: route.terrain.elevationProfile
             ? 'measured'
             : route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility',
-          rider: { weightKg, heightCm, wkg },
+          rider: { weightKg, heightCm, powerW: Math.round(powerW) },
           summary: (route.terrain.elevationProfile
             ? 'Every time below is simulated for your weight, height and power over this route’s real, measured elevation data.'
             : route.terrain.climbs.length > 0

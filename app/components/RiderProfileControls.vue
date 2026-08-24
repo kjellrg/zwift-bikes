@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '#shared/utils/physics/draft'
+import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 
 /**
  * The rider box: weight/height/power sliders plus the draft disclosure and
@@ -8,10 +9,10 @@ import { TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } 
  * `useState`-backed, so the host page's own `watch([weightKg, ...])` refetch
  * wiring keeps firing exactly as it did when this markup lived inline.
  *
- * The one exception to "no props" is `hasLongClimb`: whether the team climb
- * pace applies at all is a property of the ROUTE, not the rider, and this
- * component deliberately knows nothing about the route. The host page owns
- * the geometry, so it decides - see the prop's own comment below.
+ * The exceptions to "no props" are properties of the PAGE, not the rider -
+ * this component deliberately knows nothing about the route. `hasLongClimb`:
+ * whether the team climb pace applies at all. `sprintPower`: which persisted
+ * power value the slider edits. See each prop's own comment below.
  *
  * `loadRiderProfile()` runs here (child `onMounted` fires before the
  * parent's), immediately followed by the pending-slider seeding, preserving
@@ -44,44 +45,58 @@ const props = withDefaults(defineProps<{
    * draft mode is left exactly as it was for every other page.
    */
   draftLocked?: boolean
-}>(), { hasLongClimb: true, draftLocked: false })
+  /**
+   * Whether this page's slider edits the rider's SPRINT power - the separate
+   * persisted watt value sprint segment pages use, with its own wider range
+   * (see `SPRINT_POWER_W_RANGE`). A sprint effort is a different physical
+   * quantity from race-pace power, so cranking a sprint to 1200 W must never
+   * drag the rider's race setting along. Static per page: the segment page
+   * resolves its data before this component mounts.
+   */
+  sprintPower?: boolean
+}>(), { hasLongClimb: true, draftLocked: false, sprintPower: false })
 
-const { weightKg, heightCm, wkg, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setWkg, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, sprintPowerW, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setPowerW, setSprintPowerW, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+
+// The persisted power this page's slider edits (see the `sprintPower` prop).
+const activePowerW = computed(() => props.sprintPower ? sprintPowerW.value : powerW.value)
+const powerRange = computed(() => props.sprintPower ? SPRINT_POWER_W_RANGE : POWER_W_RANGE)
 
 onMounted(() => {
   loadRiderProfile()
   pendingWeightKg.value = weightKg.value
   pendingHeightCm.value = heightCm.value
-  pendingWkg.value = wkg.value
+  pendingPowerW.value = activePowerW.value
   pendingRiders.value = tttRiders.value
-  pendingClimbWkg.value = tttClimbWkg.value ?? wkg.value
+  pendingClimbWkg.value = tttClimbWkg.value ?? powerW.value / weightKg.value
 })
 
 const pendingWeightKg = ref(weightKg.value)
 const pendingHeightCm = ref(heightCm.value)
-const pendingWkg = ref(wkg.value)
-// Committing weight holds FTP constant and re-derives W/kg (see `setWeightKg`),
-// so the power slider follows through its own `watch` below.
+const pendingPowerW = ref(activePowerW.value)
+// Power is stored in watts, so committing weight leaves the wattage exactly
+// where it is - only the derived W/kg readout in the label moves.
 const commitWeight = () => setWeightKg(pendingWeightKg.value)
 const commitHeight = () => setHeightCm(pendingHeightCm.value)
-const commitWkg = () => setWkg(pendingWkg.value)
+const commitPower = () => props.sprintPower ? setSprintPowerW(pendingPowerW.value) : setPowerW(pendingPowerW.value)
 watch(weightKg, (value) => {
   pendingWeightKg.value = value
 })
 watch(heightCm, (value) => {
   pendingHeightCm.value = value
 })
-watch(wkg, (value) => {
-  pendingWkg.value = value
+watch(activePowerW, (value) => {
+  pendingPowerW.value = value
 })
 
-// Seeded from the rider's normal power, then left alone: there is deliberately
-// no `watch(wkg, ...)` here, so moving the Power slider never drags the team's
-// climb pace with it. Until it is committed the profile keeps it `undefined`
-// and the recommend query omits it entirely, which is what makes "not set"
-// mean "ride the climbs at your normal power" rather than "ride them at this
-// number".
-const pendingClimbWkg = ref(tttClimbWkg.value ?? wkg.value)
+// Seeded from the rider's normal power (in W/kg, and always `powerW` - a
+// sprint page's own wattage is the wrong quantity for a sustained climb),
+// then left alone: there is deliberately no watch on the power state here, so
+// moving the Power slider never drags the team's climb pace with it. Until it
+// is committed the profile keeps it `undefined` and the recommend query omits
+// it entirely, which is what makes "not set" mean "ride the climbs at your
+// normal power" rather than "ride them at this number".
+const pendingClimbWkg = ref(tttClimbWkg.value ?? powerW.value / weightKg.value)
 const commitClimbWkg = () => setTttClimbWkg(pendingClimbWkg.value)
 watch(tttClimbWkg, (value) => {
   if (value !== undefined) pendingClimbWkg.value = value
@@ -155,16 +170,16 @@ const { openProfile } = useOverlays()
         >
       </div>
       <div class="min-w-64 flex-1">
-        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingWkg.toFixed(1) }} W/kg ({{ Math.round(pendingWkg * weightKg) }} W){{ effectiveDraftMode === 'solo' ? '' : ' average' }}</label>
+        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingPowerW }} W ({{ (pendingPowerW / weightKg).toFixed(2) }} W/kg){{ effectiveDraftMode === 'solo' ? '' : ' average' }}</label>
         <input
-          v-model.number="pendingWkg"
+          v-model.number="pendingPowerW"
           type="range"
-          min="1"
-          max="6.9"
-          step="0.1"
+          :min="powerRange.min"
+          :max="powerRange.max"
+          :step="powerRange.step"
           class="w-full cursor-pointer"
-          aria-label="Rider power in watts per kilogram"
-          @change="commitWkg"
+          aria-label="Rider power in watts"
+          @change="commitPower"
         >
       </div>
     </div>

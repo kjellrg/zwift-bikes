@@ -48,7 +48,9 @@ describe('wrong values reject rather than silently clamp', () => {
     ['Infinity', { limit: 'Infinity' }],
     ['repeated parameter', { limit: ['1', '2'] }],
     ['non-boolean flag', { verifiedOnly: 'yes' }],
-    ['weight below bound', { weightKg: String(RIDER_BOUNDS.weightKg.min - 1), heightCm: '183', wkg: '3' }]
+    ['weight below bound', { weightKg: String(RIDER_BOUNDS.weightKg.min - 1), heightCm: '183', powerW: '250' }],
+    ['power below bound', { weightKg: '75', heightCm: '183', powerW: String(RIDER_BOUNDS.powerW.min - 1) }],
+    ['power above bound', { weightKg: '75', heightCm: '183', powerW: String(RIDER_BOUNDS.powerW.max + 1) }]
   ])('%s is a 400', (_label, query) => {
     expect(recommendRouteQuerySchema.safeParse(query).success).toBe(false)
   })
@@ -61,11 +63,18 @@ describe('wrong values reject rather than silently clamp', () => {
 
 describe('rider profile is all-or-nothing', () => {
   it('accepts a full profile and rejects a partial one', () => {
-    const full = recommendRouteQuerySchema.safeParse({ weightKg: '75', heightCm: '183', wkg: '3.2' })
+    const full = recommendRouteQuerySchema.safeParse({ weightKg: '75', heightCm: '183', powerW: '250' })
     expect(full.success).toBe(true)
-    for (const partial of [{ weightKg: '75' }, { weightKg: '75', heightCm: '183' }, { wkg: '3.2' }]) {
+    for (const partial of [{ weightKg: '75' }, { weightKg: '75', heightCm: '183' }, { powerW: '250' }]) {
       expect(recommendRouteQuerySchema.safeParse(partial).success, JSON.stringify(partial)).toBe(false)
     }
+  })
+
+  it('converts the deprecated wkg alias to whole watts, with an explicit powerW winning', () => {
+    const legacy = recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '183', wkg: '3.2' })
+    expect(legacy.powerW).toBe(240)
+    const both = recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '183', powerW: '250', wkg: '3.2' })
+    expect(both.powerW).toBe(250)
   })
 })
 

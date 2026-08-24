@@ -11,6 +11,7 @@ files:
   - shared/data/events/**/*.json
   - docs/**/*.md
   - README.md
+  - CONTRIBUTING.md
 useGitignore: true
 ignorePaths:
   - node_modules

@@ -9,7 +9,7 @@ import { clampTttClimbWkg, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG,
 // header and would mark whatever page the modal happens to be open on as
 // noindex. That call stays on `pages/profile.vue`.
 
-const { weightKg, heightCm, ftpWatts, wkg, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load, setWeightKg, setHeightCm, setFtpWatts, setDefaultUnownedLevel, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, ftpWatts, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load, setWeightKg, setHeightCm, setFtpWatts, setDefaultUnownedLevel, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 // Bike category is a display filter rather than a rider attribute, so it
 // lives in `usePreferences` alongside the other filters - but it's set here,
 // because it's a default the rider picks once, not a per-route toggle.
@@ -30,7 +30,12 @@ const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = [
 // shows; until then it tracks the rider's normal power, so the control starts
 // at a sensible place without the profile actually claiming a value - which is
 // what keeps "untouched" meaning "ride climbs at your normal power".
-const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(wkg.value) ?? TTT_MIN_CLIMB_WKG)
+const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(powerW.value / weightKg.value) ?? TTT_MIN_CLIMB_WKG)
+
+// FTP is a profile fact, not the page sliders' power - it feeds only the
+// readout below, so this derives from FTP itself (the caption says "FTP ÷
+// weight", and it should mean it).
+const ftpWkg = computed(() => ftpWatts.value / weightKg.value)
 </script>
 
 <template>
@@ -61,7 +66,7 @@ const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(wkg.
           <span>40 kg</span><span>130 kg</span>
         </div>
         <p class="text-sm text-muted mt-1">
-          Weight drives gravity on climbs and, with height, the drag estimate. Changing it keeps your FTP and re-derives W/kg.
+          Weight drives gravity on climbs and, with height, the drag estimate. Changing it keeps your power in watts - only the derived W/kg moves.
         </p>
       </div>
 
@@ -86,11 +91,14 @@ const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(wkg.
         <label class="block text-xs font-medium text-muted mb-1">FTP: {{ ftpWatts }} W</label>
         <USlider
           :model-value="ftpWatts"
-          :min="50"
-          :max="400"
+          :min="100"
+          :max="500"
           :step="1"
           @update:model-value="(value: number | undefined) => setFtpWatts(value ?? ftpWatts)"
         />
+        <div class="flex justify-between text-xs text-muted mt-1">
+          <span>100 W</span><span>500 W</span>
+        </div>
       </div>
 
       <div>
@@ -98,7 +106,7 @@ const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(wkg.
           W/kg at FTP
         </p>
         <p class="text-2xl font-bold text-primary">
-          {{ wkg.toFixed(2) }} W/kg
+          {{ ftpWkg.toFixed(2) }} W/kg
         </p>
         <p class="text-sm text-muted mt-1">
           {{ ftpWatts }} W ÷ {{ weightKg }} kg. You can still dial power up or down per route.

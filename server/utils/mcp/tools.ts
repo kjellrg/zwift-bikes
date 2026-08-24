@@ -149,7 +149,10 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): R
   return {
     weightKg: profile.weightKg,
     heightCm: profile.heightCm,
-    wkg: profile.wkg,
+    // The MCP contract stays W/kg (how riders state their power in chat);
+    // the recommend endpoints now take absolute watts, so convert here
+    // rather than leaning on the endpoints' deprecated `wkg` alias.
+    powerW: Math.round(profile.wkg * profile.weightKg),
     // Falls back to the shared constant, not a local 0: the assumed stage
     // changes which frame wins, so an adapter picking its own default would
     // answer the same question differently from the site.
@@ -492,7 +495,7 @@ const TOOLS: ToolDefinition[] = [
         `- ${lapNote}: ${totals.distanceKm.toFixed(1)} km, ${Math.round(totals.elevationM)} m total (lead-in included)`,
         `- Surface: ${formatSurface(route.surface)}`,
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
-        physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
+        physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${(physics.rider.powerW / physics.rider.weightKg).toFixed(2)} W/kg (${physics.rider.powerW} W)` : undefined,
         physics ? `- Physics: ${physics.mode}, geometry ${physics.geometry}` : undefined,
         formatTttAssumption(physics),
         formatRaceAssumption(physics),
@@ -555,7 +558,7 @@ const TOOLS: ToolDefinition[] = [
         '',
         `- ${segment.type}: ${segment.lengthKm.toFixed(1)} km, ${Math.round(segment.elevationM)} m, ${segment.avgGradePercent.toFixed(1)}% avg${segment.climbType ? `, category ${segment.climbType}` : ''}`,
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
-        physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${physics.rider.wkg} W/kg (${Math.round(physics.rider.weightKg * physics.rider.wkg)} W)` : undefined,
+        physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${(physics.rider.powerW / physics.rider.weightKg).toFixed(2)} W/kg (${physics.rider.powerW} W)` : undefined,
         formatTttAssumption(physics),
         formatRaceAssumption(physics),
         `- All bikes assumed at upgrade stage ${upgradeLevelFor(args)}${upgradeLevelFor(args) === 5 ? ' (fully upgraded)' : upgradeLevelFor(args) === 0 ? ' (stock)' : ''}`,
