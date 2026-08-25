@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { bikeFrames } from 'zwift-data'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
-import { classifyBikeFrame, FIXED_WHEEL_FRAMES, isRedundantCosmeticVariant } from './classifyBikeFrame'
-import { standardEquivalentClimbScore } from './physics/equipment'
+import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor } from '../data/frameUpgradeSchemes'
+import { classifyBikeFrame, FIXED_WHEEL_FRAMES, interpolateGap, isRedundantCosmeticVariant, solveMeasuredFramePhysics } from './classifyBikeFrame'
+import { solveFrameEquipmentDelta, standardEquivalentClimbScore } from './physics/equipment'
 
 const frameByName = (name: string) => {
   const frame = bikeFrames.find(f => f.name === name)
@@ -57,6 +58,39 @@ describe('measured data flows through', () => {
       const stage5 = classifyBikeFrame(frame, 5)
       expect(stage5.scores.aero, frame.name).toBeGreaterThanOrEqual(stage0.scores.aero)
       expect(stage5.scores.climb, frame.name).toBeGreaterThanOrEqual(stage0.scores.climb)
+    }
+  })
+
+  it('an intermediate level solves from the frame\'s own measured stage gap, not the scheme shape (issue #88)', () => {
+    // CAAD12's sheet row says flat/climb stage 2 = 23.1/25.2 s/hr - notably
+    // NOT what the distance-entry scheme shape would place between its
+    // endpoints. The physics solve must consume the measured value.
+    const sample = FRAME_SPEED_DATA['Cannondale CAAD12']!
+    expect(sample.flatGapSecByStage?.[2]).toBe(23.1)
+    expect(solveMeasuredFramePhysics('Cannondale CAAD12', 2, false)).toEqual(
+      solveFrameEquipmentDelta({ flatGapSec: 23.1, climbGapSec: 25.2 }, false, drivetrainCrrDeltaForLevel(2))
+    )
+  })
+
+  it('interpolateGap prefers the measured stage array, then the scheme shape, then linear', () => {
+    const chart = stageChartFor(FRAME_UPGRADE_SCHEMES['Cannondale CAAD12']!)
+    // Tier 1: the measured stage value is returned as-is, chart ignored.
+    expect(interpolateGap(0, 100, 2, chart.flat, [0, 10, 20, 30, 40, 100])).toBe(20)
+    expect(interpolateGap(0, 100, 0, chart.flat, [5, 10, 20, 30, 40, 100])).toBe(5)
+    // Tier 2: the scheme shape scales the endpoint gain by the chart's
+    // stage fraction (stage 2 of distance-entry = 16.4 of the 27.8 total).
+    expect(interpolateGap(0, 27.8, 2, chart.flat)).toBeCloseTo(16.4, 5)
+    // Tier 3: linear between the endpoints.
+    expect(interpolateGap(0, 100, 2)).toBe(40)
+  })
+
+  it('every measured frame carries a stage curve for both courses', () => {
+    // The whole roster is sheet stage-tested today - a new frame added with
+    // endpoints only is fine (scheme fallback), but an existing curve
+    // silently disappearing is not.
+    for (const [name, sample] of [...Object.entries(FRAME_SPEED_DATA), ...Object.entries(TT_FRAME_SPEED_DATA)]) {
+      expect(sample.flatGapSecByStage, name).toBeDefined()
+      expect(sample.climbGapSecByStage, name).toBeDefined()
     }
   })
 

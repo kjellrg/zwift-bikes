@@ -18,6 +18,8 @@
 //   - a `FRAME_SPEED_DATA` / `TT_FRAME_SPEED_DATA` key that isn't a
 //     `bikeFrames` name, or a TT key whose frame isn't TT-classified
 //   - a `FRAME_UPGRADE_SCHEMES` key that isn't a `bikeFrames` name
+//   - a `*GapSecByStage` curve that is missing its sibling, isn't 6 stages
+//     long, or disagrees with its own row's `*0`/`*5` endpoint fields
 //   - an `INTEGRATED_ONLY_WHEELS` name that isn't in both wheel catalogs
 //   - a `wheelSupplement.ts` entry that zwift-data now ships (by id or
 //     name) - the supplement only bridges the gap until upstream catches up
@@ -124,6 +126,30 @@ for (const key of Object.keys(FRAME_SPEED_DATA)) {
   if (ttByName.get(key) === true) errors.push(`FRAME_SPEED_DATA: ${JSON.stringify(key)} is a TT-classified frame - its row would never be read (only the standard branch reads this table)`)
 }
 
+// Per-frame measured stage curves (`flatGapSecByStage`/`climbGapSecByStage`,
+// imported by scripts/upgrade-levels/import-stage-curves.mjs) duplicate the
+// `*0`/`*5` endpoints by design so the endpoint fields stay the single
+// authoritative anchor. A curve whose endpoints drift from its row's fields
+// means one of the two was edited by hand - fail the build rather than let
+// levels 0/5 and 1-4 disagree about the same bike.
+let stageCurveCount = 0
+for (const [label, table] of [['FRAME_SPEED_DATA', FRAME_SPEED_DATA], ['TT_FRAME_SPEED_DATA', TT_FRAME_SPEED_DATA]]) {
+  for (const [name, sample] of Object.entries(table)) {
+    const pairs = [['flatGapSecByStage', sample.flatGapSec0, sample.flatGapSec5], ['climbGapSecByStage', sample.climbGapSec0, sample.climbGapSec5]]
+    if (!sample.flatGapSecByStage !== !sample.climbGapSecByStage) {
+      errors.push(`${label}: ${JSON.stringify(name)} has only one of flatGapSecByStage/climbGapSecByStage - the sheet always stage-tests both courses together`)
+    }
+    for (const [field, gap0, gap5] of pairs) {
+      const curve = sample[field]
+      if (!curve) continue
+      stageCurveCount++
+      if (curve.length !== 6) errors.push(`${label}: ${JSON.stringify(name)} ${field} has ${curve.length} stages, expected 6 (stage 0-5)`)
+      if (curve[0] !== gap0) errors.push(`${label}: ${JSON.stringify(name)} ${field}[0] is ${curve[0]} but the row's stage-0 field says ${gap0}`)
+      if (curve[curve.length - 1] !== gap5) errors.push(`${label}: ${JSON.stringify(name)} ${field}[5] is ${curve[curve.length - 1]} but the row's stage-5 field says ${gap5}`)
+    }
+  }
+}
+
 // Classifier special-case sets (exported by their modules for exactly this
 // check - a name here that drifts from the catalog silently stops
 // special-casing anything).
@@ -147,4 +173,4 @@ if (errors.length) {
   for (const e of errors) console.error(`ERROR: ${e}\n`)
   process.exit(1)
 }
-console.log(`validate-speed-data: OK (${Object.keys(WHEEL_SPEED_DATA).length} wheel rows, ${Object.keys(FRAME_SPEED_DATA).length + Object.keys(TT_FRAME_SPEED_DATA).length} frame rows, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} schemes, ${fixedWheelFrames.length + roadHaloFrames.length + purchasableHaloFrames.length + integratedOnlyWheels.length} special-case names)`)
+console.log(`validate-speed-data: OK (${Object.keys(WHEEL_SPEED_DATA).length} wheel rows, ${Object.keys(FRAME_SPEED_DATA).length + Object.keys(TT_FRAME_SPEED_DATA).length} frame rows, ${stageCurveCount} stage curves, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} schemes, ${fixedWheelFrames.length + roadHaloFrames.length + purchasableHaloFrames.length + integratedOnlyWheels.length} special-case names)`)

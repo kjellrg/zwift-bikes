@@ -99,14 +99,20 @@ function scoreFromGap(gapSec: number, [gapMin, gapMax]: [number, number]): numbe
 
 // Zwift unlocks a frame's full performance gradually over 5 "stages" of
 // riding after purchase (Stage 0 = just bought, Stage 5 = fully upgraded).
-// ZwiftInsider only bot-tests the two endpoints for each individual frame,
-// but also separately publishes, per upgrade scheme, what fraction of the
-// total gain lands at each of the 5 stages (`frameUpgradeSchemes.ts`) - so an
-// intermediate level reproduces that real, non-linear shape instead of a
-// straight line between the endpoints. Frames without a known scheme (not
-// yet catalogued) fall back to the old linear interpolation.
-function interpolateGap(gap0: number, gap5: number, level: number, curve?: StageCurve): number {
+// Three tiers of fidelity, best available wins (issue #88):
+//   1. `byStage` - the frame's own bot-tested gap at every stage
+//      (`flatGapSecByStage`/`climbGapSecByStage` in `frameSpeedData.ts`);
+//      no interpolation at all, the level's measured value is returned.
+//   2. `curve` - the frame's upgrade scheme's published per-stage shape
+//      (`frameUpgradeSchemes.ts`): what fraction of the total endpoint gain
+//      lands at each stage, shared by every frame in the scheme.
+//   3. Neither (frame not yet catalogued) - linear between the endpoints.
+// Exported for `classifyBikeFrame.test.ts`: with the whole catalog now
+// stage-tested, tiers 2 and 3 only run for future frames, so no real
+// catalog entry exercises them end-to-end.
+export function interpolateGap(gap0: number, gap5: number, level: number, curve?: StageCurve, byStage?: readonly number[]): number {
   const clampedLevel = Math.min(5, Math.max(0, level))
+  if (byStage) return byStage[clampedLevel] ?? gap5
   if (clampedLevel === 0) return gap0
   if (!curve) return gap0 + (clampedLevel / 5) * (gap5 - gap0)
   const total = curve[4]
@@ -343,8 +349,8 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
 
     if (measured) {
       const chart = frameStageChart(frame.name)
-      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat)
-      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb)
+      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat, measured.flatGapSecByStage)
+      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb, measured.climbGapSecByStage)
       const scores: ClassificationScores = {
         aero: scoreFromGap(flatGap, FLAT_GAP_RANGE),
         climb: scoreFromGap(climbGap, CLIMB_GAP_RANGE),
@@ -364,8 +370,8 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
 
     if (measured) {
       const chart = frameStageChart(frame.name)
-      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat)
-      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb)
+      const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat, measured.flatGapSecByStage)
+      const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb, measured.climbGapSecByStage)
       const scores: ClassificationScores = {
         aero: scoreFromGap(flatGap, TT_FLAT_GAP_RANGE),
         climb: scoreFromGap(climbGap, TT_CLIMB_GAP_RANGE),
@@ -399,7 +405,7 @@ export function solveMeasuredFramePhysics(name: string, level: number, isTT: boo
   if (!measured) return undefined
   const clampedLevel = Math.min(5, Math.max(0, Math.round(level)))
   const chart = frameStageChart(name)
-  const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat)
-  const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb)
+  const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat, measured.flatGapSecByStage)
+  const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb, measured.climbGapSecByStage)
   return solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, isTT, drivetrainCrrDeltaForLevel(clampedLevel))
 }
