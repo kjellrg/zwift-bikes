@@ -10,6 +10,16 @@
 //     --old=https://example.com --new=https://preview.example.com --level=3
 //
 // Options: --routes=a,b,c --weight=75 --height=180 --wkg=3.5 --quiet
+//
+// For a deployment behind Cloudflare Access (the preview env), pass its
+// Access JWT and it is sent as the CF_Authorization cookie on every request:
+//
+//   CF_ACCESS_JWT=$(cloudflared access token --app=https://preview.example.com) \
+//     node scripts/upgrade-levels/compare-deployments.mjs --old=... --new=...
+//
+// (or --access-jwt=<jwt>, e.g. copied from the browser's CF_Authorization
+// cookie after logging in - prefer the env var so the token stays out of
+// shell history). Sent to both deployments; harmless where Access is off.
 const args = Object.fromEntries(process.argv.slice(2)
   .filter(a => a.startsWith('--'))
   .map((a) => {
@@ -35,10 +45,20 @@ const routes = String(args.routes ?? [
   'climb-control', 'rising-empire', 'achterbahn', 'road-to-sky'
 ].join(',')).split(',')
 
+const accessJwt = args['access-jwt'] ?? process.env.CF_ACCESS_JWT
+const headers = accessJwt ? { cookie: `CF_Authorization=${accessJwt}` } : undefined
+
 async function combos(base, slug) {
   const url = `${base}/api/recommend/${slug}?${rider}&defaultUnownedLevel=${level}&limit=9`
-  const res = await fetch(url)
+  const res = await fetch(url, { headers })
+  // An Access-protected deployment answers an unauthenticated request with
+  // its login page (302 -> 200 HTML), not a JSON error - so a JSON parse
+  // failure below usually means a missing/expired CF_ACCESS_JWT, and the
+  // status check alone won't say so.
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`)
+  if (!(res.headers.get('content-type') ?? '').includes('json')) {
+    throw new Error(`non-JSON response for ${url} - Cloudflare Access login page? Pass CF_ACCESS_JWT / --access-jwt`)
+  }
   const json = await res.json()
   return json.combos.map((c, i) => ({
     // Frame+wheelset is the identity of a row: the same frame legitimately
