@@ -112,7 +112,11 @@ function scoreFromGap(gapSec: number, [gapMin, gapMax]: [number, number]): numbe
 // catalog entry exercises them end-to-end.
 export function interpolateGap(gap0: number, gap5: number, level: number, curve?: StageCurve, byStage?: readonly number[]): number {
   const clampedLevel = Math.min(5, Math.max(0, level))
-  if (byStage) return byStage[clampedLevel] ?? gap5
+  // Stages are whole numbers: round before indexing so a fractional level
+  // from a future direct caller picks the nearest measured stage instead of
+  // indexing past the array and silently returning stage-5 performance.
+  // (Today's callers all round the level first, so this is a guard.)
+  if (byStage) return byStage[Math.round(clampedLevel)] ?? gap5
   if (clampedLevel === 0) return gap0
   if (!curve) return gap0 + (clampedLevel / 5) * (gap5 - gap0)
   const total = curve[4]

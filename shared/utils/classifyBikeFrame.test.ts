@@ -84,14 +84,17 @@ describe('measured data flows through', () => {
     expect(interpolateGap(0, 100, 2)).toBe(40)
   })
 
-  it('every measured frame carries a stage curve for both courses', () => {
-    // The whole roster is sheet stage-tested today - a new frame added with
-    // endpoints only is fine (scheme fallback), but an existing curve
-    // silently disappearing is not.
-    for (const [name, sample] of [...Object.entries(FRAME_SPEED_DATA), ...Object.entries(TT_FRAME_SPEED_DATA)]) {
-      expect(sample.flatGapSecByStage, name).toBeDefined()
-      expect(sample.climbGapSecByStage, name).toBeDefined()
-    }
+  it('stage-curve coverage never shrinks', () => {
+    // A new frame added with endpoints only is fine (scheme-chart fallback
+    // is the designed tier for it), but existing curves silently
+    // disappearing is not - so this is a ratchet on the count, not a
+    // per-frame requirement. 120 = the full roster at import time
+    // (2026-08-25: 119 imported samples, counted once more via the Golden
+    // Concept Z1 sharing the Tron's). Bump it when import-stage-curves.mjs
+    // brings in curves for new frames; it must never go down.
+    const withCurves = [...Object.values(FRAME_SPEED_DATA), ...Object.values(TT_FRAME_SPEED_DATA)]
+      .filter(sample => sample.flatGapSecByStage && sample.climbGapSecByStage)
+    expect(withCurves.length).toBeGreaterThanOrEqual(120)
   })
 
   it('no estimated standard frame outranks the best measured one (issues #85/#86)', () => {

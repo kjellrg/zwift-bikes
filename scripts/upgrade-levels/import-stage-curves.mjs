@@ -13,10 +13,14 @@
 //   - only `Power = 300` rows are used - the sheet holds a 150W and a 300W
 //     test row per bike and the repo's tables are 300W (see the note atop
 //     `frameSpeedData.ts`); mixing them would corrupt the data.
-//   - a row only imports when its Stage 0/5 gaps match the repo's stored
-//     `*0`/`*5` endpoints within 0.15s. A mismatch means ZwiftInsider
-//     re-tested the bike since the endpoints were imported - that's a job
-//     for the zwift-data-drift audit, not this script.
+//   - a row only imports when its Stage 0/5 gaps EXACTLY equal the repo's
+//     stored `*0`/`*5` endpoint fields (both are parsed one-decimal values,
+//     so equal data compares equal). validate-speed-data.mjs enforces the
+//     same exact equality on the committed arrays, so any looser tolerance
+//     here would import cleanly and then fail every build. A mismatch of
+//     any size means ZwiftInsider re-tested the bike since the endpoints
+//     were imported - that's a job for the zwift-data-drift audit (update
+//     the endpoint fields first, then re-run this), not this script.
 //   - sheet names map to repo keys by exact match plus the explicit alias
 //     map below (the sheet and zwift-data spell several frames differently -
 //     see `validate-speed-data.mjs` for why guessing is dangerous). Unmatched
@@ -28,7 +32,6 @@ const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1S0pTN_hBMddX0GhCqSOd6fPlIJeWtw0xr6Y1M6PzNJY/export?format=csv&gid=173681512'
 const DATA_FILE = new URL('../../shared/data/frameSpeedData.ts', import.meta.url)
-const ENDPOINT_TOLERANCE_SEC = 0.15
 
 // Sheet spelling -> repo/zwift-data spelling, for names that differ. Add
 // here only after verifying the zwift-data name (see CLAUDE/skill notes on
@@ -109,7 +112,7 @@ if (header[0] !== 'Bike' || header[9] !== 'Stage 0 - Hour Time Gap') {
 }
 
 const curves = new Map() // repo key -> { flat: number[6], climb: number[6] }
-const report = { unmatched: [], incomplete: [], mismatched: [], duplicates: [] }
+const report = { unmatched: [], incomplete: [], mismatched: [], duplicates: [], rewriteFailed: [] }
 
 for (const row of rows.slice(2)) {
   const sheetName = row[0]
@@ -132,7 +135,7 @@ for (const row of rows.slice(2)) {
   const endpointErrors = [
     ['flatGapSec0', sample.flatGapSec0, flat[0]], ['flatGapSec5', sample.flatGapSec5, flat[5]],
     ['climbGapSec0', sample.climbGapSec0, climb[0]], ['climbGapSec5', sample.climbGapSec5, climb[5]]
-  ].filter(([, repo, sheet]) => Math.abs(repo - sheet) > ENDPOINT_TOLERANCE_SEC)
+  ].filter(([, repo, sheet]) => repo !== sheet)
   if (endpointErrors.length) {
     report.mismatched.push(`${name}: ${endpointErrors.map(([f, repo, sheet]) => `${f} repo ${repo} vs sheet ${sheet}`).join(', ')}`)
     continue
@@ -167,7 +170,7 @@ for (const [name, curve] of curves) {
   const marker = name === 'Zwift Concept Z1' ? 'const CONCEPT_Z1: FrameSpeedSample = {' : `'${name}': {`
   const idx = lines.findIndex(l => l.includes(marker) && l.includes('flatGapSec0'))
   if (idx === -1) {
-    report.unmatched.push(`${name} (no single-line entry found in frameSpeedData.ts)`)
+    report.rewriteFailed.push(`${name}: no single-line entry found in frameSpeedData.ts`)
     continue
   }
   const next = augmentLine(lines[idx], curve)
@@ -175,7 +178,7 @@ for (const [name, curve] of curves) {
   // exact arrays (the rewrite is idempotent). Only a line the augmentation
   // couldn't attach the arrays to at all is a failure.
   if (!next.includes('flatGapSecByStage')) {
-    report.unmatched.push(`${name} (line rewrite failed)`)
+    report.rewriteFailed.push(`${name}: could not attach arrays to its line`)
     continue
   }
   if (next !== lines[idx]) changed++
@@ -192,6 +195,7 @@ const list = (label, items) => {
 list('sheet 300W rows with no matching table key (expected for gravel/handcycle/fun bikes and cosmetic variants)', report.unmatched)
 list('sheet rows missing stage data (left on scheme-chart fallback)', report.incomplete)
 list('ENDPOINT MISMATCH - sheet re-tested since import, NOT written (run the zwift-data-drift audit)', report.mismatched)
+list('REWRITE FAILED - matched the sheet but frameSpeedData.ts line could not be updated (stale curve!)', report.rewriteFailed)
 list('duplicate 300W sheet rows (first occurrence kept)', report.duplicates)
 list('table rows with no sheet stage curve (left on scheme-chart fallback)', notCovered)
-process.exitCode = report.mismatched.length ? 1 : 0
+process.exitCode = report.mismatched.length || report.rewriteFailed.length ? 1 : 0
