@@ -32,6 +32,19 @@ const PUBLISHED = {
   'elevation-high': { flat: [5.8, 8.4, 19.8, 21.3, 21.7], climb: [0.9, 36.6, 47.6, 47.9, 59.8] }
 }
 
+// Where STAGE_CHARTS deliberately deviates from the published chart because
+// the published value is demonstrably a transcription defect. Key format:
+// `${scheme} ${axis} stage ${n}` -> the corrected value the code carries.
+// Each entry must cite its evidence in a comment here AND next to the value
+// in frameUpgradeSchemes.ts.
+const PUBLISHED_CHART_CORRECTIONS = {
+  // Published 23.1 is ~83% of the 27.8s flat total, but all 12 distance-entry
+  // frames' own per-stage sheet rows put stage 2 at a mean 59.1% (16.4s);
+  // 23.1 matches the CAAD12's *absolute* stage-2 gap on the sheet, i.e. the
+  // chart most likely copied the wrong cell (issue #88).
+  'distance-entry flat stage 2': 16.4
+}
+
 // Stage-1 flat power saving (W) from each scheme's power chart, used for the
 // consistency check below.
 const STAGE1_FLAT_WATTS = {
@@ -62,7 +75,8 @@ for (const [key, want] of Object.entries(PUBLISHED)) {
   for (const axis of ['flat', 'climb']) {
     want[axis].forEach((v, i) => {
       checked++
-      if (got[axis][i] !== v) fail(`${key} ${axis} stage ${i + 1}: code ${got[axis][i]}, published ${v}`)
+      const expected = PUBLISHED_CHART_CORRECTIONS[`${key} ${axis} stage ${i + 1}`] ?? v
+      if (got[axis][i] !== expected) fail(`${key} ${axis} stage ${i + 1}: code ${got[axis][i]}, expected ${expected} (published ${v})`)
     })
   }
 }
