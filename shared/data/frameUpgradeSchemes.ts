@@ -46,7 +46,16 @@ export interface StageChart {
 type SchemeKey = `${UpgradeAxis}-${UpgradeTier}`
 
 export const STAGE_CHARTS: Record<SchemeKey, StageChart> = {
-  'distance-entry': { flat: [14.8, 23.1, 27.8, 27.8, 27.8], climb: [2.4, 25.6, 36.2, 36.2, 36.2] },
+  // Flat stage 2 is 16.4s, not the 23.1 the published chart shows: all 12
+  // frames' own per-stage sheet rows put stage 2 at a mean 59.1% of the
+  // 27.8s total (16.4), not 83% (23.1) - and 23.1 happens to be the
+  // CAAD12's *absolute* stage-2 gap on the sheet, so the chart most likely
+  // copied that cell instead of the per-stage saving. Third documented
+  // defect in these chart graphics (see the two below). Only matters for
+  // future distance-entry frames without their own `flatGapSecByStage`
+  // curve; see also PUBLISHED_CHART_CORRECTIONS in
+  // scripts/upgrade-levels/verify-upgrade-data.mjs.
+  'distance-entry': { flat: [14.8, 16.4, 27.8, 27.8, 27.8], climb: [2.4, 25.6, 36.2, 36.2, 36.2] },
   'distance-mid': { flat: [11.5, 13.2, 24.6, 28.5, 28.5], climb: [2.2, 24.6, 36, 36.6, 36.6] },
   'distance-high': { flat: [11.6, 12.8, 24.4, 28.1, 28], climb: [2, 17.8, 28.5, 29.3, 37.3] },
   // Stage 1 climb is 3.4s, not 34s: the flat value on this row IS 34, so the
