@@ -127,6 +127,14 @@ useHead({
       <template #right>
         <div class="hidden items-center gap-1.5 lg:flex">
           <UButton
+            to="/"
+            icon="i-lucide-route"
+            label="Routes"
+            color="neutral"
+            variant="ghost"
+          />
+
+          <UButton
             to="/segments"
             icon="i-lucide-mountain"
             label="Segments"
@@ -186,6 +194,15 @@ useHead({
 
       <template #body>
         <div class="flex flex-col gap-1.5">
+          <UButton
+            to="/"
+            icon="i-lucide-route"
+            label="Routes"
+            color="neutral"
+            variant="ghost"
+            block
+          />
+
           <UButton
             to="/segments"
             icon="i-lucide-mountain"
