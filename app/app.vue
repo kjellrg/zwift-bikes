@@ -68,15 +68,14 @@ const siteConfig = useSiteConfig()
 const canonicalUrl = useCanonicalUrl()
 
 // Default social-share image for the pages that set nothing better
-// themselves (garage, profile, report). Home/about and the route/event
-// pages define generated nuxt-og-image cards (issue #59), and segment
-// pages still override with their world's artwork - as a full object with
-// its own width/height/alt, because unhead dedupes og:image:width etc.
-// per-tag, independently of og:image itself, so a page that replaced only
-// the URL would inherit these dimensions and misstate its image's size.
-// Declaring dimensions at all is what lets scrapers render a card on the
-// very first share of a URL, before the image is processed (Facebook's
-// debugger says exactly this when they're missing).
+// themselves (garage, profile, report). Home/about and the
+// route/segment/event pages define generated nuxt-og-image cards (issue
+// #59), which emit their own og:image with width/height/alt. Declared as a
+// full object because unhead dedupes og:image:width etc. per-tag,
+// independently of og:image itself, and declaring dimensions at all is what
+// lets scrapers render a card on the very first share of a URL, before the
+// image is processed (Facebook's debugger says exactly this when they're
+// missing).
 const ogImageUrl = `${siteConfig.url.replace(/\/+$/, '')}/og-image.png`
 const ogImage = {
   url: ogImageUrl,

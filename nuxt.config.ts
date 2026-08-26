@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { getRoutesWithMeta } from './shared/utils/catalog'
 import { getPublishableRaces, getSeasons } from './shared/utils/events'
+import { getAllSegmentSummaries } from './shared/utils/routeSegments'
 
 export default defineNuxtConfig({
   modules: [
@@ -81,13 +82,13 @@ export default defineNuxtConfig({
       // Enumerated from the same catalog the sitemap source uses
       // (server/api/__sitemap__/urls.ts) so the two can't drift.
       //
-      // /segments/** is NOT prerendered, by choice rather than blocker: the
-      // old `?route=` param that made prerendering unsafe (a static file
-      // answers by path, ignoring the query) is gone, so the ~106 segment
-      // pages could join this list any time (issue #56) - but Workers SSR
-      // cold starts are small, the recommend edge cache covers the expensive
-      // endpoint, and the build is long enough already, so it hasn't earned
-      // its build-time cost yet.
+      // /segments/** joined the list once the old `?route=` param (which
+      // made prerendering unsafe - a static file answers by path, ignoring
+      // the query) was removed (issue #56). TTFB alone hadn't justified the
+      // build-time cost, but build-time OG cards require the page to be
+      // prerendered (zeroRuntime renders cards only during the prerender
+      // pass - an un-prerendered page with `defineOgImage` ships an orphaned
+      // 404 og:image), and that tipped it (issue #59 phase 2).
       //
       // Event pages prerender for the same reasons as routes: they take no
       // query parameters at all. Only races whose route, format and lap
@@ -100,7 +101,8 @@ export default defineNuxtConfig({
         '/events',
         ...getSeasons().map(season => `/events/${season.slug}`),
         ...getPublishableRaces().map(race => race.path),
-        ...getRoutesWithMeta().map(route => `/routes/${route.slug}`)
+        ...getRoutesWithMeta().map(route => `/routes/${route.slug}`),
+        ...getAllSegmentSummaries().map(segment => `/segments/${segment.slug}`)
       ]
     }
   },
@@ -157,12 +159,13 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
-    // Every page that defines a card (routes, events, home, about) is in the
-    // prerender list above, so the cards render at build time and ship as
-    // static assets - nothing (no Wasm renderer, no font loading) lands in
-    // the Worker bundle. Segment pages are the one dynamic surface without a
-    // card; they keep the world-minimap image until runtime generation is
-    // worth its Worker cost (issue #59 phase 2).
+    // Every page that defines a card (routes, segments, events, home, about)
+    // is in the prerender list above, so the cards render at build time and
+    // ship as static assets - nothing (no Wasm renderer, no font loading)
+    // lands in the Worker bundle. That coupling is load-bearing: a page with
+    // `defineOgImage` that is NOT prerendered would ship an og:image URL
+    // whose asset was never generated (the module warns about "orphaned OG
+    // image" hashes at prerender:done).
     zeroRuntime: true,
     // 1200x630 (not the module's 1200x600 default): the documented OG size
     // every large-card scraper (Facebook, Discord, Slack, X) crops to.

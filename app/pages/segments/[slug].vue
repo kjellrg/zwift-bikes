@@ -22,17 +22,9 @@ useSeoMeta({
   ogTitle: () => segmentData.value ? segmentData.value.name : undefined,
   ogDescription: () => segmentData.value
     ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
-    : undefined,
-  // Full object, not just the URL: the app-level default in app.vue emits
-  // og:image:width/height/alt, which unhead dedupes per-tag, so replacing
-  // only og:image would leave the default image's dimensions attached to
-  // this page's world artwork.
-  ogImage: () => {
-    if (!segmentData.value) return undefined
-    const img = getWorldImage(segmentData.value.world)
-    return img ? { ...img, alt: `${segmentData.value.worldName} route map` } : undefined
-  },
-  twitterImage: () => segmentData.value ? getWorldImageUrl(segmentData.value.world) : undefined
+    : undefined
+  // No ogImage/twitterImage here: `defineOgImage` below emits og:image (with
+  // width/height/alt) and the twitter:image set itself, same as the route page.
 })
 
 const { owned, ownedWheels, load: loadGarage } = useGarage()
@@ -91,6 +83,37 @@ const recommendQuery = computed(() => ({
 const { data: recommendData, status, refresh: refreshRecommendations, error: recommendError } = await useFetch(() => `/api/recommend/segments/${slug.value}`, { query: recommendQuery, watch: false })
 useRefetchNotice(recommendError, status, refreshRecommendations)
 
+// Issue #59 phase 2: a generated card replaces the old hotlinked world
+// minimap, now that #56 made segment pages prerenderable. Snapshotted once
+// at setup, which is exactly the build-time prerender pass (zeroRuntime
+// never re-renders): the top combo is therefore the DEFAULT rider profile's
+// - the same ranking the prerendered page itself shows - and combo names,
+// not a finish time, go on the card because a time is only meaningful for a
+// specific rider. The profile strip is gated exactly like the page's own
+// chart: measured slice or nothing, never the 2-point synthetic ramp.
+if (segmentData.value) {
+  const ogTopCombo = recommendData.value?.combos?.[0]
+  const measuredProfile = segmentRoute.value?.terrain.elevationProfile
+  const kind = segmentData.value.type === 'climb'
+    ? `${segmentData.value.climbType ? (segmentData.value.climbType === 'HC' ? 'HC ' : `CAT ${segmentData.value.climbType} `) : ''}CLIMB`
+    : 'SPRINT'
+  defineOgImage('SegmentCard', {
+    title: segmentData.value.name,
+    kind,
+    world: segmentData.value.worldName,
+    length: formatDistance(segmentData.value.lengthKm),
+    elevation: formatElevation(segmentData.value.elevationM),
+    grade: segmentData.value.avgGradePercent ? formatGrade(segmentData.value.avgGradePercent) : 'Flat',
+    frameName: ogTopCombo?.frame.name,
+    wheelName: ogTopCombo?.wheelset?.name,
+    profile: measuredProfile && measuredProfile.length > 1
+      ? ogProfileFromPoints(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, [], measuredProfile).points)
+      : undefined
+  }, {
+    alt: `Best bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
+  })
+}
+
 const loadedCombos = ref<ComboScore[]>([])
 const hasMore = ref(true)
 const loadingMore = ref(false)
@@ -125,7 +148,7 @@ async function showMore() {
   }
 }
 
-watch([weightKg, heightCm, powerW, sprintPowerW, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
+watch([weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
 watch(owned, () => refreshFirstPage(), { deep: true })
 watch(ownedWheels, () => refreshFirstPage(), { deep: true })
 
