@@ -145,6 +145,28 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
   }
 
   cachedSummaries = [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name))
+
+  // Display-stat pass: where a measured profile slice exists (the same one
+  // the segment page's chart and the dynamic simulator ride), derive the
+  // gain and grade the page should SHOW, so no surface ever quotes
+  // zwift-data's coarse scalar next to a chart drawn from the measured road
+  // (Titans Grove reverse: published 6.6%, measured ~4.3% - ZwiftInsider
+  // agrees with the road). See the field docs on `SegmentSummary`: display
+  // prefers these, physics deliberately does not read them.
+  for (const summary of cachedSummaries) {
+    const hostRoute = pickHostRoute(summary)
+    const placementOnHost = hostRoute ? findPlacement(summary, hostRoute) : undefined
+    const profile = placementOnHost?.perLap && hostRoute
+      ? sliceElevationProfile(hostRoute.terrain.elevationProfile, placementOnHost.fromKm, placementOnHost.toKm)
+      : []
+    if (profile.length < 2 || summary.lengthKm <= 0) continue
+    let ascentM = 0
+    for (let i = 1; i < profile.length; i++) ascentM += Math.max(0, profile[i]!.elevationM - profile[i - 1]!.elevationM)
+    const netM = profile[profile.length - 1]!.elevationM
+    summary.measuredElevationM = Math.round(ascentM)
+    summary.measuredAvgGradePercent = Math.round((netM / (summary.lengthKm * 1000)) * 1000) / 10
+  }
+
   return cachedSummaries
 }
 

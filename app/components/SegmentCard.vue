@@ -53,7 +53,7 @@ defineProps<{
             name="i-lucide-trending-up"
             class="size-4 text-muted"
           />
-          {{ segment.avgGradePercent ? formatGrade(segment.avgGradePercent) : "Flat" }}
+          {{ (segment.measuredAvgGradePercent ?? segment.avgGradePercent) ? formatGrade(segment.measuredAvgGradePercent ?? segment.avgGradePercent) : "Flat" }}
         </span>
       </div>
     </UCard>

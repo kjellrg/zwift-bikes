@@ -18,10 +18,16 @@ const segmentRoute = computed(() => segmentData.value?.route)
 // ("alpe du zwift gradient") actually contain, and numbers lift click-through
 // over boilerplate. The climbing clause is skipped for near-flat segments
 // (most sprints) where "0 m of climbing" would be noise.
+// Display stats prefer the measured-profile pair when present (see
+// `SegmentSummary`) so the snippet, stat cards, OG card and the chart all
+// describe the same road.
+const displayElevationM = computed(() => segmentData.value ? segmentData.value.measuredElevationM ?? segmentData.value.elevationM : 0)
+const displayGradePercent = computed(() => segmentData.value ? segmentData.value.measuredAvgGradePercent ?? segmentData.value.avgGradePercent : 0)
+
 const metaDescription = computed(() => {
   if (!segmentData.value) return undefined
   const s = segmentData.value
-  const stats = `${formatDistance(s.lengthKm)}${s.avgGradePercent ? ` at ${formatGrade(s.avgGradePercent)}` : ', flat'}${s.elevationM >= 10 ? `, ${formatElevation(s.elevationM)} of climbing` : ''}`
+  const stats = `${formatDistance(s.lengthKm)}${displayGradePercent.value ? ` at ${formatGrade(displayGradePercent.value)}` : ', flat'}${displayElevationM.value >= 10 ? `, ${formatElevation(displayElevationM.value)} of climbing` : ''}`
   return `Find the fastest bike and wheel combo for the ${s.name} ${s.type} in ${s.worldName} - ${stats}.`
 })
 
@@ -109,8 +115,8 @@ if (segmentData.value) {
     kind,
     world: segmentData.value.worldName,
     length: formatDistance(segmentData.value.lengthKm),
-    elevation: formatElevation(segmentData.value.elevationM),
-    grade: segmentData.value.avgGradePercent ? formatGrade(segmentData.value.avgGradePercent) : 'Flat',
+    elevation: formatElevation(displayElevationM.value),
+    grade: displayGradePercent.value ? formatGrade(displayGradePercent.value) : 'Flat',
     frameName: ogTopCombo?.frame.name,
     wheelName: ogTopCombo?.wheelset?.name,
     profile: measuredProfile && measuredProfile.length > 1
@@ -305,14 +311,14 @@ useHead(() => {
           <p class="text-xs text-muted uppercase tracking-wide">
             Elevation
           </p><p class="text-xl font-bold">
-            {{ formatElevation(segmentData.elevationM) }}
+            {{ formatElevation(displayElevationM) }}
           </p>
         </UCard>
         <UCard :ui="{ body: 'text-center py-4' }">
           <p class="text-xs text-muted uppercase tracking-wide">
             Avg grade
           </p><p class="text-xl font-bold">
-            {{ segmentData.avgGradePercent ? formatGrade(segmentData.avgGradePercent) : "Flat" }}
+            {{ displayGradePercent ? formatGrade(displayGradePercent) : "Flat" }}
           </p>
         </UCard>
       </div>

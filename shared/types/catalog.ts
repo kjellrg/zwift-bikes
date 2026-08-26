@@ -250,6 +250,19 @@ export interface SegmentSummary {
   elevationM: number
   avgGradePercent: number
   /**
+   * Elevation/grade derived from the best host route's measured elevation
+   * profile - the same slice the segment page's chart and the dynamic
+   * simulator ride - present only when such a profile exists. `zwift-data`'s
+   * published scalars above can be coarse (Titans Grove reverse KOM says
+   * 6.6% where the measured road - and ZwiftInsider - say ~4.3%), so every
+   * DISPLAY surface prefers these; physics keeps reading the published
+   * scalars (only ever as the no-profile fallback line) so ranking inputs
+   * are untouched by this pair. Gain is the slice's total ascent; grade is
+   * net elevation change over the official length (Strava's convention).
+   */
+  measuredElevationM?: number
+  measuredAvgGradePercent?: number
+  /**
    * How this segment was tied to its host routes: `'positional'` when at
    * least one route publishes a measured `segmentsOnRoute` placement for it,
    * `'membership'` when it only appears in routes' non-positional `segments`

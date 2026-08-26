@@ -59,6 +59,33 @@ describe('routeWithMetaForSegment host selection', () => {
   })
 })
 
+describe('measured display stats', () => {
+  it('corrects titans-grove-kom-rev to the road ZwiftInsider describes', () => {
+    // zwift-data publishes 61m / 6.6% for this segment; the measured profile
+    // (and ZwiftInsider's segment page: 0.89km at 4.4%) say ~39m / ~4.3%.
+    // The display pair must carry the measured truth.
+    const summary = getAllSegmentSummaries().find(s => s.slug === 'titans-grove-kom-rev')!
+    expect(summary.measuredElevationM).toBeGreaterThan(30)
+    expect(summary.measuredElevationM).toBeLessThan(50)
+    expect(summary.measuredAvgGradePercent).toBeGreaterThan(3.8)
+    expect(summary.measuredAvgGradePercent).toBeLessThan(4.8)
+  })
+
+  it('agrees with the published scalars where they were already right', () => {
+    const summary = getAllSegmentSummaries().find(s => s.slug === 'alpe-du-zwift')!
+    expect(summary.measuredElevationM).toBeDefined()
+    expect(Math.abs(summary.measuredElevationM! - summary.elevationM)).toBeLessThan(summary.elevationM * 0.15)
+    expect(Math.abs(summary.measuredAvgGradePercent! - summary.avgGradePercent)).toBeLessThan(1.5)
+  })
+
+  it('never invents measured stats for membership segments', () => {
+    for (const summary of getAllSegmentSummaries().filter(s => s.placement === 'membership')) {
+      expect(summary.measuredElevationM).toBeUndefined()
+      expect(summary.measuredAvgGradePercent).toBeUndefined()
+    }
+  })
+})
+
 describe('segment elevation profiles', () => {
   it('slices a full-length, full-gain profile for alpe-du-zwift', () => {
     const summary = getAllSegmentSummaries().find(s => s.slug === 'alpe-du-zwift')!

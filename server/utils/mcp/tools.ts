@@ -359,7 +359,7 @@ const TOOLS: ToolDefinition[] = [
       if (segments.length === 0) return text('No segments matched those filters.')
 
       const rows = segments.slice(0, limit).map(segment =>
-        `| \`${segment.slug}\` | ${segment.name} | ${segment.type} | ${segment.worldName} | ${segment.lengthKm.toFixed(1)} km | ${Math.round(segment.elevationM)} m | ${segment.avgGradePercent.toFixed(1)}% |`)
+        `| \`${segment.slug}\` | ${segment.name} | ${segment.type} | ${segment.worldName} | ${segment.lengthKm.toFixed(1)} km | ${Math.round(segment.measuredElevationM ?? segment.elevationM)} m | ${(segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)}% |`)
 
       const truncated = segments.length > limit ? `\n\n${segments.length - limit} more matched; narrow the search or raise \`limit\`.` : ''
       return text([
@@ -552,7 +552,7 @@ const TOOLS: ToolDefinition[] = [
       const header = [
         `# Fastest bikes on ${segment.name} (${segment.worldName})`,
         '',
-        `- ${segment.type}: ${segment.lengthKm.toFixed(1)} km, ${Math.round(segment.elevationM)} m, ${segment.avgGradePercent.toFixed(1)}% avg${segment.climbType ? `, category ${segment.climbType}` : ''}`,
+        `- ${segment.type}: ${segment.lengthKm.toFixed(1)} km, ${Math.round(segment.measuredElevationM ?? segment.elevationM)} m, ${(segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)}% avg${segment.climbType ? `, category ${segment.climbType}` : ''}`,
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${(physics.rider.powerW / physics.rider.weightKg).toFixed(2)} W/kg (${physics.rider.powerW} W)` : undefined,
         formatTttAssumption(physics),
