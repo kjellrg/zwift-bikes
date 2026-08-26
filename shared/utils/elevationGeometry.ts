@@ -71,3 +71,56 @@ export function computeElevationProfile(
   const raw = distanceStreamM.map((distanceM, i) => ({ distanceM, elevationM: altitudeStreamM[i]! - baseAltitudeM }))
   return simplifyProfile(raw, toleranceM)
 }
+
+/** Linearly interpolated elevation at `distanceM` along `profile` (which is sorted by `distanceM`). */
+function interpolatedElevationM(profile: RouteElevationPoint[], distanceM: number): number {
+  for (let i = 1; i < profile.length; i++) {
+    const prev = profile[i - 1]!
+    const next = profile[i]!
+    if (distanceM > next.distanceM) continue
+    const span = next.distanceM - prev.distanceM
+    if (span <= 0) return next.elevationM
+    return prev.elevationM + (next.elevationM - prev.elevationM) * ((distanceM - prev.distanceM) / span)
+  }
+  return profile[profile.length - 1]!.elevationM
+}
+
+/**
+ * Slices a lap-relative elevation profile down to the `[fromKm, toKm]` span
+ * of one segment on it, re-based to start at `{distanceM: 0, elevationM: 0}`
+ * like every profile in the system (see `computeElevationProfile`). Boundary
+ * points are linearly interpolated, matching how the physics simulator reads
+ * grade between profile points, so the slice starts and ends on the exact
+ * segment boundaries rather than the nearest surviving RDP point.
+ *
+ * Returns `[]` - "no measured profile", the same contract as
+ * `computeElevationProfile` - when the profile is missing/too short, the span
+ * is degenerate, or the profile doesn't substantially cover the span (a
+ * placement running past the measured lap's end would otherwise come back
+ * silently truncated; up to 10% is tolerated as GPS-vs-official length
+ * disagreement, the same order `appendMeasuredLap` rescales away).
+ */
+export function sliceElevationProfile(
+  profile: RouteElevationPoint[] | undefined,
+  fromKm: number,
+  toKm: number
+): RouteElevationPoint[] {
+  if (!profile || profile.length < 2) return []
+  const fromM = Math.max(0, fromKm * 1000)
+  const requestedToM = toKm * 1000
+  if (requestedToM <= fromM) return []
+
+  const profileEndM = profile[profile.length - 1]!.distanceM
+  if (fromM >= profileEndM) return []
+  const toM = Math.min(requestedToM, profileEndM)
+  if (toM - fromM < (requestedToM - fromM) * 0.9) return []
+
+  const baseElevationM = interpolatedElevationM(profile, fromM)
+  const sliced: RouteElevationPoint[] = [{ distanceM: 0, elevationM: 0 }]
+  for (const point of profile) {
+    if (point.distanceM <= fromM || point.distanceM >= toM) continue
+    sliced.push({ distanceM: point.distanceM - fromM, elevationM: point.elevationM - baseElevationM })
+  }
+  sliced.push({ distanceM: toM - fromM, elevationM: interpolatedElevationM(profile, toM) - baseElevationM })
+  return sliced
+}

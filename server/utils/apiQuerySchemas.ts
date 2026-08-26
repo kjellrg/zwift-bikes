@@ -277,12 +277,13 @@ export const recommendRouteQuerySchema = z.object({
   excludeTT: qBool(false)
 }).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
 
+// No segment-specific parameters: the old `route` param (which host route's
+// surface data to slice) was removed once measurement showed hosts never
+// meaningfully disagree - `routeWithMetaForSegment` now picks the
+// best-instrumented host itself. Old crawled `?route=` URLs still parse
+// cleanly via the ignore-unknown-keys contract above.
 export const recommendSegmentQuerySchema = z.object({
-  ...recommendBaseShape,
-  // The preferred parent route for this segment's surface data. Deliberately
-  // loose: an unknown slug falls back to the segment's first hosting route
-  // (see `routeWithMetaForSegment`), which client-side navigation relies on.
-  route: z.preprocess(emptyToUndef, z.string().max(200).optional())
+  ...recommendBaseShape
 }).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
 
 export type RecommendRouteQuery = z.output<typeof recommendRouteQuerySchema>

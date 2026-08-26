@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import type { RouteClimbOccurrence } from '../../shared/utils/routeClimbs'
 
-const props = defineProps<{
+defineProps<{
   climbs: RouteClimbOccurrence[]
-  /** Route this occurrence list came from - passed through to the segment page link so its ranking uses this route's exact surface data. */
-  routeSlug?: string
 }>()
-
-function segmentLink(slug: string) {
-  return props.routeSlug ? `/segments/${slug}?route=${props.routeSlug}` : `/segments/${slug}`
-}
 </script>
 
 <template>
@@ -20,7 +14,7 @@ function segmentLink(slug: string) {
     <ULink
       v-for="(climb, index) in climbs"
       :key="`${climb.slug}-${climb.rideFromKm}-${index}`"
-      :to="segmentLink(climb.slug)"
+      :to="`/segments/${climb.slug}`"
     >
       <UCard class="h-full transition hover:ring-primary/50">
         <div class="flex items-start justify-between gap-2">

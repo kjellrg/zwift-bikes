@@ -527,7 +527,6 @@ const TOOLS: ToolDefinition[] = [
       type: 'object',
       properties: {
         segment: { type: 'string', description: 'Segment slug, e.g. "alpe-du-zwift". Use list_segments to find it.' },
-        route: { type: 'string', description: 'Optional route slug hosting this segment, when the user cares about a particular route\'s surface data. Defaults to the first route that hosts it.' },
         ...RECOMMEND_FILTER_PROPERTIES
       },
       required: ['segment'],
@@ -540,10 +539,7 @@ const TOOLS: ToolDefinition[] = [
 
       let response: RecommendSegmentResponse
       try {
-        response = await fetchApi<RecommendSegmentResponse>(`/api/recommend/segments/${encodeURIComponent(slug)}`, {
-          ...recommendQuery(args, resolved.profile),
-          route: typeof args.route === 'string' && args.route ? args.route : undefined
-        })
+        response = await fetchApi<RecommendSegmentResponse>(`/api/recommend/segments/${encodeURIComponent(slug)}`, recommendQuery(args, resolved.profile))
       } catch (error) {
         if (statusOf(error) === 404) return failure(`No segment with slug "${slug}". ${await suggestSegments(slug)}`)
         throw error

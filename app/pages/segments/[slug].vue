@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import type { ComboScore, RouteWithMeta } from '../../../shared/types/catalog'
+import type { ComboScore } from '../../../shared/types/catalog'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForSegment } from '#shared/utils/physics/routeGeometry'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
-const preferredRouteSlug = computed(() => typeof route.query.route === 'string' ? route.query.route : undefined)
 const { data: segmentData, error: segmentError } = await useFetch(() => `/api/segments/${slug.value}`)
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
+
+// The synthetic segment-as-route the server ranks against - carries the
+// segment's sliced elevation profile and surface breakdown (see
+// `routeWithMetaForSegment`). Positional segments on a measured host get a
+// real profile; membership segments don't, and the chart hides itself.
+const segmentRoute = computed(() => segmentData.value?.route)
 
 useSeoMeta({
   title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - ZwiftBikes` : 'ZwiftBikes',
@@ -64,7 +69,6 @@ const recommendQuery = computed(() => ({
   search: bikeSearchDebounced.value || undefined,
   // Omitted rather than sent as `all` - see the equivalent comment in `routes/[slug].vue`.
   category: bikeCategory.value !== 'all' ? bikeCategory.value : undefined,
-  route: preferredRouteSlug.value,
   limit: pageSize,
   offset: 0,
   // Always sent, never omitted - see the equivalent comment in `routes/[slug].vue`.
@@ -188,13 +192,6 @@ useHead(() => {
   }
   return { script: scripts }
 })
-
-// Minimal `RouteWithMeta`-shaped stand-in so `ComboResultCard` can compute
-// the segment's own distance for the km/h display via `computeRouteTotals`
-// - it only ever reads `distance`/`lap`/`leadInDistance` for that.
-const segmentAsRoute = computed(() => segmentData.value
-  ? ({ distance: segmentData.value.lengthKm, lap: false, leadInDistance: undefined } as RouteWithMeta)
-  : undefined)
 </script>
 
 <template>
@@ -236,6 +233,10 @@ const segmentAsRoute = computed(() => segmentData.value
             >
               {{ segmentData.climbType === "HC" ? "HC" : `Cat ${segmentData.climbType}` }}
             </UBadge>
+            <SurfaceBadges
+              v-if="segmentRoute"
+              :surface="segmentRoute.surface"
+            />
             <UBadge
               v-if="physicsIsDynamic"
               color="primary"
@@ -281,6 +282,24 @@ const segmentAsRoute = computed(() => segmentData.value
             {{ segmentData.avgGradePercent ? formatGrade(segmentData.avgGradePercent) : "Flat" }}
           </p>
         </UCard>
+      </div>
+      <div
+        v-if="segmentRoute?.terrain.elevationProfile && segmentRoute.terrain.elevationProfile.length > 1"
+        class="mt-6"
+      >
+        <RouteElevationProfile
+          :route="segmentRoute"
+          :laps="1"
+        />
+      </div>
+      <div
+        v-if="segmentRoute?.surface.composition"
+        class="mt-6"
+      >
+        <h2 class="text-lg font-semibold text-highlighted mb-3">
+          Surface
+        </h2>
+        <RouteSurfaceComposition :surface="segmentRoute.surface" />
       </div>
       <p
         v-if="segmentData.hostRoutes.length"
@@ -378,7 +397,7 @@ const segmentAsRoute = computed(() => segmentData.value
             v-if="topCombo"
             :combo="topCombo"
             :rank="1"
-            :route="segmentAsRoute"
+            :route="segmentRoute"
             :weight-kg="weightKg"
             :height-cm="heightCm"
             :power-w="activePowerW"
@@ -396,7 +415,7 @@ const segmentAsRoute = computed(() => segmentData.value
               :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
               :combo="combo"
               :rank="index + 2"
-              :route="segmentAsRoute"
+              :route="segmentRoute"
               :weight-kg="weightKg"
               :height-cm="heightCm"
               :power-w="activePowerW"

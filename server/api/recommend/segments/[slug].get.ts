@@ -47,7 +47,7 @@ export default defineCachedRecommendHandler(async (event) => {
     maxWheelsetsPerFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
     defaultUnownedLevel, physics: physicsMode, draftMode, tttRiders
   } = q
-  const segmentRoute = routeWithMetaForSegment(summary, q.route)
+  const segmentRoute = routeWithMetaForSegment(summary)
 
   // See the equivalent comment in `recommend/[slug].get.ts` - fall back to
   // showing everything when the garage doesn't have any of that kind yet.

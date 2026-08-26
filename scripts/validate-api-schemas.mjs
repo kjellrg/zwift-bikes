@@ -149,8 +149,9 @@ bad(recommendRouteQuerySchema, 'recommend: non-boolean verifiedOnly', { verified
 bad(recommendRouteQuerySchema, 'recommend: non-numeric limit', { limit: 'abc' }, 'limit')
 
 // --- segment variant ---
-ok(recommendSegmentQuerySchema, 'segment recommend: unknown route slug passes through', { route: 'not-a-real-route' }, { route: 'not-a-real-route' })
-ok(recommendSegmentQuerySchema, 'segment recommend: empty route means default', { route: '' }, { route: undefined })
+// The removed `route` param (old crawled URLs still send it) must fall
+// through the ignore-unknown-keys contract, never 400 or reach the handler.
+ok(recommendSegmentQuerySchema, 'segment recommend: legacy route param is ignored', { route: 'not-a-real-route' }, { route: undefined })
 bad(recommendSegmentQuerySchema, 'segment recommend: partial profile', { powerW: '250' }, 'together')
 
 if (failures > 0) {
