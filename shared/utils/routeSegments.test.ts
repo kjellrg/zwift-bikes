@@ -77,6 +77,31 @@ describe('segment elevation profiles', () => {
     expect(Math.abs(last.elevationM - summary.elevationM)).toBeLessThan(summary.elevationM * 0.15)
   })
 
+  it('never picks a host whose slice contradicts the consensus of the other hosts', () => {
+    // One known bad slice exists in the catalog (titans-grove-kom-rev on
+    // tair-dringfa-fechan reads -8m where 14 other hosts agree on ~39m - a
+    // placement-frame quirk on that one route), so what this locks in is the
+    // invariant that actually reaches users: `pickHostRoute`'s choice must
+    // always land inside the hosts' consensus, never on such an outlier.
+    const routes = getRoutesWithMeta()
+    const bad: string[] = []
+    for (const summary of getAllSegmentSummaries()) {
+      const pickedProfile = routeWithMetaForSegment(summary).terrain.elevationProfile
+      if (!pickedProfile || pickedProfile.length < 2) continue
+      const gains = summary.hostRoutes
+        .map(h => routeWithMetaForSegmentHost(summary, routes.find(r => r.slug === h.slug)).terrain.elevationProfile)
+        .filter((p): p is NonNullable<typeof p> => !!p && p.length > 1)
+        .map(p => p[p.length - 1]!.elevationM)
+      if (gains.length < 2) continue
+      const median = gains.slice().sort((a, b) => a - b)[Math.floor(gains.length / 2)]!
+      const pickedGain = pickedProfile[pickedProfile.length - 1]!.elevationM
+      if (Math.abs(pickedGain - median) > Math.max(10, Math.abs(median) * 0.3)) {
+        bad.push(`${summary.slug}: picked ${pickedGain.toFixed(0)}m vs median ${median.toFixed(0)}m`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+
   it('slices the same climb out of every host that measured it', () => {
     const summary = getAllSegmentSummaries().find(s => s.slug === 'alpe-du-zwift')!
     const gains: number[] = []

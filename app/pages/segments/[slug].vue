@@ -149,9 +149,11 @@ const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.ra
 // power, never on `tttClimbWkg`, so the climb pace can't decide its own
 // slider's visibility. The empty surface list is deliberate: it only feeds
 // the simulator's Crr, and climb detection reads nothing but the geometry's
-// points - this is the same 2-point line the endpoint builds.
+// points - which must be the same geometry the endpoint simulates
+// (measured profile when the host route has one, 2-point line otherwise),
+// or this slider's visibility diverges from the actual sim.
 const hasLongClimb = computed(() => segmentData.value
-  ? detectLongClimbBlocks(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, []), powerW.value, weightKg.value).length > 0
+  ? detectLongClimbBlocks(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, [], segmentRoute.value?.terrain.elevationProfile), powerW.value, weightKg.value).length > 0
   : true)
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)

@@ -256,15 +256,26 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
 }
 
 /**
- * Straight-line geometry for a single climb/sprint segment, ridden in
- * isolation - a 2-point line at the segment's own average grade (the same
- * per-block approximation `appendKnownClimbsSegment` already makes for a
- * climb within a whole route), plus its own real position-tagged surface
- * data. Used by the segment ranking endpoint - see `prependWarmup` for how
- * this is turned into a realistic "already at speed" simulation.
+ * Geometry for a single climb/sprint segment, ridden in isolation. With a
+ * `measuredProfile` (the segment's slice of its host route's real elevation
+ * profile - see `sliceElevationProfile`), the simulator rides the segment's
+ * actual grade changes, exactly as `geometryForRouteLaps` does for a whole
+ * route's measured lap: distances rescaled onto the official length,
+ * measured elevations kept. Without one (membership segments, unmeasured
+ * hosts, legacy mode) it falls back to the original 2-point line at the
+ * segment's own average grade (the same per-block approximation
+ * `appendKnownClimbsSegment` already makes for a climb within a whole
+ * route). Both carry the segment's real position-tagged surface data. Used
+ * by the segment ranking endpoint - see `prependWarmup` for how this is
+ * turned into a realistic "already at speed" simulation.
  */
-export function geometryForSegment(slug: string, lengthKm: number, elevationM: number, surfaceSegments: RouteSurfaceSegment[]): RouteGeometry {
+export function geometryForSegment(slug: string, lengthKm: number, elevationM: number, surfaceSegments: RouteSurfaceSegment[], measuredProfile?: RouteElevationPoint[]): RouteGeometry {
   const totalDistanceM = lengthKm * 1000
+  if (measuredProfile && measuredProfile.length > 1) {
+    const points: RouteGeometryPoint[] = [{ distanceM: 0, elevationM: 0 }]
+    appendMeasuredLap(points, 0, 0, totalDistanceM, measuredProfile)
+    return { routeSlug: slug, points, surfaceSegments, totalDistanceM }
+  }
   return {
     routeSlug: slug,
     points: [

@@ -263,11 +263,10 @@ export function routeWithMetaForSegmentHost(summary: SegmentSummary, hostRoute: 
   // profile with them would read the wrong stretch of road. Membership
   // segments have no placement at all, so they never get a profile - the
   // page's chart simply doesn't render for them, matching how their surface
-  // confidence is capped above. NOTE: injecting this changes nothing physical
-  // today - the segment recommend endpoint builds its geometry from
-  // `geometryForSegment`, which reads only the scalars - it powers the
-  // segment page's elevation chart. Feeding it into the simulator is a
-  // deliberate, separately-verified physics change (see `geometryForSegment`).
+  // confidence is capped above. This profile powers both the segment page's
+  // elevation chart and the dynamic simulator's geometry (see
+  // `geometryForSegment`) - with it, the sim rides the segment's real grade
+  // changes instead of one average-grade line.
   const slicedProfile = placement?.perLap
     ? sliceElevationProfile(hostRoute?.terrain.elevationProfile, placement.fromKm, placement.toKm)
     : []
