@@ -99,6 +99,7 @@ export default defineNuxtConfig({
         '/about',
         '/report',
         '/events',
+        '/segments',
         ...getSeasons().map(season => `/events/${season.slug}`),
         ...getPublishableRaces().map(race => race.path),
         ...getRoutesWithMeta().map(route => `/routes/${route.slug}`),
