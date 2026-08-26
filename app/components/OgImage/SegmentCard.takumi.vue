@@ -1,26 +1,31 @@
 <script setup lang="ts">
-// Social-share card for a route page (issue #59). Rendered to a static
-// 1200x630 PNG at build time by nuxt-og-image (zeroRuntime) - never in the
-// browser or the Worker. Takumi supports a flexbox-only CSS subset, hence
-// the inline styles and the absence of grid/UApp/Nuxt UI components. The
-// bundled font is Inter 400/700, so no other weights are used.
+// Social-share card for a segment page (issue #59 phase 2, unblocked when
+// #56 made segments prerenderable). Rendered to a static 1200x630 PNG at
+// build time by nuxt-og-image (zeroRuntime) - never in the browser or the
+// Worker. Same Takumi constraints as `RouteCard.takumi.vue`: flexbox-only
+// CSS subset, inline styles, Inter 400/700 only.
 const props = defineProps<{
   title: string
+  /** Eyebrow suffix: "CLIMB", "HC CLIMB", "CAT 2 CLIMB" or "SPRINT". */
+  kind: string
   world: string
-  distance: string
+  length: string
   elevation: string
+  grade: string
   frameName?: string
   wheelName?: string
   /**
-   * Elevation silhouette: samples at even distances across lead-in + one
-   * lap, each already normalized to 0..1 of the route's own height range -
-   * see `ogProfileFromPoints` in `app/utils/ogProfile.ts`.
+   * Elevation silhouette across the segment itself, each sample already
+   * normalized to 0..1 - see `ogProfileFromPoints` in `app/utils/ogProfile.ts`.
+   * Absent for membership segments (no measured position on any route): the
+   * card renders without a strip rather than faking a straight ramp.
    */
   profile?: number[]
 }>()
 
-// Long route names ("Queen's Highway After Party") step down instead of
-// clipping - Takumi has no line-clamp, so the size must guarantee a fit.
+// Long segment names ("Temple KOM from Fishing Village side") step down
+// instead of clipping - Takumi has no line-clamp, so the size must
+// guarantee a fit.
 const titleSize = computed(() => props.title.length > 24 ? '56px' : '72px')
 
 const setupLabel = computed(() => {
@@ -70,9 +75,9 @@ const profileImage = computed(() => {
       class="flex flex-col"
       style="gap: 12px;"
     >
-      <span style="font-size: 26px; font-weight: 700; color: #00DC82; letter-spacing: 4px;">BEST BIKE FOR</span>
+      <span style="font-size: 26px; font-weight: 700; color: #00DC82; letter-spacing: 4px;">BEST BIKE FOR THE {{ kind }}</span>
       <span :style="{ fontSize: titleSize, fontWeight: 700, color: '#ffffff', lineHeight: 1.05 }">{{ title }}</span>
-      <span style="font-size: 30px; color: #94a3b8;">{{ world }} · {{ distance }} · {{ elevation }}</span>
+      <span style="font-size: 30px; color: #94a3b8;">{{ world }} · {{ length }} · {{ elevation }} · {{ grade }}</span>
     </div>
 
     <div

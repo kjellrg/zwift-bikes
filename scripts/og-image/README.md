@@ -1,9 +1,9 @@
 # og-image
 
 Source for `public/og-image.png`, the default social-share (Open Graph /
-Twitter card) image used by pages that don't set their own — the homepage,
-about, garage and profile. Route and segment pages override it with their
-world's artwork in their own `useSeoMeta` calls.
+Twitter card) image used by pages that don't set their own — garage,
+profile and report. Home, about, route, segment and event pages define
+generated nuxt-og-image cards instead (issue #59).
 
 1200x630 (the standard `summary_large_image` ratio), styled after the app:
 slate-900 background, the lucide `bike` header icon, and the Nuxt UI green
