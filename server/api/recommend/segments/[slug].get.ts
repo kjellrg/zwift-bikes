@@ -47,7 +47,7 @@ export default defineCachedRecommendHandler(async (event) => {
     maxWheelsetsPerFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
     defaultUnownedLevel, physics: physicsMode, draftMode, tttRiders
   } = q
-  const segmentRoute = routeWithMetaForSegment(summary, q.route)
+  const segmentRoute = routeWithMetaForSegment(summary)
 
   // See the equivalent comment in `recommend/[slug].get.ts` - fall back to
   // showing everything when the garage doesn't have any of that kind yet.
@@ -110,12 +110,19 @@ export default defineCachedRecommendHandler(async (event) => {
   await markPhase(event, 'rank')
 
   const rider = { weightKg, heightCm, powerW }
+  // The measured elevation slice rides along when the host route has one
+  // (see `routeWithMetaForSegment`) - the sim then follows the segment's
+  // real grade changes instead of one average-grade line. The client's
+  // `hasLongClimb` check on the segment page builds this same geometry from
+  // the same profile; the two must stay in step or the climb-pace slider's
+  // visibility diverges from what the sim actually rides.
   const segmentGeometry = hasRiderProfile && physicsMode !== 'legacy'
     ? geometryForSegment(
         segmentRoute.slug,
         segmentRoute.distance,
         segmentRoute.elevation,
-        sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')
+        sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac'),
+        segmentRoute.terrain.elevationProfile
       )
     : undefined
   const warmedGeometry = segmentGeometry ? prependWarmup(segmentGeometry, WARMUP_DISTANCE_M) : undefined

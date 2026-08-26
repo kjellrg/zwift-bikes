@@ -81,18 +81,18 @@ export default defineNuxtConfig({
       // Enumerated from the same catalog the sitemap source uses
       // (server/api/__sitemap__/urls.ts) so the two can't drift.
       //
-      // /segments/** is deliberately NOT prerendered: those pages take a
-      // `?route=` param that tailors the ranking to one route's surface data,
-      // and SWA matches static files by path only (ignoring the query), so a
-      // prerendered segment page would answer `?route=` requests with the
-      // generic ranking and - because the page fetches with `watch: false` -
-      // never correct itself on the client.
+      // /segments/** is NOT prerendered, by choice rather than blocker: the
+      // old `?route=` param that made prerendering unsafe (a static file
+      // answers by path, ignoring the query) is gone, so the ~106 segment
+      // pages could join this list any time (issue #56) - but Workers SSR
+      // cold starts are small, the recommend edge cache covers the expensive
+      // endpoint, and the build is long enough already, so it hasn't earned
+      // its build-time cost yet.
       //
-      // Event pages prerender for the same reasons and with the same caveat
-      // handled: they take no query parameters at all, so the `?route=`
-      // problem that keeps /segments/** dynamic can't arise. Only races whose
-      // route, format and lap counts the organiser has actually published get
-      // a page - `getPublishableRaces()` is the same source the sitemap uses.
+      // Event pages prerender for the same reasons as routes: they take no
+      // query parameters at all. Only races whose route, format and lap
+      // counts the organiser has actually published get a page -
+      // `getPublishableRaces()` is the same source the sitemap uses.
       routes: [
         '/robots.txt',
         '/about',

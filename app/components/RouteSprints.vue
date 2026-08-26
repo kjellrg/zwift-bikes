@@ -2,15 +2,9 @@
 import type { RouteSegmentPlacement } from '../../shared/types/catalog'
 import type { SegmentOccurrence } from '../../shared/utils/routeClimbs'
 
-const props = defineProps<{
+defineProps<{
   sprints: (RouteSegmentPlacement & SegmentOccurrence)[]
-  /** Route this occurrence list came from - passed through to the segment page link so its ranking uses this route's exact surface data. */
-  routeSlug?: string
 }>()
-
-function segmentLink(slug: string) {
-  return props.routeSlug ? `/segments/${slug}?route=${props.routeSlug}` : `/segments/${slug}`
-}
 </script>
 
 <template>
@@ -21,7 +15,7 @@ function segmentLink(slug: string) {
     <ULink
       v-for="(sprint, index) in sprints"
       :key="`${sprint.slug}-${sprint.rideFromKm}-${index}`"
-      :to="segmentLink(sprint.slug)"
+      :to="`/segments/${sprint.slug}`"
     >
       <UCard class="h-full transition hover:ring-primary/50">
         <div class="flex items-start justify-between gap-2">

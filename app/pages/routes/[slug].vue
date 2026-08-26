@@ -469,19 +469,13 @@ useHead(() => {
           <h2 class="text-lg font-semibold text-highlighted mb-3">
             Climbs on this route
           </h2>
-          <RouteClimbs
-            :climbs="climbOccurrences"
-            :route-slug="routeData.slug"
-          />
+          <RouteClimbs :climbs="climbOccurrences" />
         </div>
         <div v-if="sprintOccurrences.length">
           <h2 class="text-lg font-semibold text-highlighted mb-3">
             Sprints on this route
           </h2>
-          <RouteSprints
-            :sprints="sprintOccurrences"
-            :route-slug="routeData.slug"
-          />
+          <RouteSprints :sprints="sprintOccurrences" />
         </div>
       </div>
       <div v-if="routeData.surface.composition">

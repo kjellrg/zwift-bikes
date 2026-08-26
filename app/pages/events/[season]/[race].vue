@@ -952,7 +952,7 @@ useHead(() => {
                   <!-- Linked only when the segment has a page here. -->
                   <ULink
                     v-if="segment.slug"
-                    :to="`/segments/${segment.slug}?route=${selectedRouteSlug}`"
+                    :to="`/segments/${segment.slug}`"
                     class="text-primary underline"
                   >{{ segment.name }}</ULink>
                   <template v-else>
@@ -1041,19 +1041,13 @@ useHead(() => {
           <h2 class="text-lg font-semibold text-highlighted mb-3">
             Climbs in this race
           </h2>
-          <RouteClimbs
-            :climbs="climbOccurrences"
-            :route-slug="routeInfo!.slug"
-          />
+          <RouteClimbs :climbs="climbOccurrences" />
         </div>
         <div v-if="sprintOccurrences.length">
           <h2 class="text-lg font-semibold text-highlighted mb-3">
             Sprints in this race
           </h2>
-          <RouteSprints
-            :sprints="sprintOccurrences"
-            :route-slug="routeInfo!.slug"
-          />
+          <RouteSprints :sprints="sprintOccurrences" />
         </div>
       </div>
       <div v-if="routeInfo!.surface.composition">

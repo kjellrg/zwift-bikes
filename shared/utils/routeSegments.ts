@@ -3,6 +3,7 @@ import { segments } from 'zwift-data'
 import type { RouteSegmentPlacement, RouteWithMeta, SegmentSummary, SurfaceSegment } from '../types/catalog'
 import type { PhysicsSurface } from '../types/physics'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
+import { sliceElevationProfile } from './elevationGeometry'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
 import { getRoutesWithMeta, getWorldName } from './catalog'
 import { computeTerrain } from './routeTerrain'
@@ -151,24 +152,65 @@ export function getSegmentSummary(slug: string): SegmentSummary | undefined {
   return getAllSegmentSummaries().find(s => s.slug === slug)
 }
 
+/** This segment's placement on one particular host route, if that host places it positionally. */
+function findPlacement(summary: SegmentSummary, hostRoute: RouteWithMeta) {
+  return (summary.type === 'climb' ? hostRoute.terrain.climbs : getRouteSprints(hostRoute)).find(p => p.slug === summary.slug)
+}
+
+/**
+ * The host route whose measured data stands in for the segment: the first
+ * host (in `hostRoutes` order, stable per build) at the highest available
+ * data tier. A segment is the same physical road on every route that hosts
+ * it (see `routeSegments.test.ts`), so which host is "right" is purely a
+ * question of which one is best instrumented - preferring a host with a
+ * lap-frame placement, measured surface segments and a measured elevation
+ * profile over a blind first host is a small accuracy upgrade for segments
+ * whose first host happens to be unmeasured.
+ */
+function pickHostRoute(summary: SegmentSummary): RouteWithMeta | undefined {
+  const routes = getRoutesWithMeta()
+  let best: RouteWithMeta | undefined
+  let bestTier = -1
+  for (const host of summary.hostRoutes) {
+    const route = routes.find(r => r.slug === host.slug)
+    if (!route) continue
+    const placement = findPlacement(summary, route)
+    const tier = !placement
+      ? 0
+      : !(placement.perLap && route.surface.segments)
+          ? 1
+          : (route.terrain.elevationProfile?.length ?? 0) > 1 ? 3 : 2
+    if (tier > bestTier) {
+      best = route
+      bestTier = tier
+      if (bestTier === 3) break
+    }
+  }
+  return best
+}
+
 /**
  * Builds a synthetic segment-as-route object so a single climb/sprint can
  * reuse the exact same scoring/ranking/physics pipeline (`rankCombos`,
  * `estimateFinishTimeSec`, `simulateRoute`) a whole route already uses,
- * rather than duplicating any of it. `preferredRouteSlug` (e.g. the route a
- * segment card was clicked from) picks which hosting route's measured
- * surface data to slice for this segment's own stretch of road, falling
- * back to the first hosting route's whole-route surface estimate when no
- * measured positional data covers this segment.
+ * rather than duplicating any of it. The hosting route whose measured data
+ * gets sliced for this segment's own stretch of road is chosen by
+ * `pickHostRoute`; callers used to steer that with a `?route=` query param,
+ * but hosts never meaningfully disagree about the same physical road (max
+ * 4.65 surface percentage points across the whole catalog - GPS noise), so
+ * the best-instrumented host is now simply everyone's default.
  */
-export function routeWithMetaForSegment(summary: SegmentSummary, preferredRouteSlug?: string): RouteWithMeta {
-  const routes = getRoutesWithMeta()
-  const hostRoute = (preferredRouteSlug && routes.find(r => r.slug === preferredRouteSlug && summary.hostRoutes.some(h => h.slug === preferredRouteSlug)))
-    || routes.find(r => r.slug === summary.hostRoutes[0]?.slug)
+export function routeWithMetaForSegment(summary: SegmentSummary): RouteWithMeta {
+  return routeWithMetaForSegmentHost(summary, pickHostRoute(summary))
+}
 
-  const placement = hostRoute
-    ? (summary.type === 'climb' ? hostRoute.terrain.climbs : getRouteSprints(hostRoute)).find(p => p.slug === summary.slug)
-    : undefined
+/**
+ * `routeWithMetaForSegment` for one specific host route - exported so the
+ * host-independence acceptance test can verify that every host slices the
+ * same road out of its own measured data.
+ */
+export function routeWithMetaForSegmentHost(summary: SegmentSummary, hostRoute: RouteWithMeta | undefined): RouteWithMeta {
+  const placement = hostRoute ? findPlacement(summary, hostRoute) : undefined
 
   const fallbackSurface: PhysicsSurface = (hostRoute?.surface.composition
     ? Object.entries(hostRoute.surface.composition).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]?.[0]
@@ -180,6 +222,11 @@ export function routeWithMetaForSegment(summary: SegmentSummary, preferredRouteS
   // (km-relative-to-lap), just rescoped. `geometryForSegment` re-derives the
   // metres form of this via `sliceSurfaceSegments` again, same as
   // `physics/routeGeometry.ts` already does per-lap.
+  // Known imprecision, pre-existing: for a `!perLap` placement (segment inside
+  // the lead-in) `fromKm`/`toKm` are ride-relative while `surface.segments`
+  // are lap-relative, so this slice reads the wrong stretch of the lap. Rare
+  // (lead-in-hosted segments on ride-relative routes only), and `pickHostRoute`
+  // now prefers a `perLap` host wherever one exists.
   const slicedM = placement
     ? sliceSurfaceSegments(hostRoute?.surface.segments, placement.fromKm, placement.toKm, fallbackSurface)
     : undefined
@@ -209,6 +256,21 @@ export function routeWithMetaForSegment(summary: SegmentSummary, preferredRouteS
     surface = { ...surface, segments: undefined, confidence: 'unverified' as const }
   }
 
+  // The segment's own stretch of the host's measured elevation profile,
+  // re-based to start at {0,0} like every lap profile. Gated on `perLap`:
+  // `elevationProfile` is lap-relative (issue #126's normalization) while a
+  // lead-in placement's `fromKm`/`toKm` are ride-relative, so slicing the lap
+  // profile with them would read the wrong stretch of road. Membership
+  // segments have no placement at all, so they never get a profile - the
+  // page's chart simply doesn't render for them, matching how their surface
+  // confidence is capped above. This profile powers both the segment page's
+  // elevation chart and the dynamic simulator's geometry (see
+  // `geometryForSegment`) - with it, the sim rides the segment's real grade
+  // changes instead of one average-grade line.
+  const slicedProfile = placement?.perLap
+    ? sliceElevationProfile(hostRoute?.terrain.elevationProfile, placement.fromKm, placement.toKm)
+    : []
+
   return {
     slug: summary.slug,
     name: summary.name,
@@ -224,7 +286,13 @@ export function routeWithMetaForSegment(summary: SegmentSummary, preferredRouteS
     supportsMeetups: false,
     segments: [],
     segmentsOnRoute: [],
-    terrain: computeTerrain({ distance: summary.lengthKm, elevation: summary.elevationM } as Route),
+    // `computeTerrain`'s own generated-data lookup is keyed by route slug, so
+    // it always misses for a segment slug - the sliced profile is injected on
+    // top of the scalar terrain it computes.
+    terrain: {
+      ...computeTerrain({ distance: summary.lengthKm, elevation: summary.elevationM } as Route),
+      ...(slicedProfile.length > 1 ? { elevationProfile: slicedProfile } : {})
+    },
     surface
   }
 }

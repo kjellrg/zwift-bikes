@@ -47,9 +47,8 @@ export function useReportContext() {
   })
 
   /**
-   * Page identity. The full URL carries the query string, which matters for
-   * segment pages specifically: their `?route=` param tailors the ranking, so
-   * the same path with and without it are genuinely different results.
+   * Page identity. The full URL carries the query string so a report pins
+   * down exactly the page state the reporter was looking at.
    */
   const pageUrl = computed(() =>
     isReady.value ? window.location.href : route.fullPath

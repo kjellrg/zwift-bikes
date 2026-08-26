@@ -324,7 +324,7 @@ simulates twice per combo and subtracts:
 ```mermaid
 %%{ init: { "flowchart": { "nodeSpacing": 30, "rankSpacing": 40 } } }%%
 flowchart TD
-    G["geometryForSegment<br/>2-point line at the segment's grade"]
+    G["geometryForSegment<br/>measured profile slice, or a 2-point line at the segment's grade"]
     W["prependWarmup<br/>+2 km of flat tarmac"]
     S1["simulateRoute<br/>warmup + segment"]
     WO["geometryForWarmup<br/>2 km"]
