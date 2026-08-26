@@ -14,15 +14,22 @@ if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Seg
 // real profile; membership segments don't, and the chart hides itself.
 const segmentRoute = computed(() => segmentData.value?.route)
 
+// Stat-rich for SERP snippets: "12.2 km at 8.5%" is what long-tail queries
+// ("alpe du zwift gradient") actually contain, and numbers lift click-through
+// over boilerplate. The climbing clause is skipped for near-flat segments
+// (most sprints) where "0 m of climbing" would be noise.
+const metaDescription = computed(() => {
+  if (!segmentData.value) return undefined
+  const s = segmentData.value
+  const stats = `${formatDistance(s.lengthKm)}${s.avgGradePercent ? ` at ${formatGrade(s.avgGradePercent)}` : ', flat'}${s.elevationM >= 10 ? `, ${formatElevation(s.elevationM)} of climbing` : ''}`
+  return `Find the fastest bike and wheel combo for the ${s.name} ${s.type} in ${s.worldName} - ${stats}.`
+})
+
 useSeoMeta({
   title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - ZwiftBikes` : 'ZwiftBikes',
-  description: () => segmentData.value
-    ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
-    : undefined,
+  description: metaDescription,
   ogTitle: () => segmentData.value ? segmentData.value.name : undefined,
-  ogDescription: () => segmentData.value
-    ? `Find the fastest bike and wheel combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}.`
-    : undefined
+  ogDescription: metaDescription
   // No ogImage/twitterImage here: `defineOgImage` below emits og:image (with
   // width/height/alt) and the twitter:image set itself, same as the route page.
 })
@@ -197,7 +204,8 @@ useHead(() => {
       '@type': 'BreadcrumbList',
       'itemListElement': [
         { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteConfig.url },
-        { '@type': 'ListItem', 'position': 2, 'name': segmentData.value.name, 'item': canonicalUrl.value }
+        { '@type': 'ListItem', 'position': 2, 'name': 'Segments', 'item': `${siteConfig.url}/segments` },
+        { '@type': 'ListItem', 'position': 3, 'name': segmentData.value.name, 'item': canonicalUrl.value }
       ]
     }).replace(/</g, '\\u003c')
   }]
@@ -226,13 +234,13 @@ useHead(() => {
   >
     <div>
       <UButton
-        to="/"
+        to="/segments"
         variant="link"
         color="neutral"
         icon="i-lucide-arrow-left"
         class="mb-4 px-0"
       >
-        Back to all routes
+        Back to all segments
       </UButton>
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>

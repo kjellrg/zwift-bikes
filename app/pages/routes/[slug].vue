@@ -86,14 +86,22 @@ watch(lapOptions, (options) => {
   if (laps.value > options.length) laps.value = 1
 })
 
+// Same 1-lap lead-in-inclusive totals the OG card uses below, so the SERP
+// snippet and the share card always quote the same numbers.
+const metaStats = computed(() => {
+  if (!routeData.value) return undefined
+  const totals = computeRouteTotals(routeData.value, 1)
+  return `${formatDistance(totals.distanceKm)} with ${formatElevation(totals.elevationM)} of climbing`
+})
+
 useSeoMeta({
   title: () => routeData.value ? `Best Bike for ${routeData.value.name} - ZwiftBikes` : 'ZwiftBikes',
   description: () => routeData.value
-    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}. Distance, elevation and surface-aware recommendations.`
+    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}. Surface-aware recommendations.`
     : undefined,
   ogTitle: () => routeData.value ? routeData.value.name : undefined,
   ogDescription: () => routeData.value
-    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName}.`
+    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}.`
     : undefined
 })
 

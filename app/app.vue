@@ -127,6 +127,14 @@ useHead({
       <template #right>
         <div class="hidden items-center gap-1.5 lg:flex">
           <UButton
+            to="/segments"
+            icon="i-lucide-mountain"
+            label="Segments"
+            color="neutral"
+            variant="ghost"
+          />
+
+          <UButton
             v-if="eventsVisible"
             to="/events"
             icon="i-lucide-calendar-days"
@@ -178,6 +186,15 @@ useHead({
 
       <template #body>
         <div class="flex flex-col gap-1.5">
+          <UButton
+            to="/segments"
+            icon="i-lucide-mountain"
+            label="Segments"
+            color="neutral"
+            variant="ghost"
+            block
+          />
+
           <UButton
             v-if="eventsVisible"
             to="/events"
