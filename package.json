@@ -28,12 +28,12 @@
     "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs"
   },
   "dependencies": {
-    "@iconify-json/lucide": "^1.2.123",
+    "@iconify-json/lucide": "^1.2.126",
     "@iconify-json/simple-icons": "^1.2.93",
-    "@nuxt/ui": "^4.10.0",
-    "@nuxtjs/robots": "^6.1.4",
-    "@nuxtjs/sitemap": "^8.3.4",
-    "@takumi-rs/core": "^2.10.0",
+    "@nuxt/ui": "^4.11.0",
+    "@nuxtjs/robots": "^6.2.0",
+    "@nuxtjs/sitemap": "^8.5.0",
+    "@takumi-rs/core": "^2.12.0",
     "nuxt": "^4.5.2",
     "nuxt-og-image": "^6.7.8",
     "tailwindcss": "^4.3.3",
@@ -43,13 +43,13 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
     "@types/node": "^22.20.1",
-    "cspell": "^10.0.1",
+    "cspell": "^10.1.0",
     "esbuild": "^0.27.7",
-    "eslint": "^10.8.1",
+    "eslint": "^10.9.1",
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11",
-    "vue-tsc": "^3.3.10",
+    "vue-tsc": "^3.3.11",
     "wrangler": "^4.125.0"
   }
 }
