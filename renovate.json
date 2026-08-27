@@ -2,13 +2,15 @@
   "extends": [
     "github>nuxt/renovate-config-nuxt"
   ],
-  "minimumReleaseAge": "3 days",
+  "minimumReleaseAge": "7 days",
   "lockFileMaintenance": {
-    "enabled": true
+    "enabled": true,
+    "schedule": ["* 0-3 1 * *"]
   },
+  "osvVulnerabilityAlerts": true,
   "packageRules": [{
     "matchDepTypes": ["resolutions"],
     "enabled": false
   }],
-  "postUpdateOptions": ["pnpmDedupe"]
+  "postUpdateOptions": ["npmDedupe"]
 }
