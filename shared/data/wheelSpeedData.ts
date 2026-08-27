@@ -33,7 +33,7 @@ export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
   'Campagnolo Bora Ultra 50': { flatGapSec: 24.6, climbGapSec: 4.4 },
   'DTSwiss ARC 1100 DICUT 62': { flatGapSec: 39.2, climbGapSec: 0 },
   'DTSwiss ARC 1100 DICUT 65': { flatGapSec: 44.5, climbGapSec: 4.2 },
-  'DTSwiss ARC 1100 DICUT 85/Disc': { flatGapSec: 50, climbGapSec: -20 },
+  'DTSwiss ARC 1100 DICUT 85/Disc': { flatGapSec: 51.9, climbGapSec: -20 },
   'DTSwiss ARC 1100 DICUT DISC': { flatGapSec: 48.2, climbGapSec: -23.7 },
   'Enve SES 2.2': { flatGapSec: 0.1, climbGapSec: 4.4 },
   'Enve SES 3.4': { flatGapSec: 24.2, climbGapSec: 6 },
@@ -57,8 +57,8 @@ export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
   'Princeton  Mach TSV2/Blur Disc\u00A0': { flatGapSec: 47.4, climbGapSec: -23.4 },
   'Princeton Alta 3532': { flatGapSec: 28.8, climbGapSec: 14.5 },
   'Princeton Wake 6560 White': { flatGapSec: 44.3, climbGapSec: 12.7 },
-  // Same wheel as the White in a different colorway - the sheet only tests
-  // one "Wake 6560" row, so both colorways carry it.
+  // Same wheel as the White in a different colorway - the sheet now tests
+  // both colorways and measures them identically.
   'Princeton Wake 6560 Lava': { flatGapSec: 44.3, climbGapSec: 12.7 },
   'Reserve 34/37': { flatGapSec: 27.6, climbGapSec: 10.4 },
   'Reserve 57/64': { flatGapSec: 41.8, climbGapSec: 5 },
@@ -83,7 +83,10 @@ export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
   'Shimano DURA-ACE C50': { flatGapSec: 18.9, climbGapSec: -2 },
   'Shimano DURA-ACE C60': { flatGapSec: 25.4, climbGapSec: -4.4 },
   'SwissSide HADRON Ultimate 650': { flatGapSec: 46.8, climbGapSec: 6 },
-  'SwissSide HADRON Ultimate Disc': { flatGapSec: 50, climbGapSec: -20 },
+  // The sheet's 300W row for this wheel is titled "Swiss Side HADRON
+  // Ultimate 850/Disc"; its old-style "SwissSide HADRON Ultimate Disc" row
+  // is a 150W test. The game/zwift-data name stays as keyed here.
+  'SwissSide HADRON Ultimate Disc': { flatGapSec: 51.9, climbGapSec: -20 },
   'Zipp 202': { flatGapSec: 3.7, climbGapSec: 3.1 },
   'Zipp 353 NSW': { flatGapSec: 27.4, climbGapSec: 9.8 },
   'Zipp 404': { flatGapSec: 30.2, climbGapSec: 1.3 },
