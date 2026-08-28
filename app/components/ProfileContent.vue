@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { BikeCategory } from '../../shared/types/catalog'
 import { clampTttClimbWkg, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '#shared/utils/physics/draft'
+import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 
 // Shared by `ProfileModal.vue` (in-app UX) and `pages/profile.vue` (the
 // deep-linkable copy). Keep this component free of modal-specific markup so
@@ -9,7 +10,7 @@ import { clampTttClimbWkg, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG,
 // header and would mark whatever page the modal happens to be open on as
 // noindex. That call stays on `pages/profile.vue`.
 
-const { weightKg, heightCm, ftpWatts, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load, setWeightKg, setHeightCm, setFtpWatts, setDefaultUnownedLevel, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load, setWeightKg, setHeightCm, setPowerW, setSprintPowerW, setDefaultUnownedLevel, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 // Bike category is a display filter rather than a rider attribute, so it
 // lives in `usePreferences` alongside the other filters - but it's set here,
 // because it's a default the rider picks once, not a per-route toggle.
@@ -17,6 +18,24 @@ const { bikeCategory, showUpcomingRaces, load: loadPreferences, setBikeCategory,
 onMounted(() => {
   load()
   loadPreferences()
+  pendingPowerW.value = powerW.value
+  pendingSprintPowerW.value = sprintPowerW.value
+})
+
+// Committed on release (USlider's `change`), not per drag tick: these
+// sliders edit the same `powerW`/`sprintPowerW` the host pages' refetch
+// watchers observe (the modal opens over route/segment/event pages), so
+// per-tick commits would fire a recommend request per step - the storm
+// RiderProfileControls' pending refs exist to prevent.
+const pendingPowerW = ref(powerW.value)
+const pendingSprintPowerW = ref(sprintPowerW.value)
+const commitPower = () => setPowerW(pendingPowerW.value)
+const commitSprintPower = () => setSprintPowerW(pendingSprintPowerW.value)
+watch(powerW, (value) => {
+  pendingPowerW.value = value
+})
+watch(sprintPowerW, (value) => {
+  pendingSprintPowerW.value = value
 })
 
 const defaultUnownedLevelOptions = [0, 1, 2, 3, 4, 5].map(level => ({ label: level === 0 ? 'Level 0 (stock, just unlocked)' : `Level ${level}`, value: level }))
@@ -32,10 +51,9 @@ const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = [
 // what keeps "untouched" meaning "ride climbs at your normal power".
 const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(powerW.value / weightKg.value) ?? TTT_MIN_CLIMB_WKG)
 
-// FTP is a profile fact, not the page sliders' power - it feeds only the
-// readout below, so this derives from FTP itself (the caption says "FTP ÷
-// weight", and it should mean it).
-const ftpWkg = computed(() => ftpWatts.value / weightKg.value)
+// Derived from the committed value, not the pending one - the readout is a
+// profile fact and should match what route pages will actually rank with.
+const powerWkg = computed(() => powerW.value / weightKg.value)
 </script>
 
 <template>
@@ -88,28 +106,52 @@ const ftpWkg = computed(() => ftpWatts.value / weightKg.value)
       </div>
 
       <div class="max-w-md">
-        <label class="block text-xs font-medium text-muted mb-1">FTP: {{ ftpWatts }} W</label>
+        <label class="block text-xs font-medium text-muted mb-1">Race power (FTP): {{ pendingPowerW }} W</label>
         <USlider
-          :model-value="ftpWatts"
-          :min="100"
-          :max="500"
-          :step="1"
-          @update:model-value="(value: number | undefined) => setFtpWatts(value ?? ftpWatts)"
+          :model-value="pendingPowerW"
+          :min="POWER_W_RANGE.min"
+          :max="POWER_W_RANGE.max"
+          :step="POWER_W_RANGE.step"
+          aria-label="Race power in watts"
+          @update:model-value="(value: number | undefined) => { pendingPowerW = value ?? pendingPowerW }"
+          @change="commitPower"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
-          <span>100 W</span><span>500 W</span>
+          <span>{{ POWER_W_RANGE.min }} W</span><span>{{ POWER_W_RANGE.max }} W</span>
         </div>
+        <p class="text-sm text-muted mt-1">
+          The sustained power recommendations are ranked at. It is the same stored value as the Power slider on route, segment and event pages - change it in either place and both move.
+        </p>
+      </div>
+
+      <div class="max-w-md">
+        <label class="block text-xs font-medium text-muted mb-1">Sprint power: {{ pendingSprintPowerW }} W</label>
+        <USlider
+          :model-value="pendingSprintPowerW"
+          :min="SPRINT_POWER_W_RANGE.min"
+          :max="SPRINT_POWER_W_RANGE.max"
+          :step="SPRINT_POWER_W_RANGE.step"
+          aria-label="Sprint power in watts"
+          @update:model-value="(value: number | undefined) => { pendingSprintPowerW = value ?? pendingSprintPowerW }"
+          @change="commitSprintPower"
+        />
+        <div class="flex justify-between text-xs text-muted mt-1">
+          <span>{{ SPRINT_POWER_W_RANGE.min }} W</span><span>{{ SPRINT_POWER_W_RANGE.max }} W</span>
+        </div>
+        <p class="text-sm text-muted mt-1">
+          What you can hold for a short all-out effort. Sprint segment pages rank with this instead of your race power - the two are stored separately, so cranking one never drags the other along.
+        </p>
       </div>
 
       <div>
         <p class="text-xs font-medium text-muted uppercase tracking-wide">
-          W/kg at FTP
+          W/kg at race power
         </p>
         <p class="text-2xl font-bold text-primary">
-          {{ ftpWkg.toFixed(2) }} W/kg
+          {{ powerWkg.toFixed(2) }} W/kg
         </p>
         <p class="text-sm text-muted mt-1">
-          {{ ftpWatts }} W ÷ {{ weightKg }} kg. You can still dial power up or down per route.
+          {{ powerW }} W ÷ {{ weightKg }} kg. Dialling power on a route page updates it here too.
         </p>
       </div>
 
@@ -145,6 +187,7 @@ const ftpWkg = computed(() => ftpWatts.value / weightKg.value)
         <div class="flex items-center gap-2">
           <USwitch
             :model-value="showUpcomingRaces"
+            aria-label="Show upcoming races"
             @update:model-value="(value: boolean) => setShowUpcomingRaces(value)"
           />
           <span class="text-sm">Show upcoming races</span>
@@ -207,7 +250,7 @@ const ftpWkg = computed(() => ftpWatts.value / weightKg.value)
           <span>{{ TTT_MIN_CLIMB_WKG }} W/kg</span><span>{{ TTT_MAX_CLIMB_WKG }} W/kg</span>
         </div>
         <p class="text-sm text-muted mt-1">
-          What the team averages on climbs over ~3.5 minutes, where the paceline breaks up and drafting gives almost nothing. <template v-if="tttClimbWkg === undefined">
+          What the team averages on stretches slow enough that the rotation stops (roughly 2.5+ minutes below ~21 km/h), where drafting gives almost nothing. <template v-if="tttClimbWkg === undefined">
             Untouched, so climbs are ridden at your normal power - the slider starts there.
           </template><template v-else>
             Set independently of your FTP: changing your power above won't move it. <ULink

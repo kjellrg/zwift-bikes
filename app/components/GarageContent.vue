@@ -151,7 +151,10 @@ const activeTab = ref('bikes')
               {{ ownedCount }} bike{{ ownedCount === 1 ? "" : "s" }} owned
             </UBadge>
             <div class="flex items-center gap-2">
-              <USwitch v-model="ownedFramesOnly" />
+              <USwitch
+                v-model="ownedFramesOnly"
+                aria-label="Only show bikes I own"
+              />
               <span class="text-sm">Only show bikes I own</span>
             </div>
           </div>
@@ -175,6 +178,7 @@ const activeTab = ref('bikes')
               <div class="flex items-center gap-3">
                 <USwitch
                   :model-value="isOwned(frame.id)"
+                  :aria-label="`Mark ${frame.name} as owned`"
                   @update:model-value="
                     (value: boolean) => toggleOwned(frame, value)
                   "
@@ -252,7 +256,10 @@ const activeTab = ref('bikes')
               owned
             </UBadge>
             <div class="flex items-center gap-2">
-              <USwitch v-model="ownedWheelsetsOnly" />
+              <USwitch
+                v-model="ownedWheelsetsOnly"
+                aria-label="Only show wheels I own"
+              />
               <span class="text-sm">Only show wheels I own</span>
             </div>
           </div>
@@ -276,6 +283,7 @@ const activeTab = ref('bikes')
               <div class="flex items-center gap-3">
                 <USwitch
                   :model-value="isWheelOwned(wheelset.key)"
+                  :aria-label="`Mark ${wheelset.name} as owned`"
                   @update:model-value="
                     (value: boolean) => toggleWheelOwned(wheelset, value)
                   "

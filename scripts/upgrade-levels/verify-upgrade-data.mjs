@@ -1,11 +1,10 @@
 // Data-integrity check for the bike upgrade scheme tables.
 //
-// Diagnostic only - nothing in the app runs this. Run it after editing
-// `shared/data/frameUpgradeSchemes.ts` or `shared/data/frameSpeedData.ts`:
-//
-//   node scripts/upgrade-levels/verify-upgrade-data.mjs
-//
-// Exits non-zero if any check fails, so it can be wired into CI later.
+// Runs as `npm run validate:upgrade-data`, part of the `npm run validate`
+// chain (and therefore every build and CI run). Before that wiring, a new
+// measured frame committed without an upgrade scheme passed every check and
+// silently fell back to linear level interpolation instead of its chart
+// shape - exactly the drift check 2 exists to catch.
 import { bikeFrames } from 'zwift-data'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 

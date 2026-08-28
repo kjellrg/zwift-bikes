@@ -112,10 +112,13 @@ full ~11k-combo pool and has to agree with the simulator or the displayed order
 drifts. Since draft depends on speed and speed depends on draft, it solves a
 4-iteration fixed point (`tttGroupSpeedMps`) instead of a single bisection.
 
-**Climb pacing.** The optional team climb W/kg applies to climbs of ≥3% average
-grade lasting ≥3.5 estimated minutes, where a real paceline breaks up. Blocks
-are detected on the route's own geometry, merged across sub-200 m gaps, and
-ridden at that power via the simulator's `powerSegmentsW`. The plan is built
+**Climb pacing.** The optional team climb W/kg applies to stretches slow enough
+that the rotation stops — estimated solo speed at normal power below the point
+where draft is worth a quarter of its flat value (~21 km/h, see
+`CLIMB_BLOCK_MAX_SPEED_MPS` in `draft.ts`) — lasting ≥2.5 estimated minutes.
+Blocks are detected on the route's own geometry, merged across short
+above-threshold gaps, and ridden at that power via the simulator's
+`powerSegmentsW`. The plan is built
 **once per request** and shared across every combo — a per-combo plan would
 poison `orderBySimulatedTime`'s physics-keyed dedupe cache.
 

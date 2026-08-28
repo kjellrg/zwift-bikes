@@ -3,6 +3,7 @@ import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor, type StageChart, type StageCurve } from '../data/frameUpgradeSchemes'
 import { precomputedFrameDelta } from '../data/equipmentPhysics'
+import { CRR_COBBLE_SCORE, CRR_GRAVEL_SCORE } from './classifyWheel'
 import { solveFrameEquipmentDelta } from './physics/equipment'
 
 /**
@@ -27,7 +28,9 @@ import { solveFrameEquipmentDelta } from './physics/equipment'
  *    whole style/category bucket. `gravel`/`cobble` scores (not covered by
  *    the speed tests, and in Zwift's actual physics almost entirely driven
  *    by the *wheel*, not the frame - see `classifyWheel.ts`) still come from
- *    the style/category preset either way.
+ *    the style/category preset either way - except for the five
+ *    `FIXED_WHEEL_FRAMES`, whose integrated road-class wheels set their
+ *    gravel/cobble instead (see `withFixedWheelOffroadScores`).
  *
  * Frames without real data fall back to the style/category presets, which
  * remain a best-effort estimate, not data pulled from Zwift's game engine.
@@ -264,9 +267,10 @@ const ENDURANCE_RE = /roubaix|synapse|road\s*machine|endurance/i
 // `concept\s*z1` covers the Tron bikes: the fastest flat frame in the game by
 // a clear margin (114.6s/hr saved at Stage 0 vs the Zwift Carbon baseline) but
 // only a middling climber, which is the aero preset's profile exactly. With
-// `FRAME_SPEED_DATA` present the preset only supplies their gravel/cobble
-// scores (inert in ranking - `OFFROAD_FRAME_WEIGHT` is 0) and the UI's style
-// label, so this is about labelling them honestly rather than "allrounder".
+// `FRAME_SPEED_DATA` present the preset only supplies the UI's style label -
+// both frames are `FIXED_WHEEL_FRAMES`, so their gravel/cobble come from
+// `withFixedWheelOffroadScores`, not the preset - meaning this is purely
+// about labelling them honestly rather than "allrounder".
 // `roller\s*blade` is the same reasoning for the R4000 (flat 120.8 vs climb
 // 7.7 at Stage 0 - a flat-dominant Halo profile).
 const AERO_RE = /aeroad|venge|system\s*six|\bfoil\b|madone|propel|speedmax|speed\s*concept|concept\s*z1|roller\s*blade|felt\s*ar\b|felt\s*fr\b|\bs5\b|dogma\s*f(?!.*gr)|time\s*machine|\bp5\b|\bshiv\b|plasma|\bslice\b|bolide|aerium|noah\s*fast|\bia\s*2?\.?0?\b/i
@@ -313,6 +317,23 @@ function classifyBikeCategory(frame: BikeFrame): BikeCategory {
  */
 const classifiedByFrame = new WeakMap<BikeFrame, Map<number, ClassifiedBikeFrame>>()
 
+/**
+ * Off-road scores for a fixed-wheel frame come from its integrated wheels'
+ * Crr class, never from a style preset. Zwift's rolling resistance on
+ * gravel/cobbles is 100% wheel-class-determined (see `classifyWheel.ts`'s
+ * Crr tables and `OFFROAD_FRAME_WEIGHT = 0` in `scoring.ts`), and every
+ * fixed-wheel frame's integrated wheels are road-class - exactly how
+ * `finishTime.ts` and the simulator already treat them
+ * (`wheelset?.crrClass ?? 'road'`). Leaving the presets in place had the
+ * score path burying e.g. the Concept Z1 on cobbled routes (preset
+ * cobble 18 vs the road-class 96) while the finish-time path correctly
+ * ranked it near the top - two answers to the same question.
+ */
+function withFixedWheelOffroadScores(classified: ClassifiedBikeFrame): ClassifiedBikeFrame {
+  if (!classified.hasFixedWheels) return classified
+  return { ...classified, scores: { ...classified.scores, gravel: CRR_GRAVEL_SCORE.road, cobble: CRR_COBBLE_SCORE.road } }
+}
+
 export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFrame {
   // Only whole levels 0-5 are cached, which is the entire real domain (see
   // `DEFAULT_UNOWNED_LEVEL` and the garage). Anything else - a fraction, a
@@ -320,7 +341,7 @@ export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFr
   // stage, see `classifyFrame`) and is simply not stored, so a caller
   // passing arbitrary numbers (the `owned` query parameter is rider-supplied
   // JSON) can neither change an answer nor grow this map without bound.
-  if (!Number.isInteger(level) || level < 0 || level > 5) return classifyFrame(frame, level)
+  if (!Number.isInteger(level) || level < 0 || level > 5) return withFixedWheelOffroadScores(classifyFrame(frame, level))
 
   let byLevel = classifiedByFrame.get(frame)
   if (!byLevel) {
@@ -331,7 +352,7 @@ export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFr
   const cached = byLevel.get(level)
   if (cached) return cached
 
-  const classified = classifyFrame(frame, level)
+  const classified = withFixedWheelOffroadScores(classifyFrame(frame, level))
   byLevel.set(level, classified)
   return classified
 }

@@ -1,5 +1,6 @@
 import type { ComboScore, RouteSummary, SegmentSummary, SurfaceEstimate } from '../../../shared/types/catalog'
 import { formatDuration, formatDurationGap } from '../../../shared/utils/duration'
+import { RECOMMEND_MAX_OFFSET } from '../apiQuerySchemas'
 
 /**
  * The shape the recommend endpoints return. Declared here rather than inferred
@@ -120,8 +121,13 @@ export function formatComboTable(combos: ComboScore[], startRank: number): strin
 export function formatPagination(pagination: RecommendPagination, total?: number): string {
   const first = pagination.offset + 1
   const last = pagination.offset + pagination.returned
+  // At the offset cap, "call again with a higher offset" would send a model
+  // in a loop: every higher offset clamps back to the cap and returns this
+  // same page. Say what is actually possible instead.
   const suffix = pagination.hasMore
-    ? ' More are available - call again with a higher `offset`.'
+    ? (pagination.offset >= RECOMMEND_MAX_OFFSET
+        ? ` More exist, but \`offset\` is capped at ${RECOMMEND_MAX_OFFSET} - narrow with \`search\` or filters to reach them.`
+        : ' More are available - call again with a higher `offset`.')
     : ''
   const of = total === undefined ? '' : ` of ${total}`
   return `Showing ranks ${first}-${last}${of}.${suffix}`

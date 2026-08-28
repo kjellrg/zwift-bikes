@@ -17,13 +17,6 @@ const MIN_WEIGHT_KG = 40
 const MAX_WEIGHT_KG = 130
 const clampWeightKg = (value: number) => Math.min(MAX_WEIGHT_KG, Math.max(MIN_WEIGHT_KG, Math.round(value)))
 const DEFAULT_HEIGHT_CM = 175
-const DEFAULT_FTP_WATTS = 225
-// The FTP slider's own range - wider bounds make no sense for a threshold
-// power a human sustains for an hour. The power sliders' ranges live in
-// `shared/utils/riderBounds.ts`; FTP feeds only the profile page's readout.
-const MIN_FTP_WATTS = 100
-const MAX_FTP_WATTS = 500
-const clampFtpWatts = (value: number) => Math.min(MAX_FTP_WATTS, Math.max(MIN_FTP_WATTS, Math.round(value)))
 // `DEFAULT_UNOWNED_LEVEL` deliberately isn't defined here: the recommend
 // endpoints and the MCP tools have to assume the same stage, so it lives in
 // `shared/utils/classifyBikeFrame.ts` alongside the level semantics.
@@ -41,7 +34,11 @@ export function useRiderProfile() {
   // race-pace power, and cranking one must never drag the other along.
   const powerW = useState<number>('rider-power-w', () => DEFAULT_POWER_W)
   const sprintPowerW = useState<number>('rider-sprint-power-w', () => DEFAULT_SPRINT_POWER_W)
-  const ftpWatts = useState<number>('rider-ftp-watts', () => DEFAULT_FTP_WATTS)
+  // There is deliberately no separate "FTP" value: the profile page's slider
+  // and the route/segment/event page sliders edit this same `powerW`, so the
+  // number a rider sets in one place is the number every page ranks with. A
+  // separate `ftpWatts` existed once and fed only the profile readout -
+  // riders read that as "my FTP isn't being used", because it wasn't.
   const defaultUnownedLevel = useState<number>('rider-default-unowned-level', () => DEFAULT_UNOWNED_LEVEL)
   // Draft mode (see `shared/utils/physics/draft.ts`): 'solo' is a lone rider;
   // 'ttt' reads the entered watts as each rider's own rotation average; 'race'
@@ -60,7 +57,6 @@ export function useRiderProfile() {
       heightCm: heightCm.value,
       powerW: powerW.value,
       sprintPowerW: sprintPowerW.value,
-      ftpWatts: ftpWatts.value,
       defaultUnownedLevel: defaultUnownedLevel.value,
       draftMode: draftMode.value,
       tttRiders: tttRiders.value,
@@ -84,7 +80,6 @@ export function useRiderProfile() {
       const migratedPowerW = storedPowerW(parsed, weightKg.value)
       if (migratedPowerW !== undefined) powerW.value = migratedPowerW
       if (typeof parsed.sprintPowerW === 'number') sprintPowerW.value = clampSprintPowerW(parsed.sprintPowerW)
-      if (typeof parsed.ftpWatts === 'number') ftpWatts.value = clampFtpWatts(parsed.ftpWatts)
       if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = clampUnownedLevel(parsed.defaultUnownedLevel)
       if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') draftMode.value = parsed.draftMode
       if (typeof parsed.tttRiders === 'number') tttRiders.value = clampTttRiders(parsed.tttRiders)
@@ -117,11 +112,6 @@ export function useRiderProfile() {
     persist()
   }
 
-  function setFtpWatts(value: number) {
-    ftpWatts.value = clampFtpWatts(value)
-    persist()
-  }
-
   function setDefaultUnownedLevel(value: number) {
     defaultUnownedLevel.value = clampUnownedLevel(value)
     persist()
@@ -150,7 +140,6 @@ export function useRiderProfile() {
     heightCm,
     powerW,
     sprintPowerW,
-    ftpWatts,
     defaultUnownedLevel,
     draftMode,
     tttRiders,
@@ -160,7 +149,6 @@ export function useRiderProfile() {
     setHeightCm,
     setPowerW,
     setSprintPowerW,
-    setFtpWatts,
     setDefaultUnownedLevel,
     setDraftMode,
     setTttRiders,

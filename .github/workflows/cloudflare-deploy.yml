@@ -85,7 +85,12 @@ jobs:
               - "server/**"
               - "shared/**"
               - "scripts/**"
+              # Shipped verbatim as Worker static assets out of .output/public
+              # (_headers, favicons, og-image) - omitting it meant an
+              # asset-only change deployed nothing (issue #152).
+              - "public/**"
               - "nuxt.config.ts"
+              - "tsconfig.json"
               - "wrangler.jsonc"
               - "package.json"
               - "package-lock.json"

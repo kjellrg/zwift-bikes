@@ -1,9 +1,9 @@
 name: Checks
 
-# Reusable only - this workflow has no trigger of its own. The Azure deploy
-# workflow is the single PR/push entry point and calls it once, so its build,
-# deploy and fork-build jobs can all `needs:` these checks rather than racing
-# alongside them. Keep it to one caller per event: nothing dedupes a reusable
+# Reusable only - this workflow has no trigger of its own. The Cloudflare
+# deploy workflow (cloudflare-deploy.yml) is the single PR/push entry point and
+# calls it once, so its build, deploy and fork-build jobs can all `needs:` these
+# checks rather than racing alongside them. Keep it to one caller per event: nothing dedupes a reusable
 # workflow across callers, so a second one would just run all of this twice.
 on:
   workflow_call:
@@ -20,8 +20,8 @@ jobs:
     # about as much wall-clock as it saves, and these checks read config that
     # lives outside any tidy path list (eslint.config.mjs, tsconfig, and the
     # .nuxt/ output `nuxt prepare` generates). Always running also means the
-    # job reports a real pass/fail rather than "skipped", which is what you
-    # want if it ever becomes a required status check.
+    # job reports a real pass/fail rather than "skipped", which a required
+    # status check needs - and this job is one on main.
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,8 +49,8 @@ jobs:
         run: npm run typecheck
       # The same data validators `npm run build` chains ahead of `nuxt build`.
       # Running them here costs ~4s and fails a bad frame/wheel/event edit in
-      # under a minute, instead of ~9 minutes into the Oryx build inside the
-      # Azure deploy workflow.
+      # under a minute, instead of minutes into the `npm run build` jobs in
+      # cloudflare-deploy.yml.
       - name: Validate data
         run: npm run validate
       # Vitest unit suite over shared/ and server/utils logic - physics golden

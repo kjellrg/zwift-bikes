@@ -154,6 +154,8 @@ const isFastest = computed(() => {
                       ? 'bg-primary text-inverted'
                       : 'bg-elevated text-muted hover:bg-accented'
                   "
+                  :aria-label="`Set upgrade level ${level} for ${combo.frame.name}`"
+                  :aria-pressed="level === ownedFrameLevel"
                   @click="setFrameLevel(level)"
                 >
                   {{ level }}
