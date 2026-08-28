@@ -172,9 +172,10 @@ ridden. Switching the draft mode to **TTT (paceline)** models a rotating team:
 - **The draft fades on climbs.** Drafting is an aerodynamic effect, so it is
   worth almost nothing at steep-climb speeds and more than usual on descents.
   The model tracks this continuously from the group's actual speed.
-- **Optionally, a team climb pace** (W/kg) applies on climbs longer than ~3.5
-  minutes at ≥3%, where a real paceline breaks up and everyone climbs at their
-  own sustainable pace.
+- **Optionally, a team climb pace** (W/kg) applies on stretches slow enough
+  that the rotation stops (estimated solo speed under ~21 km/h for 2.5+
+  minutes — see `draft.ts`), where everyone climbs at their own sustainable
+  pace.
 - **The "saves X vs riding alone" line** simulates the identical rider, power
   and pacing with the draft switched off, so the gap is purely what the
   paceline buys.

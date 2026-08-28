@@ -414,9 +414,17 @@ and validation evidence is in [ttt-drafting.md](ttt-drafting.md):
 - **Savings scale with speed** (`draftSavingsSpeedScale`): a clamped power-law
   fit to ZwiftInsider's measured 25% (flat), ~10% (moderate climb), 2–3%
   (steep climb) and up-to-46% (descent) single-rider numbers.
-- **`tttPowerPlan`** detects long climbs (≥3% average for ≥3.5 estimated
-  minutes, short gaps merged) and paces them at `tttClimbWkg × weight` via
-  `powerSegmentsW`. The plan is computed **once per request** and shared by
+- **`tttPowerPlan`** detects long climbs and paces them at `tttClimbWkg ×
+  weight` via `powerSegmentsW`. A stretch qualifies on **speed, not grade**:
+  the question is "when does the team stop rotating", and the same grade is a
+  different event for different riders (at 3%, a 2.5 W/kg rider has already
+  lost the rotation while a 4.0 W/kg rider still holds 42% of the flat draft),
+  so a grade threshold split them wrongly. A block now counts once the
+  estimated solo speed at normal power drops to where the draft is worth a
+  quarter of its flat value (`draftSavingsSpeedScale` = 0.25, ~21.1 km/h -
+  `CLIMB_BLOCK_MAX_SPEED_MPS`) for at least 2.5 estimated minutes
+  (`CLIMB_BLOCK_MIN_DURATION_SEC`, down from 210 s, which missed climbs teams
+  visibly ride individually), with short sub-threshold gaps merged. The plan is computed **once per request** and shared by
   every combo — a per-combo plan would poison `orderBySimulatedTime`'s
   physics-keyed dedupe cache. The cheap estimate mirrors the same physics:
   `tttGroupSpeedMps` is a 4-iteration fixed point (draft depends on speed,

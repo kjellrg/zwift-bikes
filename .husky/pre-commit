@@ -6,11 +6,11 @@ trufflehog --no-update git file://. --since-commit HEAD --results=verified,unkno
 # habit on any commit in a series, which quietly cost us the other checks too.
 #
 # It is no longer worth that. The .github/workflows/checks.yml workflow now runs
-# lint, typecheck and the data validators on every push and PR, and the Azure
-# deploy workflow still runs the full `npm run build` (via Oryx) on the way to a
-# preview environment - so a prerender failure is caught before merge either
-# way, ~4 minutes into a job nobody is waiting on, rather than ~9 minutes into a
-# commit somebody is.
+# lint, typecheck and the data validators on every push and PR, and the
+# Cloudflare deploy workflow (.github/workflows/cloudflare-deploy.yml) still
+# runs the full `npm run build` on the way to a preview Worker - so a prerender
+# failure is caught before merge either way, minutes into a job nobody is
+# waiting on, rather than ~9 minutes into a commit somebody is.
 #
 # What stays here is everything that is fast enough to never be worth skipping:
 # secret scanning, workflow auditing, lint, spellcheck, typecheck, the

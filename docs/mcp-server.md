@@ -21,9 +21,9 @@ endpoint is inherited by the MCP tools for free.
 
 **Responses are plain JSON, never an SSE stream.** The MCP spec permits a
 server to answer a POST with a single JSON-RPC message instead of opening a
-stream, and that is what this deployment needs: the site runs on Azure Static
-Web Apps, whose managed functions are a poor host for long-lived streaming
-connections. Nothing is given up - every tool is a synchronous read over a
+stream, and that is what this deployment needs: the site runs on Cloudflare
+Workers, whose request-scoped, freely evicted isolates are a poor host for
+long-lived streaming connections. Nothing is given up - every tool is a synchronous read over a
 catalog baked into the bundle, so there is no progress to stream and no
 server-initiated message to deliver. `GET /api/mcp` therefore answers `405`,
 which clients read as "POST only".
@@ -52,11 +52,18 @@ There are two ways to supply it:
 2. **Inline `weightKg` / `heightCm` / `wkg`** on each recommend call, which
    overrides the stored profile.
 
-Sessions live in the memory of whichever instance served the request. On Azure
-Static Web Apps that instance cold-starts and scales out freely, so a stored
-profile is a convenience, never a guarantee: a request landing on a fresh
-instance gets a `404`, the spec's defined signal to re-initialize, and the
-profile has to be set again. That is why option 2 exists - a client that never
+Sessions live in the memory of whichever Cloudflare Workers isolate served the
+request. Isolates cold-start and are evicted freely, share no memory with each
+other, and consecutive requests routinely land on different isolates - or
+different points of presence entirely. So the server does not answer a
+well-formed session id it merely hasn't seen with the spec's unknown-id `404`:
+the next isolate simply adopts the id as its own (`adoptSession` in
+[`server/utils/mcp/session.ts`](../server/utils/mcp/session.ts)) - before
+adoption existed, the `404` fired on nearly every claude.ai request and the
+client just looped on re-initialize. What adoption cannot carry across is the
+stored rider profile, so a stored profile is a convenience, never a guarantee:
+a profile-dependent call landing on a fresh isolate is told to supply the
+values again. That is why option 2 exists - a client that never
 wants to depend on server-side state can ignore `set_rider_profile` entirely.
 
 Validation bounds are deliberately identical to the ones the HTTP endpoints use
@@ -93,8 +100,9 @@ to requests from before the option existed. `ttt` models a rotating Team Time
 Trial paceline: the profile's `wkg` still means the rider's **own average over
 a full rotation**, and the group rides at the speed that combined effort
 produces (~1.38x a solo rider's power for an 8-rider team on the flat).
-`tttClimbWkg` optionally paces climbs over ~3.5 minutes, where the paceline
-breaks up, at a separate team climb W/kg. The response's `physics.ttt` block
+`tttClimbWkg` optionally paces long climbs - stretches slow enough that the
+rotation stops, lasting 2.5 estimated minutes or more - at a separate team
+climb W/kg. The response's `physics.ttt` block
 carries the rider count, the rider's own watts, their pull and last-wheel
 watts, and - on the first page - a simulated "saves X vs riding this alone at
 the same effort" comparison, which the tools surface as an assumption line in
