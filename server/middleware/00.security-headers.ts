@@ -26,4 +26,20 @@ export default defineEventHandler((event) => {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), geolocation=(), microphone=()'
   })
+
+  // HTML must never be reused stale: every deploy replaces the
+  // content-hashed /_nuxt/* chunks, so a browser reusing pre-deploy HTML
+  // references chunks that no longer exist and the page renders dead - no
+  // hydration, default values, inert controls (the 2026-08-28 post-deploy
+  // incident, seen on /profile in Safari, whose heuristic cache happily
+  // reuses responses that carry no Cache-Control at all). Prerendered pages
+  // already ship `max-age=0, must-revalidate` from the assets binding; this
+  // gives SSR-rendered pages the identical always-revalidate contract.
+  // Excluded: /api/** (cache policy is deliberate and per-route - the
+  // route-rule headers in nuxt.config.ts and the recommend edge cache) and
+  // /__* internals (nuxt-og-image et al. manage their own). A later handler
+  // setting its own Cache-Control overwrites this one.
+  if (!event.path.startsWith('/api/') && !event.path.startsWith('/__')) {
+    setResponseHeader(event, 'Cache-Control', 'public, max-age=0, must-revalidate')
+  }
 })
