@@ -145,6 +145,7 @@ const ftpWkg = computed(() => ftpWatts.value / weightKg.value)
         <div class="flex items-center gap-2">
           <USwitch
             :model-value="showUpcomingRaces"
+            aria-label="Show upcoming races"
             @update:model-value="(value: boolean) => setShowUpcomingRaces(value)"
           />
           <span class="text-sm">Show upcoming races</span>

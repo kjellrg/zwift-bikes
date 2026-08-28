@@ -75,18 +75,21 @@ const { openGarage } = useOverlays()
     <div class="flex items-center gap-2">
       <USwitch
         :model-value="verifiedOnly"
+        aria-label="Only show verified frames/wheels"
         @update:model-value="(value: boolean) => setVerifiedOnly(value)"
       /><span class="text-sm">Only show verified frames/wheels</span>
     </div>
     <div class="flex items-center gap-2">
       <USwitch
         :model-value="includeHaloBikes"
+        aria-label="Include hard-to-unlock Halo bikes"
         @update:model-value="(value: boolean) => setIncludeHaloBikes(value)"
       /><span class="text-sm">Include hard-to-unlock Halo bikes</span>
     </div>
     <div class="flex items-center gap-2">
       <USwitch
         :model-value="myBikesOnly"
+        aria-label="Only show items in my garage"
         @update:model-value="(value: boolean) => setMyBikesOnly(value)"
       /><span class="text-sm">Only show items in my garage</span><a
         href="/garage"
