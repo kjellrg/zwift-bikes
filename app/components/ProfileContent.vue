@@ -208,7 +208,7 @@ const ftpWkg = computed(() => ftpWatts.value / weightKg.value)
           <span>{{ TTT_MIN_CLIMB_WKG }} W/kg</span><span>{{ TTT_MAX_CLIMB_WKG }} W/kg</span>
         </div>
         <p class="text-sm text-muted mt-1">
-          What the team averages on climbs over ~3.5 minutes, where the paceline breaks up and drafting gives almost nothing. <template v-if="tttClimbWkg === undefined">
+          What the team averages on stretches slow enough that the rotation stops (roughly 2.5+ minutes below ~21 km/h), where drafting gives almost nothing. <template v-if="tttClimbWkg === undefined">
             Untouched, so climbs are ridden at your normal power - the slider starts there.
           </template><template v-else>
             Set independently of your FTP: changing your power above won't move it. <ULink

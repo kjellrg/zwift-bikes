@@ -61,7 +61,7 @@ export function useGarage() {
       const remaining = Object.fromEntries(Object.entries(next).filter(([id]) => Number(id) !== frameId))
       owned.value = remaining
     } else {
-      owned.value = { ...owned.value, [frameId]: Math.min(5, Math.max(0, level)) }
+      owned.value = { ...owned.value, [frameId]: Math.min(5, Math.max(0, Math.round(level))) }
     }
     persist()
   }

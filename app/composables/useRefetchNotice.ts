@@ -47,9 +47,12 @@ export function useRefetchNotice(
   // still-throttled API.
   onScopeDispose(() => clearTimeout(retryTimer))
 
-  // A successful refetch ends the episode: the next 429 earns a fresh retry.
+  // A successful refetch ends the episode: the next 429 earns a fresh retry,
+  // and a still-pending retry from the failed one is no longer needed.
   watch(status, (value) => {
-    if (value === 'success') autoRetried = false
+    if (value !== 'success') return
+    autoRetried = false
+    clearTimeout(retryTimer)
   })
 
   watch(error, (err) => {
@@ -65,6 +68,7 @@ export function useRefetchNotice(
         color: 'warning',
         icon: 'i-lucide-timer'
       })
+      clearTimeout(retryTimer)
       retryTimer = setTimeout(() => void refresh(), retrySec * 1000 + 250)
       lastToastMs = now
       return

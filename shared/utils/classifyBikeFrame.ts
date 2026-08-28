@@ -28,7 +28,9 @@ import { solveFrameEquipmentDelta } from './physics/equipment'
  *    whole style/category bucket. `gravel`/`cobble` scores (not covered by
  *    the speed tests, and in Zwift's actual physics almost entirely driven
  *    by the *wheel*, not the frame - see `classifyWheel.ts`) still come from
- *    the style/category preset either way.
+ *    the style/category preset either way - except for the five
+ *    `FIXED_WHEEL_FRAMES`, whose integrated road-class wheels set their
+ *    gravel/cobble instead (see `withFixedWheelOffroadScores`).
  *
  * Frames without real data fall back to the style/category presets, which
  * remain a best-effort estimate, not data pulled from Zwift's game engine.
@@ -265,9 +267,10 @@ const ENDURANCE_RE = /roubaix|synapse|road\s*machine|endurance/i
 // `concept\s*z1` covers the Tron bikes: the fastest flat frame in the game by
 // a clear margin (114.6s/hr saved at Stage 0 vs the Zwift Carbon baseline) but
 // only a middling climber, which is the aero preset's profile exactly. With
-// `FRAME_SPEED_DATA` present the preset only supplies their gravel/cobble
-// scores (inert in ranking - `OFFROAD_FRAME_WEIGHT` is 0) and the UI's style
-// label, so this is about labelling them honestly rather than "allrounder".
+// `FRAME_SPEED_DATA` present the preset only supplies the UI's style label -
+// both frames are `FIXED_WHEEL_FRAMES`, so their gravel/cobble come from
+// `withFixedWheelOffroadScores`, not the preset - meaning this is purely
+// about labelling them honestly rather than "allrounder".
 // `roller\s*blade` is the same reasoning for the R4000 (flat 120.8 vs climb
 // 7.7 at Stage 0 - a flat-dominant Halo profile).
 const AERO_RE = /aeroad|venge|system\s*six|\bfoil\b|madone|propel|speedmax|speed\s*concept|concept\s*z1|roller\s*blade|felt\s*ar\b|felt\s*fr\b|\bs5\b|dogma\s*f(?!.*gr)|time\s*machine|\bp5\b|\bshiv\b|plasma|\bslice\b|bolide|aerium|noah\s*fast|\bia\s*2?\.?0?\b/i

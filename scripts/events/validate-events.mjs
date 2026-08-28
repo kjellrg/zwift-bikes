@@ -278,8 +278,11 @@ for (const season of getAllSeasons()) {
     if (dates.some((date, i) => i > 0 && date <= dates[i - 1])) {
       errors.push(`${season.slug} round ${round.number}: race dates aren't in ascending calendar order`)
     }
-    const ends = round.races.map(race => raceEndDate(race))
-    if (round.races.some((race, i) => i > 0 && ends[i - 1] >= race.date)) {
+    // Hidden races are retired entries (a reschedule keeps the old row,
+    // hidden, next to its replacement), so only visible windows can overlap.
+    const visible = round.races.filter(race => !race.hidden && !seasonHidden)
+    const ends = visible.map(race => raceEndDate(race))
+    if (visible.some((race, i) => i > 0 && ends[i - 1] >= race.date)) {
       errors.push(`${season.slug} round ${round.number}: a race window overlaps the one before it`)
     }
   }

@@ -167,6 +167,17 @@ export const routesQuerySchema = z.object({
 })
 
 /**
+ * Paging bounds for the recommend endpoints, exported so the MCP adapter's
+ * pre-clamps (`mcp/tools.ts`) and pagination wording (`mcp/format.ts`) read
+ * the same numbers as the schema. The offset cap was once tightened
+ * 1000->100 here while the adapter's hardcoded copy was missed, leaving MCP
+ * forwarding offsets the endpoint 400s - a constant makes that drift
+ * impossible.
+ */
+export const RECOMMEND_MAX_LIMIT = 9
+export const RECOMMEND_MAX_OFFSET = 100
+
+/**
  * Everything both recommend endpoints share. A plain shape (not a schema) so
  * each endpoint can spread its own extra fields in before the object is
  * closed over the rider-profile refinement below.
@@ -174,14 +185,14 @@ export const routesQuerySchema = z.object({
 const recommendBaseShape = {
   search: qSearch,
   category: qEnum(BIKE_CATEGORIES),
-  limit: qNumber.pipe(z.number().min(1).max(9).optional()).transform(value => (value === undefined ? 9 : Math.floor(value))),
+  limit: qNumber.pipe(z.number().min(1).max(RECOMMEND_MAX_LIMIT).optional()).transform(value => (value === undefined ? RECOMMEND_MAX_LIMIT : Math.floor(value))),
   // Offset feeds `offset + limit + SIMULATED_ORDER_MARGIN` simulations, so
   // its upper bound IS the per-request CPU bound: at the old max of 1000 a
   // single crafted request measurably rode the full 30s `cpu_ms` kill limit
   // (~$0.02/M CPU-ms, 30/min per IP allowed). 100 keeps ~11 "Show more"
   // pages reachable - deeper than any real browsing - at ~154 simulations
   // worst case.
-  offset: qNumber.pipe(z.number().min(0).max(100).optional()).transform(value => (value === undefined ? 0 : Math.floor(value))),
+  offset: qNumber.pipe(z.number().min(0).max(RECOMMEND_MAX_OFFSET).optional()).transform(value => (value === undefined ? 0 : Math.floor(value))),
   // Defaults to on: an `estimated` score is a name/style heuristic, and a
   // finish time built on one is a much weaker claim than one built on real
   // bot-test data. Callers opt out with `verifiedOnly=false` - which the
