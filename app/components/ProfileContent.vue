@@ -18,19 +18,40 @@ const { bikeCategory, showUpcomingRaces, load: loadPreferences, setBikeCategory,
 onMounted(() => {
   load()
   loadPreferences()
+  pendingWeightKg.value = weightKg.value
+  pendingHeightCm.value = heightCm.value
   pendingPowerW.value = powerW.value
   pendingSprintPowerW.value = sprintPowerW.value
+  pendingRiders.value = tttRiders.value
+  pendingClimbWkg.value = climbSliderWkg.value
 })
 
-// Committed on release (USlider's `change`), not per drag tick: these
-// sliders edit the same `powerW`/`sprintPowerW` the host pages' refetch
-// watchers observe (the modal opens over route/segment/event pages), so
-// per-tick commits would fire a recommend request per step - the storm
-// RiderProfileControls' pending refs exist to prevent.
+// EVERY slider here commits on release (USlider's `change`), never per drag
+// tick, and every one of them needs to: the modal opens over route, segment
+// and event pages, whose refetch watchers observe weight, height, power,
+// draft mode, TTT riders and team climb pace alike (see the `watch([...])`
+// in `pages/routes/[slug].vue`). A per-tick commit therefore writes
+// localStorage and fires a recommend request per step crossed - dragging
+// weight 75->100 kg costs 25 of each (issue #155). Same pending-ref shape as
+// `RiderProfileControls.vue`, deliberately written out per control rather
+// than abstracted: the climb-pace one below has its own seeding and
+// undefined-guard rules that a shared helper would have to special-case.
+const pendingWeightKg = ref(weightKg.value)
+const pendingHeightCm = ref(heightCm.value)
 const pendingPowerW = ref(powerW.value)
 const pendingSprintPowerW = ref(sprintPowerW.value)
+// Power is stored in watts, so committing weight leaves the wattage exactly
+// where it is - only the derived W/kg readout moves.
+const commitWeight = () => setWeightKg(pendingWeightKg.value)
+const commitHeight = () => setHeightCm(pendingHeightCm.value)
 const commitPower = () => setPowerW(pendingPowerW.value)
 const commitSprintPower = () => setSprintPowerW(pendingSprintPowerW.value)
+watch(weightKg, (value) => {
+  pendingWeightKg.value = value
+})
+watch(heightCm, (value) => {
+  pendingHeightCm.value = value
+})
 watch(powerW, (value) => {
   pendingPowerW.value = value
 })
@@ -50,6 +71,22 @@ const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = [
 // at a sensible place without the profile actually claiming a value - which is
 // what keeps "untouched" meaning "ride climbs at your normal power".
 const climbSliderWkg = computed(() => tttClimbWkg.value ?? clampTttClimbWkg(powerW.value / weightKg.value) ?? TTT_MIN_CLIMB_WKG)
+
+const pendingRiders = ref(tttRiders.value)
+const commitRiders = () => setTttRiders(pendingRiders.value)
+watch(tttRiders, (value) => {
+  pendingRiders.value = value
+})
+
+// Watching the computed rather than `tttClimbWkg` keeps the untouched-state
+// behaviour intact: while no pace is stored the slider tracks the rider's
+// normal power, so moving the power slider in this same modal still carries
+// it along. Once a pace is stored the computed is just that value.
+const pendingClimbWkg = ref(climbSliderWkg.value)
+const commitClimbWkg = () => setTttClimbWkg(pendingClimbWkg.value)
+watch(climbSliderWkg, (value) => {
+  pendingClimbWkg.value = value
+})
 
 // Derived from the committed value, not the pending one - the readout is a
 // profile fact and should match what route pages will actually rank with.
@@ -72,13 +109,15 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
 
     <div class="rounded-lg border border-default p-4 space-y-6">
       <div class="max-w-md">
-        <label class="block text-xs font-medium text-muted mb-1">Rider weight: {{ weightKg }} kg</label>
+        <label class="block text-xs font-medium text-muted mb-1">Rider weight: {{ pendingWeightKg }} kg</label>
         <USlider
-          :model-value="weightKg"
+          :model-value="pendingWeightKg"
           :min="40"
           :max="130"
           :step="1"
-          @update:model-value="(value: number | undefined) => setWeightKg(value ?? weightKg)"
+          aria-label="Rider weight in kilograms"
+          @update:model-value="(value: number | undefined) => { pendingWeightKg = value ?? pendingWeightKg }"
+          @change="commitWeight"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
           <span>40 kg</span><span>130 kg</span>
@@ -89,13 +128,15 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-md">
-        <label class="block text-xs font-medium text-muted mb-1">Rider height: {{ heightCm }} cm</label>
+        <label class="block text-xs font-medium text-muted mb-1">Rider height: {{ pendingHeightCm }} cm</label>
         <USlider
-          :model-value="heightCm"
+          :model-value="pendingHeightCm"
           :min="100"
           :max="220"
           :step="1"
-          @update:model-value="(value: number | undefined) => setHeightCm(value ?? heightCm)"
+          aria-label="Rider height in centimetres"
+          @update:model-value="(value: number | undefined) => { pendingHeightCm = value ?? pendingHeightCm }"
+          @change="commitHeight"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
           <span>100 cm</span><span>220 cm</span>
@@ -218,13 +259,15 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
         v-if="draftMode === 'ttt'"
         class="max-w-md"
       >
-        <label class="block text-xs font-medium text-muted mb-1">TTT riders: {{ tttRiders }}</label>
+        <label class="block text-xs font-medium text-muted mb-1">TTT riders: {{ pendingRiders }}</label>
         <USlider
-          :model-value="tttRiders"
+          :model-value="pendingRiders"
           :min="TTT_MIN_RIDERS"
           :max="TTT_MAX_RIDERS"
           :step="1"
-          @update:model-value="(value: number | undefined) => setTttRiders(value ?? tttRiders)"
+          aria-label="Riders in the paceline"
+          @update:model-value="(value: number | undefined) => { pendingRiders = value ?? pendingRiders }"
+          @change="commitRiders"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
           <span>{{ TTT_MIN_RIDERS }} riders</span><span>{{ TTT_MAX_RIDERS }} riders</span>
@@ -238,13 +281,15 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
         v-if="draftMode === 'ttt'"
         class="max-w-md"
       >
-        <label class="block text-xs font-medium text-muted mb-1">Team climb pace: {{ tttClimbWkg === undefined ? `not set (${climbSliderWkg.toFixed(1)} W/kg, your normal power)` : `${tttClimbWkg.toFixed(1)} W/kg` }}</label>
+        <label class="block text-xs font-medium text-muted mb-1">Team climb pace: {{ pendingClimbWkg.toFixed(1) }} W/kg{{ tttClimbWkg === undefined ? ' (not set - your normal power)' : '' }}</label>
         <USlider
-          :model-value="climbSliderWkg"
+          :model-value="pendingClimbWkg"
           :min="TTT_MIN_CLIMB_WKG"
           :max="TTT_MAX_CLIMB_WKG"
           :step="0.1"
-          @update:model-value="(value: number | undefined) => setTttClimbWkg(value ?? climbSliderWkg)"
+          aria-label="Team climb pace in watts per kilogram"
+          @update:model-value="(value: number | undefined) => { pendingClimbWkg = value ?? pendingClimbWkg }"
+          @change="commitClimbWkg"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
           <span>{{ TTT_MIN_CLIMB_WKG }} W/kg</span><span>{{ TTT_MAX_CLIMB_WKG }} W/kg</span>
