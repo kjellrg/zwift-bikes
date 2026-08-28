@@ -100,8 +100,11 @@ function scoreFromGap(gapSec: number, [gapMin, gapMax]: [number, number]): numbe
  * far more common unpaved surface in Zwift routes) = Road 143W / Gravel 80W
  * / Mountain 89W. Lower watts -> higher score.
  */
-const CRR_COBBLE_SCORE: Record<'road' | 'gravel' | 'mountain', number> = { road: 96, gravel: 40, mountain: 8 }
-const CRR_GRAVEL_SCORE: Record<'road' | 'gravel' | 'mountain', number> = { road: 8, gravel: 96, mountain: 83 }
+// Exported for `classifyBikeFrame.ts`: fixed-wheel frames carry their own
+// integrated road-class wheels, so their gravel/cobble scores come from
+// these same tables rather than a frame style preset.
+export const CRR_COBBLE_SCORE: Record<'road' | 'gravel' | 'mountain', number> = { road: 96, gravel: 40, mountain: 8 }
+export const CRR_GRAVEL_SCORE: Record<'road' | 'gravel' | 'mountain', number> = { road: 8, gravel: 96, mountain: 83 }
 
 function crrClassFor(category: WheelCategory, name: string): 'road' | 'gravel' | 'mountain' {
   if (name === 'Zwift Mountain') return 'mountain'
