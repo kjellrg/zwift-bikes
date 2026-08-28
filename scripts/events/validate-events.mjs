@@ -279,7 +279,7 @@ for (const season of getAllSeasons()) {
       errors.push(`${season.slug} round ${round.number}: race dates aren't in ascending calendar order`)
     }
     const ends = round.races.map(race => raceEndDate(race))
-    if (ends.some((end, i) => i > 0 && end <= round.races[i - 1].date)) {
+    if (round.races.some((race, i) => i > 0 && ends[i - 1] >= race.date)) {
       errors.push(`${season.slug} round ${round.number}: a race window overlaps the one before it`)
     }
   }

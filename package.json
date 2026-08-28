@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "npm run validate && nuxt build",
-    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas",
+    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:upgrade-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas",
+    "validate:upgrade-data": "node scripts/upgrade-levels/verify-upgrade-data.mjs",
     "validate:equipment-physics": "node scripts/equipment-physics/compute-equipment-physics.mjs --check",
     "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",
     "validate:api-schemas": "node scripts/validate-api-schemas.mjs",
