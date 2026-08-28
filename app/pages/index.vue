@@ -28,8 +28,36 @@ watch(search, (value) => {
 
 const worldFilter = ref<string>('all')
 const surfaceFilter = ref<string>('all')
+// Two refs per range: the `pending*` one the slider drags against, and the
+// committed one the query reads. `useFetch` watches `query` reactively, so a
+// slider bound straight into it fires a request per step crossed - up to ~24
+// sequential fetches for one drag across the distance scale, each with a
+// distinct query string that the 300s cache rule can never serve (issue
+// #155). The committed value moves once, on `change` (value-commit, i.e.
+// pointer release), which is the same treatment the text search gets from its
+// 300ms debounce above. The slider is a controlled `:model-value` rather than
+// `v-model` so `resetFilters` can move both halves in one place.
 const distanceRange = ref<[number, number]>([0, 120])
 const elevationRange = ref<[number, number]>([0, 2000])
+const pendingDistanceRange = ref<[number, number]>([...distanceRange.value])
+const pendingElevationRange = ref<[number, number]>([...elevationRange.value])
+const commitDistanceRange = () => {
+  distanceRange.value = [...pendingDistanceRange.value]
+}
+const commitElevationRange = () => {
+  elevationRange.value = [...pendingElevationRange.value]
+}
+// USlider types its payload for both the single and the range shape; only the
+// two-element array is meaningful here, and anything else leaves the drag
+// where it is rather than collapsing the range.
+const asRange = (value: number[] | number | undefined): [number, number] | undefined =>
+  Array.isArray(value) && value.length === 2 ? [value[0]!, value[1]!] : undefined
+const onDistanceRangeInput = (value: number[] | number | undefined) => {
+  pendingDistanceRange.value = asRange(value) ?? pendingDistanceRange.value
+}
+const onElevationRangeInput = (value: number[] | number | undefined) => {
+  pendingElevationRange.value = asRange(value) ?? pendingElevationRange.value
+}
 const visibleCount = ref(24)
 
 const query = computed(() => ({
@@ -77,6 +105,8 @@ function resetFilters() {
   surfaceFilter.value = 'all'
   distanceRange.value = [0, 120]
   elevationRange.value = [0, 2000]
+  pendingDistanceRange.value = [...distanceRange.value]
+  pendingElevationRange.value = [...elevationRange.value]
 }
 
 watch(query, () => {
@@ -140,27 +170,33 @@ watch(query, () => {
            the tracks to the bottom edge. -->
       <div class="min-w-56">
         <label class="block text-xs font-medium text-muted mb-1">
-          Distance: {{ distanceRange[0] }}–{{ distanceRange[1] }} km
+          Distance: {{ pendingDistanceRange[0] }}–{{ pendingDistanceRange[1] }} km
         </label>
         <div class="flex h-8 items-center">
           <USlider
-            v-model="distanceRange"
+            :model-value="pendingDistanceRange"
             :min="0"
             :max="120"
             :step="5"
+            aria-label="Distance range in kilometres"
+            @update:model-value="onDistanceRangeInput"
+            @change="commitDistanceRange"
           />
         </div>
       </div>
       <div class="min-w-56">
         <label class="block text-xs font-medium text-muted mb-1">
-          Elevation: {{ elevationRange[0] }}–{{ elevationRange[1] }} m
+          Elevation: {{ pendingElevationRange[0] }}–{{ pendingElevationRange[1] }} m
         </label>
         <div class="flex h-8 items-center">
           <USlider
-            v-model="elevationRange"
+            :model-value="pendingElevationRange"
             :min="0"
             :max="2000"
             :step="50"
+            aria-label="Elevation range in metres"
+            @update:model-value="onElevationRangeInput"
+            @change="commitElevationRange"
           />
         </div>
       </div>
