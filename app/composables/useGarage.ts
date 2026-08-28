@@ -20,10 +20,21 @@ export function useGarage() {
     localStorage.setItem(WHEELS_STORAGE_KEY, JSON.stringify(ownedWheels.value))
   }
 
-  function loadStored<T extends object>(key: string): T {
+  /** Parses stored JSON, keeping only entries whose value passes `sanitize` -
+   * localStorage is user-editable and survives schema changes, so the shape
+   * can't be trusted (the discipline `usePreferences.load()` already applies):
+   * a stored `null` would crash `Object.keys(owned.value)` in every recommend
+   * query on every page, and a non-numeric level would 400 every request it's
+   * serialized into. */
+  function loadStored<T extends object>(key: string, sanitize: (value: unknown) => T[keyof T] | undefined): T {
     try {
       const raw = localStorage.getItem(key)
-      return raw ? JSON.parse(raw) : ({} as T)
+      const parsed: unknown = raw ? JSON.parse(raw) : {}
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {} as T
+      const entries = Object.entries(parsed)
+        .map(([k, value]) => [k, sanitize(value)] as const)
+        .filter(([, value]) => value !== undefined)
+      return Object.fromEntries(entries) as T
     } catch {
       return {} as T
     }
@@ -34,9 +45,12 @@ export function useGarage() {
    * any watcher on `owned`/`ownedWheels` needlessly on every mount. */
   function load() {
     if (!import.meta.client) return
-    const nextOwned = loadStored<Record<number, number>>(STORAGE_KEY)
+    // Levels sanitize with the same clamp `setOwned` applies on the way in.
+    const nextOwned = loadStored<Record<number, number>>(STORAGE_KEY, value =>
+      typeof value === 'number' && Number.isFinite(value) ? Math.min(5, Math.max(0, Math.round(value))) : undefined)
     if (JSON.stringify(nextOwned) !== JSON.stringify(owned.value)) owned.value = nextOwned
-    const nextOwnedWheels = loadStored<Record<string, true>>(WHEELS_STORAGE_KEY)
+    const nextOwnedWheels = loadStored<Record<string, true>>(WHEELS_STORAGE_KEY, value =>
+      value === true ? true : undefined)
     if (JSON.stringify(nextOwnedWheels) !== JSON.stringify(ownedWheels.value)) ownedWheels.value = nextOwnedWheels
   }
 
