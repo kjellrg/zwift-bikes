@@ -105,7 +105,9 @@ export function scoreCombo(route: RouteWithMeta, frame: ClassifiedBikeFrame, whe
     cobble: Math.round((cobbleFactor / totalWeight) * combinedCobble)
   }
 
-  const isTtDisc = !frame.hasFixedWheels && !!wheelset && frame.category === 'tt' && wheelset.front.category === 'disc'
+  // Disc-ness is a property of the REAR wheel - see `Wheelset.rear` in
+  // `shared/types/catalog.ts` (issue #150).
+  const isTtDisc = !frame.hasFixedWheels && !!wheelset && frame.category === 'tt' && wheelset.rear.category === 'disc'
   const aeroRelevance = aeroWeight / totalWeight
   // `aeroRelevance` is a fraction, not a whole number, so scaling the bonus
   // by it (see `TT_DISC_SCORE_BONUS`'s comment) can leave `score` with a

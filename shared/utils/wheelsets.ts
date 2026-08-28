@@ -25,9 +25,11 @@ function combinedConfidence(a: ClassifiedWheel, b: ClassifiedWheel): ScoreConfid
   return a.confidence === 'measured' && b.confidence === 'measured' ? 'measured' : 'estimated'
 }
 
-// Only meaningful when both sides are 'measured' - front/rear of the same
-// model solve to (near-)identical deltas anyway, since both come from the
-// same `WHEEL_SPEED_DATA` entry in the ~98% same-name case.
+// Only used by the same-name pairing loop, where both legs classify from the
+// SAME `WHEEL_SPEED_DATA` entry and therefore solve to identical deltas - the
+// average is a no-op that exists only so a future divergence averages rather
+// than silently picking a side. It deliberately does NOT run on the rear-only
+// pairings, whose two legs come from different rows (see issue #150 below).
 function averagePhysics(a: ClassifiedWheel, b: ClassifiedWheel): EquipmentPhysicsDelta | undefined {
   if (!a.physics || !b.physics) return undefined
   return {
@@ -81,6 +83,20 @@ export function getWheelsets(): Wheelset[] {
 
   // Handle rear-only entries (e.g. disc wheels) by pairing with the closest
   // matching front wheel, falling back to itself as a pseudo-front wheel.
+  //
+  // Here the REAR is authoritative for the whole set, and the matched front
+  // contributes identity only (which wheel is shown/equipped up front, and
+  // its Crr class). A `WHEEL_SPEED_DATA` row always measures the complete
+  // assembled set ZwiftInsider bot-tested, so "Zipp 808/Super9"'s row (flat
+  // +44.6s, climb -21.6s) already describes an 808 front with a Super9 rear;
+  // averaging it with the standalone "Zipp 808" row halved the disc's
+  // measured character and shipped physics for a set that doesn't exist
+  // (issue #150). Confidence follows the same logic: the set's numbers now
+  // trace entirely to the rear's real bot test, so the front leg's own
+  // confidence describes a measurement the set no longer uses.
+  //
+  // `key` stays the rear's name - it is the garage/localStorage identity and
+  // the API's `ownedWheels` filter key, so it must never move.
   for (const rear of classifiedRear) {
     if (usedRearNames.has(rear.name)) continue
 
@@ -90,13 +106,13 @@ export function getWheelsets(): Wheelset[] {
     const effectiveFront = front ?? { ...rear, id: -rear.id }
     wheelsets.push({
       key: rear.name,
-      name: front ? `${front.name} / ${rear.name}` : rear.name,
+      name: rear.name,
       front: effectiveFront,
       rear,
       crrClass: effectiveFront.crrClass,
-      scores: front ? averageScores(front.scores, rear.scores) : rear.scores,
-      confidence: combinedConfidence(effectiveFront, rear),
-      physics: front ? averagePhysics(effectiveFront, rear) : rear.physics
+      scores: rear.scores,
+      confidence: rear.confidence,
+      physics: rear.physics
     })
   }
 

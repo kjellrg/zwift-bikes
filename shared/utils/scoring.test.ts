@@ -37,7 +37,7 @@ const standardFrame = () => frames().find(f => f.category === 'standard' && !f.h
 const ttFrame = () => frames().find(f => f.category === 'tt' && !f.hasFixedWheels)!
 const roadWheelset = () => wheelsets().find(w => w.crrClass === 'road')!
 const gravelWheelset = () => wheelsets().find(w => w.crrClass === 'gravel')!
-const discWheelset = () => wheelsets().find(w => w.crrClass === 'road' && w.front.category === 'disc')!
+const discWheelset = () => wheelsets().find(w => w.crrClass === 'road' && w.rear.category === 'disc')!
 
 describe('scoreCombo surface rules (Zwift physics, not real-world intuition)', () => {
   it('on 100% cobbles, every road-class wheelset ties - and beats a gravel wheelset', () => {
@@ -72,6 +72,20 @@ describe('scoreCombo TT disc bonus', () => {
     const onCobbles = scoreCombo(PURE_COBBLE, frame, disc)
     expect(onFlat.score).toBeGreaterThan(breakdownSum(onFlat))
     expect(onCobbles.score).toBe(breakdownSum(onCobbles))
+  })
+
+  it('applies to both Super9 sets, whichever leg carries the disc (issue #150)', () => {
+    // "Zipp 858/Super9" is a disc front AND rear; "Zipp 808/Super9" is an
+    // aero 808 front with the same disc rear. Both are disc sets in Zwift, so
+    // gating on the front silently withheld the bonus from one of them.
+    const frame = ttFrame()
+    const breakdownSum = (combo: ComboScore) => combo.breakdown.aero + combo.breakdown.climb + combo.breakdown.gravel + combo.breakdown.cobble
+    for (const key of ['Zipp 808/Super9', 'Zipp 858/Super9']) {
+      const set = wheelsets().find(w => w.key === key)!
+      expect(set.rear.category).toBe('disc')
+      const onFlat = scoreCombo(FLAT_ROAD, frame, set)
+      expect(onFlat.score).toBeGreaterThan(breakdownSum(onFlat))
+    }
   })
 })
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { classifyFrontWheel } from './classifyWheel'
 import { getWheelsets, INTEGRATED_ONLY_WHEELS } from './wheelsets'
+import { precomputedWheelDelta } from '../data/equipmentPhysics'
 
 const classify = (name: string) => classifyFrontWheel({ id: 999999, name, imageName: 'test' })
 
@@ -94,5 +95,19 @@ describe('wheelset assembly', () => {
 
   it('every wheelset\'s Crr class matches its front wheel\'s', () => {
     for (const wheelset of getWheelsets()) expect(wheelset.crrClass).toBe(wheelset.front.crrClass)
+  })
+
+  it('takes a rear-only set\'s numbers from the rear wheel alone (issue #150)', () => {
+    // A `WHEEL_SPEED_DATA` row measures the complete assembled set, so the
+    // rear's row already covers the front it ships with - averaging in the
+    // standalone front's row halves the disc's measured character. Guards
+    // the next rear-only wheel zwift-data ships, not just this one.
+    const set = getWheelsets().find(w => w.key === 'Zipp 808/Super9')!
+    expect(set.rear.name).toBe('Zipp 808/Super9')
+    expect(set.front.name).toBe('Zipp 808')
+    expect(set.physics).toEqual(precomputedWheelDelta('Zipp 808/Super9'))
+    expect(set.scores).toEqual(set.rear.scores)
+    expect(set.confidence).toBe(set.rear.confidence)
+    expect(set.name).toBe('Zipp 808/Super9')
   })
 })
