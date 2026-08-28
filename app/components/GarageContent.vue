@@ -297,7 +297,7 @@ const activeTab = ref('bikes')
                       color="neutral"
                       variant="subtle"
                     >
-                      {{ WHEEL_CATEGORY_LABELS[wheelset.front.category] }}
+                      {{ WHEEL_CATEGORY_LABELS[wheelset.rear.category] }}
                     </UBadge>
                   </div>
                 </div>

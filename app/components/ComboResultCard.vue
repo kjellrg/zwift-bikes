@@ -249,7 +249,7 @@ const isFastest = computed(() => {
       >
         {{
           combo.wheelset
-            ? WHEEL_CATEGORY_LABELS[combo.wheelset.front.category]
+            ? WHEEL_CATEGORY_LABELS[combo.wheelset.rear.category]
             : "Fixed disc"
         }}
         wheels

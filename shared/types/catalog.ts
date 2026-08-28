@@ -80,9 +80,17 @@ export interface ClassifiedWheel {
 
 /** A front+rear wheel pairing, as commonly ridden together in Zwift */
 export interface Wheelset {
+  /** Stable identity for the garage/localStorage and the API's `ownedWheels` filter - never derive it from anything that can be re-styled. */
   key: string
   name: string
   front: ClassifiedWheel
+  /**
+   * A set's disc-ness is decided by its REAR wheel, never its front: "Zipp
+   * 808/Super9" pairs an aero-class 808 front with a disc rear, and it is the
+   * disc rear that earns the TT aero bonuses. Every disc gate (the TT score
+   * bonus in `scoring.ts`, the TT residual CdA in `physics/equipment.ts`, the
+   * "Disc / TT" UI badge) therefore reads `rear.category` - issue #150.
+   */
   rear: ClassifiedWheel
   /** Rolling-resistance class, taken from the front wheel (front/rear always share the same class) */
   crrClass: 'road' | 'gravel' | 'mountain'

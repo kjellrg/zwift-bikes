@@ -273,7 +273,9 @@ export function solveTtDiscResidualCdaDeltaM2(): number {
 
 export function equipmentPhysics(frame: ClassifiedBikeFrame, wheelset?: Wheelset): PhysicsParameters {
   const isTT = frame.category === 'tt'
-  const isDiscWheel = !frame.hasFixedWheels && wheelset?.front.category === 'disc'
+  // Disc-ness is a property of the REAR wheel - see `Wheelset.rear` in
+  // `shared/types/catalog.ts` (issue #150).
+  const isDiscWheel = !frame.hasFixedWheels && wheelset?.rear.category === 'disc'
 
   // Both legs of the combo need a real solved delta to combine additively -
   // mixing an absolute delta from one leg with a score-derived value from
