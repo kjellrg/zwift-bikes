@@ -91,8 +91,8 @@ export function orderBySimulatedTime<T extends OrderableCombo>(
 
   const head = combos.slice(0, Math.max(0, windowSize))
   for (const combo of head) {
-    const { cdaM2, bikeMassKg } = equipmentPhysics(combo.frame, combo.wheelset)
-    const physicsKey = `${cdaM2}|${bikeMassKg}|${combo.wheelset?.crrClass ?? 'road'}`
+    const { cdaM2, bikeMassKg, crrDelta } = equipmentPhysics(combo.frame, combo.wheelset)
+    const physicsKey = `${cdaM2}|${bikeMassKg}|${crrDelta ?? 0}|${combo.wheelset?.crrClass ?? 'road'}`
     let seconds = byPhysics.get(physicsKey)
     if (seconds === undefined) {
       seconds = simulateSeconds(combo)

@@ -173,7 +173,7 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): R
     // The endpoints now 400 on out-of-range values, and a model asking for
     // limit 20 deserves the first 9 results, not an error to retry from.
     limit: Number.isFinite(Number(args.limit)) ? Math.min(9, Math.max(1, Math.round(Number(args.limit)))) : 9,
-    offset: Number.isFinite(Number(args.offset)) ? Math.min(1000, Math.max(0, Math.floor(Number(args.offset)))) : 0,
+    offset: Number.isFinite(Number(args.offset)) ? Math.min(100, Math.max(0, Math.floor(Number(args.offset)))) : 0,
     // Omitted entirely in solo mode, matching the web pages - a solo request is
     // byte-identical to one from before draft mode existed. Race mode sends the
     // mode and nothing else; it has no parameters.

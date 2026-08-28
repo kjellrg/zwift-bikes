@@ -40,6 +40,12 @@ export function useRefetchNotice(
   const toast = useToast()
   let autoRetried = false
   let lastToastMs = 0
+  let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+  // The retry window can outlive the page (Retry-After runs up to 30s);
+  // refreshing a departed page's data is a wasted request against a
+  // still-throttled API.
+  onScopeDispose(() => clearTimeout(retryTimer))
 
   // A successful refetch ends the episode: the next 429 earns a fresh retry.
   watch(status, (value) => {
@@ -59,7 +65,7 @@ export function useRefetchNotice(
         color: 'warning',
         icon: 'i-lucide-timer'
       })
-      setTimeout(() => void refresh(), retrySec * 1000 + 250)
+      retryTimer = setTimeout(() => void refresh(), retrySec * 1000 + 250)
       lastToastMs = now
       return
     }

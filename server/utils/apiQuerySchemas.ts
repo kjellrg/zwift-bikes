@@ -174,7 +174,7 @@ export const routesQuerySchema = z.object({
 const recommendBaseShape = {
   search: qSearch,
   category: qEnum(BIKE_CATEGORIES),
-  limit: qNumber.pipe(z.number().min(1).max(9).optional()).transform(value => value ?? 9),
+  limit: qNumber.pipe(z.number().min(1).max(9).optional()).transform(value => (value === undefined ? 9 : Math.floor(value))),
   // Offset feeds `offset + limit + SIMULATED_ORDER_MARGIN` simulations, so
   // its upper bound IS the per-request CPU bound: at the old max of 1000 a
   // single crafted request measurably rode the full 30s `cpu_ms` kill limit
