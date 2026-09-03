@@ -27,7 +27,12 @@ import { MAX_LAPS } from './routeLaps'
  * than importing the catalog directly.
  */
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO date (YYYY-MM-DD)')
+// Shape AND calendar validity: the regex alone let `2026-02-30` through, and
+// nothing downstream constructs a Date until the page formats it - as
+// "Invalid Date". A round trip through `Date` rejects impossible days.
+const isoDate = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO date (YYYY-MM-DD)')
+  .refine(value => new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), 'not a real calendar date')
 
 /**
  * The formats run across the covered series (ZRL's four; ZRacing stages are

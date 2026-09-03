@@ -270,6 +270,17 @@ for (const season of getAllSeasons()) {
     }
   }
 
+  // The rounds themselves: each window must be ordered, and rounds must not
+  // overlap or run backwards - the per-race checks above only place a race
+  // INSIDE its round, so a round whose own dates were mistyped passed them.
+  for (const [i, round] of season.rounds.entries()) {
+    if (round.endDate < round.startDate) errors.push(`${season.slug} round ${round.number}: endDate ${round.endDate} is before startDate ${round.startDate}`)
+    const previous = season.rounds[i - 1]
+    if (previous && round.startDate <= previous.endDate) {
+      errors.push(`${season.slug} round ${round.number} (${round.startDate}) starts before round ${previous.number} ends (${previous.endDate})`)
+    }
+  }
+
   // Sorted per round rather than across the season: ZRacing rounds are
   // calendar months, ZRL rounds don't overlap either, so within-round order
   // is the invariant that catches a mistyped date.

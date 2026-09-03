@@ -68,6 +68,8 @@ describe('schema rules contributors run into', () => {
     expect(() => testRace({ slug: 'Round_1' })).toThrow()
     expect(() => testRace({ date: '01-09-2026' })).toThrow()
     expect(() => testRace({ date: '2026-9-1' })).toThrow()
+    // Well-formed but not a day that exists - used to survive to the page as "Invalid Date".
+    expect(() => testRace({ date: '2026-02-30' })).toThrow()
   })
 
   it('rejects a powerup the enum does not know', () => {
