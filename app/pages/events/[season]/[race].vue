@@ -431,6 +431,16 @@ const hasLongClimb = computed(() => routeData.value
 
 const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
 const isRefreshingCombos = computed(() => status.value === 'pending' && !!recommendData.value)
+// Announced to assistive tech when a refetch lands: the visual cue is
+// opacity and a spinner only. Cleared first so consecutive refreshes
+// re-announce (a live region only speaks on change).
+const resultsAnnouncement = ref('')
+watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
+  if (!wasRefreshing || refreshing) return
+  resultsAnnouncement.value = ''
+  await nextTick()
+  resultsAnnouncement.value = 'Results updated'
+})
 
 async function showMore() {
   if (loadingMore.value || !hasMore.value) return
@@ -827,6 +837,161 @@ useHead(() => {
       </div>
     </div>
 
+    <div>
+      <h2 class="text-xl font-semibold text-highlighted mb-4">
+        Best bike &amp; wheel combo for this race
+      </h2>
+      <RecommendDataNotice />
+      <p
+        class="sr-only"
+        role="status"
+        aria-live="polite"
+      >
+        {{ resultsAnnouncement }}
+      </p>
+
+      <UAlert
+        v-if="groupHasNoRoute"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-map-pin-off"
+        :title="`${displayRouteName} isn't in the public route catalog`"
+        :description="`${season!.organizer} runs ${formatCategoryGroup(selectedGroup ?? { cats: [] })} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against - and a ranking computed from a guess would be worse than none. The published figures above are ${season!.organizer}'s own. Pick another category above to see recommendations for the routes we do have.`"
+      />
+
+      <template v-else>
+        <div
+          v-if="draftHint"
+          class="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-default p-4"
+        >
+          <UIcon
+            name="i-lucide-users"
+            class="size-5 text-warning shrink-0"
+          />
+          <p class="flex-1 min-w-64 text-sm text-muted">
+            {{ draftHint.text }}
+          </p>
+          <UButton
+            size="xs"
+            color="warning"
+            variant="subtle"
+            @click="setDraftMode(draftHint.mode)"
+          >
+            {{ draftHint.action }}
+          </UButton>
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-x"
+            aria-label="Dismiss draft mode hint"
+            @click="draftHintDismissed = true"
+          />
+        </div>
+
+        <BikeFilterControls
+          v-model:search="bikeSearch"
+          :hide-tt-category="!ttAllowed"
+          class="mb-6"
+        />
+
+        <RiderProfileControls
+          :has-long-climb="hasLongClimb"
+          :draft-locked="!draftAllowed"
+          class="mb-6"
+        />
+
+        <div
+          v-if="isFirstLoad"
+          class="space-y-4"
+        >
+          <ComboResultCardSkeleton class="mb-6" />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ComboResultCardSkeleton />
+            <ComboResultCardSkeleton />
+          </div>
+        </div>
+        <template v-else>
+          <p
+            v-if="isRefreshingCombos"
+            class="flex items-center gap-1.5 text-sm text-muted mb-3"
+          >
+            <UIcon
+              name="i-lucide-loader-circle"
+              class="size-4 animate-spin"
+            />Updating results…
+          </p>
+          <FastestOverallNote
+            v-if="fastestOverall"
+            :fastest-overall="fastestOverall"
+            @show-all="setBikeCategory('all')"
+            @include-halo="setIncludeHaloBikes(true)"
+          />
+          <div
+            class="transition-opacity"
+            :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
+          >
+            <ComboResultCard
+              v-if="topCombo"
+              :combo="topCombo"
+              :rank="1"
+              :route="routeInfo"
+              :weight-kg="weightKg"
+              :height-cm="heightCm"
+              :power-w="powerW"
+              :laps="resultsLaps"
+              :fastest-time-sec="fastestTimeSec"
+              :owned="owned"
+              :draft-mode="effectiveDraftMode"
+              :ttt-riders="tttRiders"
+              :ttt-climb-wkg="tttClimbWkg"
+              class="mb-6"
+            />
+            <div
+              v-if="restCombos.length"
+              class="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <ComboResultCard
+                v-for="(combo, index) in restCombos"
+                :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
+                :combo="combo"
+                :rank="index + 2"
+                :route="routeInfo"
+                :weight-kg="weightKg"
+                :height-cm="heightCm"
+                :power-w="powerW"
+                :laps="resultsLaps"
+                :fastest-time-sec="fastestTimeSec"
+                :owned="owned"
+                :draft-mode="effectiveDraftMode"
+                :ttt-riders="tttRiders"
+                :ttt-climb-wkg="tttClimbWkg"
+              />
+            </div>
+            <p
+              v-else-if="!topCombo"
+              class="text-muted text-center py-10"
+            >
+              No bikes match your filters.
+            </p>
+          </div>
+          <div
+            v-if="hasMore"
+            class="text-center mt-6"
+          >
+            <UButton
+              color="neutral"
+              variant="subtle"
+              :loading="loadingMore"
+              @click="showMore"
+            >
+              Show more matches
+            </UButton>
+          </div>
+        </template>
+      </template>
+    </div>
+
     <div
       v-if="race!.note"
       class="rounded-lg border border-default p-4"
@@ -1029,154 +1194,6 @@ useHead(() => {
       :summary="physicsInfo.summary"
       :note="physicsInfo.note"
     />
-
-    <div>
-      <h2 class="text-xl font-semibold text-highlighted mb-4">
-        Best bike &amp; wheel combo for this race
-      </h2>
-      <RecommendDataNotice />
-
-      <UAlert
-        v-if="groupHasNoRoute"
-        color="neutral"
-        variant="subtle"
-        icon="i-lucide-map-pin-off"
-        :title="`${displayRouteName} isn't in the public route catalog`"
-        :description="`${season!.organizer} runs ${formatCategoryGroup(selectedGroup ?? { cats: [] })} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against - and a ranking computed from a guess would be worse than none. The published figures above are ${season!.organizer}'s own. Pick another category above to see recommendations for the routes we do have.`"
-      />
-
-      <template v-else>
-        <div
-          v-if="draftHint"
-          class="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-default p-4"
-        >
-          <UIcon
-            name="i-lucide-users"
-            class="size-5 text-warning shrink-0"
-          />
-          <p class="flex-1 min-w-64 text-sm text-muted">
-            {{ draftHint.text }}
-          </p>
-          <UButton
-            size="xs"
-            color="warning"
-            variant="subtle"
-            @click="setDraftMode(draftHint.mode)"
-          >
-            {{ draftHint.action }}
-          </UButton>
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-x"
-            aria-label="Dismiss draft mode hint"
-            @click="draftHintDismissed = true"
-          />
-        </div>
-
-        <BikeFilterControls
-          v-model:search="bikeSearch"
-          :hide-tt-category="!ttAllowed"
-          class="mb-6"
-        />
-
-        <RiderProfileControls
-          :has-long-climb="hasLongClimb"
-          :draft-locked="!draftAllowed"
-          class="mb-6"
-        />
-
-        <div
-          v-if="isFirstLoad"
-          class="space-y-4"
-        >
-          <ComboResultCardSkeleton class="mb-6" />
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ComboResultCardSkeleton />
-            <ComboResultCardSkeleton />
-          </div>
-        </div>
-        <template v-else>
-          <p
-            v-if="isRefreshingCombos"
-            class="flex items-center gap-1.5 text-sm text-muted mb-3"
-          >
-            <UIcon
-              name="i-lucide-loader-circle"
-              class="size-4 animate-spin"
-            />Updating results…
-          </p>
-          <FastestOverallNote
-            v-if="fastestOverall"
-            :fastest-overall="fastestOverall"
-            @show-all="setBikeCategory('all')"
-            @include-halo="setIncludeHaloBikes(true)"
-          />
-          <div
-            class="transition-opacity"
-            :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
-          >
-            <ComboResultCard
-              v-if="topCombo"
-              :combo="topCombo"
-              :rank="1"
-              :route="routeInfo"
-              :weight-kg="weightKg"
-              :height-cm="heightCm"
-              :power-w="powerW"
-              :laps="resultsLaps"
-              :fastest-time-sec="fastestTimeSec"
-              :owned="owned"
-              :draft-mode="effectiveDraftMode"
-              :ttt-riders="tttRiders"
-              :ttt-climb-wkg="tttClimbWkg"
-              class="mb-6"
-            />
-            <div
-              v-if="restCombos.length"
-              class="grid grid-cols-1 md:grid-cols-2 gap-4"
-            >
-              <ComboResultCard
-                v-for="(combo, index) in restCombos"
-                :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
-                :combo="combo"
-                :rank="index + 2"
-                :route="routeInfo"
-                :weight-kg="weightKg"
-                :height-cm="heightCm"
-                :power-w="powerW"
-                :laps="resultsLaps"
-                :fastest-time-sec="fastestTimeSec"
-                :owned="owned"
-                :draft-mode="effectiveDraftMode"
-                :ttt-riders="tttRiders"
-                :ttt-climb-wkg="tttClimbWkg"
-              />
-            </div>
-            <p
-              v-else-if="!topCombo"
-              class="text-muted text-center py-10"
-            >
-              No bikes match your filters.
-            </p>
-          </div>
-          <div
-            v-if="hasMore"
-            class="text-center mt-6"
-          >
-            <UButton
-              color="neutral"
-              variant="subtle"
-              :loading="loadingMore"
-              @click="showMore"
-            >
-              Show more matches
-            </UButton>
-          </div>
-        </template>
-      </template>
-    </div>
 
     <div
       v-if="routeData"

@@ -173,6 +173,16 @@ const hasLongClimb = computed(() => routeData.value
 // already-visible results (show stale cards + a subtle "updating" hint).
 const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
 const isRefreshingCombos = computed(() => status.value === 'pending' && !!recommendData.value)
+// Announced to assistive tech when a refetch lands: the visual cue is
+// opacity and a spinner only. Cleared first so consecutive refreshes
+// re-announce (a live region only speaks on change).
+const resultsAnnouncement = ref('')
+watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
+  if (!wasRefreshing || refreshing) return
+  resultsAnnouncement.value = ''
+  await nextTick()
+  resultsAnnouncement.value = 'Results updated'
+})
 
 async function refreshFirstPage() {
   // Keep the current results mounted while the new recommendation request is
@@ -394,91 +404,18 @@ useHead(() => {
       </template>
     </UAlert>
 
-    <div v-if="faqAnswer">
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        {{ faqQuestion }}
-      </h2>
-      <p class="text-muted">
-        {{ faqAnswer }}
-      </p>
-    </div>
-
-    <RouteSurfaceSpeedProfile
-      v-if="topCombo"
-      :route="routeData"
-      :frame="topCombo.frame"
-      :wheelset="topCombo.wheelset"
-      :weight-kg="weightKg"
-      :height-cm="heightCm"
-      :power-w="powerW"
-      :draft-mode="draftMode"
-      :ttt-riders="tttRiders"
-      :ttt-climb-wkg="tttClimbWkg"
-    />
-
-    <RacePlanPanel
-      v-if="draftMode === 'ttt' && topCombo"
-      :route="routeData"
-      :laps="laps"
-      :weight-kg="weightKg"
-      :height-cm="heightCm"
-      :power-w="powerW"
-      :frame="topCombo.frame"
-      :wheelset="topCombo.wheelset"
-      :ttt-riders="tttRiders"
-      :ttt-climb-wkg="tttClimbWkg"
-    />
-
-    <div v-if="routeData.terrain.elevationProfile && routeData.terrain.elevationProfile.length > 1">
-      <RouteElevationProfile
-        :route="routeData"
-        :laps="laps"
-        :climbs="climbOccurrences"
-        :sprints="sprintOccurrences"
-      />
-    </div>
-
-    <div
-      v-if="climbOccurrences.length || sprintOccurrences.length || routeData.surface.composition"
-      class="grid grid-cols-1 lg:grid-cols-3 gap-6"
-    >
-      <div
-        v-if="climbOccurrences.length || sprintOccurrences.length"
-        class="lg:col-span-2 space-y-6"
-      >
-        <div v-if="climbOccurrences.length">
-          <h2 class="text-lg font-semibold text-highlighted mb-3">
-            Climbs on this route
-          </h2>
-          <RouteClimbs :climbs="climbOccurrences" />
-        </div>
-        <div v-if="sprintOccurrences.length">
-          <h2 class="text-lg font-semibold text-highlighted mb-3">
-            Sprints on this route
-          </h2>
-          <RouteSprints :sprints="sprintOccurrences" />
-        </div>
-      </div>
-      <div v-if="routeData.surface.composition">
-        <h2 class="text-lg font-semibold text-highlighted mb-3">
-          Surface
-        </h2>
-        <RouteSurfaceComposition :surface="routeData.surface" />
-      </div>
-    </div>
-
-    <PhysicsNote
-      v-if="physicsInfo"
-      :mode="physicsInfo.mode"
-      :summary="physicsInfo.summary"
-      :note="physicsInfo.note"
-    />
-
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this route
       </h2>
       <RecommendDataNotice />
+      <p
+        class="sr-only"
+        role="status"
+        aria-live="polite"
+      >
+        {{ resultsAnnouncement }}
+      </p>
       <BikeFilterControls
         v-model:search="bikeSearch"
         class="mb-6"
@@ -578,5 +515,85 @@ useHead(() => {
         <ReportDataLink :item="routeData?.name" />
       </template>
     </div>
+
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        {{ faqQuestion }}
+      </h2>
+      <p class="text-muted">
+        {{ faqAnswer }}
+      </p>
+    </div>
+
+    <RouteSurfaceSpeedProfile
+      v-if="topCombo"
+      :route="routeData"
+      :frame="topCombo.frame"
+      :wheelset="topCombo.wheelset"
+      :weight-kg="weightKg"
+      :height-cm="heightCm"
+      :power-w="powerW"
+      :draft-mode="draftMode"
+      :ttt-riders="tttRiders"
+      :ttt-climb-wkg="tttClimbWkg"
+    />
+
+    <RacePlanPanel
+      v-if="draftMode === 'ttt' && topCombo"
+      :route="routeData"
+      :laps="laps"
+      :weight-kg="weightKg"
+      :height-cm="heightCm"
+      :power-w="powerW"
+      :frame="topCombo.frame"
+      :wheelset="topCombo.wheelset"
+      :ttt-riders="tttRiders"
+      :ttt-climb-wkg="tttClimbWkg"
+    />
+
+    <div v-if="routeData.terrain.elevationProfile && routeData.terrain.elevationProfile.length > 1">
+      <RouteElevationProfile
+        :route="routeData"
+        :laps="laps"
+        :climbs="climbOccurrences"
+        :sprints="sprintOccurrences"
+      />
+    </div>
+
+    <div
+      v-if="climbOccurrences.length || sprintOccurrences.length || routeData.surface.composition"
+      class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+    >
+      <div
+        v-if="climbOccurrences.length || sprintOccurrences.length"
+        class="lg:col-span-2 space-y-6"
+      >
+        <div v-if="climbOccurrences.length">
+          <h2 class="text-lg font-semibold text-highlighted mb-3">
+            Climbs on this route
+          </h2>
+          <RouteClimbs :climbs="climbOccurrences" />
+        </div>
+        <div v-if="sprintOccurrences.length">
+          <h2 class="text-lg font-semibold text-highlighted mb-3">
+            Sprints on this route
+          </h2>
+          <RouteSprints :sprints="sprintOccurrences" />
+        </div>
+      </div>
+      <div v-if="routeData.surface.composition">
+        <h2 class="text-lg font-semibold text-highlighted mb-3">
+          Surface
+        </h2>
+        <RouteSurfaceComposition :surface="routeData.surface" />
+      </div>
+    </div>
+
+    <PhysicsNote
+      v-if="physicsInfo"
+      :mode="physicsInfo.mode"
+      :summary="physicsInfo.summary"
+      :note="physicsInfo.note"
+    />
   </UContainer>
 </template>
