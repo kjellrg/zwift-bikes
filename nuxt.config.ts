@@ -33,12 +33,13 @@ export default defineNuxtConfig({
        * currently on `main`.
        *
        * Resolved here, at build time, rather than left to a runtime env
-       * lookup: the SSR function on Azure has no `GITHUB_SHA` in its
-       * environment, so a runtime-only value would be empty for every page
-       * that isn't prerendered. Reading it in this file inlines it as the
-       * default instead, which prerendered pages and the SSR function then
-       * both carry. Fed by the `env:` block on the deploy workflow's build
-       * step, which Azure's action forwards into the Oryx build container.
+       * lookup: the Worker has no `GITHUB_SHA` in its environment (Workers
+       * carry only the bindings and vars in wrangler.jsonc), so a
+       * runtime-only value would be empty for every page that isn't
+       * prerendered. Reading it in this file inlines it as the default
+       * instead, which prerendered pages and the SSR Worker then both
+       * carry. Fed by the `env:` block on the build step of
+       * `.github/workflows/cloudflare-deploy.yml`.
        *
        * Deliberately `BUILD_SHA` and not `NUXT_PUBLIC_BUILD_SHA`: Nuxt
        * applies `NUXT_PUBLIC_*` variables over the resolved config value

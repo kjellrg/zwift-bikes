@@ -37,7 +37,7 @@ data.*
 - **Browse race events** on the events calendar — a hand-picked selection of
   race series (not every event on Zwift), with bike recommendations for each
   event's route.
-- **Set a rider profile once** (weight, height, FTP) and every estimate uses
+- **Set a rider profile once** (weight, height, sustained power) and every estimate uses
   it. It's stored only in your browser — nothing is sent to a server.
 
 ![Speed and surface chart for a route, showing estimated speed over the elevation profile, surface segments and their watt penalties](docs/assets/screenshots/terrain-light.png#gh-light-mode-only)

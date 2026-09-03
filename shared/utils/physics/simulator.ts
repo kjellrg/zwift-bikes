@@ -178,6 +178,12 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   // force evaluation, twice per step. One reusable scratch object rather
   // than an allocation per evaluation - `calculateForces` only reads it, and
   // never retains it. `options.rider` itself is never mutated.
+  // TODO(#167): power is applied on every step regardless of grade - there
+  // is no supertuck. Zwift zeroes power and cuts CdA automatically above
+  // ~58 km/h on -3% or steeper, so descent times here are optimistic and
+  // heavy-aero combos slightly over-credited downhill. Consistent across
+  // combos, and matches the bot protocol, but a cited k for the CdA cut
+  // would let this be modelled.
   const powerScaleAtSpeed = options.powerScaleAtSpeed
   const scaledRider = powerScaleAtSpeed ? { ...options.rider } : undefined
   const riderAtSpeed = (baseRider: PhysicsRider, speedMps: number) => {

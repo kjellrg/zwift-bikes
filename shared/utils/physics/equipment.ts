@@ -99,6 +99,13 @@ export function riderCdaM2(heightCm: number, weightKg: number): number {
  * rider's frontal area, not as a fixed absolute CdA that ignores who's
  * riding. Shared by `simulateRoute` and `finishTime.ts`'s cheap estimate so
  * both models treat rider height/weight identically.
+ *
+ * TODO(#166): the multiplicative scaling is an assumption, not a citation.
+ * Deltas are solved at the raw 0.32 bot CdA while both models run the bot
+ * through this scaling (0.345), so a 100 kg rider gets ~13% more absolute
+ * benefit from the same frame than the bot did. Whether Zwift applies
+ * equipment aero as a fraction of rider CdA or as an absolute offset needs
+ * one ZwiftInsider test at a different rider size to settle.
  */
 export function riderScaledCdaM2(equipmentCdaM2: number, heightCm: number, weightKg: number): number {
   return riderCdaM2(heightCm, weightKg) * (equipmentCdaM2 / BASE_EQUIPMENT_CDA)
@@ -155,6 +162,13 @@ const STANDARD_BASELINE_BIKE_MASS_KG = BASE_BIKE_MASS_KG
 // `TT_CLIMB_MASS_MULTIPLIER` was originally tuned to produce, now reproduced
 // via real per-frame physics instead of a per-frame score multiplier.
 const TT_BASELINE_CDA_M2 = STANDARD_BASELINE_CDA_M2 * TT_CDA_MULTIPLIER
+// TODO(#165): a 16 kg reference bike is a behavioural anchor (tuned so TT
+// stops winning Achterbahn at recreational power), not a mass. That was
+// harmless for the uniform-grade estimate; the simulator now applies it on
+// descents and in acceleration, handing TT frames ~47 s on 10 km at -8%
+// from mass that does not exist. Needs one real Zwift TT vs Zwift Carbon
+// measurement (Tempus + Alpe, 300 W) so the TT baseline can be solved like
+// every other frame.
 const TT_BASELINE_BIKE_MASS_KG = STANDARD_BASELINE_BIKE_MASS_KG * TT_CLIMB_MASS_MULTIPLIER
 
 /** Steady-state speed for constant power on constant grade, via bisection on `calculateForces`' net force. */

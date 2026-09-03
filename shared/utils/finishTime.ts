@@ -44,12 +44,18 @@ import { raceGroupSpeedMps, tttGroupSpeedMps } from './physics/draft'
  */
 
 // Coarse fallback Crr values for routes without a detailed zwiftmap-style
-// surface composition. Curated routes now provide `surface.composition`, so
-// this remains mostly for older/unverified/heuristic route metadata.
+// surface composition, derived from the same official per-surface table the
+// composition path reads so the two can never drift (they had: this table
+// once carried hand-typed values that disagreed with `SURFACE_CRR` for the
+// gravel and mountain classes). Reachable only for `unverified`/`heuristic`
+// routes, which always carry `gravel`/`cobble` at 0 (see `routeTerrain.ts`),
+// so numerically it only ever contributes the tarmac term. The coarse
+// "gravel" bucket maps to dirt, the surface Zwift's off-road routes are
+// mostly made of, and "cobble" to cobbles.
 const CRR_BY_CLASS: Record<'road' | 'gravel' | 'mountain', { road: number, gravel: number, cobble: number }> = {
-  road: { road: 0.004, gravel: 0.016, cobble: 0.0065 },
-  gravel: { road: 0.004, gravel: 0.008, cobble: 0.008 },
-  mountain: { road: 0.004, gravel: 0.009, cobble: 0.009 }
+  road: { road: SURFACE_CRR.tarmac.road!, gravel: SURFACE_CRR.dirt.road!, cobble: SURFACE_CRR.cobbles.road! },
+  gravel: { road: SURFACE_CRR.tarmac.gravel!, gravel: SURFACE_CRR.dirt.gravel!, cobble: SURFACE_CRR.cobbles.gravel! },
+  mountain: { road: SURFACE_CRR.tarmac.mountain!, gravel: SURFACE_CRR.dirt.mountain!, cobble: SURFACE_CRR.cobbles.mountain! }
 }
 
 // Fixed-wheel frames (see `hasFixedWheels`) don't have a real wheelset to
