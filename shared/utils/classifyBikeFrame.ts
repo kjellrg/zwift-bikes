@@ -2,7 +2,7 @@ import type { BikeFrame } from 'zwift-data'
 import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame, EquipmentPhysicsDelta } from '../types/catalog'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor, type StageChart, type StageCurve } from '../data/frameUpgradeSchemes'
-import { precomputedFrameDelta } from '../data/equipmentPhysics'
+import { type TtBaseline, precomputedFrameDelta } from '../data/equipmentPhysics'
 import { CRR_COBBLE_SCORE, CRR_GRAVEL_SCORE } from './classifyWheel'
 import { solveFrameEquipmentDelta } from './physics/equipment'
 
@@ -425,12 +425,12 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
  * (wired into `npm run validate`) to prove the committed table still matches
  * the speed data.
  */
-export function solveMeasuredFramePhysics(name: string, level: number, isTT: boolean): EquipmentPhysicsDelta | undefined {
+export function solveMeasuredFramePhysics(name: string, level: number, isTT: boolean, ttBaseline?: TtBaseline): EquipmentPhysicsDelta | undefined {
   const measured = (isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[name]
   if (!measured) return undefined
   const clampedLevel = Math.min(5, Math.max(0, Math.round(level)))
   const chart = frameStageChart(name)
   const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat, measured.flatGapSecByStage)
   const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb, measured.climbGapSecByStage)
-  return solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, isTT, drivetrainCrrDeltaForLevel(clampedLevel))
+  return solveFrameEquipmentDelta({ flatGapSec: flatGap, climbGapSec: climbGap }, isTT, drivetrainCrrDeltaForLevel(clampedLevel), ttBaseline)
 }

@@ -183,6 +183,26 @@ export const FRAME_SPEED_DATA: Record<string, FrameSpeedSample> = {
   'Zwift Steel': { flatGapSec0: -5.1, flatGapSec5: 21.6, climbGapSec0: -30, climbGapSec5: 5.8, flatGapSecByStage: [-5.1, 8.9, 10.3, 21.8, 21.8, 21.6], climbGapSecByStage: [-30, -27.7, -5.7, 5.1, 5.4, 5.8] }
 }
 
+/**
+ * The cross-baseline measurement. `FRAME_SPEED_DATA` is relative to the
+ * "Zwift Carbon" and `TT_FRAME_SPEED_DATA` to the "Zwift TT", so on their
+ * own the two tables can never say how a TT frame compares to a road frame.
+ * The same sheet also prints each reference bike's own AVERAGE SPEED per
+ * course (its "Stage 0 Avg Speed MPH" columns), from the same 75 kg / 183 cm
+ * bot on the same Zwift 32mm Carbon wheels over the same two courses - which
+ * is exactly the comparison the tables lack. Copied verbatim, in the sheet's
+ * mph, both power rows: 300 W is what `solveTtBaseline` (physics/equipment.ts)
+ * solves the TT reference bike's CdA and mass from, and 150 W is an
+ * independent check the solve was never fitted to (issue #168's question,
+ * answered for this pair). Before this existed the TT baseline was a tuned
+ * anchor (#165) that put the Zwift TT ~295 s/h behind the Zwift Carbon up
+ * the Alpe; the sheet says 63.
+ */
+export const BASELINE_SPEED_TEST_MPH = {
+  'Zwift Carbon': { at300W: { flat: 24.5877, climb: 9.2020 }, at150W: { flat: 18.9858, climb: 4.7855 } },
+  'Zwift TT': { at300W: { flat: 25.5238, climb: 9.0441 }, at150W: { flat: 19.6464, climb: 4.6762 } }
+} as const
+
 export const TT_FRAME_SPEED_DATA: Record<string, FrameSpeedSample> = {
   'BMC Timemachine01': { flatGapSec0: 21, flatGapSec5: 67.6, climbGapSec0: 17.3, climbGapSec5: 45.6, flatGapSecByStage: [21, 29.4, 30.4, 42.8, 67.8, 67.6], climbGapSecByStage: [17.3, 18.2, 30.4, 40.8, 43.9, 45.6] },
   'Cadex Tri': { flatGapSec0: 45.9, flatGapSec5: 93.4, climbGapSec0: 24.4, climbGapSec5: 51.2, flatGapSecByStage: [45.9, 54.7, 55.5, 67.9, 67.9, 93.4], climbGapSecByStage: [24.4, 25.6, 32.8, 44.1, 48.4, 51.2] },

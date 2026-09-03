@@ -32,8 +32,16 @@ interface GeneratedEquipmentPhysics {
   /** TT frames, solved against the TT baseline - see `solveFrameEquipmentDelta`. */
   ttFrames: Record<string, EquipmentPhysicsDelta[]>
   wheels: Record<string, EquipmentPhysicsDelta>
+  /** The TT reference bike on the standard scale - see `solveTtBaseline` in `physics/equipment.ts`. */
+  ttBaseline: TtBaseline
   /** See the comment on this constant in `physics/equipment.ts`. */
   ttDiscResidualCdaDeltaM2: number
+}
+
+/** Absolute CdA and bike mass of a reference bike - what a category's gap-seconds are relative to. */
+export interface TtBaseline {
+  cdaM2: number
+  bikeMassKg: number
 }
 
 const TABLE = generated as unknown as GeneratedEquipmentPhysics
@@ -53,3 +61,4 @@ export function precomputedWheelDelta(name: string): EquipmentPhysicsDelta {
 }
 
 export const PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2 = TABLE.ttDiscResidualCdaDeltaM2
+export const PRECOMPUTED_TT_BASELINE: TtBaseline = TABLE.ttBaseline

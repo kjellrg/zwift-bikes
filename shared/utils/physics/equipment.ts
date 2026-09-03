@@ -1,6 +1,7 @@
 import type { ClassifiedBikeFrame, EquipmentPhysicsDelta, Wheelset } from '../../types/catalog'
 import type { MeasuredEquipmentGap, PhysicsParameters, PhysicsRider } from '../../types/physics'
-import { PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2 } from '../../data/equipmentPhysics'
+import { PRECOMPUTED_TT_BASELINE, PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2, type TtBaseline } from '../../data/equipmentPhysics'
+import { BASELINE_SPEED_TEST_MPH } from '../../data/frameSpeedData'
 import { WHEEL_SPEED_DATA } from '../../data/wheelSpeedData'
 import { calculateForces } from './forces'
 
@@ -8,15 +9,26 @@ const BASE_BIKE_MASS_KG = 8
 const CLIMB_MASS_SENSITIVITY = 0.4
 const BASE_EQUIPMENT_CDA = 0.32
 const AERO_SENSITIVITY = 0.12
+
+// The TT reference bike ("Zwift TT" + "Zwift 32mm Carbon") on the standard
+// scale, solved from ZwiftInsider's own measurement of it against the
+// "Zwift Carbon" (see `solveTtBaseline` below). Read from the precomputed
+// table for the same reason as the disc residual: on Workers this module
+// evaluates in the isolate's global scope under a hard startup CPU limit.
+const TT_BASELINE: TtBaseline = PRECOMPUTED_TT_BASELINE
+
 // Fallback-path (score-based) constants - still used for frames/wheels
-// without real gap-seconds data (`confidence === 'estimated'`). Measured
-// frames/wheels instead go through `solveFrameEquipmentDelta`/
-// `solveWheelEquipmentDelta` below, which supersede these two multipliers by
-// using them once, as a baseline anchor, instead of on every frame - see
-// `TT_BASELINE_CDA_M2`/`TT_BASELINE_BIKE_MASS_KG`.
-const TT_CDA_MULTIPLIER = 0.87
+// without real gap-seconds data (`confidence === 'estimated'`). The two TT
+// multipliers are the measured baseline expressed as ratios, so an estimated
+// TT frame is placed on the same scale as a measured one. They were 0.87 and
+// 2.0 by hand until #165: the 2.0 mass was tuned so TT bikes stop winning
+// Achterbahn at recreational power, and the sheet shows the real Zwift TT is
+// only ~2 kg heavier than the Zwift Carbon, not 8. TT bikes losing hilly
+// races in practice is a draft effect (no draft on a TT bike), which the
+// race/TTT draft modes model on their own.
+const TT_CDA_MULTIPLIER = TT_BASELINE.cdaM2 / BASE_EQUIPMENT_CDA
 const TT_DISC_CDA_MULTIPLIER = 0.97
-const TT_CLIMB_MASS_MULTIPLIER = 2.0
+const TT_CLIMB_MASS_MULTIPLIER = TT_BASELINE.bikeMassKg / BASE_BIKE_MASS_KG
 
 function normalizeScore(score: number): number {
   return (score - 50) / 50
@@ -145,31 +157,25 @@ const STANDARD_BASELINE_CDA_M2 = BASE_EQUIPMENT_CDA
 const STANDARD_BASELINE_BIKE_MASS_KG = BASE_BIKE_MASS_KG
 
 // The TT baseline ("Zwift TT" + "Zwift 32mm Carbon") is NOT on the same
-// absolute scale as the standard baseline, and Zwift has never published a
-// real cross-baseline number (see the pre-existing `TT_CDA_MULTIPLIER`/
-// `TT_CLIMB_MASS_MULTIPLIER` history above). Reuses those same two
-// already-validated constants, but as a ONE-TIME anchor placing the TT
-// reference bike relative to the standard one - not as a flat multiplier
-// re-applied to every individual TT frame's already-lossy score-derived
-// CdA/mass, which is what produced issue #11's Lady Liberty gap. Verified
-// (scratch calibration script, see PR): with this anchor, the best real TT
-// frame (Canyon Speedmax CFR, Stage 5) beats the standard baseline by ~223
-// sec/hour on the bot-test flat course - safely past the Tron bike's real,
-// published 114.6 sec/hour edge over that same baseline
-// (zwiftinsider.com/tron-bike) - and TT stops beating the best standard
-// frame on Achterbahn (climbRatio ~21 m/km) at recreational/competitive
-// power, only creeping back ahead near elite power - the same behavior
-// `TT_CLIMB_MASS_MULTIPLIER` was originally tuned to produce, now reproduced
-// via real per-frame physics instead of a per-frame score multiplier.
-const TT_BASELINE_CDA_M2 = STANDARD_BASELINE_CDA_M2 * TT_CDA_MULTIPLIER
-// TODO(#165): a 16 kg reference bike is a behavioural anchor (tuned so TT
-// stops winning Achterbahn at recreational power), not a mass. That was
-// harmless for the uniform-grade estimate; the simulator now applies it on
-// descents and in acceleration, handing TT frames ~47 s on 10 km at -8%
-// from mass that does not exist. Needs one real Zwift TT vs Zwift Carbon
-// measurement (Tempus + Alpe, 300 W) so the TT baseline can be solved like
-// every other frame.
-const TT_BASELINE_BIKE_MASS_KG = STANDARD_BASELINE_BIKE_MASS_KG * TT_CLIMB_MASS_MULTIPLIER
+// absolute scale as the standard baseline: `TT_FRAME_SPEED_DATA` is
+// relative to it, `FRAME_SPEED_DATA` to the Zwift Carbon. Until #165 the
+// placement was a tuned anchor (CdA x0.87, bike mass x2.0 = 16 kg) chosen
+// so TT frames stop beating road frames on Achterbahn at recreational power.
+// That reproduced the flat gap almost exactly and got the climb wrong by
+// nearly five times - it put the Zwift TT 295 s/h behind the Zwift Carbon up
+// the Alpe where ZwiftInsider's bot measured 63 - and, once the simulator
+// ran descents and accelerations, handed every TT frame speed from 8 kg of
+// mass that does not exist.
+//
+// The sheet behind the charts prints both reference bikes' own average
+// speeds on both courses (`BASELINE_SPEED_TEST_MPH`), so the TT baseline is
+// now SOLVED from that measurement with the same solver as every frame:
+// CdA 0.2825 m2, bike mass 10.04 kg (vs 0.32 / 8 kg). The 150 W row, which
+// the solve never sees, is reproduced within 3 s/h - the CdA/mass split
+// itself is validated, not just the 300 W round trip. See
+// `solveTtBaseline` and the golden tests in equipment.test.ts.
+const TT_BASELINE_CDA_M2 = TT_BASELINE.cdaM2
+const TT_BASELINE_BIKE_MASS_KG = TT_BASELINE.bikeMassKg
 
 /** Steady-state speed for constant power on constant grade, via bisection on `calculateForces`' net force. */
 function steadyStateSpeedMps(powerW: number, bikeMassKg: number, grade: number, cdaM2: number, crrDelta = 0): number {
@@ -245,11 +251,39 @@ function solveEquipmentDelta(gap: MeasuredEquipmentGap, baselineCdaM2: number, b
   return { cdaDeltaM2, bikeMassDeltaKg: bikeMassDeltaForClimb(cdaDeltaM2), crrDelta }
 }
 
-/** Solves a frame's own CdA/mass delta from its real gap-seconds, relative to its category's baseline. */
-export function solveFrameEquipmentDelta(gap: MeasuredEquipmentGap, isTT: boolean, crrDelta = 0): EquipmentPhysicsDelta {
+/**
+ * Solves a frame's own CdA/mass delta from its real gap-seconds, relative to
+ * its category's baseline. `ttBaseline` is only ever passed by the
+ * equipment-physics generator, which solves the baseline fresh first and
+ * must not read the (possibly stale) precomputed one it is regenerating.
+ */
+export function solveFrameEquipmentDelta(gap: MeasuredEquipmentGap, isTT: boolean, crrDelta = 0, ttBaseline: TtBaseline = TT_BASELINE): EquipmentPhysicsDelta {
   return isTT
-    ? solveEquipmentDelta(gap, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG, crrDelta)
+    ? solveEquipmentDelta(gap, ttBaseline.cdaM2, ttBaseline.bikeMassKg, crrDelta)
     : solveEquipmentDelta(gap, STANDARD_BASELINE_CDA_M2, STANDARD_BASELINE_BIKE_MASS_KG, crrDelta)
+}
+
+/**
+ * ZwiftInsider's measured gap of the Zwift TT over the Zwift Carbon, from the
+ * two reference bikes' own average speeds (`BASELINE_SPEED_TEST_MPH`), in the
+ * sheet's own seconds-per-hour definition - the same one every frame row
+ * uses, so the TT baseline can be solved exactly like a frame.
+ */
+export function ttBaselineMeasuredGap(power: 'at300W' | 'at150W'): MeasuredEquipmentGap {
+  const carbon = BASELINE_SPEED_TEST_MPH['Zwift Carbon'][power]
+  const tt = BASELINE_SPEED_TEST_MPH['Zwift TT'][power]
+  return { flatGapSec: 3600 * (1 - carbon.flat / tt.flat), climbGapSec: 3600 * (1 - carbon.climb / tt.climb) }
+}
+
+/**
+ * Build-time twin of `TT_BASELINE` - the TT reference bike's absolute CdA
+ * and mass, solved from the 300 W measurement on the standard baseline
+ * exactly as a wheel or a road frame is. Run by the equipment-physics
+ * generator/validator; runtime reads the precomputed result.
+ */
+export function solveTtBaseline(): TtBaseline {
+  const delta = solveEquipmentDelta(ttBaselineMeasuredGap('at300W'), STANDARD_BASELINE_CDA_M2, STANDARD_BASELINE_BIKE_MASS_KG)
+  return { cdaM2: STANDARD_BASELINE_CDA_M2 + delta.cdaDeltaM2, bikeMassKg: STANDARD_BASELINE_BIKE_MASS_KG + delta.bikeMassDeltaKg }
 }
 
 /**
@@ -271,10 +305,16 @@ export function solveWheelEquipmentDelta(gap: MeasuredEquipmentGap): EquipmentPh
  * worth on the TT baseline before solving for what is left.
  */
 export function forwardFlatGapSec(delta: EquipmentPhysicsDelta, baselineCdaM2: number, baselineBikeMassKg: number): number {
-  const baselineSpeed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg, FLAT_TEST_GRADE, baselineCdaM2)
-  const speed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg + delta.bikeMassDeltaKg, FLAT_TEST_GRADE, baselineCdaM2 + delta.cdaDeltaM2, delta.crrDelta)
+  return forwardGapSec(delta, FLAT_TEST_GRADE, baselineCdaM2, baselineBikeMassKg)
+}
+
+/** `forwardFlatGapSec` for either bot course, at any power - the 150 W validation of the TT baseline needs both knobs. */
+export function forwardGapSec(delta: EquipmentPhysicsDelta, grade: number, baselineCdaM2: number, baselineBikeMassKg: number, powerW = BOT_POWER_W): number {
+  const baselineSpeed = steadyStateSpeedMps(powerW, baselineBikeMassKg, grade, baselineCdaM2)
+  const speed = steadyStateSpeedMps(powerW, baselineBikeMassKg + delta.bikeMassDeltaKg, grade, baselineCdaM2 + delta.cdaDeltaM2, delta.crrDelta)
   return 3600 * (1 - baselineSpeed / speed)
 }
+export { FLAT_TEST_GRADE, CLIMB_TEST_GRADE }
 
 // The disc wheel's OWN specific TT-vs-road aero interaction - a real,
 // ZwiftInsider-confirmed 15.8 sec/hour extra advantage a disc wheel gets
@@ -310,12 +350,12 @@ export const TT_DISC_REFERENCE_WHEEL = 'DTSwiss ARC 1100 DICUT DISC'
 export const TT_DISC_EXTRA_GAP_SEC = 15.8
 
 /** Build-time twin of `TT_DISC_RESIDUAL_CDA_DELTA_M2` - see the comment above it. */
-export function solveTtDiscResidualCdaDeltaM2(): number {
+export function solveTtDiscResidualCdaDeltaM2(ttBaseline: TtBaseline = TT_BASELINE): number {
   const referenceGap = WHEEL_SPEED_DATA[TT_DISC_REFERENCE_WHEEL]!
   const roadSolvedDelta = solveWheelEquipmentDelta(referenceGap)
-  const baselineShiftGapSec = forwardFlatGapSec(roadSolvedDelta, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG) - referenceGap.flatGapSec
+  const baselineShiftGapSec = forwardFlatGapSec(roadSolvedDelta, ttBaseline.cdaM2, ttBaseline.bikeMassKg) - referenceGap.flatGapSec
   const residualGapSec = TT_DISC_EXTRA_GAP_SEC - baselineShiftGapSec
-  return solveEquipmentDelta({ flatGapSec: residualGapSec, climbGapSec: 0 }, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG).cdaDeltaM2
+  return solveEquipmentDelta({ flatGapSec: residualGapSec, climbGapSec: 0 }, ttBaseline.cdaM2, ttBaseline.bikeMassKg).cdaDeltaM2
 }
 
 export function equipmentPhysics(frame: ClassifiedBikeFrame, wheelset?: Wheelset): PhysicsParameters {
