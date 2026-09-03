@@ -320,8 +320,21 @@ async function importWheels() {
 // --------------------------------------------------------------- rewrite ---
 const BLOCK_RE = /, (?:at150W|onTtFrame): \{[^}]*\}/g
 
+/**
+ * Removes every validation block from a source line. Repeats until the line
+ * stops changing: this is a TypeScript source line, not HTML, but CodeQL's
+ * "incomplete multi-character sanitization" rule reads a single-pass removal
+ * of a pattern containing "on" as an HTML-attribute sanitizer and flags it;
+ * the loop is the shape it accepts, and is also what a nested match would
+ * need anyway.
+ */
 function stripBlocks(line) {
-  return line.replace(BLOCK_RE, '')
+  let previous
+  do {
+    previous = line
+    line = line.replace(BLOCK_RE, '')
+  } while (line !== previous)
+  return line
 }
 
 function formatBlock(name, block) {
