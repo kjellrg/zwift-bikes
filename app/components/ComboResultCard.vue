@@ -67,8 +67,9 @@ function toggleWheelOwned() {
  * Always the server's number. The card used to carry a client-side
  * `estimateFinishTimeSec` fallback for the profile-less case, but every page
  * sends the composable defaults, so the server always sets `finishTimeSec`
- * and the fallback never ran - while its import chain shipped the 96 KB
- * precomputed equipment-physics table to every visitor.
+ * and the fallback never ran. (Removing it does not slim the client bundle:
+ * the speed chart and the TTT race plan simulate in the browser and pull the
+ * same equipment-physics table through their own imports.)
  */
 const finishTimeSec = computed(() => props.combo.finishTimeSec)
 
