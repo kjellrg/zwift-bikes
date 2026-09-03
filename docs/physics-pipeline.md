@@ -203,7 +203,7 @@ flowchart TD
 
     subgraph MEASURED["Measured path"]
         direction TB
-        BASE["Pick the baseline:<br/>standard, or the TT one<br/>anchored by the two<br/>TT multipliers"]
+        BASE["Pick the baseline:<br/>standard, or the TT one<br/>solved from the sheet's<br/>reference-bike speeds"]
         SOLVE["solveEquipmentDelta<br/>nested bisection<br/>flat + climb gap →<br/>CdA delta, mass delta<br/>(Crr delta held fixed)"]
         ADD["baseline + frame delta<br/>+ wheel delta<br/>+ TT/disc residual"]
     end
@@ -226,6 +226,30 @@ flowchart TD
 The solve runs at ZwiftInsider's own bot-test protocol — a 75 kg / 183 cm rider
 at a steady 300 W, on the two courses they test every frame and wheel on
 (Tempus Fugit for the flat gap, Alpe du Zwift for the climb gap).
+
+### Validated at a second power
+
+Two unknowns fitted to two equations always close, so the 300 W round trip in
+`equipment.test.ts` proves only that the solver is self-consistent, not that it
+put the right share of a frame's advantage into CdA rather than mass. The sheet
+also tests every bike at 150 W, and every wheel on the Zwift TT frame, and
+those rows are held out of the solve entirely: they live beside the 300 W
+fields as `at150W` (frames and wheels) and `onTtFrame` (wheels), imported by
+`scripts/zwiftinsider/import-validation-gaps.mjs`, and nothing at runtime reads
+them. The golden tests forward-simulate the 300 W-solved deltas at 150 W and on
+the TT baseline and compare.
+
+At import (2026-09-03) the 212 frame rows sat at a median residual of 0.5 s/h
+flat and 0.9 s/h climb, the wheels at 0.7 / 1.1, and the 64 wheel-on-TT rows at
+0.3 / 1.1 — so the CdA/mass split holds, and applying a wheel's road-solved delta
+on the TT baseline (plus the disc residual) holds for the whole roster, not just
+the reference disc it was calibrated on. What sits outside the bar is pinned in
+the test with its reason: the three road-table frames the bot rode on gravel or
+MTB wheels (Allied Able, Canyon Inflite, Canyon Lux — their tarmac penalty is
+rolling resistance, which a CdA-and-mass solve can only launder into the wrong
+levers, and it shows at 150 W as +95 to +125 s/h), the Cadex Max 50's 300 W road
+row (which disagrees with both its other rows), and three Zwift novelty wheels
+that the disc regex credits the TT-frame disc bonus but the sheet shows get none.
 
 The measured path requires *both* legs of the combo — mixing an absolute solved
 delta on one side with a score-derived value on the other is a unit mismatch.
@@ -253,7 +277,9 @@ and ~1.0 W on the climb. That 2.6:1 ratio tracks the flat/climb speed ratio,
 which is the signature of a rolling-resistance change, so it is modelled as a
 fixed `crrDelta` of −0.0003 rather than being folded into CdA or mass. It is
 held fixed during the solve, not solved for: there are only two measurements,
-so a third free unknown would be underdetermined.
+so a third free unknown would be underdetermined. (The 150 W rows would make a
+third lever determinable, but they are deliberately kept as the check rather
+than fed into the fit.)
 
 Keeping it separate changes nothing on the two bot-test courses — the solve
 still reproduces both endpoints — but it stops a grade-independent effect from
