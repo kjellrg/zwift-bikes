@@ -936,15 +936,9 @@ useHead(() => {
               :combo="topCombo"
               :rank="1"
               :route="routeInfo"
-              :weight-kg="weightKg"
-              :height-cm="heightCm"
-              :power-w="powerW"
               :laps="resultsLaps"
               :fastest-time-sec="fastestTimeSec"
               :owned="owned"
-              :draft-mode="effectiveDraftMode"
-              :ttt-riders="tttRiders"
-              :ttt-climb-wkg="tttClimbWkg"
               class="mb-6"
             />
             <div
@@ -957,15 +951,9 @@ useHead(() => {
                 :combo="combo"
                 :rank="index + 2"
                 :route="routeInfo"
-                :weight-kg="weightKg"
-                :height-cm="heightCm"
-                :power-w="powerW"
                 :laps="resultsLaps"
                 :fastest-time-sec="fastestTimeSec"
                 :owned="owned"
-                :draft-mode="effectiveDraftMode"
-                :ttt-riders="tttRiders"
-                :ttt-climb-wkg="tttClimbWkg"
               />
             </div>
             <p
