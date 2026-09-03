@@ -1,5 +1,5 @@
 import type { WorldSlug } from 'zwift-data'
-import type { SurfaceComposition, SurfaceSegment, ZwiftSurfaceType } from '../types/catalog'
+import type { SurfaceComposition, SurfaceEstimate, SurfaceSegment, ZwiftSurfaceType } from '../types/catalog'
 import type { PhysicsSurface, RouteSurfaceSegment } from '../types/physics'
 import { getWorldSurfacePolygons, type WorldSurfacePolygon } from '../data/zwiftmapSurfacePolygons'
 
@@ -132,4 +132,31 @@ export function surfaceCompositionFromSegments(segments: RouteSurfaceSegment[]):
   const totalM = Object.values(totalsM).reduce((sum, m) => sum + (m ?? 0), 0)
   if (totalM <= 0) return { tarmac: 100 }
   return Object.fromEntries(Object.entries(totalsM).map(([type, m]) => [type, ((m ?? 0) / totalM) * 100]))
+}
+
+/**
+ * The surface an UNMEASURED lead-in is ridden on, or `undefined` when the
+ * lead-in should inherit the lap's own surface data.
+ *
+ * The lead-in is not the lap: it runs from the start pen, and every pen in
+ * the game sits on tarmac - except in a world whose ground is one surface
+ * end to end (Paris is 100% cobbles, pens included). Only the routes whose
+ * Strava trace covered the pen-to-lap run carry `leadInSegments`; for the
+ * rest, borrowing the lap's dominant surface priced Jungle Circuit's 5.7 km
+ * paved descent to the jungle as 95% dirt (Serpentine 8's 7.5 km lead-in
+ * likewise) - up to two minutes of phantom rolling loss on road wheels,
+ * one-sided, on exactly the routes where wheel Crr decides the ranking.
+ *
+ * "One surface end to end" is read off the lap composition rather than the
+ * world slug so a future single-surface world needs no code change, and so
+ * a mixed lap in a mostly-dirt world (Mayan Bridge Loop: dirt, brick, wood)
+ * still gets its paved pen. Shared by `geometryForRouteLaps` (simulator)
+ * and `estimateFinishTimeSec`'s `leadInCrr` (ranking key) so the two never
+ * disagree about a lead-in.
+ */
+export function unmeasuredLeadInSurface(surface: SurfaceEstimate): PhysicsSurface | undefined {
+  if (surface.leadInSegments) return undefined
+  const present = Object.entries(surface.composition ?? {}).filter(([, percent]) => (percent ?? 0) > 0)
+  if (present.length === 1 && present[0]![0] !== 'tarmac') return undefined
+  return 'tarmac'
 }

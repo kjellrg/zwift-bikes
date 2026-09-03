@@ -163,7 +163,12 @@ placement positions exist only on the routes `placementsAreRideRelative`
 detects. This is enforced at generation time by
 `scripts/route-surfaces/normalize.mjs` (issue #126 — before normalization,
 consumers guessed the alignment and guessed differently, shifting elevation
-shapes, surfaces and segment slices by up to the lead-in length).
+shapes, surfaces and segment slices by up to the lead-in length). A route
+without `leadInSegments` rides its lead-in on tarmac (every start pen is
+paved) rather than the lap's dominant surface, unless the lap is a single
+surface end to end (Paris: all cobbles, pens included) - see
+`unmeasuredLeadInSurface`, which `estimateFinishTimeSec`'s `leadInCrr` also
+calls so the ranking key and the simulator agree.
 
 The steady-state skip only fires once every boundary that could change the
 equilibrium is behind the step's **start** position: the final grade segment

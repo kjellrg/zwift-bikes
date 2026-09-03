@@ -52,6 +52,34 @@ describe('geometryForRouteLaps', () => {
     expect(leadInPoints.length).toBeGreaterThan(2)
   })
 
+  it('rides an unmeasured lead-in on tarmac, not on the lap\'s dominant surface', () => {
+    // Jungle Circuit: 95% dirt lap, 5.7 km lead-in from paved pens, and no
+    // trace covering the lead-in. Before the fix the whole lead-in inherited
+    // the lap's dominant surface (dirt), costing road wheels ~100 s.
+    const r = route('jungle-circuit')
+    expect(r.surface.leadInSegments).toBeUndefined()
+    expect(r.surface.composition?.dirt ?? 0).toBeGreaterThan(80)
+    const leadInM = (r.leadInDistance ?? 0) * 1000
+    expect(leadInM).toBeGreaterThan(1000)
+    const g = geometryForRouteLaps(r, 1)
+    const leadIn = g.surfaceSegments.filter(s => s.toM <= leadInM + 1)
+    expect(leadIn.length).toBeGreaterThan(0)
+    expect(leadIn.every(s => s.surface === 'tarmac')).toBe(true)
+    // The lap itself keeps its measured surfaces.
+    expect(g.surfaceSegments.some(s => s.fromM >= leadInM - 1 && s.surface === 'dirt')).toBe(true)
+  })
+
+  it('keeps a single-surface world\'s lead-in on that surface (Paris cobbles)', () => {
+    const r = route('champs-elysees')
+    expect(r.surface.leadInSegments).toBeUndefined()
+    expect(r.surface.composition).toEqual({ cobbles: 100 })
+    const leadInM = (r.leadInDistance ?? 0) * 1000
+    const g = geometryForRouteLaps(r, 1)
+    const leadIn = g.surfaceSegments.filter(s => s.toM <= leadInM + 1)
+    expect(leadIn.length).toBeGreaterThan(0)
+    expect(leadIn.every(s => s.surface === 'cobbles')).toBe(true)
+  })
+
   it('keeps the lap surface segments inside each lap span', () => {
     const r = route('lutscher')
     const g = geometryForRouteLaps(r, 2)

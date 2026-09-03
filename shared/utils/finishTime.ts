@@ -1,6 +1,7 @@
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from '../types/catalog'
 import { SURFACE_CRR } from '../data/surfaceCrr'
 import { clampLaps } from './routeLaps'
+import { unmeasuredLeadInSurface } from './surfaceGeometry'
 import { equipmentPhysics, riderScaledCdaM2 } from './physics/equipment'
 import { speedForPower } from './physics/forces'
 import { raceGroupSpeedMps, tttGroupSpeedMps } from './physics/draft'
@@ -51,12 +52,14 @@ const CRR_BY_CLASS: Record<'road' | 'gravel' | 'mountain', { road: number, grave
   mountain: { road: 0.004, gravel: 0.009, cobble: 0.009 }
 }
 
+// Fixed-wheel frames (see `hasFixedWheels`) don't have a real wheelset to
+// read a Crr class from - 'road' is a safe default since paved-road Crr
+// is identical across all classes anyway (only gravel/cobble differ), and
+// these frames are only ever ridden on paved TT courses in practice.
+const crrClassOf = (wheelset: Wheelset | undefined) => wheelset?.crrClass ?? 'road'
+
 function blendedCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): number {
-  // Fixed-wheel frames (see `hasFixedWheels`) don't have a real wheelset to
-  // read a Crr class from - 'road' is a safe default since paved-road Crr
-  // is identical across all classes anyway (only gravel/cobble differ), and
-  // these frames are only ever ridden on paved TT courses in practice.
-  const crrClass = wheelset?.crrClass ?? 'road'
+  const crrClass = crrClassOf(wheelset)
 
   if (route.surface.composition) {
     return Object.entries(route.surface.composition).reduce((sum, [surface, percent]) => {
@@ -76,6 +79,19 @@ function blendedCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): numbe
   const cobbleFraction = route.surface.cobble / 100
   const roadFraction = Math.max(0, 1 - gravelFraction - cobbleFraction)
   return road * roadFraction + gravel * gravelFraction + cobble * cobbleFraction
+}
+
+/**
+ * Crr for the lead-in, which is ridden once from the start pen and is not
+ * part of the lap the surface composition describes. `unmeasuredLeadInSurface`
+ * decides (paved pen, or inherit the lap when the lead-in is measured or the
+ * world is one surface throughout); this is the same call
+ * `geometryForRouteLaps` makes for the simulator, so the ranking key and the
+ * displayed times agree about every lead-in.
+ */
+function leadInCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): number {
+  const surface = unmeasuredLeadInSurface(route.surface)
+  return surface ? SURFACE_CRR[surface][crrClassOf(wheelset)]! : blendedCrr(wheelset, route)
 }
 
 /**
@@ -131,15 +147,16 @@ export function estimateFinishTimeSec(
   const cda = riderScaledCdaM2(cdaM2, heightCm, weightKg)
   const massKg = weightKg + bikeMassKg
   const crr = Math.max(0, blendedCrr(wheelset, route) + (crrDelta ?? 0))
+  const leadInCrrValue = Math.max(0, leadInCrr(wheelset, route) + (crrDelta ?? 0))
 
   const effectiveLaps = clampLaps(route, laps)
   // One speed solver for every mode, so no drafted path can drift from the solo
   // path in anything except the draft benefit itself.
-  const solveSpeedMs = (atPowerW: number, atGrade: number) => draft?.mode === 'ttt'
-    ? tttGroupSpeedMps(atPowerW, draft.riders, massKg, atGrade, crr, cda)
+  const solveSpeedMs = (atPowerW: number, atGrade: number, atCrr = crr) => draft?.mode === 'ttt'
+    ? tttGroupSpeedMps(atPowerW, draft.riders, massKg, atGrade, atCrr, cda)
     : draft?.mode === 'race'
-      ? raceGroupSpeedMps(atPowerW, massKg, atGrade, crr, cda)
-      : speedForPower(atPowerW, massKg, atGrade, crr, cda)
+      ? raceGroupSpeedMps(atPowerW, massKg, atGrade, atCrr, cda)
+      : speedForPower(atPowerW, massKg, atGrade, atCrr, cda)
 
   const tttClimb = draft?.mode === 'ttt' ? draft.climb : undefined
   if (tttClimb && tttClimb.distanceM > 0) {
@@ -149,7 +166,10 @@ export function estimateFinishTimeSec(
     const totalDistanceM = lapDistanceM + leadInDistanceM
     // The same "uniform average grade" simplification as the solo path, with
     // the modeled total ascent (lap climb ratio × distance, plus the lead-in's
-    // own gain) split between the climb phase and everything else.
+    // own gain) split between the climb phase and everything else. The
+    // lead-in's own Crr is folded into the lap blend here: the two-phase
+    // split already loses which metres are lead-in, and the TTT ordering
+    // window (`SIMULATED_ORDER_MARGIN`) absorbs the few seconds of drift.
     const modeledAscentM = grade * lapDistanceM + leadInElevationM
     const climbDistanceM = Math.min(tttClimb.distanceM, totalDistanceM)
     const climbGrade = tttClimb.elevationM / climbDistanceM
@@ -165,7 +185,7 @@ export function estimateFinishTimeSec(
 
   if (route.leadInDistance) {
     const leadInGrade = (route.leadInElevation ?? 0) / (route.leadInDistance * 1000)
-    totalTimeSec += (route.leadInDistance * 1000) / solveSpeedMs(powerW, leadInGrade)
+    totalTimeSec += (route.leadInDistance * 1000) / solveSpeedMs(powerW, leadInGrade, leadInCrrValue)
   }
 
   return totalTimeSec
