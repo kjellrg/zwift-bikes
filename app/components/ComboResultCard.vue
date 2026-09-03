@@ -23,6 +23,17 @@ const ownedFrameLevel = computed(() => props.owned?.[props.combo.frame.id])
 const { setOwned, setWheelOwned, isWheelOwned } = useGarage()
 
 /**
+ * Opens the detail drawer for this combo. An explicit control rather than a
+ * clickable card: the card already hosts the garage toggles and the level
+ * bar, and nested interactive elements inside one big click target break
+ * keyboard semantics. The frame name is a second trigger for discoverability.
+ */
+const { openBikeDetail } = useOverlays()
+function showDetails() {
+  openBikeDetail({ combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps })
+}
+
+/**
  * New quick-adds start at the rider's chosen default level for unowned bikes
  * (see Profile), the same level unowned bikes are scored and displayed at
  * everywhere else - so adding a bike never moves it in the ranking. The
@@ -95,9 +106,25 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
         </div>
         <div>
           <div class="flex items-center gap-1">
-            <p class="font-semibold text-highlighted">
+            <button
+              type="button"
+              class="font-semibold text-highlighted text-left hover:underline focus-visible:underline"
+              :aria-label="`Details for ${combo.frame.name}`"
+              @click="showDetails"
+            >
               {{ combo.frame.name }}
-            </p>
+            </button>
+            <UTooltip text="Everything we know about this combo">
+              <UButton
+                icon="i-lucide-info"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                class="opacity-50 hover:opacity-100"
+                :aria-label="`Details for ${combo.frame.name}`"
+                @click="showDetails"
+              />
+            </UTooltip>
             <UTooltip
               :text="
                 isOwnedFrame

@@ -10,7 +10,7 @@
 // are shared with links buried elsewhere - "(edit profile)" / "(edit garage)"
 // on the route, segment and event pages, and the report link inside the About
 // modal itself.
-const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport } = useOverlays()
+const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport, isBikeDetailOpen } = useOverlays()
 
 // Runtime site flags (docs/site-flags.md): fetched once post-mount, so the
 // prerendered markup and the first client render agree on the defaults
@@ -270,6 +270,7 @@ useHead({
     <AboutModal v-model:open="isAboutOpen" />
     <GarageModal v-model:open="isGarageOpen" />
     <ProfileModal v-model:open="isProfileOpen" />
+    <BikeDetailSlideover v-model:open="isBikeDetailOpen" />
     <ReportModal
       v-model:open="isReportOpen"
       :seed-kind="reportSeed?.kind"
