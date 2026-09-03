@@ -453,6 +453,21 @@ export function raceDisplayName(race: EventRace): string {
 }
 
 /**
+ * The season-and-round context a race is named under everywhere it appears
+ * outside its own season page: `ZRacing 2026 - August: Makuri Madness`, or
+ * just `ZRL 2026/27` for a round without a curated name. The round's name is
+ * what riders know a ZRacing month by (they enter "Makuri Madness", not
+ * "ZRacing 2026 stage 4"), and it was only ever shown on the race page's own
+ * eyebrow - the homepage teaser, page titles, OG cards, the season's
+ * ItemList and the route page's "featured in" links all named the season
+ * alone. One helper so the surfaces cannot drift again.
+ */
+export function raceContextLabel(season: Pick<EventSeason, 'seriesName' | 'label'>, round?: Pick<EventRound, 'name'>): string {
+  const seasonLabel = `${season.seriesName} ${season.label}`
+  return round?.name ? `${seasonLabel} - ${round.name}` : seasonLabel
+}
+
+/**
  * Sorts by race day. Used for "next race" lookups, which must only ever run
  * client-side: these pages are prerendered, so resolving "next" at render
  * time would freeze a build-time answer into the shipped HTML.

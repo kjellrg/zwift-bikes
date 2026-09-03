@@ -212,7 +212,10 @@ onMounted(() => {
 })
 
 const raceHeading = computed(() => raceDisplayName(race!))
-const raceTitle = computed(() => `${season!.seriesName} ${season!.label} ${raceHeading.value}`)
+// Named under its round ("ZRacing 2026 - August: Makuri Madness Stage 4"):
+// the round name is what riders search for, and every derived surface
+// (title, description, FAQ, OG alt) inherits it from here.
+const raceTitle = computed(() => `${raceContextLabel(season!, round)} ${raceHeading.value}`)
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined)
 const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : [])
@@ -495,7 +498,7 @@ const siteConfig = useSiteConfig()
 const canonicalUrl = useCanonicalUrl()
 
 useSeoMeta({
-  title: () => `Best Bike for ${season!.seriesName} ${raceHeading.value} - ${routeNamesLabel.value} (${formatLabel.value}) - ZwiftBikes`,
+  title: () => `Best Bike for ${raceTitle.value} - ${routeNamesLabel.value} (${formatLabel.value}) - ZwiftBikes`,
   description: () => hasSplitCourses(race!)
     ? `${raceTitle.value}: ${formatLabel.value} on ${formatRaceDate(race!.date)} - ${routeNamesByCategory.value}. Lap counts per category, TT bike rules, and the fastest legal bike and wheel combo for each course.`
     : `${raceTitle.value}: ${formatLabel.value} on ${routeNamesLabel.value}, ${formatRaceDate(race!.date)}. Lap counts per category, TT bike rules, and the fastest legal bike and wheel combo.`,
@@ -516,7 +519,7 @@ useSeoMeta({
 const ogRouteCount = new Set(race!.categories.map(group => group.routeSlug ?? group.routeName ?? '')).size
 const ogTopCombo = ogRouteCount > 1 ? undefined : topCombo.value
 defineOgImage('EventCard', {
-  series: `${season!.seriesName} ${season!.label}`,
+  series: raceContextLabel(season!, round),
   title: raceHeading.value,
   course: `${routeNamesLabel.value} · ${formatLabel.value}`,
   date: formatRaceDate(race!.date),
@@ -540,42 +543,6 @@ useHead(() => {
           { '@type': 'ListItem', 'position': 3, 'name': `${season!.seriesName} ${season!.label}`, 'item': `${siteConfig.url}/events/${season!.slug}` },
           { '@type': 'ListItem', 'position': 4, 'name': raceHeading.value, 'item': canonicalUrl.value }
         ]
-      }).replace(/</g, '\\u003c')
-    },
-    {
-      // A real, dated, registerable online race - so `SportsEvent` with a
-      // `VirtualLocation` rather than a generic `Event`. `superEvent` ties the
-      // week back to its season the way the breadcrumb ties the page back to
-      // the calendar.
-      type: 'application/ld+json' as const,
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'SportsEvent',
-        'name': `${raceTitle.value} - ${routeNamesLabel.value}`,
-        'description': hasSplitCourses(race!)
-          ? `${formatLabel.value} - ${routeNamesByCategory.value}.`
-          : `${formatLabel.value} on ${routeNamesLabel.value} in ${routeData.value.worldName}.`,
-        'startDate': race!.date,
-        ...(race!.endDate ? { endDate: race!.endDate } : {}),
-        'sport': 'Cycling',
-        'eventAttendanceMode': 'https://schema.org/OnlineEventAttendanceMode',
-        'eventStatus': 'https://schema.org/EventScheduled',
-        'location': {
-          '@type': 'VirtualLocation',
-          'name': `Zwift - ${routeData.value.worldName}`,
-          'url': 'https://www.zwift.com'
-        },
-        'organizer': {
-          '@type': 'Organization',
-          'name': season!.organizer,
-          ...(season!.organizerUrl ? { url: season!.organizerUrl } : {})
-        },
-        'superEvent': {
-          '@type': 'SportsEvent',
-          'name': `${season!.seriesName} ${season!.label}`,
-          'url': `${siteConfig.url}/events/${season!.slug}`
-        },
-        'url': canonicalUrl.value
       }).replace(/</g, '\\u003c')
     }
   ]
@@ -619,9 +586,7 @@ useHead(() => {
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <p class="text-sm text-muted">
-            {{ season!.seriesName }} {{ season!.label }}<template v-if="round?.name">
-              - {{ round.name }}
-            </template>
+            {{ raceContextLabel(season!, round) }}
           </p>
           <h1 class="text-3xl font-bold text-highlighted">
             {{ raceHeading }}: {{ displayRouteName }}

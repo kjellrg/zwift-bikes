@@ -42,7 +42,7 @@ const courseNames = computed(() => {
           Next race
         </p>
         <p class="font-semibold text-highlighted">
-          {{ nextRace.season.seriesName }} {{ nextRace.season.label }} - {{ raceDisplayName(nextRace.race) }}<template v-if="courseNames">
+          {{ raceContextLabel(nextRace.season, nextRace.round) }} - {{ raceDisplayName(nextRace.race) }}<template v-if="courseNames">
             on {{ courseNames }}
           </template>
         </p>

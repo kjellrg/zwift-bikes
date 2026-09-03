@@ -388,7 +388,7 @@ useHead(() => {
           <ULink
             :to="entry.path"
             class="text-primary underline"
-          >{{ entry.season.seriesName }} {{ entry.season.label }} {{ raceDisplayName(entry.race) }}</ULink>
+          >{{ raceContextLabel(entry.season, entry.round) }} {{ raceDisplayName(entry.race) }}</ULink>
           ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
         </span>
       </template>

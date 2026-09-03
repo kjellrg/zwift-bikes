@@ -19,8 +19,7 @@ import {
   raceEndDate,
   racePowerupsSchema,
   sortRacesByDate,
-  ttBikesAllowed
-} from './events'
+  ttBikesAllowed, raceContextLabel } from './events'
 import { MAX_LAPS } from './routeLaps'
 
 /**
@@ -143,6 +142,13 @@ describe('derivations the pages are built from', () => {
     expect(formatCategoryGroup({ cats: ['A', 'B'] })).toBe('A/B')
     expect(formatCategoryGroup({ cats: [], label: 'Range 1' })).toBe('Range 1')
     expect(formatCategoryGroup({ cats: ['A'], label: 'Advanced' })).toBe('Advanced')
+  })
+
+  it('names a race under its round when the round is named, else under the season alone', () => {
+    const season = { seriesName: 'ZRacing', label: '2026' }
+    expect(raceContextLabel(season, { name: 'August: Makuri Madness' })).toBe('ZRacing 2026 - August: Makuri Madness')
+    expect(raceContextLabel(season, { name: undefined })).toBe('ZRacing 2026')
+    expect(raceContextLabel(season)).toBe('ZRacing 2026')
   })
 
   it('derives the display name from the slug convention', () => {
