@@ -11,8 +11,10 @@
 //
 // Safety rules (all violations are reported, never silently written):
 //   - only `Power = 300` rows are used - the sheet holds a 150W and a 300W
-//     test row per bike and the repo's tables are 300W (see the note atop
-//     `frameSpeedData.ts`); mixing them would corrupt the data.
+//     test row per bike and the repo's top-level fields are 300W (see the
+//     note atop `frameSpeedData.ts`); mixing them would corrupt the data.
+//     The 150W rows are imported separately, into their own `at150W`
+//     block, by scripts/zwiftinsider/import-validation-gaps.mjs.
 //   - a row only imports when its Stage 0/5 gaps EXACTLY equal the repo's
 //     stored `*0`/`*5` endpoint fields (both are parsed one-decimal values,
 //     so equal data compares equal). validate-speed-data.mjs enforces the
@@ -27,10 +29,10 @@
 //     names are listed, not fuzzy-matched.
 import { readFileSync, writeFileSync } from 'node:fs'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+import { FRAMES_CSV_URL, loadCsv, parseArgs, parseCsv } from '../zwiftinsider/sheet.mjs'
 
 const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/frameSpeedData.ts')
 
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1S0pTN_hBMddX0GhCqSOd6fPlIJeWtw0xr6Y1M6PzNJY/export?format=csv&gid=173681512'
 const DATA_FILE = new URL('../../shared/data/frameSpeedData.ts', import.meta.url)
 
 // Sheet spelling -> repo/zwift-data spelling, for names that differ. Add
@@ -49,56 +51,9 @@ const SHEET_NAME_ALIASES = {
   'Canyon Aeroad CFR - CANYON//SRAM': 'Canyon Aeroad 2024 / SRAM'
 }
 
-const args = Object.fromEntries(process.argv.slice(2)
-  .filter(a => a.startsWith('--'))
-  .map((a) => {
-    const i = a.indexOf('=')
-    return i === -1 ? [a.slice(2), true] : [a.slice(2, i), a.slice(i + 1)]
-  }))
+const args = parseArgs(process.argv.slice(2))
 
-function parseCsv(text) {
-  const rows = []
-  let row = []
-  let field = ''
-  let inQuotes = false
-  const endField = () => {
-    row.push(field.replace(/\r$/, ''))
-    field = ''
-  }
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]
-    if (inQuotes) {
-      if (c === '"' && text[i + 1] === '"') {
-        field += '"'
-        i++
-      } else if (c === '"') {
-        inQuotes = false
-      } else {
-        field += c
-      }
-    } else if (c === '"') {
-      inQuotes = true
-    } else if (c === ',') {
-      endField()
-    } else if (c === '\n') {
-      endField()
-      rows.push(row)
-      row = []
-    } else {
-      field += c
-    }
-  }
-  if (field !== '' || row.length) {
-    endField()
-    rows.push(row)
-  }
-  return rows
-}
-
-const csvText = args.csv
-  ? readFileSync(args.csv, 'utf8')
-  : await (await fetch(SHEET_CSV_URL)).text()
-const rows = parseCsv(csvText)
+const rows = parseCsv(await loadCsv({ path: args.csv, url: FRAMES_CSV_URL }))
 
 // Row 0 is the "Flat Test Results / Climb Test Results" group header, row 1
 // the real header. Gap columns: flat stages 0-5 at 9,11,13,15,17,19; climb
@@ -157,10 +112,14 @@ const lines = source.split('\n')
 let written = 0
 let changed = 0
 
+// The stage arrays go right after the endpoint fields, BEFORE any `at150W`/
+// `onTtFrame` validation block import-validation-gaps.mjs appends to the same
+// line - both scripts strip and re-append only their own fields, so running
+// them in either order must leave the line in the same canonical shape.
 function augmentLine(line, { flat, climb }) {
   const stripped = line.replace(/, flatGapSecByStage: \[[^\]]*\], climbGapSecByStage: \[[^\]]*\]/, '')
   const fmt = arr => `[${arr.map(n => String(n)).join(', ')}]`
-  return stripped.replace(/ \}(,?)(\s*(?:\/\/.*)?)$/, ` , flatGapSecByStage: ${fmt(flat)}, climbGapSecByStage: ${fmt(climb)} }$1$2`)
+  return stripped.replace(/((?:, (?:at150W|onTtFrame): \{[^}]*\})*) \}(,?)(\s*(?:\/\/.*)?)$/, ` , flatGapSecByStage: ${fmt(flat)}, climbGapSecByStage: ${fmt(climb)}$1 }$2$3`)
     .replace(/ , flatGapSecByStage/, ', flatGapSecByStage')
 }
 
