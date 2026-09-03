@@ -154,6 +154,7 @@ useHead({
           <UButton
             as="a"
             href="/profile"
+            aria-haspopup="dialog"
             icon="i-lucide-user"
             label="My Profile"
             color="neutral"
@@ -164,6 +165,7 @@ useHead({
           <UButton
             as="a"
             href="/garage"
+            aria-haspopup="dialog"
             icon="i-lucide-warehouse"
             label="My Garage"
             color="neutral"
@@ -225,6 +227,7 @@ useHead({
           <UButton
             as="a"
             href="/profile"
+            aria-haspopup="dialog"
             icon="i-lucide-user"
             label="My Profile"
             color="neutral"
@@ -236,6 +239,7 @@ useHead({
           <UButton
             as="a"
             href="/garage"
+            aria-haspopup="dialog"
             icon="i-lucide-warehouse"
             label="My Garage"
             color="neutral"
@@ -307,12 +311,14 @@ useHead({
           >zwiftmap</ULink>.
           <a
             href="/about"
+            aria-haspopup="dialog"
             class="underline transition-colors hover:text-default"
             @click="openAbout"
           >About this project</a>
           <span aria-hidden="true"> • </span>
           <a
             href="/report"
+            aria-haspopup="dialog"
             class="underline transition-colors hover:text-default"
             @click="openReport"
           >Report an issue</a>

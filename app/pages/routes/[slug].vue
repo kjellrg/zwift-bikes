@@ -344,7 +344,9 @@ useHead(() => {
         </UCard>
         <UCard :ui="{ body: 'text-center py-4' }">
           <p class="text-xs text-muted uppercase tracking-wide">
-            Climb ratio
+            <UTooltip text="Metres of climbing per kilometre ridden - the route's average steepness. Under 5 is flat, 10-20 rolling to hilly, above 20 a proper climb.">
+              <span class="underline decoration-dotted">Climb ratio</span>
+            </UTooltip>
           </p><p class="text-xl font-bold">
             {{ routeData.terrain.climbRatio.toFixed(1) }} m/km
           </p>

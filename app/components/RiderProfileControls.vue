@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '#shared/utils/physics/draft'
+import { clampTttClimbWkg, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '#shared/utils/physics/draft'
 import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 
 /**
@@ -56,7 +56,7 @@ const props = withDefaults(defineProps<{
   sprintPower?: boolean
 }>(), { hasLongClimb: true, draftLocked: false, sprintPower: false })
 
-const { weightKg, heightCm, powerW, sprintPowerW, draftMode, tttRiders, tttClimbWkg, load: loadRiderProfile, setWeightKg, setPowerW, setSprintPowerW, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, sprintPowerW, draftMode, tttRiders, tttClimbWkg, hasStoredProfile, load: loadRiderProfile, setWeightKg, setPowerW, setSprintPowerW, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 
 // The persisted power this page's slider edits (see the `sprintPower` prop).
 const activePowerW = computed(() => props.sprintPower ? sprintPowerW.value : powerW.value)
@@ -68,7 +68,7 @@ onMounted(() => {
   pendingHeightCm.value = heightCm.value
   pendingPowerW.value = activePowerW.value
   pendingRiders.value = tttRiders.value
-  pendingClimbWkg.value = tttClimbWkg.value ?? powerW.value / weightKg.value
+  pendingClimbWkg.value = seedClimbWkg()
 })
 
 const pendingWeightKg = ref(weightKg.value)
@@ -95,8 +95,11 @@ watch(activePowerW, (value) => {
 // moving the Power slider never drags the team's climb pace with it. Until it
 // is committed the profile keeps it `undefined` and the recommend query omits
 // it entirely, which is what makes "not set" mean "ride the climbs at your
-// normal power" rather than "ride them at this number".
-const pendingClimbWkg = ref(tttClimbWkg.value ?? powerW.value / weightKg.value)
+// normal power" rather than "ride them at this number". Clamped into the
+// slider's range like `ProfileContent` does: a strong rider's raw W/kg sat
+// above `TTT_MAX_CLIMB_WKG` and the thumb jumped on first touch.
+const seedClimbWkg = () => tttClimbWkg.value ?? clampTttClimbWkg(powerW.value / weightKg.value) ?? TTT_MIN_CLIMB_WKG
+const pendingClimbWkg = ref(seedClimbWkg())
 const commitClimbWkg = () => setTttClimbWkg(pendingClimbWkg.value)
 watch(tttClimbWkg, (value) => {
   if (value !== undefined) pendingClimbWkg.value = value
@@ -142,45 +145,61 @@ const { openProfile } = useOverlays()
        control onto a new line, so the page below barely moves. Collapsed, that
        second row is a single opt-in button - see `draftControlsOpen`. -->
   <div class="rounded-lg border border-default p-4 space-y-4">
+    <!-- Until a profile is saved every time on the page is for the defaults
+         below - say so, or a first visit reads as a confident prediction. -->
+    <p
+      v-if="!hasStoredProfile"
+      class="flex flex-wrap items-center gap-1.5 text-sm text-muted"
+    >
+      <UIcon
+        name="i-lucide-user-round"
+        class="size-4 shrink-0"
+      />
+      Times shown for a {{ weightKg }} kg, {{ heightCm }} cm rider at {{ powerW }} W - adjust the sliders, or
+      <a
+        href="/profile"
+        class="text-primary underline"
+        aria-haspopup="dialog"
+        @click="openProfile"
+      >set your profile</a>
+      once.
+    </p>
     <div class="flex flex-wrap items-end gap-6">
       <div class="w-full sm:w-44">
         <label class="block text-xs font-medium text-muted mb-1">Rider weight: {{ pendingWeightKg }} kg</label>
-        <input
-          v-model.number="pendingWeightKg"
-          type="range"
-          min="40"
-          max="130"
-          step="1"
-          class="w-full cursor-pointer"
+        <USlider
+          :model-value="pendingWeightKg"
+          :min="40"
+          :max="130"
+          :step="1"
           aria-label="Rider weight in kilograms"
+          @update:model-value="(value: number | undefined) => { pendingWeightKg = value ?? pendingWeightKg }"
           @change="commitWeight"
-        >
+        />
       </div>
       <div class="w-full sm:w-56">
         <label class="block text-xs font-medium text-muted mb-1">Height: {{ pendingHeightCm }} cm</label>
-        <input
-          v-model.number="pendingHeightCm"
-          type="range"
-          min="100"
-          max="220"
-          step="1"
-          class="w-full cursor-pointer"
+        <USlider
+          :model-value="pendingHeightCm"
+          :min="100"
+          :max="220"
+          :step="1"
           aria-label="Rider height"
+          @update:model-value="(value: number | undefined) => { pendingHeightCm = value ?? pendingHeightCm }"
           @change="commitHeight"
-        >
+        />
       </div>
       <div class="min-w-64 flex-1">
-        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingPowerW }} W ({{ (pendingPowerW / weightKg).toFixed(2) }} W/kg){{ effectiveDraftMode === 'solo' ? '' : ' average' }}</label>
-        <input
-          v-model.number="pendingPowerW"
-          type="range"
+        <label class="block text-xs font-medium text-muted mb-1">Power: {{ pendingPowerW }} W (<UTooltip text="Watts per kilogram of body weight - the number Zwift categories and climbs are judged by. Your watts stay put when you change your weight; only this readout moves."><span class="underline decoration-dotted">{{ (pendingPowerW / weightKg).toFixed(2) }} W/kg</span></UTooltip>){{ effectiveDraftMode === 'solo' ? '' : ' average' }}</label>
+        <USlider
+          :model-value="pendingPowerW"
           :min="powerRange.min"
           :max="powerRange.max"
           :step="powerRange.step"
-          class="w-full cursor-pointer"
           aria-label="Rider power in watts"
+          @update:model-value="(value: number | undefined) => { pendingPowerW = value ?? pendingPowerW }"
           @change="commitPower"
-        >
+        />
       </div>
     </div>
     <div class="flex flex-wrap items-end gap-6">
@@ -230,16 +249,15 @@ const { openProfile } = useOverlays()
           name="i-lucide-info"
           class="size-3 text-muted align-text-bottom"
         /></UTooltip></label>
-        <input
-          v-model.number="pendingRiders"
-          type="range"
+        <USlider
+          :model-value="pendingRiders"
           :min="TTT_MIN_RIDERS"
           :max="TTT_MAX_RIDERS"
-          step="1"
-          class="w-full cursor-pointer"
+          :step="1"
           aria-label="Number of riders in the paceline"
+          @update:model-value="(value: number | undefined) => { pendingRiders = value ?? pendingRiders }"
           @change="commitRiders"
-        >
+        />
       </div>
       <div
         v-if="draftControlsOpen && draftMode === 'ttt' && props.hasLongClimb"
@@ -249,16 +267,15 @@ const { openProfile } = useOverlays()
           name="i-lucide-info"
           class="size-3 text-muted align-text-bottom"
         /></UTooltip></label>
-        <input
-          v-model.number="pendingClimbWkg"
-          type="range"
+        <USlider
+          :model-value="pendingClimbWkg"
           :min="TTT_MIN_CLIMB_WKG"
           :max="TTT_MAX_CLIMB_WKG"
-          step="0.1"
-          class="w-full cursor-pointer"
+          :step="0.1"
           aria-label="Team average power on long climbs in watts per kilogram"
+          @update:model-value="(value: number | undefined) => { pendingClimbWkg = value ?? pendingClimbWkg }"
           @change="commitClimbWkg"
-        >
+        />
       </div>
       <!-- `py-1.5 text-sm` is not a nudge - it is the same box `USelectMenu`'s
            own theme gives its trigger at the default `md` size. Two bottom-
@@ -272,6 +289,7 @@ const { openProfile } = useOverlays()
       <a
         href="/profile"
         class="self-end py-1.5 text-sm text-primary underline"
+        aria-haspopup="dialog"
         @click="openProfile"
       >
         (edit profile)

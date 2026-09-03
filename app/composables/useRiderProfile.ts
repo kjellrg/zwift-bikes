@@ -26,6 +26,16 @@ const DEFAULT_HEIGHT_CM = 175
  * Persisted to localStorage only.
  */
 export function useRiderProfile() {
+  /**
+   * Whether anything has ever been saved: false means every number below is
+   * the composable default, and the times on screen are for a phantom
+   * 75 kg / 175 cm / 225 W rider. The pages say so until the rider sets a
+   * profile - without this flag they showed confident times with no hint.
+   * Flips on the first `persist()` too, since that writes the key `load()`
+   * reads.
+   */
+  const hasStoredProfile = useState<boolean>('rider-profile-stored', () => false)
+
   const weightKg = useState<number>('rider-weight-kg', () => DEFAULT_WEIGHT_KG)
   const heightCm = useState<number>('rider-height-cm', () => DEFAULT_HEIGHT_CM)
   // Power is stored in absolute watts and stays put when weight changes -
@@ -52,6 +62,7 @@ export function useRiderProfile() {
 
   function persist() {
     if (!import.meta.client) return
+    hasStoredProfile.value = true
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       weightKg: weightKg.value,
       heightCm: heightCm.value,
@@ -69,6 +80,7 @@ export function useRiderProfile() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return
+      hasStoredProfile.value = true
       const parsed = JSON.parse(raw)
       if (typeof parsed.weightKg === 'number') weightKg.value = clampWeightKg(parsed.weightKg)
       if (typeof parsed.heightCm === 'number') heightCm.value = Math.min(220, Math.max(100, parsed.heightCm))
@@ -141,6 +153,7 @@ export function useRiderProfile() {
     powerW,
     sprintPowerW,
     defaultUnownedLevel,
+    hasStoredProfile,
     draftMode,
     tttRiders,
     tttClimbWkg,
