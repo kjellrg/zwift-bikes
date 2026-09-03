@@ -14,6 +14,7 @@ const { owned, ownedWheels, load: loadGarage } = useGarage()
 // state - so the query and watchers below keep firing exactly as before.
 const { weightKg, heightCm, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
 const { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
+const { intParam, param, enumParam, replaceQuery } = useUrlState(route, useRouter())
 
 const bikeSearch = ref('')
 const bikeSearchDebounced = ref('')
@@ -133,6 +134,34 @@ onMounted(() => {
   // "upcoming" resolved at render time would bake the build date into the
   // shipped HTML. The row simply never appears when nothing is coming up.
   upcomingEvents.value = getUpcomingEventsForRoute(slug.value, new Date().toISOString().slice(0, 10))
+
+  // `?laps=3&bike=tarmac&category=tt&draft=ttt` - a shareable view. Read
+  // here, after the child controls' own `onMounted` has loaded the stored
+  // preferences, so a value in the URL wins over the stored one for this
+  // visit. Assigned to the state refs directly rather than through the
+  // setters on purpose: a link someone sent must not overwrite the rider's
+  // saved category or draft mode.
+  const urlLaps = intParam('laps', 1, lapOptions.value.length)
+  if (urlLaps !== undefined) laps.value = urlLaps
+  const urlSearch = param('bike')
+  if (urlSearch) bikeSearch.value = urlSearch.slice(0, 100)
+  const urlCategory = enumParam('category', ['all', 'standard', 'tt', 'gravel', 'handbike', 'funbike'] as const)
+  if (urlCategory) bikeCategory.value = urlCategory
+  const urlDraft = enumParam('draft', ['solo', 'ttt', 'race'] as const)
+  if (urlDraft) draftMode.value = urlDraft
+})
+// Written from state only (never read back from the query - see
+// `useUrlState`). Defaults are omitted so a plain visit keeps a clean URL;
+// the stored preference is what "default" means for category and draft, so
+// a rider with a saved non-default one sees it in the URL - which is exactly
+// what makes their share link reproduce their view.
+watch([laps, bikeSearchDebounced, bikeCategory, draftMode], ([lapCount, search, category, draft]) => {
+  replaceQuery({
+    laps: lapCount > 1 ? lapCount : undefined,
+    bike: search || undefined,
+    category: category !== 'standard' ? category : undefined,
+    draft: draft !== 'solo' ? draft : undefined
+  })
 })
 const upcomingEvents = ref<PublishableRace[]>([])
 

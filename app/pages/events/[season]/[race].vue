@@ -44,6 +44,7 @@ const pageSize = 9
 // which changes the distance, the climbing and therefore the ranking - so the
 // group is the page's primary control, not a footnote.
 const categoryGroupIndex = ref(0)
+const { intParam, replaceQuery } = useUrlState(route, useRouter())
 const categoryGroupOptions = race.categories.map((group, index) => ({
   label: `${formatCategoryGroup(group)} - ${group.laps} lap${group.laps === 1 ? '' : 's'}`,
   value: index
@@ -209,6 +210,14 @@ onMounted(() => {
   // idempotent localStorage read, so running it twice costs nothing.
   loadRiderProfile()
   loadPreferences()
+  // `?group=1` - which category group the shared link was looking at. The
+  // group changes route and lap count, so it is the one knob a race link
+  // has to carry. Read after mount like every URL-carried value here.
+  const urlGroup = intParam('group', 0, categoryGroupOptions.length - 1)
+  if (urlGroup !== undefined) categoryGroupIndex.value = urlGroup
+})
+watch(categoryGroupIndex, (index) => {
+  replaceQuery({ group: index > 0 ? index : undefined })
 })
 
 const raceHeading = computed(() => raceDisplayName(race!))

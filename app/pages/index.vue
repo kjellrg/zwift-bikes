@@ -112,6 +112,48 @@ function resetFilters() {
 watch(query, () => {
   visibleCount.value = 24
 })
+
+// The filters live in the URL too - `?q=alpe&world=watopia&surface=gravel
+// &dist=10-40&elev=0-500` - read once after mount and written from the
+// committed values, see `useUrlState`. Ranges are validated as a pair: a
+// half-range or an inverted one is ignored rather than guessed at.
+const { param, enumParam, replaceQuery } = useUrlState(useRoute(), useRouter())
+const rangeParam = (key: string, max: number): [number, number] | undefined => {
+  const match = /^(\d+)-(\d+)$/.exec(param(key) ?? '')
+  if (!match) return undefined
+  const low = Math.min(max, Number(match[1]))
+  const high = Math.min(max, Number(match[2]))
+  return low <= high ? [low, high] : undefined
+}
+onMounted(() => {
+  const q = param('q')
+  if (q) search.value = q.slice(0, 100)
+  const world = param('world')
+  if (world && /^[a-z0-9-]+$/.test(world)) worldFilter.value = world
+  const surface = enumParam('surface', ['gravel', 'cobble'] as const)
+  if (surface) surfaceFilter.value = surface
+  const dist = rangeParam('dist', 120)
+  if (dist) {
+    distanceRange.value = dist
+    pendingDistanceRange.value = [...dist]
+  }
+  const elev = rangeParam('elev', 2000)
+  if (elev) {
+    elevationRange.value = elev
+    pendingElevationRange.value = [...elev]
+  }
+})
+watch(query, (value) => {
+  const [minD, maxD] = distanceRange.value
+  const [minE, maxE] = elevationRange.value
+  replaceQuery({
+    q: value.search,
+    world: value.world,
+    surface: value.surface,
+    dist: minD > 0 || maxD < 120 ? `${minD}-${maxD}` : undefined,
+    elev: minE > 0 || maxE < 2000 ? `${minE}-${maxE}` : undefined
+  })
+})
 </script>
 
 <template>
@@ -212,16 +254,30 @@ watch(query, () => {
 
     <div>
       <div class="flex items-center justify-between mb-4">
-        <p class="text-sm text-muted">
-          {{ items.length }} result{{ items.length === 1 ? "" : "s" }} found
+        <p
+          class="text-sm text-muted"
+          aria-live="polite"
+        >
+          <template v-if="isLoading">
+            Finding routes…
+          </template>
+          <template v-else>
+            {{ items.length }} result{{ items.length === 1 ? "" : "s" }} found
+          </template>
         </p>
       </div>
 
+      <!-- Skeleton cards in the grid's own shape while loading: the old
+           "Loading..." line collapsed the grid to nothing and the stale
+           count above it kept quoting the previous filter's total. -->
       <div
         v-if="isLoading"
-        class="text-center py-10 text-muted"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
       >
-        Loading...
+        <RouteCardSkeleton
+          v-for="n in 6"
+          :key="n"
+        />
       </div>
 
       <div
