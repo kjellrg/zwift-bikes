@@ -126,10 +126,10 @@ for (const route of routesToProcess) {
       ...(elevationProfile ? { elevationProfile } : {}),
       generatedAt: new Date().toISOString(),
       stravaSegmentId: route.stravaSegmentId
-    }, route.distance, leadInKm, route.elevation)
+    }, route.distance, leadInKm, route.elevation, route.lap)
     results[route.slug] = entry
     const elevationNote = profileDropped
-      ? ', FLAT ALTITUDE STREAM - elevation profile discarded (synthesis fallback applies)'
+      ? ', ALTITUDE STREAM REJECTED (flat, or a lap that does not close) - elevation profile discarded (synthesis fallback applies)'
       : elevationProfile ? `, ${elevationProfile.length} elevation points` : ', no altitude stream'
     const alignmentNote = classification === 'ride-split' ? ', trace covered lead-in - split' : classification === 'ambiguous' ? ', ALIGNMENT AMBIGUOUS - check trace end vs lap distance' : ''
     console.log(Object.entries(entry.composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${entry.segments.length} segments${elevationNote}${alignmentNote})`)
