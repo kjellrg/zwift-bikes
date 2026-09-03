@@ -36,16 +36,22 @@ const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/
 const { WHEEL_SPEED_DATA } = loadSharedModule('shared/data/wheelSpeedData.ts')
 const { solveMeasuredFramePhysics } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
 const { solveMeasuredWheelPhysics } = loadSharedModule('shared/utils/classifyWheel.ts')
-const { solveTtDiscResidualCdaDeltaM2 } = loadSharedModule('shared/utils/physics/equipment.ts')
+const { solveTtBaseline, solveTtDiscResidualCdaDeltaM2 } = loadSharedModule('shared/utils/physics/equipment.ts')
 
 const LEVELS = [0, 1, 2, 3, 4, 5]
+
+// Solved first and passed explicitly to everything TT-relative: the runtime
+// module reads the TT baseline from the very table this script regenerates,
+// so letting the TT frame solve default to it would fit the frames against a
+// stale baseline whenever the measurement changes.
+const ttBaseline = solveTtBaseline()
 
 /** @param {Record<string, unknown>} speedData @param {boolean} isTT */
 function solveFrames(speedData, isTT) {
   /** @type {Record<string, unknown[]>} */
   const frames = {}
   for (const name of Object.keys(speedData).sort()) {
-    frames[name] = LEVELS.map(level => solveMeasuredFramePhysics(name, level, isTT))
+    frames[name] = LEVELS.map(level => solveMeasuredFramePhysics(name, level, isTT, ttBaseline))
   }
   return frames
 }
@@ -54,7 +60,8 @@ const table = {
   frames: solveFrames(FRAME_SPEED_DATA, false),
   ttFrames: solveFrames(TT_FRAME_SPEED_DATA, true),
   wheels: Object.fromEntries(Object.keys(WHEEL_SPEED_DATA).sort().map(name => [name, solveMeasuredWheelPhysics(name)])),
-  ttDiscResidualCdaDeltaM2: solveTtDiscResidualCdaDeltaM2()
+  ttBaseline,
+  ttDiscResidualCdaDeltaM2: solveTtDiscResidualCdaDeltaM2(ttBaseline)
 }
 
 const serialized = JSON.stringify(table, null, 1) + '\n'
@@ -94,6 +101,7 @@ for (const [section, expected] of [['frames', table.frames], ['ttFrames', table.
     if (!(name in expected)) problems.push(`${section}: extra "${name}" (no longer in the speed data)`)
   }
 }
+if (JSON.stringify(parsed.ttBaseline) !== JSON.stringify(table.ttBaseline)) problems.push('ttBaseline: stale value')
 if (parsed.ttDiscResidualCdaDeltaM2 !== table.ttDiscResidualCdaDeltaM2) problems.push('ttDiscResidualCdaDeltaM2: stale value')
 if (problems.length === 0) problems.push('formatting differs from the generator output')
 
