@@ -70,6 +70,12 @@ Validation bounds are deliberately identical to the ones the HTTP endpoints use
 to decide a profile is usable (`weightKg > 0`, `heightCm` 100-220, `wkg > 0`),
 so the two can never disagree about what counts as a valid profile.
 
+A valid profile can still be one the physics cannot ride: a rider whose power
+does not hold a route's grade stalls in the simulator, and the recommend
+endpoints answer that with a `422` ("Rider cannot finish this route at this
+power") rather than a time - the MCP recommend tools pass that status
+through as the tool error.
+
 ## Tools
 
 | Tool | Purpose |

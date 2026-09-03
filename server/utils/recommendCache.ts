@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { RouteSimulationStallError } from '../../shared/utils/physics/simulator'
 import { addTimingMeta } from './timing'
 
 /**
@@ -84,10 +85,27 @@ export function recommendCacheKey(path: string, buildSha: string): string {
  * typing - is preserved end to end.
  */
 export function defineCachedRecommendHandler<T>(handler: (event: H3Event) => Promise<T>) {
+  // A rider who cannot hold the route's grade at their power makes the
+  // simulator throw `RouteSimulationStallError` for that combo. It is a fact
+  // about the request (weight/power vs. this route), not a server fault, so
+  // it is answered with a 422 the pages already surface through their
+  // refetch notice - and, being thrown before `cache.put`, never cached.
+  // Caught here rather than in each handler so the route and segment
+  // endpoints cannot drift apart on it.
+  const run = async (event: H3Event): Promise<T> => {
+    try {
+      return await handler(event)
+    } catch (err) {
+      if (err instanceof RouteSimulationStallError) {
+        throw createError({ statusCode: 422, statusMessage: 'Rider cannot finish this route at this power', message: err.message })
+      }
+      throw err
+    }
+  }
   return defineEventHandler(async (event): Promise<T> => {
     const cache = (globalThis as { caches?: { default?: WorkersCache } }).caches?.default
     const buildSha = useRuntimeConfig(event).public.buildSha
-    if (import.meta.prerender || !cache || !buildSha) return handler(event)
+    if (import.meta.prerender || !cache || !buildSha) return run(event)
 
     const key = recommendCacheKey(event.path, buildSha)
     try {
@@ -102,7 +120,7 @@ export function defineCachedRecommendHandler<T>(handler: (event: H3Event) => Pro
       // the response - never to an error the caller can see.
     }
 
-    const result = await handler(event)
+    const result = await run(event)
     setResponseHeader(event, 'X-Recommend-Cache', 'miss')
     const stored = new Response(JSON.stringify(result), {
       headers: {

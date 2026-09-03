@@ -112,6 +112,19 @@ function crossBoundaries(
 const DEFAULT_DT_SEC = 0.1
 
 /**
+ * Thrown when the rider comes to a complete stop before the finish - their
+ * power cannot hold the grade under them. Distinct from a generic `Error` so
+ * the recommend endpoints can turn "this rider cannot finish this route"
+ * into a client-facing status instead of a 500 (see `recommendCache.ts`).
+ */
+export class RouteSimulationStallError extends Error {
+  constructor(rider: PhysicsRider, grade: number, distanceM: number, totalDistanceM: number) {
+    super(`Rider (${rider.weightKg} kg, ${rider.powerW} W) stalled on a ${(grade * 100).toFixed(1)}% grade at ${distanceM.toFixed(0)} m of ${totalDistanceM.toFixed(0)} m`)
+    this.name = 'RouteSimulationStallError'
+  }
+}
+
+/**
  * Above this total distance the default step grows linearly with distance
  * (capped at `MAX_DT_SEC`), holding the step COUNT roughly constant instead
  * of letting a 174km route cost 16x an 11km one. Workers production CPU
@@ -192,10 +205,9 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
   // a long route and returns a plausible-looking wrong time instead of an
   // error. The budget is the steps needed to cover the route at 0.1 m/s -
   // slow enough that even an absurdly underpowered rider grinding up the
-  // Alpe still finishes, since a rider who genuinely stops instead exits via
-  // the `distanceAdvanced <= 0` break below. Exceeding it means the
-  // simulation is not converging, so fail loudly rather than returning a
-  // partial result.
+  // Alpe still finishes, since a rider who genuinely stops instead throws
+  // `RouteSimulationStallError` below. Exceeding it means the simulation is
+  // not converging, so fail loudly rather than returning a partial result.
   const maxSteps = Math.ceil(options.geometry.totalDistanceM / (0.1 * dt)) + 1000
   let steps = 0
   while (state.distanceM < options.geometry.totalDistanceM) {
@@ -257,7 +269,16 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
       break
     }
 
-    if (distanceAdvanced <= 0 && state.velocityMps <= 0) break
+    // A rider whose power cannot hold the grade comes to a stop. Returning
+    // here used to hand back the partial state, and because `calculateForces`
+    // starts from `STARTUP_SPEED_MPS` a rider who stalls on step one came
+    // back with `elapsedSec` of one `dt` - which the recommend endpoints then
+    // read as the FASTEST combo on the page. 200 kg at 9 W is inside
+    // `RIDER_BOUNDS`, so this was reachable from the API. A stall is an
+    // answer ("cannot finish"), not a time; throw so callers must handle it.
+    if (distanceAdvanced <= 0 && state.velocityMps <= 0) {
+      throw new RouteSimulationStallError(options.rider, segment.grade, state.distanceM, options.geometry.totalDistanceM)
+    }
   }
 
   return {
