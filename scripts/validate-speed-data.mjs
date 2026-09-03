@@ -23,6 +23,9 @@
 //   - an `INTEGRATED_ONLY_WHEELS` name that isn't in both wheel catalogs
 //   - a `wheelSupplement.ts` entry that zwift-data now ships (by id or
 //     name) - the supplement only bridges the gap until upstream catches up
+//   - an `at150W` / `onTtFrame` validation block that is incomplete, a
+//     reference row whose 300 W or 150 W values are not the sheet's, or a
+//     row whose 150 W block just repeats its 300 W values
 //
 // Wheel-name checks run against the zwift-data catalog MERGED with
 // `wheelSupplement.ts`, mirroring the runtime catalog in `getWheelsets()`.
@@ -151,6 +154,56 @@ for (const [label, table] of [['FRAME_SPEED_DATA', FRAME_SPEED_DATA], ['TT_FRAME
   }
 }
 
+// Held-out validation blocks (`at150W` on frames and wheels, `onTtFrame` on
+// wheels - imported by scripts/zwiftinsider/import-validation-gaps.mjs, read
+// only by the golden tests in physics/equipment.test.ts). Two things can go
+// wrong with them and neither shows up as a type error:
+//   - a partial block (the importer writes all-or-nothing; a hand edit can
+//     leave half a block behind)
+//   - a 150 W number landing in a 300 W field, or the other way round - the
+//     sheet's two power rows sit next to each other and look alike. The
+//     reference rows are pinned to the sheet's values for both powers, and
+//     no other row may carry the same tuple at both powers (a bike's gaps
+//     are never power-invariant).
+const REFERENCE_ROWS = [
+  ['FRAME_SPEED_DATA', FRAME_SPEED_DATA['Zwift Carbon'], { flatGapSec0: 0, flatGapSec5: 26.5, climbGapSec0: 0, climbGapSec5: 36.9 }, { flatGapSec0: 0, flatGapSec5: 35.4, climbGapSec0: 0, climbGapSec5: 38.6 }],
+  ['TT_FRAME_SPEED_DATA', TT_FRAME_SPEED_DATA['Zwift TT'], { flatGapSec0: 0, flatGapSec5: 45.6, climbGapSec0: 0, climbGapSec5: 26.6 }, { flatGapSec0: 0, flatGapSec5: 53.3, climbGapSec0: 0, climbGapSec5: 25.9 }],
+  ['WHEEL_SPEED_DATA', WHEEL_SPEED_DATA['Zwift 32mm Carbon'], { flatGapSec: 0, climbGapSec: 0 }, { flatGapSec: 0, climbGapSec: 0 }]
+]
+for (const [label, sample, at300W, at150W] of REFERENCE_ROWS) {
+  for (const [field, expected] of Object.entries(at300W)) {
+    if (sample?.[field] !== expected) errors.push(`${label}: the reference row's 300 W ${field} is ${sample?.[field]}, the sheet says ${expected} - is a 150 W value in a 300 W field?`)
+  }
+  for (const [field, expected] of Object.entries(at150W)) {
+    if (sample?.at150W?.[field] !== expected) errors.push(`${label}: the reference row's at150W.${field} is ${sample?.at150W?.[field]}, the sheet says ${expected} - is a 300 W value in the 150 W block?`)
+  }
+}
+if (WHEEL_SPEED_DATA['Zwift 32mm Carbon']?.onTtFrame?.flatGapSec !== 0 || WHEEL_SPEED_DATA['Zwift 32mm Carbon']?.onTtFrame?.climbGapSec !== 0) {
+  errors.push('WHEEL_SPEED_DATA: the reference wheel\'s onTtFrame block must read 0/0 - it IS the TT-frame baseline')
+}
+
+let validationBlockCount = 0
+const tuple = (sample, fields) => fields.map(f => sample?.[f])
+for (const [label, table, fields] of [
+  ['FRAME_SPEED_DATA', FRAME_SPEED_DATA, ['flatGapSec0', 'flatGapSec5', 'climbGapSec0', 'climbGapSec5']],
+  ['TT_FRAME_SPEED_DATA', TT_FRAME_SPEED_DATA, ['flatGapSec0', 'flatGapSec5', 'climbGapSec0', 'climbGapSec5']],
+  ['WHEEL_SPEED_DATA', WHEEL_SPEED_DATA, ['flatGapSec', 'climbGapSec']]
+]) {
+  const isReference = name => name === 'Zwift Carbon' || name === 'Zwift TT' || name === 'Zwift 32mm Carbon'
+  for (const [name, sample] of Object.entries(table)) {
+    for (const block of ['at150W', 'onTtFrame']) {
+      if (!(block in sample)) continue
+      validationBlockCount++
+      const values = tuple(sample[block], fields)
+      if (values.some(v => typeof v !== 'number' || !Number.isFinite(v))) {
+        errors.push(`${label}: ${JSON.stringify(name)} ${block} is incomplete (${JSON.stringify(sample[block])}) - the importer writes all ${fields.length} fields or nothing`)
+      } else if (!isReference(name) && values.every((v, i) => v === sample[fields[i]])) {
+        errors.push(`${label}: ${JSON.stringify(name)} ${block} repeats the row's 300 W values exactly - a bike's gaps are never power-invariant, so one of the two was pasted into the other`)
+      }
+    }
+  }
+}
+
 // Classifier special-case sets (exported by their modules for exactly this
 // check - a name here that drifts from the catalog silently stops
 // special-casing anything).
@@ -183,4 +236,4 @@ if (errors.length) {
   for (const e of errors) console.error(`ERROR: ${e}\n`)
   process.exit(1)
 }
-console.log(`validate-speed-data: OK (${Object.keys(WHEEL_SPEED_DATA).length} wheel rows, ${Object.keys(FRAME_SPEED_DATA).length + Object.keys(TT_FRAME_SPEED_DATA).length} frame rows, ${stageCurveCount} stage curves, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} schemes, ${fixedWheelFrames.length + roadHaloFrames.length + purchasableHaloFrames.length + integratedOnlyWheels.length} special-case names)`)
+console.log(`validate-speed-data: OK (${Object.keys(WHEEL_SPEED_DATA).length} wheel rows, ${Object.keys(FRAME_SPEED_DATA).length + Object.keys(TT_FRAME_SPEED_DATA).length} frame rows, ${stageCurveCount} stage curves, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} schemes, ${validationBlockCount} validation blocks, ${fixedWheelFrames.length + roadHaloFrames.length + purchasableHaloFrames.length + integratedOnlyWheels.length} special-case names)`)

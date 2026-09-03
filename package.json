@@ -8,6 +8,7 @@
     "validate:upgrade-data": "node scripts/upgrade-levels/verify-upgrade-data.mjs",
     "validate:equipment-physics": "node scripts/equipment-physics/compute-equipment-physics.mjs --check",
     "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",
+    "speed-data:import-validation": "node scripts/zwiftinsider/import-validation-gaps.mjs",
     "validate:api-schemas": "node scripts/validate-api-schemas.mjs",
     "validate:events": "node scripts/events/validate-events.mjs",
     "validate:speed-data": "node scripts/validate-speed-data.mjs",
