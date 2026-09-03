@@ -4,6 +4,7 @@ import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor } from '../data/frameUpgradeSchemes'
 import { classifyBikeFrame, FIXED_WHEEL_FRAMES, interpolateGap, isRedundantCosmeticVariant, solveMeasuredFramePhysics } from './classifyBikeFrame'
 import { solveFrameEquipmentDelta, standardEquivalentClimbScore } from './physics/equipment'
+import { getFrames, UNLOCALIZED_FRAME_NAME } from './catalog'
 
 const frameByName = (name: string) => {
   const frame = bikeFrames.find(f => f.name === name)
@@ -38,6 +39,23 @@ describe('category decisions with history behind them', () => {
     for (const frame of bikeFrames.filter(f => f.isTT)) {
       expect(classifyBikeFrame(frame).category, frame.name).toBe('tt')
     }
+  })
+})
+
+describe('catalog hygiene', () => {
+  it('no catalog frame carries an unlocalized placeholder name', () => {
+    for (const frame of getFrames()) {
+      expect(frame.name, `frame ${frame.id}`).not.toMatch(UNLOCALIZED_FRAME_NAME)
+    }
+  })
+
+  it('documents the one placeholder zwift-data currently ships, so a second one is noticed', () => {
+    // Upstream gap, not ours: the Canyon Aeroad CFR 2026 shipped before its
+    // localized string. When this fails because the list is empty, zwift-data
+    // has caught up - delete this test. When it fails because the list grew,
+    // check the new one is hidden by `getFrames()` and note it here.
+    const placeholders = bikeFrames.filter(f => UNLOCALIZED_FRAME_NAME.test(f.name)).map(f => f.id)
+    expect(placeholders).toEqual([2303301376])
   })
 })
 

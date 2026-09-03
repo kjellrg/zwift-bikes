@@ -45,7 +45,7 @@ export default defineNitroPlugin((nitroApp) => {
     const cold = ++servedRequests === 1
 
     // Path only, never the query string: /api/recommend/* carries the
-    // rider's weight, height and w/kg in it, and none of that belongs in a
+    // rider's weight, height and power in it, and none of that belongs in a
     // log sink. The handlers pass the parts that are safe and actually
     // explain the duration (route, laps, draft mode) through `addTimingMeta`
     // instead.

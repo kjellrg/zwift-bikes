@@ -10,11 +10,26 @@ export function getWorldName(slug: string): string {
   return worldNameBySlug.get(slug) ?? slug
 }
 
+/**
+ * zwift-data is generated from Zwift's game dictionary, and a frame that
+ * shipped before its localized string did carries the raw dictionary key as
+ * its name (`Canyon LOC_ENTITLEMENT_CYCLING_BIKE_CANYON_AEROADCFR2026_NAME`,
+ * id 2303301376, in zwift-data 1.50). It is an upstream gap, not a bike the
+ * catalog can describe: no ZwiftInsider data can be keyed to it, the garage
+ * picker and the bikes API would show the placeholder verbatim, and it would
+ * rank as an estimated standard frame. Dropped here, at the one place every
+ * frame enters the catalog, until zwift-data ships the real name - at which
+ * point it appears on its own. `validate-speed-data.mjs` warns per
+ * placeholder so a new one is noticed, without failing the build on
+ * something the repo cannot fix.
+ */
+export const UNLOCALIZED_FRAME_NAME = /\bLOC_[A-Z0-9_]+_NAME\b/
+
 let cachedFrames: ClassifiedBikeFrame[] | undefined
 let cachedRoutes: RouteWithMeta[] | undefined
 
 export function getFrames(): ClassifiedBikeFrame[] {
-  if (!cachedFrames) cachedFrames = bikeFrames.map(f => classifyBikeFrame(f))
+  if (!cachedFrames) cachedFrames = bikeFrames.filter(f => !UNLOCALIZED_FRAME_NAME.test(f.name)).map(f => classifyBikeFrame(f))
   return cachedFrames
 }
 

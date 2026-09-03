@@ -47,8 +47,8 @@ function blendOffroad(frameValue: number, wheelsetValue: number): number {
 }
 
 // Disc wheels get a real, disc-specific extra aero advantage on TT frames -
-// see `finishTime.ts`'s `TT_DISC_CDA_MULTIPLIER` comment for the exact
-// ZwiftInsider per-wheel Road-vs-TT data this is derived from. That fix
+// see `physics/equipment.ts`'s `TT_DISC_RESIDUAL_CDA_DELTA_M2` comment for
+// the exact ZwiftInsider per-wheel Road-vs-TT data this is derived from. That fix
 // makes `estimateFinishTimeSec` correctly show disc wheels as fastest on TT
 // frames, but this `score` (used to rank/sort combos) blends aero/climb via
 // a simple weighted sum with no equivalent adjustment - the disc wheel's

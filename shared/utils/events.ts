@@ -27,7 +27,12 @@ import { MAX_LAPS } from './routeLaps'
  * than importing the catalog directly.
  */
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO date (YYYY-MM-DD)')
+// Shape AND calendar validity: the regex alone let `2026-02-30` through, and
+// nothing downstream constructs a Date until the page formats it - as
+// "Invalid Date". A round trip through `Date` rejects impossible days.
+const isoDate = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO date (YYYY-MM-DD)')
+  .refine(value => new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), 'not a real calendar date')
 
 /**
  * The formats run across the covered series (ZRL's four; ZRacing stages are
@@ -450,6 +455,21 @@ export function raceEndDate(race: EventRace): string {
 export function raceDisplayName(race: EventRace): string {
   const stage = /^stage-(\d+)$/.exec(race.slug)
   return stage ? `Stage ${stage[1]}` : `Round ${race.round} Week ${race.week}`
+}
+
+/**
+ * The season-and-round context a race is named under everywhere it appears
+ * outside its own season page: `ZRacing 2026 - August: Makuri Madness`, or
+ * just `ZRL 2026/27` for a round without a curated name. The round's name is
+ * what riders know a ZRacing month by (they enter "Makuri Madness", not
+ * "ZRacing 2026 stage 4"), and it was only ever shown on the race page's own
+ * eyebrow - the homepage teaser, page titles, OG cards, the season's
+ * ItemList and the route page's "featured in" links all named the season
+ * alone. One helper so the surfaces cannot drift again.
+ */
+export function raceContextLabel(season: Pick<EventSeason, 'seriesName' | 'label'>, round?: Pick<EventRound, 'name'>): string {
+  const seasonLabel = `${season.seriesName} ${season.label}`
+  return round?.name ? `${seasonLabel} - ${round.name}` : seasonLabel
 }
 
 /**

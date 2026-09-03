@@ -14,6 +14,7 @@ const { owned, ownedWheels, load: loadGarage } = useGarage()
 // state - so the query and watchers below keep firing exactly as before.
 const { weightKg, heightCm, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
 const { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
+const { intParam, param, enumParam, replaceQuery } = useUrlState(route, useRouter())
 
 const bikeSearch = ref('')
 const bikeSearchDebounced = ref('')
@@ -133,6 +134,34 @@ onMounted(() => {
   // "upcoming" resolved at render time would bake the build date into the
   // shipped HTML. The row simply never appears when nothing is coming up.
   upcomingEvents.value = getUpcomingEventsForRoute(slug.value, new Date().toISOString().slice(0, 10))
+
+  // `?laps=3&bike=tarmac&category=tt&draft=ttt` - a shareable view. Read
+  // here, after the child controls' own `onMounted` has loaded the stored
+  // preferences, so a value in the URL wins over the stored one for this
+  // visit. Assigned to the state refs directly rather than through the
+  // setters on purpose: a link someone sent must not overwrite the rider's
+  // saved category or draft mode.
+  const urlLaps = intParam('laps', 1, lapOptions.value.length)
+  if (urlLaps !== undefined) laps.value = urlLaps
+  const urlSearch = param('bike')
+  if (urlSearch) bikeSearch.value = urlSearch.slice(0, 100)
+  const urlCategory = enumParam('category', ['all', 'standard', 'tt', 'gravel', 'handbike', 'funbike'] as const)
+  if (urlCategory) bikeCategory.value = urlCategory
+  const urlDraft = enumParam('draft', ['solo', 'ttt', 'race'] as const)
+  if (urlDraft) draftMode.value = urlDraft
+})
+// Written from state only (never read back from the query - see
+// `useUrlState`). Defaults are omitted so a plain visit keeps a clean URL;
+// the stored preference is what "default" means for category and draft, so
+// a rider with a saved non-default one sees it in the URL - which is exactly
+// what makes their share link reproduce their view.
+watch([laps, bikeSearchDebounced, bikeCategory, draftMode], ([lapCount, search, category, draft]) => {
+  replaceQuery({
+    laps: lapCount > 1 ? lapCount : undefined,
+    bike: search || undefined,
+    category: category !== 'standard' ? category : undefined,
+    draft: draft !== 'solo' ? draft : undefined
+  })
 })
 const upcomingEvents = ref<PublishableRace[]>([])
 
@@ -173,6 +202,16 @@ const hasLongClimb = computed(() => routeData.value
 // already-visible results (show stale cards + a subtle "updating" hint).
 const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
 const isRefreshingCombos = computed(() => status.value === 'pending' && !!recommendData.value)
+// Announced to assistive tech when a refetch lands: the visual cue is
+// opacity and a spinner only. Cleared first so consecutive refreshes
+// re-announce (a live region only speaks on change).
+const resultsAnnouncement = ref('')
+watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
+  if (!wasRefreshing || refreshing) return
+  resultsAnnouncement.value = ''
+  await nextTick()
+  resultsAnnouncement.value = 'Results updated'
+})
 
 async function refreshFirstPage() {
   // Keep the current results mounted while the new recommendation request is
@@ -334,7 +373,9 @@ useHead(() => {
         </UCard>
         <UCard :ui="{ body: 'text-center py-4' }">
           <p class="text-xs text-muted uppercase tracking-wide">
-            Climb ratio
+            <UTooltip text="Metres of climbing per kilometre ridden - the route's average steepness. Under 5 is flat, 10-20 rolling to hilly, above 20 a proper climb.">
+              <span class="underline decoration-dotted">Climb ratio</span>
+            </UTooltip>
           </p><p class="text-xl font-bold">
             {{ routeData.terrain.climbRatio.toFixed(1) }} m/km
           </p>
@@ -388,11 +429,111 @@ useHead(() => {
           <ULink
             :to="entry.path"
             class="text-primary underline"
-          >{{ entry.season.seriesName }} {{ entry.season.label }} {{ raceDisplayName(entry.race) }}</ULink>
+          >{{ raceContextLabel(entry.season, entry.round) }} {{ raceDisplayName(entry.race) }}</ULink>
           ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
         </span>
       </template>
     </UAlert>
+
+    <div>
+      <h2 class="text-xl font-semibold text-highlighted mb-4">
+        Best bike &amp; wheel combo for this route
+      </h2>
+      <RecommendDataNotice />
+      <p
+        class="sr-only"
+        role="status"
+        aria-live="polite"
+      >
+        {{ resultsAnnouncement }}
+      </p>
+      <BikeFilterControls
+        v-model:search="bikeSearch"
+        class="mb-6"
+      />
+
+      <RiderProfileControls
+        :has-long-climb="hasLongClimb"
+        class="mb-6"
+      />
+
+      <div
+        v-if="isFirstLoad"
+        class="space-y-4"
+      >
+        <ComboResultCardSkeleton class="mb-6" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ComboResultCardSkeleton /><ComboResultCardSkeleton />
+        </div>
+      </div>
+      <template v-else>
+        <p
+          v-if="isRefreshingCombos"
+          class="flex items-center gap-1.5 text-sm text-muted mb-3"
+        >
+          <UIcon
+            name="i-lucide-loader-circle"
+            class="size-4 animate-spin"
+          />Updating results…
+        </p>
+        <FastestOverallNote
+          v-if="fastestOverall"
+          :fastest-overall="fastestOverall"
+          @show-all="setBikeCategory('all')"
+          @include-halo="setIncludeHaloBikes(true)"
+        />
+        <div
+          class="transition-opacity"
+          :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
+        >
+          <ComboResultCard
+            v-if="topCombo"
+            :combo="topCombo"
+            :rank="1"
+            :route="routeData"
+            :laps="resultsLaps"
+            :fastest-time-sec="fastestTimeSec"
+            :owned="owned"
+            class="mb-6"
+          />
+          <div
+            v-if="restCombos.length"
+            class="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            <ComboResultCard
+              v-for="(combo, index) in restCombos"
+              :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
+              :combo="combo"
+              :rank="index + 2"
+              :route="routeData"
+              :laps="resultsLaps"
+              :fastest-time-sec="fastestTimeSec"
+              :owned="owned"
+            />
+          </div>
+          <p
+            v-else-if="!topCombo"
+            class="text-muted text-center py-10"
+          >
+            No bikes match your filters.
+          </p>
+        </div>
+        <div
+          v-if="hasMore"
+          class="text-center mt-6"
+        >
+          <UButton
+            color="neutral"
+            variant="subtle"
+            :loading="loadingMore"
+            @click="showMore"
+          >
+            Show more matches
+          </UButton>
+        </div>
+        <ReportDataLink :item="routeData?.name" />
+      </template>
+    </div>
 
     <div v-if="faqAnswer">
       <h2 class="text-lg font-semibold text-highlighted mb-2">
@@ -473,110 +614,5 @@ useHead(() => {
       :summary="physicsInfo.summary"
       :note="physicsInfo.note"
     />
-
-    <div>
-      <h2 class="text-xl font-semibold text-highlighted mb-4">
-        Best bike &amp; wheel combo for this route
-      </h2>
-      <RecommendDataNotice />
-      <BikeFilterControls
-        v-model:search="bikeSearch"
-        class="mb-6"
-      />
-
-      <RiderProfileControls
-        :has-long-climb="hasLongClimb"
-        class="mb-6"
-      />
-
-      <div
-        v-if="isFirstLoad"
-        class="space-y-4"
-      >
-        <ComboResultCardSkeleton class="mb-6" />
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ComboResultCardSkeleton /><ComboResultCardSkeleton />
-        </div>
-      </div>
-      <template v-else>
-        <p
-          v-if="isRefreshingCombos"
-          class="flex items-center gap-1.5 text-sm text-muted mb-3"
-        >
-          <UIcon
-            name="i-lucide-loader-circle"
-            class="size-4 animate-spin"
-          />Updating results…
-        </p>
-        <FastestOverallNote
-          v-if="fastestOverall"
-          :fastest-overall="fastestOverall"
-          @show-all="setBikeCategory('all')"
-          @include-halo="setIncludeHaloBikes(true)"
-        />
-        <div
-          class="transition-opacity"
-          :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
-        >
-          <ComboResultCard
-            v-if="topCombo"
-            :combo="topCombo"
-            :rank="1"
-            :route="routeData"
-            :weight-kg="weightKg"
-            :height-cm="heightCm"
-            :power-w="powerW"
-            :laps="resultsLaps"
-            :fastest-time-sec="fastestTimeSec"
-            :owned="owned"
-            :draft-mode="draftMode"
-            :ttt-riders="tttRiders"
-            :ttt-climb-wkg="tttClimbWkg"
-            class="mb-6"
-          />
-          <div
-            v-if="restCombos.length"
-            class="grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            <ComboResultCard
-              v-for="(combo, index) in restCombos"
-              :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
-              :combo="combo"
-              :rank="index + 2"
-              :route="routeData"
-              :weight-kg="weightKg"
-              :height-cm="heightCm"
-              :power-w="powerW"
-              :laps="resultsLaps"
-              :fastest-time-sec="fastestTimeSec"
-              :owned="owned"
-              :draft-mode="draftMode"
-              :ttt-riders="tttRiders"
-              :ttt-climb-wkg="tttClimbWkg"
-            />
-          </div>
-          <p
-            v-else-if="!topCombo"
-            class="text-muted text-center py-10"
-          >
-            No bikes match your filters.
-          </p>
-        </div>
-        <div
-          v-if="hasMore"
-          class="text-center mt-6"
-        >
-          <UButton
-            color="neutral"
-            variant="subtle"
-            :loading="loadingMore"
-            @click="showMore"
-          >
-            Show more matches
-          </UButton>
-        </div>
-        <ReportDataLink :item="routeData?.name" />
-      </template>
-    </div>
   </UContainer>
 </template>

@@ -22,10 +22,17 @@ const { showUpcomingRaces, load: loadPreferences } = usePreferences()
 const { eventsVisible, load: loadSiteFlags } = useSiteFlags()
 
 const nextRace = ref<PublishableRace>()
+// Until mounted the card's space is held by a same-height skeleton: the
+// real card cannot be server-rendered (see above), and letting it pop in
+// after hydration pushed the whole route grid down on the most-visited page.
+// The skeleton collapses only when there is nothing to show - teasers off,
+// events gated, or the calendars run dry - which is the rare case.
+const mounted = ref(false)
 onMounted(() => {
   loadPreferences()
   loadSiteFlags()
   nextRace.value = getNextUpcomingRace(new Date().toISOString().slice(0, 10))
+  mounted.value = true
 })
 
 const courseNames = computed(() => {
@@ -35,14 +42,27 @@ const courseNames = computed(() => {
 </script>
 
 <template>
-  <UCard v-if="showUpcomingRaces && eventsVisible && nextRace">
+  <UCard
+    v-if="!mounted"
+    aria-hidden="true"
+  >
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="space-y-2">
+        <USkeleton class="h-3 w-16" />
+        <USkeleton class="h-5 w-72 max-w-full" />
+        <USkeleton class="h-4 w-48" />
+      </div>
+      <USkeleton class="h-8 w-32" />
+    </div>
+  </UCard>
+  <UCard v-else-if="showUpcomingRaces && eventsVisible && nextRace">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <p class="text-xs text-muted uppercase tracking-wide">
           Next race
         </p>
         <p class="font-semibold text-highlighted">
-          {{ nextRace.season.seriesName }} {{ nextRace.season.label }} - {{ raceDisplayName(nextRace.race) }}<template v-if="courseNames">
+          {{ raceContextLabel(nextRace.season, nextRace.round) }} - {{ raceDisplayName(nextRace.race) }}<template v-if="courseNames">
             on {{ courseNames }}
           </template>
         </p>

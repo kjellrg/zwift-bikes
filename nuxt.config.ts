@@ -33,12 +33,13 @@ export default defineNuxtConfig({
        * currently on `main`.
        *
        * Resolved here, at build time, rather than left to a runtime env
-       * lookup: the SSR function on Azure has no `GITHUB_SHA` in its
-       * environment, so a runtime-only value would be empty for every page
-       * that isn't prerendered. Reading it in this file inlines it as the
-       * default instead, which prerendered pages and the SSR function then
-       * both carry. Fed by the `env:` block on the deploy workflow's build
-       * step, which Azure's action forwards into the Oryx build container.
+       * lookup: the Worker has no `GITHUB_SHA` in its environment (Workers
+       * carry only the bindings and vars in wrangler.jsonc), so a
+       * runtime-only value would be empty for every page that isn't
+       * prerendered. Reading it in this file inlines it as the default
+       * instead, which prerendered pages and the SSR Worker then both
+       * carry. Fed by the `env:` block on the build step of
+       * `.github/workflows/cloudflare-deploy.yml`.
        *
        * Deliberately `BUILD_SHA` and not `NUXT_PUBLIC_BUILD_SHA`: Nuxt
        * applies `NUXT_PUBLIC_*` variables over the resolved config value
@@ -63,7 +64,15 @@ export default defineNuxtConfig({
     '/api/routes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/bikes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/segments': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
-    '/api/wheelsets': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } }
+    '/api/wheelsets': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
+    // The one glob: every season lives under its own slug and is as static
+    // as the catalog. Without a rule this endpoint had NO Cache-Control at
+    // all (the security-headers middleware skips /api/**), leaving it to
+    // browser heuristics - the same hazard class as the SSR-HTML incident
+    // behind 8f05185. Shorter max-age than the catalog rules so the
+    // site-flags gate's 503 (events can be switched off at runtime) is not
+    // masked by a cached 200 for minutes.
+    '/api/events/**': { headers: { 'cache-control': 'public, max-age=60, stale-while-revalidate=3600' } }
   },
 
   compatibilityDate: '2026-06-30',

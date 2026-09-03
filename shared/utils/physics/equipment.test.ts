@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { bikeFrames } from 'zwift-data'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../../data/frameSpeedData'
 import { WHEEL_SPEED_DATA } from '../../data/wheelSpeedData'
-import { precomputedFrameDelta, precomputedWheelDelta } from '../../data/equipmentPhysics'
+import { PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2, precomputedFrameDelta, precomputedWheelDelta } from '../../data/equipmentPhysics'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
 import { classifyBikeFrame } from '../classifyBikeFrame'
 import { speedForPower } from './forces'
+import { TT_DISC_EXTRA_GAP_SEC, TT_DISC_REFERENCE_WHEEL, forwardFlatGapSec } from './equipment'
 
 /**
  * Golden tests for the equipment-physics pipeline: every measured frame's and
@@ -128,6 +129,20 @@ describe('published reference points', () => {
     const gapSec = 3600 * (1 - standardBaselineSpeed / speedmaxSpeed)
     expect(gapSec).toBeGreaterThan(210)
     expect(gapSec).toBeLessThan(235)
+  })
+
+  it('a disc wheel on a TT frame is worth its road gap plus the published 15.8 s/h extra, no more', () => {
+    // The road-solved delta already buys more seconds on the lighter-CdA,
+    // heavier TT baseline than on the road baseline; the residual must only
+    // cover what that shift leaves of the 15.8 (zwiftinsider.com/wheel/
+    // dt-swiss-arc-1100-dicut-85-disc). Solving the whole 15.8 on top
+    // over-credited TT+disc by ~7 s/h.
+    const disc = precomputedWheelDelta(TT_DISC_REFERENCE_WHEEL)
+    const roadGap = WHEEL_SPEED_DATA[TT_DISC_REFERENCE_WHEEL]!.flatGapSec
+    const onTt = forwardFlatGapSec({ ...disc, cdaDeltaM2: disc.cdaDeltaM2 + PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2 }, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG)
+    expect(Math.abs(onTt - (roadGap + TT_DISC_EXTRA_GAP_SEC))).toBeLessThan(GAP_TOLERANCE_SEC)
+    // And the exported forward helper agrees with this file's own.
+    expect(forwardFlatGapSec(disc, STANDARD_BASELINE_CDA_M2, STANDARD_BASELINE_BIKE_MASS_KG)).toBeCloseTo(forwardGapSec(disc, FLAT_TEST_GRADE, STANDARD_BASELINE_CDA_M2, STANDARD_BASELINE_BIKE_MASS_KG), 3)
   })
 
   it('the baseline frame solves to (near-)zero deltas at stage 0', () => {

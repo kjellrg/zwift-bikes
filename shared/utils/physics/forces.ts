@@ -35,10 +35,12 @@ export function powerForSpeed(velocityMps: number, massKg: number, grade: number
  */
 export function speedForPower(powerW: number, massKg: number, grade: number, crr: number, cdaM2: number): number {
   let low = 0.1
-  // ~108 km/h ceiling. Verified against the sprint slider's 1500 W maximum:
-  // even at 1500 W a 75 kg rider is ~19 m/s on the flat and ~26 m/s on a
-  // -10% descent, so the bracket cannot saturate at any settable power.
-  let high = 30
+  // ~144 km/h ceiling. Sized to the API's upper bound, not the sliders':
+  // `RIDER_BOUNDS.powerW.max` is 3000 W, and 3000 W on a -10% descent is
+  // 29.06 m/s for a 75 kg rider - the old 30 m/s ceiling would have
+  // saturated within a rounding error of a legal request. At the sliders'
+  // 1500 W the same rider is ~19 m/s on the flat and ~26 m/s downhill.
+  let high = 40
   for (let i = 0; i < 40; i++) {
     const mid = (low + high) / 2
     if (powerForSpeed(mid, massKg, grade, crr, cdaM2) < powerW) low = mid

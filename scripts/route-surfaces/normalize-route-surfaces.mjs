@@ -39,15 +39,15 @@ for (const [slug, entry] of Object.entries(data)) {
   // The effective lead-in consumers see - event overrides included - so the
   // split lands where `geometryForRouteLaps` will actually cut the ride.
   const leadInKm = eventLeadIn(slug, route.leadInDistance, route.leadInElevation).leadInDistance ?? 0
-  const { entry: normalized, classification, profileDropped } = normalizeRouteSurfaceEntry(entry, route.distance, leadInKm, route.elevation)
+  const { entry: normalized, classification, profileDropped } = normalizeRouteSurfaceEntry(entry, route.distance, leadInKm, route.elevation, route.lap)
   results[slug] = normalized
   ;(byClassification[classification] ??= []).push(slug)
-  if (profileDropped) (byClassification['flat-profile-dropped'] ??= []).push(slug)
+  if (profileDropped) (byClassification['profile-dropped'] ??= []).push(slug)
 }
 
 writeFileSync(outPath, JSON.stringify(results, null, 1))
 
 for (const [classification, slugs] of Object.entries(byClassification)) {
-  const detail = ['ride-split', 'ambiguous', 'unknown-slug', 'flat-profile-dropped'].includes(classification) ? `: ${slugs.join(', ')}` : ''
+  const detail = ['ride-split', 'ambiguous', 'unknown-slug', 'profile-dropped'].includes(classification) ? `: ${slugs.join(', ')}` : ''
   console.log(`${classification}: ${slugs.length}${detail}`)
 }

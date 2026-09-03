@@ -1,6 +1,6 @@
 import type { RouteClimb, RouteElevationPoint, RouteWithMeta } from '../../types/catalog'
 import type { PhysicsSurface, RouteGeometry, RouteGeometryPoint, RouteSurfaceSegment } from '../../types/physics'
-import { sliceSurfaceSegments } from '../surfaceGeometry'
+import { sliceSurfaceSegments, unmeasuredLeadInSurface } from '../surfaceGeometry'
 import { geometryFromRoute } from './simulator'
 
 /**
@@ -202,6 +202,11 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
   const lapDistanceM = route.distance * 1000
   const lapElevationM = route.elevation
   const fallbackSurface = base.surfaceSegments[0]?.surface ?? 'tarmac'
+  // An unmeasured lead-in is ridden from a paved pen, not on the lap's
+  // dominant surface - see `unmeasuredLeadInSurface` for the rule and the
+  // routes it mattered on. `undefined` means the lead-in inherits the lap:
+  // measured `leadInSegments` exist, or the world is one surface throughout.
+  const leadInFallbackSurface: PhysicsSurface = unmeasuredLeadInSurface(route.surface) ?? fallbackSurface
   // `RouteClimb.perLap` splits known climbs into the ones ridden once during
   // the (non-repeating) lead-in vs. the ones ridden once per lap - see
   // `getRouteClimbs`. Mixing them up would misplace/duplicate climbs, since
@@ -226,7 +231,7 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
   const measuredLeadIn = route.terrain.leadInElevationProfile
 
   if (leadInDistanceM > 0) {
-    surfaceSegments.push(...sliceSurfaceSegments(route.surface.leadInSegments, 0, leadInDistanceM / 1000, fallbackSurface, distanceM))
+    surfaceSegments.push(...sliceSurfaceSegments(route.surface.leadInSegments, 0, leadInDistanceM / 1000, leadInFallbackSurface, distanceM))
     const result = measuredLeadIn && measuredLeadIn.length > 1
       ? appendMeasuredLap(points, distanceM, elevationM, leadInDistanceM, measuredLeadIn)
       : leadInClimbs.length > 0

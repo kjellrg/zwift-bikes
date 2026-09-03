@@ -103452,16 +103452,6 @@
     "type": "tarmac"
    }
   ],
-  "elevationProfile": [
-   {
-    "distanceM": 0,
-    "elevationM": 0
-   },
-   {
-    "distanceM": 5006.3,
-    "elevationM": 50
-   }
-  ],
   "generatedAt": "2026-08-10T16:28:04.960Z",
   "stravaSegmentId": 18960184
  },

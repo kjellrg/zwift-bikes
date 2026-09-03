@@ -18,10 +18,11 @@
  * SSR'd pages saw the old Azure SWA deployment's internal
  * `*.azurewebsites.net` origin rather than zwiftbikes.com (the same class of
  * mismatch applies on Cloudflare). Both leaked into BreadcrumbList
- * `item` URLs and a SportsEvent `url` until this replaced them - Search
- * Console reported the markup as valid either way, because it validates the
- * shape and not the domain, but an off-site `item` URL can't tie the trail
- * back to this site, so the breadcrumb never earns its rich result.
+ * `item` URLs (and, before the race pages dropped it, a SportsEvent `url`)
+ * until this replaced them - Search Console reported the markup as valid
+ * either way, because it validates the shape and not the domain, but an
+ * off-site `item` URL can't tie the trail back to this site, so the
+ * breadcrumb never earns its rich result.
  *
  * Used for the canonical tag and og:url in app.vue, and by every page that
  * puts its own URL into JSON-LD.

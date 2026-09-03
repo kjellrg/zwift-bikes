@@ -4,7 +4,7 @@ export type { DraftMode, PowerSegmentW, TttClimbBlock, TttPowerPlan } from './dr
 export { buildRacePlan } from './racePlan'
 export type { RacePlanItem, RacePlanOptions } from './racePlan'
 export { bikeMassFromScore, equipmentCdaFromScore, equipmentPhysics, riderCdaM2, riderScaledCdaM2, solveFrameEquipmentDelta, solveWheelEquipmentDelta, standardEquivalentClimbScore } from './equipment'
-export { geometryFromRoute, simulateRoute } from './simulator'
+export { geometryFromRoute, RouteSimulationStallError, simulateRoute } from './simulator'
 export { geometryForRouteLaps, geometryForSegment, geometryForWarmup, prependWarmup } from './routeGeometry'
 export { FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, SIMULATED_ORDER_MARGIN } from './simulatedOrdering'
 export type { SimulateRouteOptions } from './simulator'

@@ -77,10 +77,10 @@ useHead(() => ({
         '@context': 'https://schema.org',
         '@type': 'ItemList',
         'name': `${title.value} race calendar`,
-        'itemListElement': rounds.value.flatMap(round => round.races).map((race, index) => ({
+        'itemListElement': rounds.value.flatMap(round => round.races.map(race => ({ round, race }))).map(({ round, race }, index) => ({
           '@type': 'ListItem',
           'position': index + 1,
-          'name': `${raceDisplayName(race)}${race.categories[0]?.route ? ` - ${race.categories[0].route.name}` : ''}`,
+          'name': `${round.name ? `${round.name} ` : ''}${raceDisplayName(race)}${race.categories[0]?.route ? ` - ${race.categories[0].route.name}` : ''}`,
           ...(isRacePublishable(race) ? { item: `${seasonUrl.value}/${race.slug}` } : {})
         }))
       }).replace(/</g, '\\u003c')

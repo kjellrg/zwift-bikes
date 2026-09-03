@@ -55,10 +55,15 @@ const levelOptions = [0, 1, 2, 3, 4, 5].map(level => ({
   value: level
 }))
 
-// A bike you've just bought in Zwift is Stage 0, which is also what the
-// measured frame data is anchored to.
+// Added at the rider's default level for unowned bikes - the same level the
+// result cards' quick-add uses and the level unowned bikes are scored at, so
+// ticking a bike here never moves it in the ranking. This used to add at
+// Stage 0 while the card added at the default: the same action persisted a
+// different level depending on where it was clicked. The level picker
+// alongside is there for riders who haven't upgraded yet.
+const { defaultUnownedLevel } = useRiderProfile()
 function toggleOwned(frame: ClassifiedBikeFrame, value: boolean) {
-  setOwned(frame.id, value ? 0 : null)
+  setOwned(frame.id, value ? defaultUnownedLevel.value : null)
 }
 
 function updateLevel(frameId: number, level: number) {

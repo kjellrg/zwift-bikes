@@ -141,6 +141,32 @@ describe('surface time penalty', () => {
     expect(penalty).toBe(0)
   })
 
+  it('an unmeasured lead-in is paved: it adds no surface penalty of its own', () => {
+    // Start pens are tarmac, so without `leadInSegments` the lead-in must not
+    // inherit the lap's dirt - the penalty with a lead-in equals the penalty
+    // without one (see `leadInCrr` and `geometryForRouteLaps`).
+    const withLeadIn = testRoute({ ...GRAVEL_ROUTE, leadInDistance: 3, leadInElevation: 20 })
+    const lapOnly = estimateSurfaceTimePenaltySec(GRAVEL_ROUTE, baselineFrame(), baselineWheels(), RIDER.weightKg, RIDER.heightCm, RIDER.powerW)
+    const leadIn = estimateSurfaceTimePenaltySec(withLeadIn, baselineFrame(), baselineWheels(), RIDER.weightKg, RIDER.heightCm, RIDER.powerW)
+    expect(lapOnly).toBeGreaterThan(0)
+    expect(leadIn).toBeCloseTo(lapOnly, 6)
+    // A measured lead-in keeps the lap blend and so does cost time.
+    const measuredLeadIn = testRoute({
+      ...withLeadIn,
+      surface: { ...withLeadIn.surface, leadInSegments: [{ fromKm: 0, toKm: 3, type: 'dirt' }] }
+    })
+    expect(estimateSurfaceTimePenaltySec(measuredLeadIn, baselineFrame(), baselineWheels(), RIDER.weightKg, RIDER.heightCm, RIDER.powerW)).toBeGreaterThan(lapOnly)
+    // A world that is one surface end to end (Paris) has cobbled pens too,
+    // so its lead-in keeps costing time.
+    const parisLike = testRoute({
+      ...withLeadIn,
+      surface: { road: 0, gravel: 0, cobble: 100, composition: { cobbles: 100 }, confidence: 'measured' }
+    })
+    const parisLapOnly = testRoute({ ...parisLike, leadInDistance: undefined, leadInElevation: undefined })
+    expect(estimateSurfaceTimePenaltySec(parisLike, baselineFrame(), baselineWheels(), RIDER.weightKg, RIDER.heightCm, RIDER.powerW))
+      .toBeGreaterThan(estimateSurfaceTimePenaltySec(parisLapOnly, baselineFrame(), baselineWheels(), RIDER.weightKg, RIDER.heightCm, RIDER.powerW))
+  })
+
   it('costs a road wheel real time on gravel, and a gravel wheel much less', () => {
     const gravelWheels = getWheelsets().find(w => w.crrClass === 'gravel')
     expect(gravelWheels).toBeDefined()

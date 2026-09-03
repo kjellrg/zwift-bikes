@@ -121,8 +121,10 @@ because breaking it shipped a real bug:
 ## 3. Inside `simulateRoute`
 
 One call is one bike finishing one geometry. Everything below repeats every
-0.1 s of simulated time (`DEFAULT_DT_SEC`), which is a benchmarked choice, not
-a round number — see the constant's comment.
+step of simulated time: 0.1 s (`DEFAULT_DT_SEC`) up to 60 km, growing
+linearly with distance beyond that to a 0.3 s cap (`MAX_DT_SEC`) so the step
+count stays roughly constant on long routes. Both are benchmarked choices, not
+round numbers — see the constants' comments.
 
 ```mermaid
 %%{ init: { "flowchart": { "nodeSpacing": 30, "rankSpacing": 40 } } }%%
@@ -139,7 +141,7 @@ flowchart TD
 
     START --> LOOP
     LOOP -- yes --> LOOKUP --> F1 --> F2 --> ADV --> STEADY
-    STEADY -- "no · next 0.1 s step" --> LOOP
+    STEADY -- "no · next step (0.1-0.3 s)" --> LOOP
     STEADY -- yes --> COAST --> DONE
     LOOP -- "no · finished" --> DONE
 ```
@@ -163,7 +165,12 @@ placement positions exist only on the routes `placementsAreRideRelative`
 detects. This is enforced at generation time by
 `scripts/route-surfaces/normalize.mjs` (issue #126 — before normalization,
 consumers guessed the alignment and guessed differently, shifting elevation
-shapes, surfaces and segment slices by up to the lead-in length).
+shapes, surfaces and segment slices by up to the lead-in length). A route
+without `leadInSegments` rides its lead-in on tarmac (every start pen is
+paved) rather than the lap's dominant surface, unless the lap is a single
+surface end to end (Paris: all cobbles, pens included) - see
+`unmeasuredLeadInSurface`, which `estimateFinishTimeSec`'s `leadInCrr` also
+calls so the ranking key and the simulator agree.
 
 The steady-state skip only fires once every boundary that could change the
 equilibrium is behind the step's **start** position: the final grade segment
@@ -345,7 +352,7 @@ no simulator changes were needed to support it.
 
 | | `estimateFinishTimeSec` | `simulateRoute` |
 |---|---|---|
-| Method | Bisection for steady-state speed, one average grade | Time-stepped RK2 integration, 0.1 s |
+| Method | Bisection for steady-state speed, one average grade | Time-stepped RK2 integration, 0.1 s (up to 0.3 s past 60 km) |
 | Terrain | Route's average climb ratio, applied uniformly | Real gradient and surface at each position |
 | Acceleration | None — assumes one constant speed | Modelled explicitly, every step |
 | Cost | Cheap enough to run on everything | Scales with route duration — see section 8 |
@@ -365,7 +372,7 @@ the divergence is visible, and `dynamic` (the default) is the real thing.
 ## 8. Cost, and where it goes
 
 Almost all request time is stage 4. The window is `offset + limit + 45` combos,
-deduplicated by `CdA|mass|crrClass` — cosmetic re-skins and colourways collapse
+deduplicated by `CdA|mass|crrDelta|crrClass` — cosmetic re-skins and colourways collapse
 to one run. The margin of 45 is flat by design and dominates cost on long
 routes (~2.5 s for a page of Zwift Gran Fondo at 97.5 km, versus ~50 ms on a
 2 km circuit).

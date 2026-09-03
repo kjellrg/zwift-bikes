@@ -1,6 +1,7 @@
 import type { ClassifiedBikeFrame, EquipmentPhysicsDelta, Wheelset } from '../../types/catalog'
 import type { MeasuredEquipmentGap, PhysicsParameters, PhysicsRider } from '../../types/physics'
 import { PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2 } from '../../data/equipmentPhysics'
+import { WHEEL_SPEED_DATA } from '../../data/wheelSpeedData'
 import { calculateForces } from './forces'
 
 const BASE_BIKE_MASS_KG = 8
@@ -98,6 +99,13 @@ export function riderCdaM2(heightCm: number, weightKg: number): number {
  * rider's frontal area, not as a fixed absolute CdA that ignores who's
  * riding. Shared by `simulateRoute` and `finishTime.ts`'s cheap estimate so
  * both models treat rider height/weight identically.
+ *
+ * TODO(#166): the multiplicative scaling is an assumption, not a citation.
+ * Deltas are solved at the raw 0.32 bot CdA while both models run the bot
+ * through this scaling (0.345), so a 100 kg rider gets ~13% more absolute
+ * benefit from the same frame than the bot did. Whether Zwift applies
+ * equipment aero as a fraction of rider CdA or as an absolute offset needs
+ * one ZwiftInsider test at a different rider size to settle.
  */
 export function riderScaledCdaM2(equipmentCdaM2: number, heightCm: number, weightKg: number): number {
   return riderCdaM2(heightCm, weightKg) * (equipmentCdaM2 / BASE_EQUIPMENT_CDA)
@@ -154,6 +162,13 @@ const STANDARD_BASELINE_BIKE_MASS_KG = BASE_BIKE_MASS_KG
 // `TT_CLIMB_MASS_MULTIPLIER` was originally tuned to produce, now reproduced
 // via real per-frame physics instead of a per-frame score multiplier.
 const TT_BASELINE_CDA_M2 = STANDARD_BASELINE_CDA_M2 * TT_CDA_MULTIPLIER
+// TODO(#165): a 16 kg reference bike is a behavioural anchor (tuned so TT
+// stops winning Achterbahn at recreational power), not a mass. That was
+// harmless for the uniform-grade estimate; the simulator now applies it on
+// descents and in acceleration, handing TT frames ~47 s on 10 km at -8%
+// from mass that does not exist. Needs one real Zwift TT vs Zwift Carbon
+// measurement (Tempus + Alpe, 300 W) so the TT baseline can be solved like
+// every other frame.
 const TT_BASELINE_BIKE_MASS_KG = STANDARD_BASELINE_BIKE_MASS_KG * TT_CLIMB_MASS_MULTIPLIER
 
 /** Steady-state speed for constant power on constant grade, via bisection on `calculateForces`' net force. */
@@ -247,6 +262,20 @@ export function solveWheelEquipmentDelta(gap: MeasuredEquipmentGap): EquipmentPh
   return solveEquipmentDelta(gap, STANDARD_BASELINE_CDA_M2, STANDARD_BASELINE_BIKE_MASS_KG)
 }
 
+/**
+ * Seconds saved (+) or lost (-) per hour vs. a baseline bike on the flat
+ * bot course, for a solved delta applied on top of that baseline - the
+ * forward direction of `solveEquipmentDelta`, i.e. ZwiftInsider's own gap
+ * definition. Exported for the golden tests and for the TT-disc residual
+ * below, which needs to know what a wheel's road-solved delta is already
+ * worth on the TT baseline before solving for what is left.
+ */
+export function forwardFlatGapSec(delta: EquipmentPhysicsDelta, baselineCdaM2: number, baselineBikeMassKg: number): number {
+  const baselineSpeed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg, FLAT_TEST_GRADE, baselineCdaM2)
+  const speed = steadyStateSpeedMps(BOT_POWER_W, baselineBikeMassKg + delta.bikeMassDeltaKg, FLAT_TEST_GRADE, baselineCdaM2 + delta.cdaDeltaM2, delta.crrDelta)
+  return 3600 * (1 - baselineSpeed / speed)
+}
+
 // The disc wheel's OWN specific TT-vs-road aero interaction - a real,
 // ZwiftInsider-confirmed 15.8 sec/hour extra advantage a disc wheel gets
 // specifically on a TT frame, beyond its own already-measured road-tested
@@ -258,6 +287,16 @@ export function solveWheelEquipmentDelta(gap: MeasuredEquipmentGap): EquipmentPh
 // solved once, directly, as its own residual CdA delta at the TT baseline
 // (flat-only; no climb data exists for this specific interaction).
 //
+// "Extra" is measured against the wheel's ROAD gap, and the road-solved
+// delta is NOT worth the same seconds on the TT baseline: the same absolute
+// CdA/mass delta on a lower-CdA, heavier baseline buys more time per hour
+// (the DICUT DISC's 48.2 s/h road delta already yields 55.1 s/h on the TT
+// baseline, 6.9 s/h of the 15.8 for free). Solving the whole 15.8 as a
+// fresh delta double-counted that shift, putting TT+disc ~7 s/h too fast on
+// flat routes. So the residual is only the remainder the baseline shift
+// does not explain, anchored on the reference disc wheel the 15.8 was
+// measured with.
+//
 // The value itself comes from the precomputed table rather than a
 // module-scope solve: on Workers this module evaluates in the isolate's
 // GLOBAL scope, which has a hard 400ms startup CPU limit, and a nested
@@ -266,9 +305,17 @@ export function solveWheelEquipmentDelta(gap: MeasuredEquipmentGap): EquipmentPh
 // equipment-physics generator/validator runs at build time.
 const TT_DISC_RESIDUAL_CDA_DELTA_M2 = PRECOMPUTED_TT_DISC_RESIDUAL_CDA_DELTA_M2
 
+/** The disc wheel ZwiftInsider measured the 15.8 s/h TT-frame extra with, and its published road gap. */
+export const TT_DISC_REFERENCE_WHEEL = 'DTSwiss ARC 1100 DICUT DISC'
+export const TT_DISC_EXTRA_GAP_SEC = 15.8
+
 /** Build-time twin of `TT_DISC_RESIDUAL_CDA_DELTA_M2` - see the comment above it. */
 export function solveTtDiscResidualCdaDeltaM2(): number {
-  return solveEquipmentDelta({ flatGapSec: 15.8, climbGapSec: 0 }, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG).cdaDeltaM2
+  const referenceGap = WHEEL_SPEED_DATA[TT_DISC_REFERENCE_WHEEL]!
+  const roadSolvedDelta = solveWheelEquipmentDelta(referenceGap)
+  const baselineShiftGapSec = forwardFlatGapSec(roadSolvedDelta, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG) - referenceGap.flatGapSec
+  const residualGapSec = TT_DISC_EXTRA_GAP_SEC - baselineShiftGapSec
+  return solveEquipmentDelta({ flatGapSec: residualGapSec, climbGapSec: 0 }, TT_BASELINE_CDA_M2, TT_BASELINE_BIKE_MASS_KG).cdaDeltaM2
 }
 
 export function equipmentPhysics(frame: ClassifiedBikeFrame, wheelset?: Wheelset): PhysicsParameters {

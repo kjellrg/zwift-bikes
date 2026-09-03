@@ -147,10 +147,11 @@ crept back into first-touch init.
 
 ## What normal looks like
 
-Measured on Azure production after the August 2026 fixes; treat as the shape
-to expect, not the numbers - **re-baseline after the Cloudflare cutover**
-(different CPUs, different cold-start profile, and `pool` now pays catalog
-init on every fresh isolate rather than once per rarely-recycled instance):
+Historical: measured on Azure production after the August 2026 fixes, before
+the Cloudflare cutover (2026-08-22). Treat as the shape to expect, not the
+numbers - Workers has different CPUs, a different cold-start profile, and
+`pool` now pays catalog init on every fresh isolate rather than once per
+rarely-recycled instance. No Workers baseline has been recorded yet.
 
 | | total | `pool` | `estimate` | `simulate` |
 | --- | --- | --- | --- | --- |

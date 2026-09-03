@@ -18,12 +18,25 @@
  * one, so `.prevent` on a NuxtLink wouldn't reliably stop the navigation.
  */
 import type { ReportKind } from '../utils/report'
+import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
 /** What a contextual "something look wrong here?" link prefills the report form with. */
 export interface ReportSeed {
   kind: ReportKind
   /** Which frame, wheelset or route the link was next to. */
   item?: string
+}
+
+/**
+ * What the bike-detail drawer shows: the combo a result card was rendered
+ * from, plus the route context the card had, so the drawer can repeat the
+ * card's "on this route" numbers without a request of its own.
+ */
+export interface BikeDetail {
+  combo: ComboScore
+  route?: RouteWithMeta
+  fastestTimeSec?: number
+  laps?: number
 }
 
 export function useOverlays() {
@@ -36,6 +49,15 @@ export function useOverlays() {
   const isProfileOpen = useState<boolean>('overlay-profile-open', () => false)
   const isReportOpen = useState<boolean>('overlay-report-open', () => false)
   const reportSeed = useState<ReportSeed | undefined>('overlay-report-seed', () => undefined)
+  // The drawer is opened from a button, not a link, so no modifier-key guard:
+  // there is no page to open in a new tab.
+  const isBikeDetailOpen = useState<boolean>('overlay-bike-detail-open', () => false)
+  const bikeDetail = useState<BikeDetail | undefined>('overlay-bike-detail', () => undefined)
+
+  function openBikeDetail(detail: BikeDetail) {
+    bikeDetail.value = detail
+    isBikeDetailOpen.value = true
+  }
 
   function openAbout(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
@@ -95,6 +117,9 @@ export function useOverlays() {
     isProfileOpen,
     isReportOpen,
     reportSeed,
+    isBikeDetailOpen,
+    bikeDetail,
+    openBikeDetail,
     openAbout,
     openGarage,
     openProfile,

@@ -9,7 +9,7 @@ import { estimateFinishTimeSec } from '../finishTime'
 import { getWheelsets } from '../wheelsets'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { speedForPower } from './forces'
-import { geometryFromRoute, simulateRoute } from './simulator'
+import { geometryFromRoute, RouteSimulationStallError, simulateRoute } from './simulator'
 import { orderBySimulatedTime, SIMULATED_ORDER_MARGIN } from './simulatedOrdering'
 
 const RIDER = { weightKg: 75, heightCm: 183, powerW: 300 }
@@ -149,6 +149,21 @@ describe('simulator mechanics', () => {
     const boosted = simulateRoute({ rider: RIDER, frame: frame(), wheelset: wheelset(), geometry: flat, powerScaleAtSpeed: () => 1.2 })
     expect(unscaled.elapsedSec).toBeCloseTo(base.elapsedSec, 6)
     expect(boosted.elapsedSec).toBeLessThan(base.elapsedSec)
+  })
+
+  it('throws, rather than returning one dt as the finish time, when the rider stalls', () => {
+    // 200 kg at 9 W is inside `RIDER_BOUNDS`. On a 10% grade the net force is
+    // negative from the startup speed, so the old `break` returned
+    // `elapsedSec` of a single step - and that combo ranked fastest.
+    const steep = geometry([{ distanceM: 0, elevationM: 0 }, { distanceM: 1000, elevationM: 100 }])
+    const stalled = () => simulateRoute({ geometry: steep, rider: { weightKg: 200, heightCm: 175, powerW: 9 }, frame: frame(), wheelset: wheelset() })
+    expect(stalled).toThrow(RouteSimulationStallError)
+    expect(stalled).toThrow(/stalled on a 10\.0% grade/)
+    // The same rider on the flat is merely slow, and finishes.
+    const flat = geometry([{ distanceM: 0, elevationM: 0 }, { distanceM: 1000, elevationM: 0 }])
+    const result = simulateRoute({ geometry: flat, rider: { weightKg: 200, heightCm: 175, powerW: 9 }, frame: frame(), wheelset: wheelset() })
+    expect(result.distanceM).toBeCloseTo(1000, 3)
+    expect(result.elapsedSec).toBeGreaterThan(600)
   })
 
   it('rejects a non-positive step and degenerate geometry', () => {

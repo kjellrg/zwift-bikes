@@ -71,10 +71,32 @@ const FLAT_PROFILE_MIN_OFFICIAL_M = 20
 const FLAT_PROFILE_ASCENT_FRACTION = 0.25
 
 /**
+ * The opposite failure: an altitude stream that is not flat but does not
+ * close. A lap route's profile must end within noise of where it started -
+ * `geometryForRouteLaps` chains laps by appending the profile end-to-end, so
+ * an unclosed lap climbs (or falls) by its net gain again on EVERY lap.
+ * 5k-loop shipped a two-point profile `[0 m, 0 m] -> [5006 m, 50 m]` on a
+ * lap with an official 31 m of ascent: a 1% ramp that never came back down,
+ * +250 m and ~292 s over five laps. The flat-profile rule cannot see it
+ * (its ascent is 161% of official, not under 25%). Reject the profile when
+ * a lap's net elevation change exceeds the larger of an absolute GPS-noise
+ * floor and the same fraction of official ascent the flat rule uses -
+ * point-to-point routes legitimately end elsewhere and are exempt. Checked
+ * AFTER alignment: a ride-covering trace starts in the pen, and only the
+ * split-off lap-relative profile is expected to close.
+ */
+const UNCLOSED_LAP_MIN_M = 10
+
+function lapProfileIsUnclosed(profile, officialElevationM) {
+  const netM = Math.abs(profile[profile.length - 1].elevationM - profile[0].elevationM)
+  return netM > Math.max(UNCLOSED_LAP_MIN_M, (officialElevationM ?? 0) * FLAT_PROFILE_ASCENT_FRACTION)
+}
+
+/**
  * @returns {{ entry: object, classification: 'lap' | 'ride-split' | 'already-split' | 'ambiguous' | 'no-trace' | 'lead-in-too-small', profileDropped: boolean }}
  * `entry` is the input object itself when nothing changed.
  */
-export function normalizeRouteSurfaceEntry(entry, lapKm, leadInKm, officialElevationM = undefined) {
+export function normalizeRouteSurfaceEntry(entry, lapKm, leadInKm, officialElevationM = undefined, isLapRoute = false) {
   let profileDropped = false
   if (entry.elevationProfile?.length >= 2 && officialElevationM > FLAT_PROFILE_MIN_OFFICIAL_M
     && profileAscentM(entry.elevationProfile) < officialElevationM * FLAT_PROFILE_ASCENT_FRACTION) {
@@ -87,6 +109,12 @@ export function normalizeRouteSurfaceEntry(entry, lapKm, leadInKm, officialEleva
   }
 
   const aligned = alignEntry(entry, lapKm, leadInKm)
+  if (isLapRoute && aligned.entry.elevationProfile?.length >= 2 && lapProfileIsUnclosed(aligned.entry.elevationProfile, officialElevationM)) {
+    const stripped = { ...aligned.entry }
+    delete stripped.elevationProfile
+    delete stripped.leadInElevationProfile
+    return { ...aligned, entry: stripped, profileDropped: true }
+  }
   return { ...aligned, profileDropped }
 }
 

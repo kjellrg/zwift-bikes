@@ -142,6 +142,16 @@ watch(recommendData, (data) => {
 // already-visible results (show stale cards + a subtle "updating" hint).
 const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
 const isRefreshingCombos = computed(() => status.value === 'pending' && !!recommendData.value)
+// Announced to assistive tech when a refetch lands: the visual cue is
+// opacity and a spinner only. Cleared first so consecutive refreshes
+// re-announce (a live region only speaks on change).
+const resultsAnnouncement = ref('')
+watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
+  if (!wasRefreshing || refreshing) return
+  resultsAnnouncement.value = ''
+  await nextTick()
+  resultsAnnouncement.value = 'Results updated'
+})
 
 async function refreshFirstPage() {
   await refreshRecommendations()
@@ -363,34 +373,18 @@ useHead(() => {
       </p>
     </div>
 
-    <div v-if="faqAnswer">
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        {{ faqQuestion }}
-      </h2>
-      <p class="text-muted">
-        {{ faqAnswer }}
-      </p>
-    </div>
-
-    <PhysicsNote
-      v-if="physicsInfo"
-      :mode="physicsInfo.mode"
-      :summary="physicsInfo.summary"
-      :note="physicsInfo.note"
-    />
-    <UAlert
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-info"
-      title="How this recommendation works"
-      description="Combos are ranked by an estimated time for this segment alone, computed from a simplified physics model (your weight, height &amp; power, the segment's real length/gradient, and each combo's aerodynamic drag and weight) rather than the match score alone. The segment is simulated after a flat warmup so it starts at realistic speed, matching how a real Zwift/Strava segment is entered. Bike frame and wheelset aero/climb ratings come from real ZwiftInsider bot speed-test data where available (look for the 'verified' badge) - otherwise they're a name-based heuristic estimate. None of this is official Zwift telemetry, so treat results as directionally useful, not exact."
-    />
-
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this segment
       </h2>
       <RecommendDataNotice />
+      <p
+        class="sr-only"
+        role="status"
+        aria-live="polite"
+      >
+        {{ resultsAnnouncement }}
+      </p>
       <BikeFilterControls
         v-model:search="bikeSearch"
         class="mb-6"
@@ -437,9 +431,6 @@ useHead(() => {
             :combo="topCombo"
             :rank="1"
             :route="segmentRoute"
-            :weight-kg="weightKg"
-            :height-cm="heightCm"
-            :power-w="activePowerW"
             :laps="1"
             :fastest-time-sec="fastestTimeSec"
             :owned="owned"
@@ -455,9 +446,6 @@ useHead(() => {
               :combo="combo"
               :rank="index + 2"
               :route="segmentRoute"
-              :weight-kg="weightKg"
-              :height-cm="heightCm"
-              :power-w="activePowerW"
               :laps="1"
               :fastest-time-sec="fastestTimeSec"
               :owned="owned"
@@ -486,5 +474,29 @@ useHead(() => {
         <ReportDataLink :item="segmentData?.name" />
       </template>
     </div>
+
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        {{ faqQuestion }}
+      </h2>
+      <p class="text-muted">
+        {{ faqAnswer }}
+      </p>
+    </div>
+
+    <PhysicsNote
+      v-if="physicsInfo"
+      :mode="physicsInfo.mode"
+      :summary="physicsInfo.summary"
+      :note="physicsInfo.note"
+    />
+
+    <UAlert
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-info"
+      title="How this recommendation works"
+      description="Combos are ranked by an estimated time for this segment alone, computed from a simplified physics model (your weight, height &amp; power, the segment's real length/gradient, and each combo's aerodynamic drag and weight) rather than the match score alone. The segment is simulated after a flat warmup so it starts at realistic speed, matching how a real Zwift/Strava segment is entered. Bike frame and wheelset aero/climb ratings come from real ZwiftInsider bot speed-test data where available (look for the 'verified' badge) - otherwise they're a name-based heuristic estimate. None of this is official Zwift telemetry, so treat results as directionally useful, not exact."
+    />
   </UContainer>
 </template>

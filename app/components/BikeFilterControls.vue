@@ -25,8 +25,15 @@ const search = defineModel<string>('search', { default: '' })
 
 const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
+// Only to tell an empty garage apart from a full one: the server shows every
+// bike when "my garage" is on but nothing is owned, and the switch used to sit
+// there switched on with no sign that it was doing nothing.
+const { owned, ownedWheels, load: loadGarage } = useGarage()
+const garageIsEmpty = computed(() => Object.keys(owned.value).length === 0 && Object.keys(ownedWheels.value).length === 0)
+
 onMounted(() => {
   loadPreferences()
+  loadGarage()
 })
 
 const categoryOptions = computed<{ label: string, value: BikeCategory | 'all' }[]>(() => [
@@ -94,8 +101,13 @@ const { openGarage } = useOverlays()
       /><span class="text-sm">Only show items in my garage</span><a
         href="/garage"
         class="text-sm text-primary underline"
+        aria-haspopup="dialog"
         @click="openGarage"
       >(edit garage)</a>
+      <span
+        v-if="myBikesOnly && garageIsEmpty"
+        class="text-xs text-warning"
+      >Your garage is empty, so every bike is shown.</span>
     </div>
   </div>
 </template>
