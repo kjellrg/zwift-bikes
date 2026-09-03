@@ -36,6 +36,7 @@ const { WHEEL_SPEED_DATA } = loadSharedModule('shared/data/wheelSpeedData.ts')
 const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, applyWheelSupplement } = loadSharedModule('shared/data/wheelSupplement.ts')
 const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/frameSpeedData.ts')
 const { FRAME_UPGRADE_SCHEMES } = loadSharedModule('shared/data/frameUpgradeSchemes.ts')
+const { UNLOCALIZED_FRAME_NAME } = loadSharedModule('shared/utils/catalog.ts')
 
 const errors = []
 
@@ -166,6 +167,15 @@ checkKeys('PURCHASABLE_HALO_FRAMES', purchasableHaloFrames, frameNames)
 checkKeys('INTEGRATED_ONLY_WHEELS (front)', integratedOnlyWheels, frontWheelNames)
 for (const name of integratedOnlyWheels) {
   if (!rearWheelNames.has(name)) errors.push(`INTEGRATED_ONLY_WHEELS: ${JSON.stringify(name)} is not a bikeRearWheels name - the exclusion would only cover the front wheel`)
+}
+
+// A warning, not an error: an unlocalized placeholder name is an upstream
+// gap (`getFrames()` drops it, see `UNLOCALIZED_FRAME_NAME`), and failing the
+// build on it would block every deploy until zwift-data ships the string.
+for (const frame of bikeFrames) {
+  if (UNLOCALIZED_FRAME_NAME.test(frame.name)) {
+    console.warn(`WARN: zwift-data frame ${frame.id} has an unlocalized placeholder name ${JSON.stringify(frame.name)} - hidden from the catalog until upstream ships the real name`)
+  }
 }
 
 if (errors.length) {
