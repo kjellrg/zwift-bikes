@@ -53,9 +53,13 @@ export function useOverlays() {
   // there is no page to open in a new tab.
   const isBikeDetailOpen = useState<boolean>('overlay-bike-detail-open', () => false)
   const bikeDetail = useState<BikeDetail | undefined>('overlay-bike-detail', () => undefined)
+  // True while the drawer's bike is on none of the result pages the rider has
+  // loaded - see `noteRankedFrames`.
+  const bikeDetailDropped = useState<boolean>('overlay-bike-detail-dropped', () => false)
 
   function openBikeDetail(detail: BikeDetail) {
     bikeDetail.value = detail
+    bikeDetailDropped.value = false
     isBikeDetailOpen.value = true
   }
 
@@ -75,6 +79,20 @@ export function useOverlays() {
     const current = bikeDetail.value
     if (!current || current.combo.frame.id !== detail.combo.frame.id) return
     bikeDetail.value = detail
+  }
+
+  /**
+   * The results pages call this with their list whenever it changes. The
+   * one case `syncBikeDetail` cannot cover is a bike that a level change
+   * pushed off every loaded page: no card exists to sync from, so the drawer
+   * would silently keep showing the old level's numbers. Marking it lets the
+   * drawer say so instead, and say that the bike will not be listed once the
+   * drawer closes. Cleared as soon as the bike is ranked again.
+   */
+  function noteRankedFrames(combos: readonly { frame: { id: number } }[]) {
+    const current = bikeDetail.value
+    if (!current || !isBikeDetailOpen.value) return
+    bikeDetailDropped.value = !combos.some(combo => combo.frame.id === current.combo.frame.id)
   }
 
   function openAbout(event: MouseEvent) {
@@ -137,8 +155,10 @@ export function useOverlays() {
     reportSeed,
     isBikeDetailOpen,
     bikeDetail,
+    bikeDetailDropped,
     openBikeDetail,
     syncBikeDetail,
+    noteRankedFrames,
     openAbout,
     openGarage,
     openProfile,

@@ -17,6 +17,7 @@ const wheelset = computed(() => combo.value.wheelset)
 
 const { owned, load, setOwned, setWheelOwned, isWheelOwned } = useGarage()
 const { defaultUnownedLevel } = useRiderProfile()
+const { bikeDetailDropped } = useOverlays()
 onMounted(() => load())
 
 const isOwnedFrame = computed(() => owned.value[frame.value.id] !== undefined)
@@ -173,6 +174,15 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
         </template>.
       </p>
     </section>
+
+    <UAlert
+      v-if="bikeDetailDropped"
+      color="warning"
+      variant="subtle"
+      icon="i-lucide-arrow-down-to-line"
+      title="This bike has dropped off the results you have loaded"
+      :description="`At level ${ownedFrameLevel ?? frame.level} it is slow enough to rank below every bike shown. The numbers below are from before the change. Once you close this drawer it will not be listed until you show more results or raise its level.`"
+    />
 
     <section
       v-if="finishTimeSec !== undefined"

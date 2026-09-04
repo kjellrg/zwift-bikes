@@ -476,9 +476,12 @@ async function loadWheelOptions(frameId: number) {
 watch([weightKg, heightCm, powerW, laps, selectedRouteSlug, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, effectiveDraftMode, tttRiders, tttClimbWkg], () => {
   refreshFirstPage()
 })
+const { noteRankedFrames } = useOverlays()
 watch(owned, () => {
   reloadLoadedPages()
 }, { deep: true })
+// Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
+watch(loadedCombos, list => noteRankedFrames(list), { immediate: true })
 watch(ownedWheels, () => {
   reloadLoadedPages()
 }, { deep: true })
