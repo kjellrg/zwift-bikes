@@ -55,8 +55,18 @@ const currentLevel = computed(() => ownedFrameLevel.value ?? frame.value.level)
  * course, not of the stage the rider is on, so a level change only moves the
  * marker. It does change which wheel is fastest sometimes, and that is what
  * the wheelset key in the watch is there to catch.
+ *
+ * That request costs five extra route integrations, so on a long route the
+ * wide chart lands a second or two after the two bot-test curves beside it,
+ * which used to shove the whole section down under the reader's eyes. Hence
+ * `routeUpgradeLoading`: the drawer holds the chart's exact height from the
+ * moment it opens. It deliberately holds nothing when there is nothing to
+ * wait for - no rider profile means the endpoint never sends a curve - and it
+ * collapses rather than pulsing on when a request comes back without one,
+ * which is what legacy and compare physics mode and a failed request produce.
  */
 const routeUpgradeTimesSec = ref<number[]>()
+const routeUpgradeLoading = ref(false)
 // What the loaded curve is for. The dropped-bike refetch below answers the
 // same request, so it hands its own response over rather than letting the
 // watcher fire a second, identical one.
@@ -75,6 +85,7 @@ watch([() => props.detail.combo.frame.id, () => wheelset.value?.key], async ([fr
   routeUpgradeTimesSec.value = undefined
   curveKey.value = undefined
   if (!props.detail.loadFrameCombos) return
+  routeUpgradeLoading.value = true
   try {
     const combos = await props.detail.loadFrameCombos(frameId)
     if (token !== curveToken) return
@@ -83,6 +94,8 @@ watch([() => props.detail.combo.frame.id, () => wheelset.value?.key], async ([fr
     // The two bot-test curves below still answer the question in the
     // abstract; a failed request just means this drawer does not also answer
     // it for this course.
+  } finally {
+    if (token === curveToken) routeUpgradeLoading.value = false
   }
 }, { immediate: true })
 
@@ -96,6 +109,19 @@ const routeUpgradeGainsSec = computed(() => {
   if (!times || times.length < 2 || times[0] === undefined) return undefined
   return times.map(time => times[0]! - time)
 })
+
+/**
+ * Whether to hold the chart's space instead of showing it. `finishTimeSec` is
+ * the client-side proxy for "the endpoint can answer at all", since a curve is
+ * only produced with a rider profile and in dynamic physics mode; the drawer
+ * cannot see the physics mode, so in legacy or compare mode the placeholder
+ * shows for the length of the request and then collapses - exactly what a
+ * failed request does, and both of those modes are debug views.
+ */
+const routeUpgradePending = computed(() =>
+  !routeUpgradeGainsSec.value
+  && finishTimeSec.value !== undefined
+  && (routeUpgradeLoading.value || refetching.value))
 
 // A fixed short label, with the course named in the caption below it: a route
 // name in the chart header would squeeze the figures beside it, and some of
@@ -360,6 +386,34 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
           unit="s"
           wide
         />
+        <p class="text-xs text-muted">
+          {{ routeUpgradeText }}
+        </p>
+      </div>
+      <!-- Same box, same rows, same heights as the block above, so the chart
+           replaces it without moving anything: the label and caption are known
+           before the request and render for real, the chart's own `w-full`
+           viewBox of 264x40 is an aspect ratio, and the stage-number row is one
+           10px line box whether it holds digits or skeletons. -->
+      <div
+        v-else-if="routeUpgradePending"
+        class="rounded-lg border border-default p-3 space-y-2"
+        aria-busy="true"
+      >
+        <div class="space-y-1">
+          <div class="flex items-baseline justify-between gap-2 text-xs">
+            <span class="font-medium text-highlighted">{{ routeUpgradeLabel }}</span>
+            <USkeleton class="h-3 w-28" />
+          </div>
+          <USkeleton class="w-full aspect-[264/40] rounded" />
+          <div class="flex h-[1lh] items-center justify-between text-[10px]">
+            <USkeleton
+              v-for="stage in 6"
+              :key="stage"
+              class="h-2.5 w-1.5"
+            />
+          </div>
+        </div>
         <p class="text-xs text-muted">
           {{ routeUpgradeText }}
         </p>
