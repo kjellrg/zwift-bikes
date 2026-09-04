@@ -61,5 +61,14 @@ infra/site-flags.json
 .claude/skills/nuxtjs-*
 .claude/skills/skilld-*
 CLAUDE.md
+
+# Agent config kept local for now. NOTE: these three are already tracked, so
+# these lines alone do nothing - the local edits are hidden with
+# `git update-index --skip-worktree <path>`, undone with `--no-skip-worktree`.
+# List them with `git ls-files -v .claude | grep ^S`.
+.claude/agents/physics-regression-check.md
+.claude/agents/zwift-equipment-intake.md
+.claude/skills/zwift-recommendation-accuracy/SKILL.md
+
 # Wrangler local dev state
 .wrangler
