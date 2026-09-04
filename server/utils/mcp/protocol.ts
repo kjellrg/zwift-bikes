@@ -26,6 +26,29 @@ const INVALID_REQUEST = -32600
 const METHOD_NOT_FOUND = -32601
 const INTERNAL_ERROR = -32603
 
+/**
+ * Upper bound on a request body. The largest legitimate message is a
+ * `tools/call` carrying a rider profile, a slug and a search string - well
+ * under 2 KB - so 16 KB is an order of magnitude of headroom. Without a cap,
+ * `readRawBody` + `JSON.parse` would accept anything up to Cloudflare's
+ * plan limit (100 MB) and spend a 128 MB isolate's memory on it; the query
+ * inputs are all length-capped in `apiQuerySchemas.ts`, and this is the
+ * same rule for the one endpoint that reads a body. Issue #160.
+ */
+export const MCP_MAX_BODY_BYTES = 16 * 1024
+
+/**
+ * Whether a request body is over `MCP_MAX_BODY_BYTES`. Checked twice by the
+ * transport: on the `Content-Length` header before the body is read, so an
+ * oversized declared body is refused without buffering it, and on the raw
+ * text after, because a chunked request carries no length header at all.
+ */
+export function bodyTooLarge(contentLength: string | undefined, raw: string | undefined): boolean {
+  const declared = Number(contentLength)
+  if (Number.isFinite(declared) && declared > MCP_MAX_BODY_BYTES) return true
+  return raw !== undefined && new TextEncoder().encode(raw).byteLength > MCP_MAX_BODY_BYTES
+}
+
 export interface JsonRpcMessage {
   jsonrpc?: unknown
   id?: string | number | null
@@ -50,6 +73,10 @@ export function errorResponse(id: string | number | null, code: number, message:
 
 export function parseError(): JsonRpcResponse {
   return errorResponse(null, PARSE_ERROR, 'Request body is not valid JSON.')
+}
+
+export function payloadTooLarge(): JsonRpcResponse {
+  return errorResponse(null, INVALID_REQUEST, `Request body exceeds ${MCP_MAX_BODY_BYTES / 1024} KB.`)
 }
 
 export function negotiateProtocolVersion(requested: unknown): string {
@@ -109,9 +136,19 @@ export async function handleMessage(message: JsonRpcMessage, context: RpcContext
       } catch (error) {
         // A thrown error here is a bug in this server, not a tool-level
         // failure the model can act on - those come back as `isError` results
-        // from `callTool` itself. Surface it as a protocol error.
-        const detail = error instanceof Error ? error.message : String(error)
-        return errorResponse(id, INTERNAL_ERROR, `Tool "${name}" failed: ${detail}`)
+        // from `callTool` itself. Surface it as a protocol error - but the
+        // detail goes to Workers Logs, not to the client: an internal
+        // message is a TypeError string or ofetch's "[GET] /api/...: 500"
+        // wrapper, implementation detail on a public JSON-RPC surface, where
+        // the REST endpoints only ever emit curated `createError` text.
+        // Same one-JSON-line shape as the request log in `plugins/timing.ts`.
+        console.error(JSON.stringify({
+          evt: 'mcp-tool-error',
+          tool: name,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        }))
+        return errorResponse(id, INTERNAL_ERROR, `Tool "${name}" failed. The error has been logged.`)
       }
     }
 

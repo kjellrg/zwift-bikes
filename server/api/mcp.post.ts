@@ -1,8 +1,10 @@
 import {
+  bodyTooLarge,
   errorResponse,
   handleMessage,
   isInitialize,
   parseError,
+  payloadTooLarge,
   SUPPORTED_PROTOCOL_VERSIONS,
   type JsonRpcMessage
 } from '../utils/mcp/protocol'
@@ -20,7 +22,17 @@ import { adoptSession, createSession, touchSession } from '../utils/mcp/session'
  * genuinely unsupported rather than merely unimplemented - see `mcp.get.ts`.
  */
 export default defineEventHandler(async (event) => {
+  // Header first, so an oversized declared body is refused unread; raw text
+  // second, because a chunked request declares nothing - see `bodyTooLarge`.
+  if (bodyTooLarge(getRequestHeader(event, 'content-length'), undefined)) {
+    setResponseStatus(event, 413)
+    return payloadTooLarge()
+  }
   const raw = await readRawBody(event)
+  if (bodyTooLarge(undefined, raw)) {
+    setResponseStatus(event, 413)
+    return payloadTooLarge()
+  }
 
   let message: JsonRpcMessage
   try {
