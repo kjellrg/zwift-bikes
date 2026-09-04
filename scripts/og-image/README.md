@@ -7,7 +7,7 @@ generated nuxt-og-image cards instead (issue #59).
 
 1200x630 (the standard `summary_large_image` ratio), styled after the app:
 slate-900 background, the lucide `bike` header icon, and the Nuxt UI green
-(`#00DC82`) from `app/assets/css/main.css`.
+(`#C6F135`) from `app/assets/css/main.css`.
 
 ## Regenerating
 
@@ -21,12 +21,12 @@ coordinates. Keep the two in sync when editing.
 
 ```sh
 magick scripts/og-image/og-image.svg -depth 8 \
-  -fill none -stroke '#1c2a41' -strokewidth 4 \
+  -fill none -stroke '#1B2F2A' -strokewidth 4 \
   -draw "circle -40,640 -40,310" \
   -draw "circle -40,640 -40,380" \
   -draw "circle 1240,-10 1240,320" \
   -draw "circle 1240,-10 1240,250" \
-  -fill none -stroke '#00DC82' -strokewidth 16 \
+  -fill none -stroke '#C6F135' -strokewidth 16 \
   -draw "stroke-linecap round stroke-linejoin round circle 652,212 652,184" \
   -draw "stroke-linecap round stroke-linejoin round circle 548,212 548,184" \
   -draw "stroke-linecap round stroke-linejoin round circle 624,112 624,104" \

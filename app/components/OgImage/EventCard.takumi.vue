@@ -25,13 +25,13 @@ const setupSize = computed(() => (setupLabel.value?.length ?? 0) > 44 ? '30px' :
 <template>
   <div
     class="flex h-full w-full flex-col justify-between"
-    style="background: linear-gradient(160deg, #0b1220 0%, #030712 100%); padding: 56px 64px;"
+    style="background: linear-gradient(160deg, #0D1C19 0%, #071412 100%); padding: 56px 64px;"
   >
     <div
       class="flex items-center"
       style="gap: 16px;"
     >
-      <div style="width: 14px; height: 34px; background: #00DC82; border-radius: 4px;" />
+      <div style="width: 14px; height: 34px; background: #C6F135; border-radius: 4px;" />
       <span style="font-size: 34px; font-weight: 700; color: #ffffff;">ZwiftBikes</span>
     </div>
 
@@ -39,9 +39,9 @@ const setupSize = computed(() => (setupLabel.value?.length ?? 0) > 44 ? '30px' :
       class="flex flex-col"
       style="gap: 12px;"
     >
-      <span style="font-size: 26px; font-weight: 700; color: #00DC82; letter-spacing: 4px;">{{ series.toUpperCase() }}</span>
+      <span style="font-size: 26px; font-weight: 700; color: #C6F135; letter-spacing: 4px;">{{ series.toUpperCase() }}</span>
       <span :style="{ fontSize: titleSize, fontWeight: 700, color: '#ffffff', lineHeight: 1.05 }">{{ title }}</span>
-      <span style="font-size: 30px; color: #94a3b8;">{{ course }} · {{ date }}</span>
+      <span style="font-size: 30px; color: #8FA79F;">{{ course }} · {{ date }}</span>
     </div>
 
     <div
@@ -49,7 +49,7 @@ const setupSize = computed(() => (setupLabel.value?.length ?? 0) > 44 ? '30px' :
       class="flex flex-col"
       style="gap: 8px;"
     >
-      <span style="font-size: 22px; font-weight: 700; color: #94a3b8; letter-spacing: 3px;">FASTEST LEGAL SETUP</span>
+      <span style="font-size: 22px; font-weight: 700; color: #8FA79F; letter-spacing: 3px;">FASTEST LEGAL SETUP</span>
       <span :style="{ fontSize: setupSize, fontWeight: 700, color: '#ffffff' }">{{ setupLabel }}</span>
     </div>
   </div>
