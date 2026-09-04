@@ -49,9 +49,20 @@ function toggleFrameOwned() {
   )
 }
 
-/** Lets riders adjust the owned upgrade level (0-5) right from the card, via the subtle level bar shown once a frame is owned. */
-function setFrameLevel(level: number) {
-  setOwned(props.combo.frame.id, level)
+/**
+ * Lets riders adjust the owned upgrade level (0-5) right from the card: the
+ * "Level N" badge of an owned frame opens a popover with a slider. The
+ * slider follows the same commit-on-release pattern as the profile sliders
+ * (#155): dragging only moves `pendingLevel`, the garage - and with it the
+ * recommend refetch - updates on release.
+ */
+const pendingLevel = ref(0)
+const levelPopoverOpen = ref(false)
+watch(levelPopoverOpen, (open) => {
+  if (open) pendingLevel.value = ownedFrameLevel.value ?? defaultUnownedLevel.value
+})
+function commitFrameLevel() {
+  if (pendingLevel.value !== ownedFrameLevel.value) setOwned(props.combo.frame.id, pendingLevel.value)
 }
 
 const isOwnedWheel = computed(
@@ -103,7 +114,10 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
       wrap: flex children otherwise refuse to go narrower than their widest
       unbreakable content, and on a phone the frame name plus its buttons
       pushed the `shrink-0` time column out through the card's edge - the
-      headline number was the thing that got clipped.
+      headline number was the thing that got clipped. The time column is
+      kept narrow for the same reason: the gap's "slower" and the km/h go
+      on the caption line, so the wheel name keeps the width on every card,
+      not just the fastest one.
     -->
     <div class="flex items-start justify-between gap-3">
       <div class="flex min-w-0 items-start gap-3">
@@ -216,10 +230,10 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
           v-else
           class="text-2xl font-bold text-warning tabular-nums"
         >
-          {{ formatDurationDelta(finishTimeSec - fastestTimeSec!) }}
+          {{ formatDurationGap(finishTimeSec - fastestTimeSec!) }}
         </p>
         <p class="text-xs text-muted">
-          {{ isFastest || fastestTimeSec === undefined ? 'est. finish time' : 'behind the fastest' }}<span
+          {{ isFastest || fastestTimeSec === undefined ? 'est. finish time' : 'slower' }}<span
             v-if="route && totalDistanceKm !== undefined"
             class="block sm:inline"
           ><span class="hidden sm:inline"> · </span>{{ formatSpeedKmh(totalDistanceKm, finishTimeSec) }}</span>
@@ -328,33 +342,45 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
         </UBadge>
       </UTooltip>
       <!--
-        The owned-level control lives here, in place of the static badge: it
-        is the same fact, and the badge row wraps, whereas next to the frame
-        name it was the widest thing in a row that could not wrap.
+        An owned frame's level is a button that looks like the badge next to
+        it but reads as clickable (chevron, hover ring): it opens a slider
+        rather than a row of six digits, which sat oddly among the badges.
       -->
-      <UTooltip
+      <UPopover
         v-if="isOwnedFrame && combo.frame.confidence === 'measured'"
-        text="Your upgrade level for this bike (0 = stock, just purchased, 5 = fully upgraded)"
+        v-model:open="levelPopoverOpen"
+        :ui="{ content: 'p-3 w-64' }"
       >
-        <div class="flex items-center gap-0.5">
-          <button
-            v-for="level in [0, 1, 2, 3, 4, 5]"
-            :key="level"
-            type="button"
-            class="flex size-4 items-center justify-center rounded text-[10px] font-medium transition-colors"
-            :class="
-              level === ownedFrameLevel
-                ? 'bg-primary text-inverted'
-                : 'bg-elevated text-muted hover:bg-accented'
-            "
-            :aria-label="`Set upgrade level ${level} for ${combo.frame.name}`"
-            :aria-pressed="level === ownedFrameLevel"
-            @click="setFrameLevel(level)"
+        <UTooltip text="Your upgrade level for this bike - click to change it">
+          <UButton
+            color="neutral"
+            variant="subtle"
+            size="xs"
+            icon="i-lucide-gauge"
+            trailing-icon="i-lucide-chevron-down"
+            :aria-label="`Change upgrade level for ${combo.frame.name}, currently level ${combo.frame.level}`"
           >
-            {{ level }}
-          </button>
-        </div>
-      </UTooltip>
+            Level {{ combo.frame.level }}
+          </UButton>
+        </UTooltip>
+        <template #content>
+          <div class="space-y-2">
+            <label class="block text-xs font-medium text-muted">Upgrade level: {{ pendingLevel }}</label>
+            <USlider
+              :model-value="pendingLevel"
+              :min="0"
+              :max="5"
+              :step="1"
+              :aria-label="`Upgrade level for ${combo.frame.name}`"
+              @update:model-value="(value: number | undefined) => { pendingLevel = value ?? pendingLevel }"
+              @change="commitFrameLevel"
+            />
+            <p class="text-xs text-muted">
+              0 = stock, just purchased · 5 = fully upgraded
+            </p>
+          </div>
+        </template>
+      </UPopover>
       <UTooltip
         v-else-if="combo.frame.confidence === 'measured'"
         text="You don't own this bike - scored at your default assumed level for unowned bikes (change on the Profile page)"
