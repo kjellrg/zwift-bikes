@@ -176,6 +176,16 @@ distance by more than 1% the two described different roads, and on the 163
 routes with a short trace the ride ended on a stretch carrying no surface
 segment at all).
 
+**Placements are the exception**, and the one thing that still speaks in trace
+kilometres: zwift-data's `segmentsOnRoute` positions are measured along the
+route's real geometry rather than against its published distance, and on 36 of
+the 37 routes where the two can be told apart the last placement lands on the
+community trace's length, not the official one. `SurfaceEstimate.traceScale`
+carries the factor so `routeSegments.ts` can put a placement into the measured
+arrays' coordinates before slicing them; that is the only place a placement
+meets measured data, and a segment's own sliced arrays are then rescaled onto
+the segment's own length, so they obey the same rule a route's do.
+
 A route without `leadInSegments` rides its lead-in on tarmac (every start pen
 is paved) rather than the lap's own surface mix, unless the lap is a single
 surface end to end (Paris: all cobbles, pens included) - see

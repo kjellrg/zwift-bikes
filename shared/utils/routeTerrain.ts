@@ -4,7 +4,7 @@ import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
 import { getRouteClimbs, getRouteSprints } from './routeClimbs'
-import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
+import { measuredTraceScale, rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 
 /**
  * `zwift-data` doesn't expose surface composition (road/gravel/cobbles) for
@@ -93,11 +93,15 @@ export function estimateSurface(route: Route): SurfaceEstimate {
     // rescaling both at the door is what keeps a route's surfaces and its
     // elevation shape in one coordinate system (issue #171). The percentages
     // are computed before/independently of the scale and never move with it.
+    const traceScale = measuredTraceScale(measured.segments?.[measured.segments.length - 1]?.toKm, route.distance)
     return {
       ...coarsenSurfaceComposition(composition),
       composition,
       segments: rescaleSurfaceSegments(measured.segments, route.distance),
       leadInSegments: rescaleSurfaceSegments(measured.leadInSegments, route.leadInDistance),
+      // Kept so a trace-relative position can still be read against the
+      // rescaled arrays - see the field's doc comment.
+      ...(traceScale === 1 ? {} : { traceScale }),
       confidence: 'measured'
     }
   }
