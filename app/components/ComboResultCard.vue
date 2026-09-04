@@ -98,15 +98,22 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
 
 <template>
   <UCard :ui="{ body: 'space-y-3' }">
+    <!--
+      The name column must be allowed to shrink (`min-w-0`) and its rows to
+      wrap: flex children otherwise refuse to go narrower than their widest
+      unbreakable content, and on a phone the frame name plus its buttons
+      pushed the `shrink-0` time column out through the card's edge - the
+      headline number was the thing that got clipped.
+    -->
     <div class="flex items-start justify-between gap-3">
-      <div class="flex items-start gap-3">
+      <div class="flex min-w-0 items-start gap-3">
         <div
           class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary"
         >
           {{ rank }}
         </div>
-        <div>
-          <div class="flex items-center gap-1">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-1">
             <button
               type="button"
               class="font-semibold text-highlighted text-left hover:underline focus-visible:underline"
@@ -151,31 +158,8 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
                 @click="toggleFrameOwned"
               />
             </UTooltip>
-            <UTooltip
-              v-if="isOwnedFrame && combo.frame.confidence === 'measured'"
-              text="Your upgrade level for this bike (0 = stock, just purchased, 5 = fully upgraded)"
-            >
-              <div class="flex items-center gap-0.5">
-                <button
-                  v-for="level in [0, 1, 2, 3, 4, 5]"
-                  :key="level"
-                  type="button"
-                  class="flex size-4 items-center justify-center rounded text-[10px] font-medium transition-colors"
-                  :class="
-                    level === ownedFrameLevel
-                      ? 'bg-primary text-inverted'
-                      : 'bg-elevated text-muted hover:bg-accented'
-                  "
-                  :aria-label="`Set upgrade level ${level} for ${combo.frame.name}`"
-                  :aria-pressed="level === ownedFrameLevel"
-                  @click="setFrameLevel(level)"
-                >
-                  {{ level }}
-                </button>
-              </div>
-            </UTooltip>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center gap-1">
             <p class="text-sm text-muted">
               {{
                 combo.wheelset
@@ -235,9 +219,10 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
           {{ formatDurationDelta(finishTimeSec - fastestTimeSec!) }}
         </p>
         <p class="text-xs text-muted">
-          {{ isFastest || fastestTimeSec === undefined ? 'est. finish time' : 'behind the fastest' }}<template v-if="route && totalDistanceKm !== undefined">
-            · {{ formatSpeedKmh(totalDistanceKm, finishTimeSec) }}
-          </template>
+          {{ isFastest || fastestTimeSec === undefined ? 'est. finish time' : 'behind the fastest' }}<span
+            v-if="route && totalDistanceKm !== undefined"
+            class="block sm:inline"
+          ><span class="hidden sm:inline"> · </span>{{ formatSpeedKmh(totalDistanceKm, finishTimeSec) }}</span>
         </p>
       </div>
       <div
@@ -342,13 +327,37 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
           wheels fixed
         </UBadge>
       </UTooltip>
+      <!--
+        The owned-level control lives here, in place of the static badge: it
+        is the same fact, and the badge row wraps, whereas next to the frame
+        name it was the widest thing in a row that could not wrap.
+      -->
       <UTooltip
-        v-if="combo.frame.confidence === 'measured'"
-        :text="
-          isOwnedFrame
-            ? `Scored at your owned upgrade level for this bike`
-            : `You don't own this bike - scored at your default assumed level for unowned bikes (change on the Profile page)`
-        "
+        v-if="isOwnedFrame && combo.frame.confidence === 'measured'"
+        text="Your upgrade level for this bike (0 = stock, just purchased, 5 = fully upgraded)"
+      >
+        <div class="flex items-center gap-0.5">
+          <button
+            v-for="level in [0, 1, 2, 3, 4, 5]"
+            :key="level"
+            type="button"
+            class="flex size-4 items-center justify-center rounded text-[10px] font-medium transition-colors"
+            :class="
+              level === ownedFrameLevel
+                ? 'bg-primary text-inverted'
+                : 'bg-elevated text-muted hover:bg-accented'
+            "
+            :aria-label="`Set upgrade level ${level} for ${combo.frame.name}`"
+            :aria-pressed="level === ownedFrameLevel"
+            @click="setFrameLevel(level)"
+          >
+            {{ level }}
+          </button>
+        </div>
+      </UTooltip>
+      <UTooltip
+        v-else-if="combo.frame.confidence === 'measured'"
+        text="You don't own this bike - scored at your default assumed level for unowned bikes (change on the Profile page)"
       >
         <UBadge
           color="neutral"
