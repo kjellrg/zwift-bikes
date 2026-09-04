@@ -198,6 +198,6 @@ Stated plainly, because these are the limits of the claim:
 | Constants, factors, speed scaling, climb detection | `shared/utils/physics/draft.ts` |
 | Per-timestep application | `powerScaleAtSpeed` in `shared/utils/physics/simulator.ts` |
 | Ranking-key equivalent | `estimateFinishTimeSec` in `shared/utils/finishTime.ts` |
-| Request wiring, "saves vs solo" comparison | `server/api/recommend/[slug].get.ts`, `.../segments/[slug].get.ts` |
+| Request wiring, "saves vs solo" comparison | `server/utils/recommendPipeline.ts`, with the geometry wiring in `server/api/recommend/[slug].get.ts` and `.../segments/[slug].get.ts` |
 | Speed chart + solo overlay | `shared/utils/physics/routeSurfaceSpeedProfile.ts` |
 | Race plan | `shared/utils/physics/racePlan.ts` |

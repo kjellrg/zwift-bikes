@@ -14,10 +14,10 @@ import { getFrameById } from '../../shared/utils/catalog'
  * gains 13.7 s from a full upgrade on Tempus Fugit and 73.9 s on Road to Sky
  * for the same rider. This makes that guess for them.
  *
- * Both endpoints call this with their own `simulateAtStage`, because they
- * measure a ride differently (a segment's time is a warmed run minus its
- * warm-up). Sharing the stage walk is what keeps them from drifting apart on
- * which stages exist and which one the rider is on.
+ * The pipeline calls this with the ride's own `simulateSec`, because a route
+ * and a segment measure a ride differently (a segment's time is a warmed run
+ * minus its warm-up). Sharing the stage walk is what keeps them from drifting
+ * apart on which stages exist and which one the rider is on.
  *
  * The current stage is NOT re-simulated: it is `combo.finishTimeSec`, the
  * number the drawer prints next to this curve. Simulating it again would give
