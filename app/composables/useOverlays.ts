@@ -66,14 +66,14 @@ export function useOverlays() {
    * card) refetches the results. The drawer holds a snapshot of the combo,
    * not a live reference, so without this its finish time, gap, scores and
    * "scored at level N" line kept the old level's numbers until it was
-   * closed and reopened. A combo for a different bike is ignored: that is
-   * another card's business.
+   * closed and reopened. Matched on the frame alone: a level change can
+   * also change which wheelset is the frame's fastest, and the drawer should
+   * then show the wheels the card now shows, title and all. A combo for a
+   * different frame is ignored: that is another card's business.
    */
   function syncBikeDetail(detail: BikeDetail) {
     const current = bikeDetail.value
-    if (!current) return
-    if (current.combo.frame.id !== detail.combo.frame.id) return
-    if ((current.combo.wheelset?.key ?? null) !== (detail.combo.wheelset?.key ?? null)) return
+    if (!current || current.combo.frame.id !== detail.combo.frame.id) return
     bikeDetail.value = detail
   }
 
