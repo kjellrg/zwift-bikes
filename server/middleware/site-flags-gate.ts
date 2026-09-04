@@ -19,6 +19,12 @@ import { getSiteFlags } from '../utils/siteFlags'
  * kill-switched endpoint still counts against an abuser's rate budget.
  * Prerender crawls and dev carry no KV binding, so `getSiteFlags` resolves
  * to defaults there and this middleware never blocks a build.
+ *
+ * The same absence applies to Nitro's in-process `$fetch`: an internal
+ * event has no platform context, so the MCP tools' calls to
+ * `/api/recommend/**` pass through here ungated. `mcp.post.ts` reads the
+ * flags on the real request and the recommend tools refuse on
+ * `RpcContext.recommendPaused` themselves (issue #154).
  */
 
 const RETRY_AFTER_SEC = 300

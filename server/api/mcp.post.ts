@@ -9,6 +9,7 @@ import {
   type JsonRpcMessage
 } from '../utils/mcp/protocol'
 import { adoptSession, createSession, touchSession } from '../utils/mcp/session'
+import { getSiteFlags } from '../utils/siteFlags'
 
 /**
  * Model Context Protocol endpoint, Streamable HTTP transport.
@@ -69,7 +70,11 @@ export default defineEventHandler(async (event) => {
     return errorResponse(message.id ?? null, -32001, 'Unknown or expired MCP session. Re-initialize, then set the rider profile again.')
   }
 
-  const response = await handleMessage(message, { sessionId })
+  // A memo hit: the site-flags gate already read the flags for this very
+  // request. Passed down because the tools' internal fetches cannot read
+  // them - see `RpcContext.recommendPaused`.
+  const { killSwitches } = await getSiteFlags(event)
+  const response = await handleMessage(message, { sessionId, recommendPaused: killSwitches.recommend })
 
   if (!response) {
     // A notification takes no reply at all.

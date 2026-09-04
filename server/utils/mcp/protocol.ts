@@ -65,6 +65,15 @@ export interface JsonRpcResponse {
 
 export interface RpcContext {
   sessionId?: string
+  /**
+   * `killSwitches.recommend` from the runtime site flags, read once per
+   * request by the transport. The recommend tools reach their endpoints
+   * through Nitro's in-process `$fetch`, whose events carry no Workers
+   * platform context and therefore no KV binding - so the middleware gate
+   * that 503s `/api/recommend/**` never sees those calls, and the flag has
+   * to travel with the request instead (issue #154).
+   */
+  recommendPaused?: boolean
 }
 
 export function errorResponse(id: string | number | null, code: number, message: string): JsonRpcResponse {
