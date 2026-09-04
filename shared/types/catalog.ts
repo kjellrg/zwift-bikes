@@ -98,7 +98,13 @@ export interface ClassifiedWheel {
 
 /** A front+rear wheel pairing, as commonly ridden together in Zwift */
 export interface Wheelset {
-  /** Stable identity for the garage/localStorage and the API's `ownedWheels` filter - never derive it from anything that can be re-styled. */
+  /**
+   * Stable identity for the garage/localStorage and the API's `ownedWheels`
+   * filter - never derive it from anything that can be re-styled. Normally
+   * the wheel's name; a colourway that upstream ships under an already-taken
+   * name takes a suffixed key instead, so no two wheelsets share one
+   * (`getWheelsets`, issue #123).
+   */
   key: string
   name: string
   front: ClassifiedWheel

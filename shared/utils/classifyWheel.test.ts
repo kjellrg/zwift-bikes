@@ -75,15 +75,33 @@ describe('measured vs estimated wheels', () => {
 })
 
 describe('wheelset assembly', () => {
-  it('produces unique keys, except the known upstream "Zwift Concept" name collision', () => {
-    // zwift-data lists TWO wheels named "Zwift Concept" (regular
-    // Wheel_ZwiftConcept and gold Wheel_ZwiftConceptGold ids), so the
-    // name-keyed pairing in `getWheelsets` currently emits two wheelsets with
-    // the same key - a real, known latent defect this test documents rather
-    // than hides. Any NEW duplicate still fails here.
+  it('produces unique keys', () => {
+    // `key` is the garage/localStorage identity and the API's `ownedWheels`
+    // filter, so a shared key means owning one wheel silently matches
+    // another - which is what two zwift-data wheels named "Zwift Concept"
+    // used to do (issue #123).
     const keys = getWheelsets().map(w => w.key)
     const duplicates = keys.filter((key, index) => keys.indexOf(key) !== index)
-    expect(duplicates).toEqual(['Zwift Concept'])
+    expect(duplicates).toEqual([])
+  })
+
+  it('pairs each colourway with its own other end, and names the extra one (issue #123)', () => {
+    // The Tron's wheels ship twice under one name, regular and gold. A
+    // name-keyed rear lookup gave BOTH fronts the gold rear and dropped the
+    // regular one; both wheelsets then also claimed the same key.
+    const concepts = getWheelsets().filter(w => w.front.name === 'Zwift Concept')
+    expect(concepts.map(w => w.key)).toEqual(['Zwift Concept', 'Zwift Concept (Gold)'])
+    for (const wheelset of concepts) expect(wheelset.rear.imageName).toBe(wheelset.front.imageName)
+    expect(concepts.map(w => w.rear.id)).toEqual([961116451, 4151822963])
+  })
+
+  it('keeps the bare name on the variant zwift-data lists first, so owned wheels survive', () => {
+    // Anyone whose garage holds "Zwift Concept" must still hold it after a
+    // colourway is disambiguated; only the newly distinguished variant may
+    // take a key nobody has stored yet.
+    const first = getWheelsets().find(w => w.front.name === 'Zwift Concept')
+    expect(first?.key).toBe('Zwift Concept')
+    expect(first?.front.imageName).toBe('Wheel_ZwiftConcept')
   })
 
   it('never offers integrated-only wheels as swappable wheelsets (issue #87)', () => {

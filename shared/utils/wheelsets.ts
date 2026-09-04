@@ -12,6 +12,35 @@ import { classifyFrontWheel, classifyRearWheel } from './classifyWheel'
  * matching front wheel (the part of the name before the "/").
  */
 
+/**
+ * A name is not always unique upstream: zwift-data ships the Tron's wheels
+ * twice under the single name "Zwift Concept", once in regular trim
+ * (`Wheel_ZwiftConcept`, front 998391700 / rear 961116451) and once in gold
+ * (`Wheel_ZwiftConceptGold`, front 1344753875 / rear 4151822963). Grouping on
+ * the name alone broke both ways at once (issue #123): two wheelsets were
+ * emitted sharing the key "Zwift Concept", so garage ownership of one matched
+ * the other and neither could be told apart downstream; and because the
+ * rear lookup was a name-keyed Map, the LAST rear with the name won, so both
+ * fronts were paired with the gold rear and the regular rear was dropped.
+ *
+ * `imageName` is what actually distinguishes the variants, so pairing happens
+ * within an image, and only the extra variants take a suffixed key. Which one
+ * keeps the bare name matters: `key` is the garage/localStorage identity and
+ * the API's `ownedWheels` filter, so the first variant zwift-data lists keeps
+ * the name it has always had and no rider loses a wheel they own. The label
+ * is the part of the image name the variants do not share ("Gold"), split on
+ * camel case, which is both the game's own word for it and stable enough that
+ * a future colourway names itself.
+ */
+function variantLabel(imageName: string, baseImageName: string): string | undefined {
+  if (imageName === baseImageName) return undefined
+  let shared = 0
+  while (shared < imageName.length && shared < baseImageName.length && imageName[shared] === baseImageName[shared]) shared++
+  const suffix = imageName.slice(shared).replace(/^[_-]+/, '')
+  if (!suffix) return undefined
+  return suffix.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+}
+
 function averageScores(a: ClassificationScores, b: ClassificationScores): ClassificationScores {
   return {
     aero: Math.round((a.aero + b.aero) / 2),
@@ -60,18 +89,34 @@ export function getWheelsets(): Wheelset[] {
   const classifiedRear = allRear.filter(w => !INTEGRATED_ONLY_WHEELS.has(w.name)).map(classifyRearWheel)
 
   const frontByName = new Map(classifiedFront.map(w => [w.name, w]))
-  const rearByName = new Map(classifiedRear.map(w => [w.name, w]))
+  const rearsByName = new Map<string, ClassifiedWheel[]>()
+  for (const rear of classifiedRear) {
+    const existing = rearsByName.get(rear.name)
+    if (existing) existing.push(rear)
+    else rearsByName.set(rear.name, [rear])
+  }
 
   const wheelsets: Wheelset[] = []
   const usedRearNames = new Set<string>()
+  const baseImageNameByName = new Map<string, string>()
 
   for (const front of classifiedFront) {
-    const rear = rearByName.get(front.name)
-    if (!rear) continue
+    const rears = rearsByName.get(front.name)
+    if (!rears?.length) continue
+    // Match the rear that wears the same skin, so a colourway is never paired
+    // with a different colourway's other end. Falls back to the first rear
+    // with the name, which is the normal single-variant case.
+    const rear = rears.find(candidate => candidate.imageName === front.imageName) ?? rears[0]!
     usedRearNames.add(rear.name)
+
+    const baseImageName = baseImageNameByName.get(front.name)
+    if (baseImageName === undefined) baseImageNameByName.set(front.name, front.imageName)
+    const label = baseImageName === undefined ? undefined : variantLabel(front.imageName, baseImageName)
+    const name = label ? `${front.name} (${label})` : front.name
+
     wheelsets.push({
-      key: front.name,
-      name: front.name,
+      key: name,
+      name,
       front,
       rear,
       crrClass: front.crrClass,
