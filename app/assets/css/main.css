@@ -4,6 +4,8 @@
 @theme static {
   --font-sans: 'Inter', sans-serif;
 
+  /* Nuxt's green. No longer the primary, but still Nuxt UI's `success`
+     colour (funbike and climb badges). */
   --color-green-50: #EFFDF5;
   --color-green-100: #D9FBE8;
   --color-green-200: #B3F5D1;
@@ -15,4 +17,64 @@
   --color-green-800: #016538;
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
+
+  /* The primary: a power-meter lime built around #C6F135, the 400 and
+     dark-mode primary (14.3:1 on the 950 ground below, the highest of any
+     palette tried). Lime has no legible shade on white, so the light-mode
+     primary at 600 is an olive green (4.7:1); the two modes deliberately
+     share a family rather than a colour. */
+  --color-lime-50: #F8FDE6;
+  --color-lime-100: #EFFBC4;
+  --color-lime-200: #E1F78E;
+  --color-lime-300: #D4F45C;
+  --color-lime-400: #C6F135;
+  --color-lime-500: #A6D414;
+  --color-lime-600: #557F00;
+  --color-lime-700: #446500;
+  --color-lime-800: #375003;
+  --color-lime-900: #2F4307;
+  --color-lime-950: #172503;
+
+  /* The neutral scale behind Nuxt UI's semantic tokens (text-muted,
+     bg-elevated, border-default, ...). Tailwind's slate is replaced by a
+     teal-black - dark glass on a head unit at night - so the dark end
+     carries green rather than blue, and the light greys have a faint
+     sea-glass cast to match. Light mode maps straight off the scale;
+     dark mode's surfaces are re-pointed below. */
+  --color-slate-50: #F3F8F6;
+  --color-slate-100: #E9F1EE;
+  --color-slate-200: #D6E3DE;
+  --color-slate-300: #BACBC5;
+  --color-slate-400: #8FA79F;
+  --color-slate-500: #5F7A72;
+  --color-slate-600: #4A5F59;
+  --color-slate-700: #2A4239;
+  --color-slate-800: #1B2F2A;
+  --color-slate-900: #0D1C19;
+  --color-slate-950: #071412;
+}
+
+/* Nuxt UI defines these inside @layer theme, so unlayered rules here win
+   whatever order the stylesheets load in. */
+
+/* Light mode: the olive 600 on white. Lime itself is a dark-ground
+   colour and is unreadable on white at any size. */
+:root, .light {
+  --ui-primary: var(--ui-color-primary-600);
+}
+
+/* Dark mode: Nuxt UI puts the page on 900 and cards on 800. Push the page
+   down to 950 and cards to 900 so surfaces step ground -> card -> nested
+   (950 -> 900 -> 800) and the 800 border still shows against a card.
+   The primary line restates Nuxt UI's own dark default of 400: without
+   it the unlayered light rule above would carry 600 into dark mode. */
+.dark {
+  --ui-primary: var(--ui-color-primary-400);
+  --ui-bg: var(--ui-color-neutral-950);
+  --ui-bg-muted: var(--ui-color-neutral-900);
+  --ui-bg-elevated: var(--ui-color-neutral-900);
+  --ui-bg-accented: var(--ui-color-neutral-800);
+  --ui-border: var(--ui-color-neutral-800);
+  --ui-border-muted: var(--ui-color-neutral-800);
+  --ui-border-accented: var(--ui-color-neutral-700);
 }

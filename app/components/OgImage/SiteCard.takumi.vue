@@ -8,13 +8,13 @@
 <template>
   <div
     class="flex h-full w-full flex-col justify-between"
-    style="background: linear-gradient(160deg, #0b1220 0%, #030712 100%); padding: 56px 64px;"
+    style="background: linear-gradient(160deg, #0D1C19 0%, #071412 100%); padding: 56px 64px;"
   >
     <div
       class="flex items-center"
       style="gap: 16px;"
     >
-      <div style="width: 14px; height: 34px; background: #00DC82; border-radius: 4px;" />
+      <div style="width: 14px; height: 34px; background: #C6F135; border-radius: 4px;" />
       <span style="font-size: 34px; font-weight: 700; color: #ffffff;">ZwiftBikes</span>
     </div>
 
@@ -23,9 +23,9 @@
       style="gap: 18px;"
     >
       <span style="font-size: 64px; font-weight: 700; color: #ffffff; line-height: 1.1;">Find the fastest bike for any Zwift route</span>
-      <span style="font-size: 30px; color: #94a3b8; line-height: 1.4;">Every frame and wheel combo in the game, ranked by predicted finish time for your weight, height and power.</span>
+      <span style="font-size: 30px; color: #8FA79F; line-height: 1.4;">Every frame and wheel combo in the game, ranked by predicted finish time for your weight, height and power.</span>
     </div>
 
-    <span style="font-size: 26px; font-weight: 700; color: #00DC82;">zwiftbikes.com</span>
+    <span style="font-size: 26px; font-weight: 700; color: #C6F135;">zwiftbikes.com</span>
   </div>
 </template>

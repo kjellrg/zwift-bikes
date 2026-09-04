@@ -1,19 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#0f172a"/>
+  <rect width="1200" height="630" fill="#071412"/>
   <!-- faint oversized wheel arcs for depth -->
-  <circle cx="-40" cy="640" r="330" fill="none" stroke="#1c2a41" stroke-width="4"/>
-  <circle cx="-40" cy="640" r="260" fill="none" stroke="#1c2a41" stroke-width="4"/>
-  <circle cx="1240" cy="-10" r="330" fill="none" stroke="#1c2a41" stroke-width="4"/>
-  <circle cx="1240" cy="-10" r="260" fill="none" stroke="#1c2a41" stroke-width="4"/>
+  <circle cx="-40" cy="640" r="330" fill="none" stroke="#1B2F2A" stroke-width="4"/>
+  <circle cx="-40" cy="640" r="260" fill="none" stroke="#1B2F2A" stroke-width="4"/>
+  <circle cx="1240" cy="-10" r="330" fill="none" stroke="#1B2F2A" stroke-width="4"/>
+  <circle cx="1240" cy="-10" r="260" fill="none" stroke="#1B2F2A" stroke-width="4"/>
   <!-- lucide "bike" icon at 8x, coordinates baked in (no transform: the
        fallback MSVG renderer ignores group transforms) -->
-  <circle cx="652" cy="212" r="28" fill="none" stroke="#00DC82" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="548" cy="212" r="28" fill="none" stroke="#00DC82" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="624" cy="112" r="8" fill="none" stroke="#00DC82" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M600,212 L600,184 L576,160 L608,136 L624,160 L640,160" fill="none" stroke="#00DC82" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="652" cy="212" r="28" fill="none" stroke="#C6F135" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="548" cy="212" r="28" fill="none" stroke="#C6F135" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="624" cy="112" r="8" fill="none" stroke="#C6F135" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M600,212 L600,184 L576,160 L608,136 L624,160 L640,160" fill="none" stroke="#C6F135" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
   <!-- wordmark split at center: "Zwift" white, "Bikes" green -->
   <text x="600" y="400" text-anchor="end" font-family="Liberation Sans" font-weight="bold" font-size="116" fill="#f8fafc">Zwift</text>
-  <text x="600" y="400" text-anchor="start" font-family="Liberation Sans" font-weight="bold" font-size="116" fill="#00DC82">Bikes</text>
-  <text x="600" y="470" text-anchor="middle" font-family="Liberation Sans" font-size="38" fill="#94a3b8">Find the fastest bike for any Zwift route</text>
-  <text x="600" y="560" text-anchor="middle" font-family="Liberation Sans" font-size="28" fill="#475569">zwiftbikes.com</text>
+  <text x="600" y="400" text-anchor="start" font-family="Liberation Sans" font-weight="bold" font-size="116" fill="#C6F135">Bikes</text>
+  <text x="600" y="470" text-anchor="middle" font-family="Liberation Sans" font-size="38" fill="#8FA79F">Find the fastest bike for any Zwift route</text>
+  <text x="600" y="560" text-anchor="middle" font-family="Liberation Sans" font-size="28" fill="#4A5F59">zwiftbikes.com</text>
 </svg>
