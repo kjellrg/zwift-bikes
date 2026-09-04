@@ -69,6 +69,30 @@ describe('measured data flows through', () => {
     }
   })
 
+  it('carries the six-stage upgrade curve and scheme for measured frames, and neither for estimated ones', () => {
+    for (const frame of bikeFrames) {
+      const classified = classifyBikeFrame(frame, 3)
+      if (classified.confidence !== 'measured') {
+        expect(classified.upgradeCurve, frame.name).toBeUndefined()
+        continue
+      }
+      const sample = (classified.category === 'tt' ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[frame.name]!
+      const curve = classified.upgradeCurve!
+      expect(curve.flat, frame.name).toHaveLength(6)
+      expect(curve.climb, frame.name).toHaveLength(6)
+      // The endpoints are the sheet's own anchors, whichever tier filled the middle.
+      expect(curve.flat[0]).toBe(sample.flatGapSec0)
+      expect(curve.flat[5]).toBe(sample.flatGapSec5)
+      expect(curve.climb[0]).toBe(sample.climbGapSec0)
+      expect(curve.climb[5]).toBe(sample.climbGapSec5)
+      // Every stage is the same gap that stage classifies from.
+      for (const level of [0, 1, 2, 3, 4, 5]) {
+        expect(classifyBikeFrame(frame, level).upgradeCurve!.flat[level]).toBe(curve.flat[level])
+      }
+      expect(classified.upgradeScheme, frame.name).toEqual(FRAME_UPGRADE_SCHEMES[frame.name])
+    }
+  })
+
   it('upgrading a measured frame to stage 5 never lowers its scores', () => {
     const measuredNames = new Set([...Object.keys(FRAME_SPEED_DATA), ...Object.keys(TT_FRAME_SPEED_DATA)])
     for (const frame of bikeFrames.filter(f => measuredNames.has(f.name))) {

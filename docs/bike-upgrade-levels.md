@@ -83,6 +83,11 @@ resistance — see
 including why the stage-3 "drivetrain" upgrade is modelled as a Crr change and
 not an efficiency change.
 
+The bike drawer (open any result card) shows the whole six-stage curve for a
+measured frame as two small stage-by-stage charts, flat and climb, marked at the stage the bike
+is scored at - the same numbers `classifyBikeFrame` reads, carried on the
+frame as `upgradeCurve`.
+
 > **Only frames with real bot-test data get this treatment.** For the ~47
 > frames ZwiftInsider hasn't tested (most gravel bikes, novelty bikes and a
 > few road frames) there are no per-stage numbers to apply, so level has no

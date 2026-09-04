@@ -59,6 +59,24 @@ export function useOverlays() {
     isBikeDetailOpen.value = true
   }
 
+  /**
+   * Replaces what the open drawer shows when the card it was opened from
+   * re-renders with a fresh combo for the same frame and wheels - after a
+   * garage change (an upgrade level set in the drawer itself, or on the
+   * card) refetches the results. The drawer holds a snapshot of the combo,
+   * not a live reference, so without this its finish time, gap, scores and
+   * "scored at level N" line kept the old level's numbers until it was
+   * closed and reopened. A combo for a different bike is ignored: that is
+   * another card's business.
+   */
+  function syncBikeDetail(detail: BikeDetail) {
+    const current = bikeDetail.value
+    if (!current) return
+    if (current.combo.frame.id !== detail.combo.frame.id) return
+    if ((current.combo.wheelset?.key ?? null) !== (detail.combo.wheelset?.key ?? null)) return
+    bikeDetail.value = detail
+  }
+
   function openAbout(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
@@ -120,6 +138,7 @@ export function useOverlays() {
     isBikeDetailOpen,
     bikeDetail,
     openBikeDetail,
+    syncBikeDetail,
     openAbout,
     openGarage,
     openProfile,

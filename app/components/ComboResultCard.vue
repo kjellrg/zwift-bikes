@@ -36,10 +36,16 @@ const { setOwned, setWheelOwned, isWheelOwned } = useGarage()
  * bar, and nested interactive elements inside one big click target break
  * keyboard semantics. The frame name is a second trigger for discoverability.
  */
-const { openBikeDetail } = useOverlays()
-function showDetails() {
-  openBikeDetail({ combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps })
+const { openBikeDetail, syncBikeDetail } = useOverlays()
+function bikeDetail() {
+  return { combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps }
 }
+function showDetails() {
+  openBikeDetail(bikeDetail())
+}
+// A refetch hands this card a new combo object; if the drawer is showing
+// this bike, it follows - see `syncBikeDetail`.
+watch(() => [props.combo, props.fastestTimeSec, props.laps], () => syncBikeDetail(bikeDetail()))
 
 /**
  * New quick-adds start at the rider's chosen default level for unowned bikes

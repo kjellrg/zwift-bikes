@@ -70,6 +70,13 @@ const physicsRows = computed(() => {
 })
 
 const signed = (value: number, digits: number) => `${value > 0 ? '+' : ''}${value.toFixed(digits)}`
+
+// Zwift's own names for the scheme, matching docs/bike-upgrade-levels.md.
+const UPGRADE_AXIS_LABELS = { distance: 'distance', duration: 'duration', elevation: 'elevation' } as const
+const UPGRADE_TIER_LABELS = { entry: 'entry-level', mid: 'mid-range', high: 'high-end' } as const
+const upgradeSchemeText = computed(() => frame.value.upgradeScheme
+  ? `${UPGRADE_TIER_LABELS[frame.value.upgradeScheme.tier]} frame, stages earned by ${UPGRADE_AXIS_LABELS[frame.value.upgradeScheme.axis]}`
+  : undefined)
 const baselineName = computed(() => frame.value.category === 'tt' ? 'the Zwift TT reference bike' : 'the Zwift Carbon reference bike')
 const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'Road', gravel: 'Gravel', mountain: 'Mountain' }
 </script>
@@ -210,6 +217,33 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
           <span class="text-muted">- terrain fit; the ranking itself is by time</span>
         </dd>
       </dl>
+    </section>
+
+    <section
+      v-if="frame.upgradeCurve"
+      class="space-y-3"
+    >
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+        What upgrading does
+      </h3>
+      <div class="grid grid-cols-2 gap-4">
+        <UpgradeSparkline
+          :values="frame.upgradeCurve.flat"
+          :level="frame.level"
+          label="Flat"
+        />
+        <UpgradeSparkline
+          :values="frame.upgradeCurve.climb"
+          :level="frame.level"
+          label="Climb"
+        />
+      </div>
+      <p class="text-xs text-muted">
+        Seconds saved per hour over the just-bought bike at each stage, from ZwiftInsider's bot tests at 300 W (flat: Tempus Fugit, climb: Alpe du Zwift).<template v-if="upgradeSchemeText">
+          A {{ upgradeSchemeText }}.
+        </template>
+        A stage that adds nothing on one test is real: each stage upgrades one thing, and an aero stage barely shows uphill.
+      </p>
     </section>
 
     <section class="space-y-3">

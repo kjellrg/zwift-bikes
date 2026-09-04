@@ -1,3 +1,4 @@
+import type { UpgradeScheme } from '../data/frameUpgradeSchemes'
 import type { BikeFrame, BikeFrontWheel, BikeRearWheel, Route, Sport, WorldSlug } from 'zwift-data'
 
 /**
@@ -54,6 +55,19 @@ export interface EquipmentPhysicsDelta {
   crrDelta: number
 }
 
+/**
+ * A measured frame's bot-test gap at every upgrade stage, `[stage0..stage5]`,
+ * in seconds saved (+) or lost (-) per hour against the category's reference
+ * bike at 300 W - the flat test and the climb test separately. The same
+ * numbers `classifyBikeFrame` scores each level from (see `interpolateGap`),
+ * exposed whole so the bike drawer can show what each stage is worth without
+ * a request or a second copy of the speed data in the browser.
+ */
+export interface UpgradeCurve {
+  flat: readonly number[]
+  climb: readonly number[]
+}
+
 export interface ClassifiedBikeFrame extends BikeFrame {
   category: BikeCategory
   style?: BikeStyle
@@ -64,6 +78,10 @@ export interface ClassifiedBikeFrame extends BikeFrame {
   /** Upgrade stage (0-5) these scores were computed at - see `classifyBikeFrame.ts`'s `level` param. */
   level: number
   physics?: EquipmentPhysicsDelta
+  /** Present for measured frames only - unmeasured ones have no per-stage numbers, and `level` has no effect on them. */
+  upgradeCurve?: UpgradeCurve
+  /** Zwift's upgrade scheme for this frame (progression axis x price tier), when catalogued - see `frameUpgradeSchemes.ts`. */
+  upgradeScheme?: UpgradeScheme
 }
 
 export interface ClassifiedWheel {
