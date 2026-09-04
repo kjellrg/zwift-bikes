@@ -373,6 +373,20 @@ useHead(() => {
       </p>
     </div>
 
+    <!-- Directly under the segment summary, above the results: this is the
+         question the page's title asks, so it reads as the answer to the
+         stats just above rather than as a footnote after the grid. It needs
+         `topCombo`, so it renders from the prerendered results on first paint
+         and only pops in on a client-side navigation. -->
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        {{ faqQuestion }}
+      </h2>
+      <p class="text-muted">
+        {{ faqAnswer }}
+      </p>
+    </div>
+
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this segment
@@ -473,15 +487,6 @@ useHead(() => {
         </div>
         <ReportDataLink :item="segmentData?.name" />
       </template>
-    </div>
-
-    <div v-if="faqAnswer">
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        {{ faqQuestion }}
-      </h2>
-      <p class="text-muted">
-        {{ faqAnswer }}
-      </p>
     </div>
 
     <PhysicsNote

@@ -414,6 +414,20 @@ useHead(() => {
       </div>
     </div>
 
+    <!-- Directly under the route summary, above the results: this is the
+         question the page's title asks, so it reads as the answer to the
+         stats just above rather than as a footnote after the grid. It needs
+         `topCombo`, so it renders from the prerendered results on first paint
+         and only pops in on a client-side navigation. -->
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        {{ faqQuestion }}
+      </h2>
+      <p class="text-muted">
+        {{ faqAnswer }}
+      </p>
+    </div>
+
     <UAlert
       v-if="showUpcomingRaces && upcomingEvents.length"
       color="info"
@@ -533,15 +547,6 @@ useHead(() => {
         </div>
         <ReportDataLink :item="routeData?.name" />
       </template>
-    </div>
-
-    <div v-if="faqAnswer">
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        {{ faqQuestion }}
-      </h2>
-      <p class="text-muted">
-        {{ faqAnswer }}
-      </p>
     </div>
 
     <RouteSurfaceSpeedProfile

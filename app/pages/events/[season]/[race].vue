@@ -846,6 +846,47 @@ useHead(() => {
       </div>
     </div>
 
+    <!-- Both of these sit between the race summary and the results, mirroring
+         the route and segment pages: the one-line answer first (it needs
+         `topCombo`, so it comes from the prerendered results on first paint
+         and pops in on a client-side navigation), then the curated tactical
+         note, which is static data and explains why the ranking below falls
+         out the way it does. "Where the points are" deliberately stays below
+         the results - it is reference detail, and it sends the reader on to
+         per-segment rankings once they have seen the whole-race ones. -->
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        {{ faqQuestion }}
+      </h2>
+      <p class="text-muted">
+        {{ faqAnswer }}
+      </p>
+    </div>
+
+    <div
+      v-if="race!.note"
+      class="rounded-lg border border-default p-4"
+    >
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        How this race tends to play out
+      </h2>
+      <p class="text-muted">
+        {{ race!.note }}
+      </p>
+      <p
+        v-if="race!.sourceUrl"
+        class="text-xs text-muted mt-2"
+      >
+        Race details from
+        <ULink
+          :to="race!.sourceUrl"
+          target="_blank"
+          rel="noopener"
+          class="text-primary underline"
+        >the published round guide</ULink>.
+      </p>
+    </div>
+
     <div>
       <h2 class="text-xl font-semibold text-highlighted mb-4">
         Best bike &amp; wheel combo for this race
@@ -989,30 +1030,6 @@ useHead(() => {
       </template>
     </div>
 
-    <div
-      v-if="race!.note"
-      class="rounded-lg border border-default p-4"
-    >
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        How this race tends to play out
-      </h2>
-      <p class="text-muted">
-        {{ race!.note }}
-      </p>
-      <p
-        v-if="race!.sourceUrl"
-        class="text-xs text-muted mt-2"
-      >
-        Race details from
-        <ULink
-          :to="race!.sourceUrl"
-          target="_blank"
-          rel="noopener"
-          class="text-primary underline"
-        >the published round guide</ULink>.
-      </p>
-    </div>
-
     <div v-if="scoringSegments.length || isPointsRaceWithoutSegments || scoringSegmentsTbd">
       <h2 class="text-lg font-semibold text-highlighted mb-2">
         Where the points are
@@ -1122,15 +1139,6 @@ useHead(() => {
           that publish where each segment sits along them, and this one doesn't.
         </p>
       </template>
-    </div>
-
-    <div v-if="faqAnswer">
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        {{ faqQuestion }}
-      </h2>
-      <p class="text-muted">
-        {{ faqAnswer }}
-      </p>
     </div>
 
     <RouteSurfaceSpeedProfile
