@@ -8,7 +8,10 @@ module runs, in what order, and what each one is allowed to decide.
 Read this before changing anything in `shared/utils/physics/`, `finishTime.ts`,
 `scoring.ts`, or either recommend endpoint. Most of the historical bugs in this
 app were not physics errors — they were ordering errors: a step that ran before
-the step whose output it depended on.
+the step whose output it depended on. A change that is meant to keep every
+answer the same gets proved rather than argued: `npm run parity:recommend`
+runs the real handlers on your tree and on the baseline commit and diffs every
+response (see [scripts/recommend-parity/](../scripts/recommend-parity/README.md)).
 
 ## 1. Request lifecycle
 

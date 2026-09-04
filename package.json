@@ -10,6 +10,7 @@
     "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",
     "speed-data:import-validation": "node scripts/zwiftinsider/import-validation-gaps.mjs",
     "validate:api-schemas": "node scripts/validate-api-schemas.mjs",
+    "parity:recommend": "node scripts/recommend-parity/compare.mjs",
     "validate:events": "node scripts/events/validate-events.mjs",
     "validate:speed-data": "node scripts/validate-speed-data.mjs",
     "validate:race-draft": "node scripts/race-draft/validate-race-draft.mjs && node scripts/race-draft/test-parse-zwiftpower-paste.mjs",
