@@ -8,14 +8,18 @@ module runs, in what order, and what each one is allowed to decide.
 Read this before changing anything in `shared/utils/physics/`, `finishTime.ts`,
 `scoring.ts`, or either recommend endpoint. Most of the historical bugs in this
 app were not physics errors — they were ordering errors: a step that ran before
-the step whose output it depended on.
+the step whose output it depended on. A change that is meant to keep every
+answer the same gets proved rather than argued: `npm run parity:recommend`
+runs the real handlers on your tree and on the baseline commit and diffs every
+response (see [scripts/recommend-parity/](../scripts/recommend-parity/README.md)).
 
 ## 1. Request lifecycle
 
-The ranking pipeline lives behind two endpoints: one for whole routes,
-`server/api/recommend/[slug].get.ts`, shown below; and one for individual
-climb/sprint segments, which runs the same pipeline with a different geometry
-builder (section 6).
+The ranking pipeline itself is one module, `server/utils/recommendPipeline.ts`,
+shown below. Two thin endpoints hand it a ride: `server/api/recommend/[slug].get.ts`
+for whole routes, and `server/api/recommend/segments/[slug].get.ts` for
+individual climb/sprint segments, which differs only in how its geometry is
+built and how one combo is timed on it (section 6).
 
 ```mermaid
 %%{ init: { "flowchart": { "nodeSpacing": 30, "rankSpacing": 40 } } }%%
@@ -102,19 +106,19 @@ because breaking it shipped a real bug:
 
 | Module | Owns | Called by |
 |---|---|---|
-| [catalog.ts](../shared/utils/catalog.ts) | Route/frame lookup over `zwift-data`, cached; applies `routeEventLeadIns.ts` so every consumer sees one ridden distance | Both recommend endpoints |
+| [catalog.ts](../shared/utils/catalog.ts) | Route/frame lookup over `zwift-data`, cached; applies `routeEventLeadIns.ts` so every consumer sees one ridden distance | `recommendPipeline.ts`, both recommend endpoints |
 | [routeEventLeadIns.ts](../shared/data/routeEventLeadIns.ts) | Event lead-in corrections for the few routes where Zwift's own published figure is wrong (see race-drafting.md §5) | `catalog.ts` |
 | [routeTerrain.ts](../shared/utils/routeTerrain.ts) | Climb ratio, terrain weights, surface composition + its confidence level | `catalog.ts` |
 | [classifyBikeFrame.ts](../shared/utils/classifyBikeFrame.ts) | Category/style, 0-100 scores, `confidence`, solved CdA/mass/Crr delta, per-scheme garage-level staging | `catalog.ts` |
 | [classifyWheel.ts](../shared/utils/classifyWheel.ts) | Wheel scores, `crrClass` (road/gravel/mountain), `confidence` | `wheelsets.ts` |
-| [wheelsets.ts](../shared/utils/wheelsets.ts) | Pairs front+rear into the wheelsets riders actually equip | Both recommend endpoints |
-| [scoring.ts](../shared/utils/scoring.ts) | The 0-100 heuristic score, frame/wheel compatibility, search, display capping | Both recommend endpoints |
-| [finishTime.ts](../shared/utils/finishTime.ts) | The cheap closed-form estimate + the isolated surface penalty | Both recommend endpoints |
+| [wheelsets.ts](../shared/utils/wheelsets.ts) | Pairs front+rear into the wheelsets riders actually equip | `recommendPipeline.ts` |
+| [scoring.ts](../shared/utils/scoring.ts) | The 0-100 heuristic score, frame/wheel compatibility, search, display capping | `recommendPipeline.ts` |
+| [finishTime.ts](../shared/utils/finishTime.ts) | The cheap closed-form estimate + the isolated surface penalty | `recommendPipeline.ts` |
 | [physics/forces.ts](../shared/utils/physics/forces.ts) | `calculateForces`, `powerForSpeed`, `speedForPower`, the physical constants | Simulator, equipment solver, `finishTime.ts` |
 | [physics/equipment.ts](../shared/utils/physics/equipment.ts) | CdA and bike mass for a combo; rider frontal area; the gap-seconds inversion | Simulator, `finishTime.ts`, classifiers |
 | [physics/routeGeometry.ts](../shared/utils/physics/routeGeometry.ts) | Turning a route + lap count into simulator geometry | Both recommend endpoints |
 | [physics/simulator.ts](../shared/utils/physics/simulator.ts) | The integration loop | Everything that needs a real time |
-| [physics/simulatedOrdering.ts](../shared/utils/physics/simulatedOrdering.ts) | Which combos are worth really simulating, and dedup by physics key | Both recommend endpoints |
+| [physics/simulatedOrdering.ts](../shared/utils/physics/simulatedOrdering.ts) | Which combos are worth really simulating, and dedup by physics key | `recommendPipeline.ts` |
 | [physics/routeSurfaceSpeedProfile.ts](../shared/utils/physics/routeSurfaceSpeedProfile.ts) | Speed-vs-distance chart data, from one instrumented simulation run | Route page chart |
 | [physics/validate.ts](../shared/utils/physics/validate.ts) | Sanity checks against known-good cases | Dev/verification only |
 
@@ -380,9 +384,9 @@ is fully paved.
 
 ## 6. The segment endpoint's one difference
 
-`server/api/recommend/segments/[slug].get.ts` runs the identical pipeline,
-but a segment is entered at speed rather than from a standing start. So it
-simulates twice per combo and subtracts:
+`server/api/recommend/segments/[slug].get.ts` runs the identical pipeline -
+literally the same module - but a segment is entered at speed rather than from
+a standing start. So its ride simulates twice per combo and subtracts:
 
 ```mermaid
 %%{ init: { "flowchart": { "nodeSpacing": 30, "rankSpacing": 40 } } }%%

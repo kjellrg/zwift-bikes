@@ -45,7 +45,7 @@ const RECOMMEND_PAUSED_MESSAGE = 'Recommendations are temporarily paused for mai
  * HTTP endpoints the web app uses, via Nitro's in-process `$fetch` (no network
  * hop). That keeps a single implementation of the recommend orchestration -
  * whose ordering is subtle enough that a second copy would drift (see the
- * comments in `server/api/recommend/[slug].get.ts` about search, capping and
+ * comments in `server/utils/recommendPipeline.ts` about search, capping and
  * simulated-time re-ordering) - and means a filter added to an endpoint is
  * inherited here for free.
  *

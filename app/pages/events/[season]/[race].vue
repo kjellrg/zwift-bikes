@@ -119,7 +119,8 @@ const recommendQuery = computed(() => ({
   powerW: powerW.value,
   laps: laps.value,
   // The whole point of an event page: rank only what the rider is allowed to
-  // start on. See `excludeTT` in `server/api/recommend/[slug].get.ts`.
+  // start on. See `excludeTT` on `recommendRouteQuerySchema` in
+  // `server/utils/apiQuerySchemas.ts`.
   excludeTT: ttAllowed ? undefined : 'true',
   // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
   draftMode: effectiveDraftMode.value === 'solo' ? undefined : effectiveDraftMode.value,

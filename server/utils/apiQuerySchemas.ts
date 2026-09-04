@@ -308,6 +308,15 @@ export type RecommendRouteQuery = z.output<typeof recommendRouteQuerySchema>
 export type RecommendSegmentQuery = z.output<typeof recommendSegmentQuerySchema>
 
 /**
+ * Everything `runRecommendPipeline` reads, as a type: the shared shape read
+ * back through `z.object` in type position only - nothing parses with it,
+ * since each endpoint's own schema is what validates its request. Both of
+ * those outputs are assignable here, which is what lets the pipeline take
+ * either without knowing which endpoint it is serving.
+ */
+export type RecommendBaseQuery = z.output<z.ZodObject<typeof recommendBaseShape>>
+
+/**
  * Parses `event`'s query string against `schema`, throwing a 400 whose
  * message names the offending parameter(s) and what they accept. Synchronous
  * on purpose - h3's `getValidatedQuery` would force every handler `async` and

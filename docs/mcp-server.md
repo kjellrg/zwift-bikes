@@ -15,7 +15,7 @@ catalog and the ranking pipeline through the same HTTP endpoints the web app
 uses, via Nitro's in-process `$fetch`. The recommend orchestration is subtle -
 search must see the full candidate pool before any capping, and the reachable
 window is re-ordered by real simulated time before pagination (see the comments
-in [`server/api/recommend/[slug].get.ts`](../server/api/recommend/%5Bslug%5D.get.ts))
+in [`server/utils/recommendPipeline.ts`](../server/utils/recommendPipeline.ts))
 - and a second copy of that sequencing would drift. A filter added to an
 endpoint is inherited by the MCP tools for free.
 
