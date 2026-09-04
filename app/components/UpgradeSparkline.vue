@@ -1,11 +1,14 @@
 <script setup lang="ts">
 /**
  * One measured frame's gain from upgrading, stage 0 to 5, as a sparkline:
- * seconds saved per hour over the just-bought bike, on one of the two
- * ZwiftInsider bot tests. The stage the bike is currently scored at is the
- * filled point. Drawn relative to stage 0 rather than to the reference bike
- * because the question the drawer answers here is "what does upgrading
- * do", not "how does this bike compare".
+ * what each stage is worth over the just-bought bike. The stage the bike is
+ * currently scored at is the filled point. Drawn relative to stage 0 rather
+ * than to the reference bike because the question the drawer answers here is
+ * "what does upgrading do", not "how does this bike compare".
+ *
+ * Used for both kinds of answer, which differ only in their `unit`: the two
+ * ZwiftInsider bot tests in seconds per hour, and the rider's own route in
+ * seconds off this ride (`ComboScore.upgradeFinishTimesSec`).
  */
 const props = defineProps<{
   /** Six values, stage 0 to 5, seconds per hour against the reference bike (`UpgradeCurve.flat` or `.climb`). */
@@ -13,7 +16,15 @@ const props = defineProps<{
   /** The stage to mark. */
   level: number
   label: string
+  /**
+   * What one unit of `values` is. The bot-test curves are seconds per hour;
+   * a route curve is seconds off that one ride, which is a smaller number and
+   * a more useful one - see `ComboScore.upgradeFinishTimesSec`.
+   */
+  unit?: string
 }>()
+
+const unit = computed(() => props.unit ?? 's/h')
 
 const VIEW_WIDTH = 132
 const VIEW_HEIGHT = 40
@@ -39,7 +50,7 @@ const current = computed(() => points.value[Math.min(5, Math.max(0, Math.round(p
 const maxed = computed(() => gains.value[gains.value.length - 1] ?? 0)
 
 const signed = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}`
-const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) => `stage ${stage} ${signed(gain)} s/h`).join(', ')}`)
+const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) => `stage ${stage} ${signed(gain)} ${unit.value}`).join(', ')}`)
 </script>
 
 <template>
@@ -48,7 +59,7 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
       <span class="font-medium text-highlighted">{{ label }}</span>
       <span class="text-muted tabular-nums">
         now <span class="font-semibold text-primary">{{ signed(current?.gain ?? 0) }}</span>
-        · maxed {{ signed(maxed) }} s/h
+        · maxed {{ signed(maxed) }} {{ unit }}
       </span>
     </div>
     <svg
@@ -87,7 +98,7 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
         fill="currentColor"
         :class="point.stage === current?.stage ? 'text-primary' : 'text-muted'"
       >
-        <title>Stage {{ point.stage }}: {{ signed(point.gain) }} s/h</title>
+        <title>Stage {{ point.stage }}: {{ signed(point.gain) }} {{ unit }}</title>
       </circle>
     </svg>
     <div class="flex justify-between text-[10px] text-muted tabular-nums">

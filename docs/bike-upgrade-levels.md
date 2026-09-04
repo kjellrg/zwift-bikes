@@ -84,9 +84,23 @@ including why the stage-3 "drivetrain" upgrade is modelled as a Crr change and
 not an efficiency change.
 
 The bike drawer (open any result card) shows the whole six-stage curve for a
-measured frame as two small stage-by-stage charts, flat and climb, marked at the stage the bike
-is scored at - the same numbers `classifyBikeFrame` reads, carried on the
-frame as `upgradeCurve`.
+measured frame, marked at the stage the bike is scored at, in two forms.
+
+**On this route**, first, because it is the question a rider actually has:
+seconds off *their* ride at *their* watts, on the wheels the bike is currently
+fastest on, with the laps and draft mode the page is set to. Each stage is a
+real simulation over the route's own terrain
+(`ComboScore.upgradeFinishTimesSec`), computed by the same `wheelsForFrame`
+drill-down that fills the card's wheel list, so the curve passes through the
+finish time printed beside it by construction. Expect smaller numbers than the
+bot tests suggest: a full upgrade of the Aethos S-Works is worth 13.7 s on
+Tempus Fugit and 73.9 s on Road to Sky for a 75 kg rider at 225 W.
+
+**The two bot tests**, below it, flat and climb, in seconds per hour against
+the reference bike at 300 W - the same numbers `classifyBikeFrame` reads,
+carried on the frame as `upgradeCurve`. They stay because they say *what kind*
+of upgrade each stage is: a stage that moves the flat curve and not the climb
+curve is an aero stage, which the blended route curve cannot show.
 
 > **Only frames with real bot-test data get this treatment.** For the ~47
 > frames ZwiftInsider hasn't tested (most gravel bikes, novelty bikes and a

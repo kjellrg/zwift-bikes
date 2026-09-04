@@ -134,7 +134,15 @@ function frameStageChart(frameName: string): StageChart | undefined {
   return scheme && stageChartFor(scheme)
 }
 
-const STAGES = [0, 1, 2, 3, 4, 5] as const
+/**
+ * Every upgrade stage a frame can be at. Exported so the recommend endpoints
+ * can walk the same six stages when simulating what upgrading is worth on a
+ * particular route (`ComboScore.upgradeFinishTimesSec`) - one list, so a
+ * seventh stage could never mean two different things.
+ */
+export const UPGRADE_STAGES = [0, 1, 2, 3, 4, 5] as const
+
+const STAGES = UPGRADE_STAGES
 
 /**
  * The whole six-stage curve a measured frame is scored from, through the
