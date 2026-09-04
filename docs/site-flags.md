@@ -32,6 +32,13 @@ workers.dev URL, then `npm run flags:push -- --prod`. Changes are live within
 ~60s (KV edge cache + the Worker's own 60s read memo, both set in
 `server/utils/siteFlags.ts`).
 
+`pull` will not mistake a broken binding for an empty namespace: wrangler
+reports a missing key and a missing namespace with the same 404, so the
+script lists the namespace before believing "nothing is set yet", and it
+refuses to overwrite a local file that differs from the defaults with the
+defaults unless you pass `-- --force`. Either refusal means: check
+`wrangler.jsonc` and push what you have, rather than pull.
+
 `push` validates against the *strict* schema (`shared/utils/siteFlags.ts`) -
 unknown keys are typos and reject. The Worker's runtime parse is lenient the
 other way (unknown keys ignored) so an older deploy survives a newer config.
