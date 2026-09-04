@@ -6,10 +6,11 @@
   "organizer": "Zwift",
   "organizerUrl": "https://www.zwift.com/racing",
   "description": "Zwift's own monthly race series - a themed set of week-long stages each month, open to everyone. Every stage's route in one calendar, with the fastest bike and wheel combo worked out for each.",
-  "note": "August is Makuri Madness: four week-long stages around the Makuri Islands. Entry is by racing score - Women-Only, Range 1, Range 2 and Advanced - and every category rides the same course, so there is one bike answer per stage. Later months are added when Zwift announces each theme.",
-  "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time.",
+  "note": "September is Zwift Racing Powered by DURA-ACE - four week-long stages, and the month ZRacing moves under Zwift's new Zwift Racing umbrella alongside Crit Club, Epic Race Club and TT Club events. The stages listed here are the ZRacing ones. Entry is by racing score - Women-Only, Range 1, Range 2 and Advanced - and every category rides the same course, so there is one bike answer per stage; GC is your best finishing time on each. August's Makuri Madness stages are below, completed. Later months are added when Zwift announces each theme.",
+  "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time. From September the monthly series also carries Crit Club, Epic Race Club and TT Club events alongside the ZRacing stage; only the ZRacing stages are modelled here, since the stage slug convention (stage-{n}) assumes one race per week and the other three formats are separate weekly events with their own routes. If they are ever added they need their own slug convention, not a second race on the same week.",
   "sources": [
-    { "url": "https://zwiftinsider.com/makuri-madness-2026/", "checkedAt": "2026-08-16" }
+    { "url": "https://zwiftinsider.com/makuri-madness-2026/", "checkedAt": "2026-08-16" },
+    { "url": "https://zwiftinsider.com/dura-ace-2026/", "checkedAt": "2026-09-04" }
   ],
   "rounds": [
     {
@@ -114,6 +115,110 @@
           "powerups": { "allowed": ["draft", "aero"] },
           "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
           "updatedAt": "2026-08-16"
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "name": "September: Zwift Racing Powered by DURA-ACE",
+      "startDate": "2026-09-07",
+      "endDate": "2026-10-04",
+      "races": [
+        {
+          "slug": "september-stage-1",
+          "round": 9,
+          "week": 1,
+          "date": "2026-09-07",
+          "endDate": "2026-09-13",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "croissant",
+              "routeName": "Croissant",
+              "laps": 2,
+              "officialDistanceKm": 21.8,
+              "officialElevationM": 122,
+              "curatorNote": "Two laps plus the 3.2 km France lead-in comes to 21.8 km, matching the published distance exactly - no lead-in correction needed. The published 122 m looks high against two laps of the route's own 49 m until the lead-in's 23 m is added: 49x2 + 23 = 121 m. Both figures confirm the mapping."
+            }
+          ],
+          "note": "The month opens in France with two laps of Croissant: 21.8 km of unbroken tarmac and only 122 m of climbing, none of it steep. Nothing on this course rewards a light bike, so it is a flat-out aero race - and with Aero and Draft as the powerups, the field should stay bunched and fast to the line.",
+          "powerups": { "allowed": ["aero", "draft"] },
+          "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
+          "updatedAt": "2026-09-04"
+        },
+        {
+          "slug": "september-stage-2",
+          "round": 9,
+          "week": 2,
+          "date": "2026-09-14",
+          "endDate": "2026-09-20",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "ocean-lava-cliffside-loop",
+              "routeName": "Ocean Lava Cliffside Loop",
+              "laps": 1,
+              "officialDistanceKm": 19.2,
+              "officialElevationM": 156,
+              "curatorNote": "Route plus lead-in is 19.25 km against the published 19.2 km, and the elevation matches exactly - a normal Watopia route with a real 193 m lead-in, so none of the round-8 event-pen overshoot applies."
+            }
+          ],
+          "note": "A single lap of Watopia's Ocean Lava Cliffside Loop - 19.2 km with 156 m of climbing spread thinly rather than stacked into one wall. Nine tenths of the lap is tarmac, and the short dirt, wood and cobble stretches together come to under 2 km, not enough to pull the answer away from road wheels. Feather and Anvil are the powerups.",
+          "powerups": { "allowed": ["feather", "anvil"] },
+          "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
+          "updatedAt": "2026-09-04"
+        },
+        {
+          "slug": "september-stage-3",
+          "round": 9,
+          "week": 3,
+          "date": "2026-09-21",
+          "endDate": "2026-09-27",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "electric-break",
+              "routeName": "Electric Break",
+              "laps": 1,
+              "officialDistanceKm": 19.6,
+              "officialElevationM": 204,
+              "curatorNote": "Point-to-point, so laps is 1 by definition. Route plus lead-in is 19.6 km, matching the published distance - unlike the Makuri event-only routes in round 8, this one's lead-in needs no correction. Published elevation is 204 m against the route's own 190 m, inside the validator's threshold and left as published."
+            }
+          ],
+          "note": "Back to Makuri for Electric Break, a point-to-point that packs 204 m into 19.6 km - the sharpest climbing of the month so far. Only a third of it is tarmac, but that reads worse than it rides: the 36% beach sand rolls at tarmac rolling resistance in Zwift and costs road wheels nothing, the 29% brick is barely slower, and only 3% is dirt, the one surface here that actually bites. So it stays an aero race with a climb in it. Feather and Aero powerups.",
+          "powerups": { "allowed": ["feather", "aero"] },
+          "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
+          "updatedAt": "2026-09-04"
+        },
+        {
+          "slug": "september-stage-4",
+          "round": 9,
+          "week": 4,
+          "date": "2026-09-28",
+          "endDate": "2026-10-04",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "loop-de-loop",
+              "routeName": "Loop de Loop",
+              "laps": 2,
+              "officialDistanceKm": 25,
+              "officialElevationM": 289,
+              "curatorNote": "Watopia's Loop de Loop, not Paris' Loop de loop de loop - two laps plus lead-in is 25.0 km and 288 m against the published 25 km and 289 m, so the mapping is confirmed by both figures."
+            }
+          ],
+          "note": "The month closes with two laps of Watopia's Loop de Loop: 25 km and 289 m, the most climbing of the four stages, though at under 12 m per kilometre it is rolling rather than mountainous. The lap is almost entirely tarmac, so surfaces are a non-issue and the whole question is how much the climbs claw back from a full aero build. Feather and Anvil again.",
+          "powerups": { "allowed": ["feather", "anvil"] },
+          "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
+          "updatedAt": "2026-09-04"
         }
       ]
     }

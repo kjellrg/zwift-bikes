@@ -32,7 +32,7 @@
 //
 // Warnings (exit 0):
 //   - a race slug that deviates from its series' naming convention
-//     (`round-{r}-week-{w}` for ZRL, `stage-{w}` for ZRacing) - demoted from
+//     (`round-{r}-week-{w}` for ZRL, `{month}-stage-{w}` for ZRacing) - demoted from
 //     the old hard error since each series names races its own way
 //   - published elevation more than 10% off this site's own totals (a known,
 //     real divergence: across ZRL 2025/26 R4 one race's published elevation
@@ -68,11 +68,22 @@ const { eventLeadIn } = loadSharedModule('shared/data/routeEventLeadIns.ts')
 const DISTANCE_TOLERANCE = 0.05
 const ELEVATION_TOLERANCE = 0.10
 
+// ZRacing rounds are calendar months, so a bare `stage-{w}` collides the
+// moment a season covers a second one: August 2026's stage 1 and September's
+// are different races on the same season page. Month-qualified from September
+// 2026 onwards.
+const MONTH_SLUGS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+
 /** Per-series race slug conventions, checked as a warning - see the header. */
 const SLUG_CONVENTIONS = {
   zrl: race => `round-${race.round}-week-${race.week}`,
-  zracing: race => `stage-${race.week}`
+  zracing: race => `${MONTH_SLUGS[race.round - 1]}-stage-${race.week}`
 }
+
+// August 2026 shipped as `stage-{w}` before ZRacing had a second month, and
+// those four URLs are indexed. Renaming them to match the convention would
+// trade a warning here for four real 404s, so they are grandfathered instead.
+const LEGACY_SLUG_ROUNDS = new Set(['zracing-2026/8'])
 
 // Routes as the SITE sees them, not as zwift-data ships them: a handful of
 // event-only routes carry a wrong lead-in in Zwift's own game dictionary and
@@ -125,7 +136,7 @@ for (const season of getAllSeasons()) {
       const convention = SLUG_CONVENTIONS[season.seriesSlug]
       if (convention) {
         const expectedSlug = convention(race)
-        if (race.slug !== expectedSlug) {
+        if (race.slug !== expectedSlug && !LEGACY_SLUG_ROUNDS.has(`${season.slug}/${race.round}`)) {
           warnings.push(`${where}: slug deviates from the ${season.seriesSlug} convention - expected "${expectedSlug}"`)
         }
       }

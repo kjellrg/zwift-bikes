@@ -451,9 +451,14 @@ export function raceEndDate(race: EventRace): string {
  * slug rather than a per-series flag because the slug already IS the curated
  * per-series naming convention (see the scaffolder) - a second field saying
  * the same thing would just be one more thing to keep in sync.
+ *
+ * The optional word before `stage-` is the ZRacing month qualifier
+ * (`september-stage-1`), which exists only to keep slugs unique across the
+ * months of one season - riders still know the race as "Stage 1" of that
+ * month, and the round's name supplies the month everywhere it's shown.
  */
 export function raceDisplayName(race: EventRace): string {
-  const stage = /^stage-(\d+)$/.exec(race.slug)
+  const stage = /^(?:[a-z]+-)?stage-(\d+)$/.exec(race.slug)
   return stage ? `Stage ${stage[1]}` : `Round ${race.round} Week ${race.week}`
 }
 
