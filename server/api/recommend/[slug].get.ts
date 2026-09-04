@@ -1,11 +1,11 @@
 import { getFrames, getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
 import { getWheelsets } from '../../../shared/utils/wheelsets'
-import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
+import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../shared/utils/finishTime'
-import { FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../shared/utils/physics'
+import { confirmWheelPicks, FASTEST_OVERALL_ORDER_MARGIN, geometryForRouteLaps, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, WHEEL_OPTIONS_ORDER_MARGIN } from '../../../shared/utils/physics'
 import { clampLaps } from '../../../shared/utils/routeLaps'
-import type { BikeCategory } from '../../../shared/types/catalog'
+import type { BikeCategory, ComboScore } from '../../../shared/types/catalog'
 import { parseQuery, recommendRouteQuerySchema } from '../../utils/apiQuerySchemas'
 import { defineCachedRecommendHandler } from '../../utils/recommendCache'
 import { addTimingMeta, markPhase } from '../../utils/timing'
@@ -37,10 +37,14 @@ export default defineCachedRecommendHandler(async (event) => {
   // `server/utils/apiQuerySchemas.ts`. An invalid value throws a 400 here.
   const q = parseQuery(event, recommendRouteQuerySchema)
   const {
-    search, category, limit, offset, verifiedOnly, excludeTT, includeHalo,
-    maxWheelsetsPerFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
+    search: listSearch, category, limit, offset, verifiedOnly, excludeTT, includeHalo,
+    maxWheelsetsPerFrame, wheelsForFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
     defaultUnownedLevel, physics: physicsMode, draftMode, tttRiders
   } = q
+  // A drill-down ignores the list's `search`: the rider is asking what else
+  // fits THIS bike, and a term that matched the frame's own name would
+  // otherwise cut the wheel list down to the wheels that happen to share it.
+  const search = wheelsForFrame === undefined ? listSearch : undefined
   // Note `excludeTT` must run in the stage-1 `allFrames` filter below, before
   // anything selects from the pool - that same pool also feeds the
   // `fastestOverall` disclosure, which would otherwise advertise a TT bike
@@ -104,6 +108,13 @@ export default defineCachedRecommendHandler(async (event) => {
   if (excludeTT) allFrames = allFrames.filter(f => f.category !== 'tt')
   const rankable = allFrames.filter(f => !isHiddenHalo(f))
   const frames = category ? rankable.filter(f => f.category === category) : rankable
+  // The wheel-options drill-down: same request, same filters, same rider -
+  // only the frame pool narrows, to the one frame whose card was opened.
+  // Answering it here rather than from a second endpoint is what keeps the
+  // times in the list and the time on the card coming out of one pipeline;
+  // two pipelines over the same numbers is exactly how a drawer ends up
+  // disagreeing with the row that opened it.
+  const pool = wheelsForFrame === undefined ? frames : frames.filter(f => f.id === wheelsForFrame)
   // Includes this instance's lazy catalog init on a cold start - frame
   // classification and the route surface data both load on first touch.
   await markPhase(event, 'pool')
@@ -113,7 +124,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // end - so there's no computational reason to restrict it up front. Always
   // fetch the full candidate pool so both the search filter below and the
   // ranking step that follows see every candidate, not an arbitrary slice.
-  const rankedCombos = rankCombos(route, frames, wheelsets, frames.length * wheelsets.length)
+  const rankedCombos = rankCombos(route, pool, wheelsets, pool.length * wheelsets.length)
   await markPhase(event, 'rank')
 
   // Once we know the rider's weight/power, `estimateFinishTimeSec` (cheap -
@@ -167,9 +178,14 @@ export default defineCachedRecommendHandler(async (event) => {
   // the full pool - see its doc comment - so it's skipped entirely while
   // searching, in favor of showing every real match, ordered frame-name
   // matches first (see `searchCombos`).
+  const rankValue = (combo: ComboScore): number => (hasRiderProfile ? combo.finishTimeSec! : combo.score)
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
-    : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
+    // For a drill-down the per-frame cap simply becomes the page size. It is
+    // still `capWheelsetsPerFrame` that runs, because collapsing wheelsets
+    // that produce an identical time - colourways of one physical wheel - is
+    // exactly as right in the wheel list as it is in the ranking.
+    : capWheelsetsPerFrame(orderedCombos, rankValue, wheelsForFrame === undefined ? maxWheelsetsPerFrame : limit)
   await markPhase(event, 'filter')
 
   // The cheap estimate got the pool into roughly the right order, but it is
@@ -187,7 +203,9 @@ export default defineCachedRecommendHandler(async (event) => {
   if (geometry && physicsMode === 'dynamic') {
     const ordering = orderBySimulatedTime(
       filteredRankedCombos,
-      offset + limit + SIMULATED_ORDER_MARGIN,
+      // A drill-down's pool is one frame against every wheel that fits it, so
+      // it reaches the simulator very nearly in order - see the two margins.
+      offset + limit + (wheelsForFrame === undefined ? SIMULATED_ORDER_MARGIN : WHEEL_OPTIONS_ORDER_MARGIN),
       combo => countedSimulate({ rider, frame: combo.frame, wheelset: combo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec
     )
     filteredRankedCombos = ordering.ordered
@@ -211,8 +229,54 @@ export default defineCachedRecommendHandler(async (event) => {
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
+  }
+
+  // The wheel representing a frame on a one-row-per-frame page was chosen by
+  // `capWheelsetsPerFrame` from the ESTIMATE's order, before anything was
+  // simulated - and the estimate names the frame's fastest wheel only about
+  // 70% of the time (see `WHEEL_PICK_CONFIRM_DEPTH` for the measurement). So
+  // the rows that are actually displayed get that choice checked against the
+  // simulator, which is the model this endpoint's times come from: without it
+  // a card can name a slower wheel than the `wheelsForFrame` list it opens
+  // ranks first, and the page contradicts itself.
+  //
+  // Confined to `maxWheelsetsPerFrame=1` because that is the only shape where
+  // a frame HAS a single representative - at a wider cap the swap could
+  // collide with a sibling row of the same frame. Skipped while searching too:
+  // a search lists individual wheel matches, so swapping a row's wheel could
+  // silently replace the very match that was typed.
+  if (hasRiderProfile && geometry && physicsMode === 'dynamic' && !search
+    && wheelsForFrame === undefined && maxWheelsetsPerFrame === 1) {
+    const picks = confirmWheelPicks({
+      page: pageCombos,
+      pool: orderedCombos,
+      currentSec: row => row.finishTimeSec!,
+      valueOf: rankValue,
+      simulate: candidate => countedSimulate({ rider, frame: candidate.frame, wheelset: candidate.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }).elapsedSec,
+      alreadySimulated: simulatedSec
+    })
+    for (const [index, pick] of picks.entries()) {
+      if (pick.row === pageCombos[index]) continue
+      pick.row.finishTimeSec = pick.seconds
+      pick.row.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, pick.row.frame, pick.row.wheelset, weightKg, heightCm, powerW, laps)
+      pageCombos[index] = pick.row
+    }
+  }
+
+  if (hasRiderProfile) {
     if (physicsMode === 'compare') pageCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
+  }
+  // How many wheels each listed frame could still offer, counted over the FULL
+  // ranked pool rather than this page - it is the wheels that did not make the
+  // page that the card's disclosure exists to reach. Counted on the same value
+  // the cap dedupes by, so it counts real answers rather than colourways; the
+  // drill-down then returns the best `limit` of them, and the card says so
+  // rather than promising 62 rows and showing six. Omitted from a drill-down's
+  // own response: those rows are the answer, not another question.
+  if (wheelsForFrame === undefined) {
+    const wheelOptionsByFrame = countWheelOptionsByFrame(orderedCombos, rankValue)
+    for (const combo of pageCombos) combo.wheelOptions = wheelOptionsByFrame.get(combo.frame.id) ?? 1
   }
   await markPhase(event, 'page')
 
@@ -226,7 +290,7 @@ export default defineCachedRecommendHandler(async (event) => {
     const topCombo = pageCombos[0]
     let soloFinishTimeSec: number | undefined
     let tttSavedSec: number | undefined
-    if (geometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+    if (geometry && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
       soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW }).elapsedSec
       tttSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
@@ -248,7 +312,7 @@ export default defineCachedRecommendHandler(async (event) => {
     const topCombo = pageCombos[0]
     let soloFinishTimeSec: number | undefined
     let raceSavedSec: number | undefined
-    if (geometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+    if (geometry && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
       soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry }).elapsedSec
       raceSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
@@ -281,7 +345,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // pass and its own simulation window (see `SIMULATED_ORDER_MARGIN`).
   let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, reason: 'category' | 'halo', wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
   const pageTopCombo = pageCombos[0]
-  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
+  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && wheelsForFrame === undefined && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
     const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
     if (hiddenFrames.length) {
       let candidates = rankCombos(route, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
@@ -335,7 +399,8 @@ export default defineCachedRecommendHandler(async (event) => {
     combos: rankedCombos.length,
     sims: simCount,
     offset,
-    searching: Boolean(search)
+    searching: Boolean(search),
+    wheelDrillDown: wheelsForFrame !== undefined
   })
 
   const tttNote = ttt

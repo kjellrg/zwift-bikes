@@ -321,6 +321,15 @@ export interface ComboScore {
   finishTimeSec?: number
   /** Only present alongside `finishTimeSec`. Seconds this combo loses to the route's gravel/cobble sections vs. an equivalent fully-paved route - see `estimateSurfaceTimePenaltySec`. `0` for routes with no known non-tarmac surface. */
   surfaceTimePenaltySec?: number
+  /**
+   * How many distinct wheel answers this frame has for this route, counted
+   * over the whole ranked pool rather than the returned page - so a card can
+   * offer the rest without a request just to find out whether there are any.
+   * `1` means there is no choice to show (a `hasFixedWheels` frame, or a pool
+   * filtered down to one wheel). Set on listing responses only; the
+   * `wheelsForFrame` drill-down that answers the disclosure omits it.
+   */
+  wheelOptions?: number
 }
 
 export interface RouteFilters {

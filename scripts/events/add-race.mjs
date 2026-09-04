@@ -29,9 +29,14 @@ const POWERUPS = ['feather', 'aero', 'draft', 'ghost', 'anvil', 'steamroller', '
 const FORMATS = ['points', 'scratch', 'ttt', 'rot']
 const CATS = ['A', 'B', 'C', 'D', 'E']
 
+// ZRacing rounds are calendar months and race slugs are unique per season,
+// so the stage number alone isn't enough - see the validator's note on the
+// same conventions.
+const MONTH_SLUGS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+
 const SLUG_CONVENTIONS = {
   zrl: race => `round-${race.round}-week-${race.week}`,
-  zracing: race => `stage-${race.week}`
+  zracing: race => `${MONTH_SLUGS[race.round - 1]}-stage-${race.week}`
 }
 
 const rl = createInterface({ input: process.stdin, output: process.stdout })

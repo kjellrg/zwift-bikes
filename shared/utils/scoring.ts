@@ -222,6 +222,32 @@ export function searchCombos(combos: ComboScore[], search: string): ComboScore[]
   return [...hits.filter(matchesFrameName), ...hits.filter(combo => !matchesFrameName(combo))]
 }
 
+/**
+ * How many distinct wheel answers each frame has in an already-ranked pool -
+ * the number a result card shows on its "other wheels for this bike"
+ * disclosure, and the number of rows the drill-down will actually return.
+ *
+ * Counted on the same `valueOf` `capWheelsetsPerFrame` dedupes by, and for the
+ * same reason: two wheelsets that produce an identical time are one answer
+ * wearing two names (almost always colourways of one physical wheel), and
+ * offering "62 wheel options" that turn out to be 40 ties would be a worse
+ * lie than showing three of them was. A `hasFixedWheels` frame contributes a
+ * single combo with no wheelset, so it counts 1 and gets no disclosure -
+ * which is correct: Zwift will not let it swap.
+ *
+ * Runs over the FULL ranked pool, never a page of it: the whole point is to
+ * tell a rider about wheels that did not make the page.
+ */
+export function countWheelOptionsByFrame(combos: ComboScore[], valueOf: (combo: ComboScore) => number): Map<number, number> {
+  const valuesByFrame = new Map<number, Set<number>>()
+  for (const combo of combos) {
+    const seen = valuesByFrame.get(combo.frame.id) ?? new Set<number>()
+    seen.add(valueOf(combo))
+    valuesByFrame.set(combo.frame.id, seen)
+  }
+  return new Map([...valuesByFrame].map(([frameId, values]) => [frameId, values.size]))
+}
+
 export function capWheelsetsPerFrame(combos: ComboScore[], valueOf: (combo: ComboScore) => number, maxPerFrame = MAX_WHEELSETS_PER_FRAME): ComboScore[] {
   const seenValuesByFrame = new Map<number, Set<number>>()
   const result: ComboScore[] = []

@@ -155,6 +155,7 @@ describe('derivations the pages are built from', () => {
 
   it('derives the display name from the slug convention', () => {
     expect(raceDisplayName(testRace({ slug: 'stage-3' }))).toBe('Stage 3')
+    expect(raceDisplayName(testRace({ slug: 'september-stage-1' }))).toBe('Stage 1')
     expect(raceDisplayName(testRace({ slug: 'round-2-week-4', round: 2, week: 4 }))).toBe('Round 2 Week 4')
     expect(raceDisplayName(testRace({ slug: 'anything-else', round: 3, week: 1 }))).toBe('Round 3 Week 1')
   })

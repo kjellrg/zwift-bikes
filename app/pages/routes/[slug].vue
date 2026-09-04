@@ -26,6 +26,11 @@ watch(bikeSearch, (value) => {
   }, 300)
 })
 const pageSize = 9
+// How many wheel choices a card's disclosure asks for. Capped by the API's own
+// `limit` (RECOMMEND_MAX_LIMIT), and deliberately short of it: past half a
+// dozen the list is answering a question nobody asked, and every extra row is
+// another route simulation paid on a click.
+const wheelOptionsLimit = 6
 const laps = ref(1)
 
 const recommendQuery = computed(() => ({
@@ -35,6 +40,11 @@ const recommendQuery = computed(() => ({
   // all. "Absent" is the API's own spelling of "every category".
   category: bikeCategory.value !== 'all' ? bikeCategory.value : undefined,
   limit: pageSize,
+  // One row per bike: a frame's other wheels live behind the result card's own
+  // disclosure (see `ComboResultCard`), not as repeat rows that spend the
+  // page's nine slots - and the simulated-ordering window with them - on the
+  // same bike two or three times.
+  maxWheelsetsPerFrame: 1,
   offset: 0,
   // Always sent, never omitted: the endpoint now defaults this to on, so
   // leaving it out when the switch is off would silently keep filtering.
@@ -172,6 +182,21 @@ const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(
 const loadedCombos = ref<ComboScore[]>([])
 const hasMore = ref(true)
 const loadingMore = ref(false)
+// How many pages of results are on screen. The garage toggles live on the
+// result cards themselves, so one can be fired from result 30 - and refetching
+// only the first page would drop the list back to nine cards, make the page
+// abruptly shorter, and leave the browser clamping scrollY to the new maximum:
+// the rider ends up at the top of the page with the bike they were looking at
+// three pages away. Every other control that triggers a refetch sits ABOVE the
+// list, where the rider is already at the top, so those still reset to one
+// page - see `reloadLoadedPages`.
+const loadedPages = ref(1)
+// Set while `reloadLoadedPages` is rebuilding the list: the watcher below
+// would otherwise apply the first page on its own and cause exactly the
+// collapse that function exists to avoid.
+const reloadingPages = ref(false)
+// Guards an older multi-page reload against a newer one landing first.
+let reloadToken = 0
 // The lap count the currently displayed combos were computed for. `laps`
 // itself moves the header stats immediately, which is right - but every speed
 // readout divides a distance by a `finishTimeSec` from the last response, and
@@ -180,7 +205,7 @@ const loadingMore = ref(false)
 // instead, which catches up exactly when the recomputed times do.
 const resultsLaps = ref(laps.value)
 watch(recommendData, (data) => {
-  if (!data) return
+  if (!data || reloadingPages.value) return
   loadedCombos.value = data.combos ?? []
   hasMore.value = data.pagination?.hasMore ?? false
   resultsLaps.value = laps.value
@@ -201,7 +226,7 @@ const hasLongClimb = computed(() => routeData.value
 // tell a genuine first load (nothing to show yet) apart from a refresh of
 // already-visible results (show stale cards + a subtle "updating" hint).
 const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
-const isRefreshingCombos = computed(() => status.value === 'pending' && !!recommendData.value)
+const isRefreshingCombos = computed(() => (status.value === 'pending' || reloadingPages.value) && !!recommendData.value)
 // Announced to assistive tech when a refetch lands: the visual cue is
 // opacity and a spinner only. Cleared first so consecutive refreshes
 // re-announce (a live region only speaks on change).
@@ -214,11 +239,25 @@ watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
 })
 
 async function refreshFirstPage() {
+  loadedPages.value = 1
   // Keep the current results mounted while the new recommendation request is
   // running. Clearing the cards first makes the page temporarily much shorter,
   // which causes the browser to clamp scrollY back to the top. The refreshed
   // results will replace these in-place once the request completes.
   await refreshRecommendations()
+}
+
+/**
+ * The wheel list behind a result card's disclosure. Fetched on click through
+ * the endpoint's `wheelsForFrame` drill-down, with THIS page's live query, so
+ * the times in the list come out of the same pipeline - same rider, same laps,
+ * same draft mode, same garage - as the time on the card that opened it.
+ */
+async function loadWheelOptions(frameId: number) {
+  const data = await $fetch(`/api/recommend/${slug.value}`, {
+    query: { ...recommendQuery.value, wheelsForFrame: frameId, offset: 0, limit: wheelOptionsLimit }
+  })
+  return data.combos ?? []
 }
 
 async function showMore() {
@@ -230,14 +269,63 @@ async function showMore() {
     })
     loadedCombos.value = [...loadedCombos.value, ...(nextPage.combos ?? [])]
     hasMore.value = nextPage.pagination?.hasMore ?? false
+    loadedPages.value += 1
   } finally {
     loadingMore.value = false
   }
 }
 
+/**
+ * Refetches every page the rider has expanded to and swaps the whole list in
+ * one assignment, so an expanded list comes back the same length it went in.
+ *
+ * `limit` is capped at `RECOMMEND_MAX_LIMIT` server-side - that cap IS the
+ * per-request CPU bound - so "ask for one bigger page" is not available, and
+ * the pages go out in parallel instead. The cards already on screen stay
+ * mounted until every one of them has answered: applying the first page as
+ * soon as it lands would show a bike twice for the length of a round trip,
+ * once in its new position and once in its stale one.
+ */
+async function reloadLoadedPages() {
+  if (loadedPages.value <= 1) return refreshFirstPage()
+  const token = ++reloadToken
+  reloadingPages.value = true
+  try {
+    // Both started before either is awaited, so the first page and the deeper
+    // ones are in flight together. The first page goes through the `useFetch`
+    // refresh rather than a bare `$fetch` because the physics block and the
+    // `fastestOverall` note read `recommendData` directly, and they move with
+    // the garage too.
+    const deeperPages = Promise.all(Array.from({ length: loadedPages.value - 1 }, (_, index) => $fetch(
+      `/api/recommend/${slug.value}`,
+      { query: { ...recommendQuery.value, offset: (index + 1) * pageSize, limit: pageSize } }
+    )))
+    const firstPage = refreshRecommendations()
+    const rest = await deeperPages
+    await firstPage
+    if (token !== reloadToken) return
+    loadedCombos.value = [...(recommendData.value?.combos ?? []), ...rest.flatMap(page => page.combos ?? [])]
+    hasMore.value = rest[rest.length - 1]?.pagination?.hasMore ?? false
+    // Self-correcting: a page that came back short (a filter narrowed the
+    // field) must not leave `loadedPages` claiming pages that no longer exist.
+    loadedPages.value = Math.max(1, Math.ceil(loadedCombos.value.length / pageSize))
+    resultsLaps.value = laps.value
+  } catch {
+    // A deeper page failed. Fall back to the first page rather than leave a
+    // stale list up with nothing to say it is stale; `useRefetchNotice`
+    // already covers the first page's own failures.
+    if (token !== reloadToken) return
+    loadedPages.value = 1
+    loadedCombos.value = recommendData.value?.combos ?? []
+    hasMore.value = recommendData.value?.pagination?.hasMore ?? false
+  } finally {
+    if (token === reloadToken) reloadingPages.value = false
+  }
+}
+
 watch([weightKg, heightCm, powerW, laps, defaultUnownedLevel, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
-watch(owned, () => refreshFirstPage(), { deep: true })
-watch(ownedWheels, () => refreshFirstPage(), { deep: true })
+watch(owned, () => reloadLoadedPages(), { deep: true })
+watch(ownedWheels, () => reloadLoadedPages(), { deep: true })
 
 const combos = computed(() => loadedCombos.value)
 const topCombo = computed(() => combos.value[0])
@@ -414,6 +502,20 @@ useHead(() => {
       </div>
     </div>
 
+    <!-- Directly under the route summary, above the results: this is the
+         question the page's title asks, so it reads as the answer to the
+         stats just above rather than as a footnote after the grid. It needs
+         `topCombo`, so it renders from the prerendered results on first paint
+         and only pops in on a client-side navigation. -->
+    <div v-if="faqAnswer">
+      <h2 class="text-lg font-semibold text-highlighted mb-2">
+        {{ faqQuestion }}
+      </h2>
+      <p class="text-muted">
+        {{ faqAnswer }}
+      </p>
+    </div>
+
     <UAlert
       v-if="showUpcomingRaces && upcomingEvents.length"
       color="info"
@@ -488,6 +590,7 @@ useHead(() => {
         >
           <ComboResultCard
             v-if="topCombo"
+            :load-wheel-options="loadWheelOptions"
             :combo="topCombo"
             :rank="1"
             :route="routeData"
@@ -503,6 +606,7 @@ useHead(() => {
             <ComboResultCard
               v-for="(combo, index) in restCombos"
               :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
+              :load-wheel-options="loadWheelOptions"
               :combo="combo"
               :rank="index + 2"
               :route="routeData"
@@ -533,15 +637,6 @@ useHead(() => {
         </div>
         <ReportDataLink :item="routeData?.name" />
       </template>
-    </div>
-
-    <div v-if="faqAnswer">
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        {{ faqQuestion }}
-      </h2>
-      <p class="text-muted">
-        {{ faqAnswer }}
-      </p>
     </div>
 
     <RouteSurfaceSpeedProfile

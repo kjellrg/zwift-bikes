@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ClassifiedBikeFrame, ComboScore, RouteWithMeta, Wheelset } from '../types/catalog'
-import { capWheelsetsPerFrame, rankCombos, scoreCombo, searchCombos } from './scoring'
+import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, scoreCombo, searchCombos } from './scoring'
 import { getFrames } from './catalog'
 import { getWheelsets } from './wheelsets'
 
@@ -147,6 +147,38 @@ describe('capWheelsetsPerFrame', () => {
   it('respects a custom cap', () => {
     const combos = [combo(1, 3), combo(1, 2), combo(1, 1)]
     expect(capWheelsetsPerFrame(combos, c => c.score, 1)).toHaveLength(1)
+  })
+})
+
+describe('countWheelOptionsByFrame', () => {
+  const combo = (frameId: number, value: number): ComboScore => ({
+    frame: { id: frameId } as ClassifiedBikeFrame,
+    wheelset: {} as Wheelset,
+    score: value,
+    breakdown: { aero: 0, climb: 0, gravel: 0, cobble: 0 }
+  })
+
+  it('counts distinct values per frame, so tied colourways are one answer', () => {
+    const combos = [combo(1, 40), combo(1, 40), combo(1, 30), combo(2, 40), combo(2, 40)]
+    expect(countWheelOptionsByFrame(combos, c => c.score)).toEqual(new Map([[1, 2], [2, 1]]))
+  })
+
+  it('agrees with what an uncapped capWheelsetsPerFrame would return, which is what the card promises', () => {
+    const combos = [combo(1, 40), combo(1, 40), combo(1, 30), combo(1, 20), combo(1, 20)]
+    const counted = countWheelOptionsByFrame(combos, c => c.score).get(1)
+    expect(counted).toBe(capWheelsetsPerFrame(combos, c => c.score, Number.MAX_SAFE_INTEGER).length)
+  })
+
+  it('counts a fixed-wheel frame as one, so it never offers a disclosure', () => {
+    const fixed: ComboScore = { frame: { id: 9 } as ClassifiedBikeFrame, score: 50, breakdown: { aero: 0, climb: 0, gravel: 0, cobble: 0 } }
+    expect(countWheelOptionsByFrame([fixed], c => c.score).get(9)).toBe(1)
+  })
+
+  it('counts the whole pool, not a page of it - the point is the wheels that missed the page', () => {
+    const all = rankCombos(FLAT_ROAD, [standardFrame()], wheelsets(), Number.MAX_SAFE_INTEGER)
+    const counted = countWheelOptionsByFrame(all, c => c.score).get(standardFrame().id)!
+    expect(counted).toBeGreaterThan(3)
+    expect(counted).toBe(new Set(all.map(c => c.score)).size)
   })
 })
 
