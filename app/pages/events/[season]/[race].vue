@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
+import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
 /**
  * One race. Everything a route page can't know lives here: the date, the

@@ -7,60 +7,6 @@ import { sliceElevationProfile } from './elevationGeometry'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
 import { getRoutesWithMeta, getWorldName } from './catalog'
 import { computeTerrain } from './routeTerrain'
-import { expandOccurrencesForLaps, placementsAreRideRelative, type SegmentOccurrence } from './routeClimbs'
-
-/**
- * `zwift-data`'s `segments` catalog also has real sprint segments (61 of
- * them, alongside the 45 climbs `routeClimbs.ts` already reads) - same
- * `segmentsOnRoute` cross-reference, but unlike climbs, a sprint with no
- * published `avgIncline`/`elevation` is kept as flat (`elevationM: 0`)
- * rather than skipped, since most sprints legitimately have no gradient
- * data at all (see the surrounding investigation in this repo's history).
- */
-const segmentsBySlug = new Map(segments.map(segment => [segment.slug, segment]))
-
-export function getRouteSprints(route: Route): RouteSegmentPlacement[] {
-  if (!route.segmentsOnRoute?.length) return []
-  const leadInKm = route.leadInDistance ?? 0
-  // Same per-route frame decision as `getRouteClimbs` - the two must never
-  // disagree about whether this route's positions include the lead-in.
-  const rideRelative = placementsAreRideRelative(route)
-
-  const sprints: RouteSegmentPlacement[] = []
-  for (const placement of route.segmentsOnRoute) {
-    const segment = segmentsBySlug.get(placement.segment)
-    if (!segment || segment.type !== 'sprint') continue
-
-    const lengthKm = placement.to - placement.from
-    if (lengthKm <= 0) continue
-
-    const elevationM = Math.max(0, segment.avgIncline !== undefined
-      ? (segment.avgIncline / 100) * lengthKm * 1000
-      : (segment.elevation ?? 0))
-    const avgGradePercent = segment.avgIncline ?? (elevationM > 0 ? (elevationM / (lengthKm * 1000)) * 100 : 0)
-    const perLap = !rideRelative || placement.from >= leadInKm
-    const fromKm = rideRelative && perLap ? placement.from - leadInKm : placement.from
-
-    sprints.push({
-      name: segment.name,
-      slug: segment.slug,
-      type: 'sprint',
-      fromKm,
-      toKm: fromKm + lengthKm,
-      lengthKm,
-      elevationM,
-      avgGradePercent,
-      perLap
-    })
-  }
-
-  return sprints.sort((a, b) => a.fromKm - b.fromKm)
-}
-
-/** Expands a route's sprints into one entry per actual occurrence for a given lap count - see `expandOccurrencesForLaps`. */
-export function expandSprintsForLaps(route: RouteWithMeta, laps: number): (RouteSegmentPlacement & SegmentOccurrence)[] {
-  return expandOccurrencesForLaps(getRouteSprints(route), route, laps)
-}
 
 let cachedSummaries: SegmentSummary[] | undefined
 
@@ -76,7 +22,7 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
   for (const route of getRoutesWithMeta()) {
     const placements: RouteSegmentPlacement[] = [
       ...route.terrain.climbs.map(climb => ({ ...climb, type: 'climb' as const })),
-      ...getRouteSprints(route)
+      ...route.terrain.sprints
     ]
     for (const placement of placements) {
       const existing = bySlug.get(placement.slug)
@@ -176,7 +122,7 @@ export function getSegmentSummary(slug: string): SegmentSummary | undefined {
 
 /** This segment's placement on one particular host route, if that host places it positionally. */
 function findPlacement(summary: SegmentSummary, hostRoute: RouteWithMeta) {
-  return (summary.type === 'climb' ? hostRoute.terrain.climbs : getRouteSprints(hostRoute)).find(p => p.slug === summary.slug)
+  return (summary.type === 'climb' ? hostRoute.terrain.climbs : hostRoute.terrain.sprints).find(p => p.slug === summary.slug)
 }
 
 /**

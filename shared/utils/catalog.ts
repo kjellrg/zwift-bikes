@@ -51,7 +51,8 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
         // figure is wrong and why we only override with published evidence.
         // Applied BEFORE computeTerrain/estimateSurface so the climb/sprint
         // frame decision (`placementsAreRideRelative`) and the geometry
-        // reconstruction (`expandOccurrencesForLaps`, `geometryForRouteLaps`)
+        // reconstruction (`expandOccurrencesForLaps` in `routeOccurrences.ts`,
+        // `geometryForRouteLaps`)
         // work from the same lead-in - previously the raw route leaked into
         // terrain classification (issue #126's exploration, "trap 2").
         const corrected = { ...route, ...eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation) }

@@ -3,6 +3,7 @@ import type { ComboScore } from '../../../shared/types/catalog'
 import type { PublishableRace } from '../../../shared/utils/events'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
+import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)

@@ -207,6 +207,13 @@ export interface TerrainProfile {
   /** Named climbs on this route with known length/gradient, ordered by position. Empty if none are mapped. */
   climbs: RouteClimb[]
   /**
+   * Named sprints on this route, ordered by position - see `getRouteSprints`.
+   * Computed server-side next to `climbs` so the route and race pages can
+   * expand both per lap (`shared/utils/routeOccurrences.ts`) without
+   * touching zwift-data's segment catalog or the measured surface data.
+   */
+  sprints: RouteSegmentPlacement[]
+  /**
    * Real per-lap elevation profile from the route's Strava GPS trace
    * (simplified - see `computeElevationProfile`), when available. Lets the
    * dynamic physics model use the route's actual measured shape instead of
@@ -226,7 +233,8 @@ export interface TerrainProfile {
  * generalized with a `type` discriminator so sprints can be represented too.
  * Unlike `RouteClimb`, sprint occurrences keep `elevationM`/`avgGradePercent`
  * at `0` rather than being skipped when `zwift-data` has no gradient for
- * them (most sprints legitimately don't have one) - see `routeSegments.ts`.
+ * them (most sprints legitimately don't have one) - see `getRouteSprints` in
+ * `routeClimbs.ts`.
  */
 export interface RouteSegmentPlacement {
   name: string

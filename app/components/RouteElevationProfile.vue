@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { RouteElevationPoint, RouteSegmentPlacement, RouteWithMeta } from '../../shared/types/catalog'
-import type { RouteClimbOccurrence, SegmentOccurrence } from '../../shared/utils/routeClimbs'
+import type { RouteClimbOccurrence, SegmentOccurrence } from '../../shared/utils/routeOccurrences'
 import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 
 const props = defineProps<{

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { RouteSegmentPlacement } from '../../shared/types/catalog'
-import type { SegmentOccurrence } from '../../shared/utils/routeClimbs'
+import type { SegmentOccurrence } from '../../shared/utils/routeOccurrences'
 
 defineProps<{
   sprints: (RouteSegmentPlacement & SegmentOccurrence)[]

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RouteClimbOccurrence } from '../../shared/utils/routeClimbs'
+import type { RouteClimbOccurrence } from '../../shared/utils/routeOccurrences'
 
 defineProps<{
   climbs: RouteClimbOccurrence[]

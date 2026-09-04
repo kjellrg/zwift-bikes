@@ -128,6 +128,20 @@ describe('every route in the assembled catalog', () => {
     expect(bad).toEqual([])
   })
 
+  it('has sprints with finite, ordered placements, positive lengths and the sprint type', () => {
+    // Computed server-side next to `climbs` (issue #151) - the pages expand
+    // both per lap from the fetched object, so this is their whole contract.
+    const bad = routes.filter(r => r.terrain.sprints.some((sprint, i, all) =>
+      sprint.type !== 'sprint'
+      || !finite(sprint.fromKm) || !finite(sprint.toKm) || !finite(sprint.lengthKm)
+      || !finite(sprint.elevationM) || !finite(sprint.avgGradePercent)
+      || sprint.fromKm < 0 || sprint.toKm <= sprint.fromKm || sprint.lengthKm <= 0 || sprint.elevationM < 0
+      || (i > 0 && sprint.fromKm < all[i - 1]!.fromKm)
+    )).map(r => r.slug)
+    expect(bad).toEqual([])
+    expect(routes.filter(r => r.terrain.sprints.length > 0).length).toBeGreaterThan(100)
+  })
+
   it('keeps per-lap climbs within the lap (the placement-frame decision holds)', () => {
     // A perLap climb's positions are lap-relative, so its end can't sit
     // meaningfully past the lap distance - that was exactly the symptom of
