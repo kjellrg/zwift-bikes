@@ -4,6 +4,7 @@ import type { RouteSegmentPlacement, RouteWithMeta, SegmentSummary, SurfaceSegme
 import type { PhysicsSurface } from '../types/physics'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
 import { sliceElevationProfile } from './elevationGeometry'
+import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
 import { getRoutesWithMeta, getWorldName } from './catalog'
 import { computeTerrain } from './routeTerrain'
@@ -103,7 +104,11 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
     const hostRoute = pickHostRoute(summary)
     const placementOnHost = hostRoute ? findPlacement(summary, hostRoute) : undefined
     const profile = placementOnHost?.perLap && hostRoute
-      ? sliceElevationProfile(hostRoute.terrain.elevationProfile, placementOnHost.fromKm, placementOnHost.toKm)
+      ? sliceElevationProfile(
+          hostRoute.terrain.elevationProfile,
+          placementOnMeasuredScale(hostRoute, placementOnHost.fromKm),
+          placementOnMeasuredScale(hostRoute, placementOnHost.toKm)
+        )
       : []
     if (profile.length < 2 || summary.lengthKm <= 0) continue
     let ascentM = 0
@@ -118,6 +123,27 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
 
 export function getSegmentSummary(slug: string): SegmentSummary | undefined {
   return getAllSegmentSummaries().find(s => s.slug === slug)
+}
+
+/**
+ * A placement's km, converted into the coordinates the host's measured
+ * arrays are in.
+ *
+ * zwift-data's `segmentsOnRoute` positions are measured along the route's
+ * real geometry, not against its published distance: on 36 of the 37 routes
+ * where the two can be told apart, the last placement lands on the community
+ * Strava trace's length rather than the official one (valley-to-mountaintop's
+ * summit finish ends at km 4.583 of a 4.592 km trace on a route officially
+ * 5.009 km long). The measured surface and elevation arrays used to be in
+ * those same trace kilometres, so slicing one with the other agreed by
+ * accident; since issue #171 rescaled them onto the official distance, the
+ * placement has to make the same trip or it reads the wrong stretch of road.
+ *
+ * Both ends scale by the same factor, so the stretch this selects is exactly
+ * the one it selected before the rescale.
+ */
+function placementOnMeasuredScale(host: RouteWithMeta, km: number): number {
+  return km * (host.surface.traceScale ?? 1)
 }
 
 /** This segment's placement on one particular host route, if that host places it positionally. */
@@ -195,14 +221,22 @@ export function routeWithMetaForSegmentHost(summary: SegmentSummary, hostRoute: 
   // are lap-relative, so this slice reads the wrong stretch of the lap. Rare
   // (lead-in-hosted segments on ride-relative routes only), and `pickHostRoute`
   // now prefers a `perLap` host wherever one exists.
-  const slicedM = placement
-    ? sliceSurfaceSegments(hostRoute?.surface.segments, placement.fromKm, placement.toKm, fallbackSurface)
+  const slicedM = placement && hostRoute
+    ? sliceSurfaceSegments(
+        hostRoute.surface.segments,
+        placementOnMeasuredScale(hostRoute, placement.fromKm),
+        placementOnMeasuredScale(hostRoute, placement.toKm),
+        fallbackSurface
+      )
     : undefined
-  const segmentSurfaceSegments: SurfaceSegment[] | undefined = slicedM?.map(s => ({
-    fromKm: s.fromM / 1000,
-    toKm: s.toM / 1000,
-    type: s.surface
-  }))
+  // Onto the segment's own length, for the same reason a route's arrays are
+  // put onto the route's: a stretch sliced out of a rescaled host spans the
+  // host's kilometres, and the few metres by which that misses the segment's
+  // own length would be a trailing gap in its geometry.
+  const segmentSurfaceSegments: SurfaceSegment[] | undefined = rescaleSurfaceSegments(
+    slicedM?.map(s => ({ fromKm: s.fromM / 1000, toKm: s.toM / 1000, type: s.surface })),
+    summary.lengthKm
+  )
   const composition = slicedM ? normalizeSurfaceComposition(surfaceCompositionFromSegments(slicedM)) : hostRoute?.surface.composition
 
   let surface = composition
@@ -235,9 +269,16 @@ export function routeWithMetaForSegmentHost(summary: SegmentSummary, hostRoute: 
   // elevation chart and the dynamic simulator's geometry (see
   // `geometryForSegment`) - with it, the sim rides the segment's real grade
   // changes instead of one average-grade line.
-  const slicedProfile = placement?.perLap
-    ? sliceElevationProfile(hostRoute?.terrain.elevationProfile, placement.fromKm, placement.toKm)
-    : []
+  const slicedProfile = (placement?.perLap && hostRoute
+    ? rescaleElevationProfile(
+        sliceElevationProfile(
+          hostRoute.terrain.elevationProfile,
+          placementOnMeasuredScale(hostRoute, placement.fromKm),
+          placementOnMeasuredScale(hostRoute, placement.toKm)
+        ),
+        summary.lengthKm
+      )
+    : []) ?? []
 
   return {
     slug: summary.slug,

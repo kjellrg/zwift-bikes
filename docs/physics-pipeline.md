@@ -155,22 +155,51 @@ do not line up with grade changes, so they are two separate binary searches
 over two separate arrays.
 
 **The alignment convention** (normative — every code comment about measured
-positions defers here): all measured per-route data is **lap-relative**.
-`route.surface.segments` and `route.terrain.elevationProfile` cover exactly
-one lap, starting at the lap's own start; climb/sprint placements with
-`perLap: true` are lap-relative too. The lead-in is separate data: the few
+positions defers here): all measured per-route data is **lap-relative and in
+official kilometres**. `route.surface.segments` and
+`route.terrain.elevationProfile` cover exactly one lap, starting at the lap's
+own start and ending exactly on the official lap distance; climb/sprint
+placements with `perLap: true` are lap-relative too. The lead-in is separate data: the few
 routes whose GPS trace covered it carry `leadInSegments` /
 `leadInElevationProfile` (relative to the ride start), and ride-relative
 placement positions exist only on the routes `placementsAreRideRelative`
-detects. This is enforced at generation time by
+detects. Lap-relativity is enforced at generation time by
 `scripts/route-surfaces/normalize.mjs` (issue #126 — before normalization,
 consumers guessed the alignment and guessed differently, shifting elevation
-shapes, surfaces and segment slices by up to the lead-in length). A route
-without `leadInSegments` rides its lead-in on tarmac (every start pen is
-paved) rather than the lap's dominant surface, unless the lap is a single
+shapes, surfaces and segment slices by up to the lead-in length). The official
+kilometres are enforced at load time by `shared/utils/traceScale.ts`, which
+stretches both arrays onto the official distance with one shared factor as
+`estimateSurface`/`computeTerrain` read them (issue #171 — before that, only
+the elevation profile was rescaled and the surface segments were clipped, so
+on the 24 routes whose community Strava trace disagrees with the official
+distance by more than 1% the two described different roads, and on the 163
+routes with a short trace the ride ended on a stretch carrying no surface
+segment at all).
+
+**Placements are the exception**, and the one thing that still speaks in trace
+kilometres: zwift-data's `segmentsOnRoute` positions are measured along the
+route's real geometry rather than against its published distance, and on 36 of
+the 37 routes where the two can be told apart the last placement lands on the
+community trace's length, not the official one. `SurfaceEstimate.traceScale`
+carries the factor so `routeSegments.ts` can put a placement into the measured
+arrays' coordinates before slicing them; that is the only place a placement
+meets measured data, and a segment's own sliced arrays are then rescaled onto
+the segment's own length, so they obey the same rule a route's do.
+
+A route without `leadInSegments` rides its lead-in on tarmac (every start pen
+is paved) rather than the lap's own surface mix, unless the lap is a single
 surface end to end (Paris: all cobbles, pens included) - see
 `unmeasuredLeadInSurface`, which `estimateFinishTimeSec`'s `leadInCrr` also
 calls so the ranking key and the simulator agree.
+
+**Routes with a mix but no positions**: a handful of routes have no Strava
+segment at all and carry hand-curated percentages instead. They are ridden as
+one block per surface, sized to its share and laid out biggest first
+(`surfaceSegmentsFromComposition`, issue #172). The amount of each surface is
+right and its position is not, which is the honest reading of what a curated
+percentage knows. Before this they were ridden as 100% of their most prevalent
+surface, so Peaky Pave's 30% of cobbles existed for `estimateFinishTimeSec`
+and not for the simulator.
 
 The steady-state skip only fires once every boundary that could change the
 equilibrium is behind the step's **start** position: the final grade segment
@@ -178,10 +207,11 @@ must reach the finish, and the last interior surface join and the last power
 override must both be passed (issue #124 — before the surface guard, a
 2-point segment geometry extrapolated one surface's speed across every join
 after steady state, costing the Alpe segment's 1.5 km of dirt nothing). The
-final surface segment's own end is deliberately not a boundary: measured
-surface data routinely stops a few metres short of the official distance, and
-treating that trailing gap as a join would disable the skip on essentially
-every route.
+final surface segment's own end is deliberately not a boundary: it is the
+finish line, not a join, so nothing after it can change the equilibrium. (It
+used to fall short of the finish, and treating that trailing gap as a join
+would have disabled the skip on essentially every route; since #171 the
+segments end exactly on the route distance and the gap is gone.)
 
 Not shown, because it is optional instrumentation rather than part of the
 physics: when `boundariesM` is passed, each step also records the elapsed time

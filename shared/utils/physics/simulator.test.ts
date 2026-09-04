@@ -173,12 +173,21 @@ describe('simulator mechanics', () => {
 })
 
 describe('geometryFromRoute', () => {
-  it('builds a two-point geometry on the dominant surface, defaulting to tarmac', () => {
+  it('builds a two-point geometry carrying the whole surface mix, in share order (issue #172)', () => {
+    // Not just the dominant surface: a 60/40 route ridden as 100% dirt is a
+    // route this simulator and `estimateFinishTimeSec`, which blends Crr
+    // across the same composition, would rank differently for no reason.
     const withDirt = geometryFromRoute({ slug: 'x', distance: 5, elevation: 50, surface: { composition: { dirt: 60, tarmac: 40 } } } as unknown as RouteWithMeta)
     expect(withDirt.points).toEqual([{ distanceM: 0, elevationM: 0 }, { distanceM: 5000, elevationM: 50 }])
-    expect(withDirt.surfaceSegments).toEqual([{ fromM: 0, toM: 5000, surface: 'dirt' }])
+    expect(withDirt.surfaceSegments).toEqual([
+      { fromM: 0, toM: 3000, surface: 'dirt' },
+      { fromM: 3000, toM: 5000, surface: 'tarmac' }
+    ])
+  })
+
+  it('defaults to one tarmac block when nothing is known about the surface', () => {
     const plain = geometryFromRoute({ slug: 'x', distance: 5, elevation: 50, surface: {} } as unknown as RouteWithMeta)
-    expect(plain.surfaceSegments[0]!.surface).toBe('tarmac')
+    expect(plain.surfaceSegments).toEqual([{ fromM: 0, toM: 5000, surface: 'tarmac' }])
   })
 })
 

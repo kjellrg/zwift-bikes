@@ -98,7 +98,13 @@ export interface ClassifiedWheel {
 
 /** A front+rear wheel pairing, as commonly ridden together in Zwift */
 export interface Wheelset {
-  /** Stable identity for the garage/localStorage and the API's `ownedWheels` filter - never derive it from anything that can be re-styled. */
+  /**
+   * Stable identity for the garage/localStorage and the API's `ownedWheels`
+   * filter - never derive it from anything that can be re-styled. Normally
+   * the wheel's name; a colourway that upstream ships under an already-taken
+   * name takes a suffixed key instead, so no two wheelsets share one
+   * (`getWheelsets`, issue #123).
+   */
   key: string
   name: string
   front: ClassifiedWheel
@@ -133,6 +139,14 @@ export type SurfaceComposition = Partial<Record<ZwiftSurfaceType, number>>
  * that covered the lead-in are split, with the lead-in's stretches moved to
  * `SurfaceEstimate.leadInSegments` (see `scripts/route-surfaces/normalize.mjs`,
  * issue #126). See `shared/utils/surfaceGeometry.ts`'s `computeSurfaceProfile`.
+ *
+ * Positions are OFFICIAL km, not the km the source GPS trace recorded: the
+ * two disagree by up to 8% on some routes, and `estimateSurface` rescales
+ * the generated trace onto the official distance on the way in, with the
+ * same factor it applies to `TerrainProfile.elevationProfile`, so the two
+ * always describe the same road (`shared/utils/traceScale.ts`, issue #171).
+ * The last segment therefore ends exactly on the lap distance, which is what
+ * lets the simulator chain laps without a surface-less gap between them.
  */
 export interface SurfaceSegment {
   fromKm: number
@@ -150,6 +164,21 @@ export interface SurfaceEstimate {
   segments?: SurfaceSegment[]
   /** The lead-in's own measured surface stretches (km relative to the RIDE start), present only for the few routes whose source trace covered the lead-in - see `routeSurfaces.ts`. */
   leadInSegments?: SurfaceSegment[]
+  /**
+   * The factor `segments` and `TerrainProfile.elevationProfile` were
+   * multiplied by to put them in official kilometres (`traceScale.ts`), or
+   * absent when nothing was rescaled.
+   *
+   * Anything holding a position in the SOURCE trace's kilometres has to be
+   * multiplied by this before it can be compared against those arrays.
+   * zwift-data's `segmentsOnRoute` placements are such positions: measured
+   * against the route's real geometry rather than its published distance,
+   * they match the community trace's length and not the official one on 36
+   * of the 37 routes where the two can be told apart. `routeSegments.ts` is
+   * the only consumer that slices measured data at a placement, and it is
+   * where this is applied.
+   */
+  traceScale?: number
   /**
    * - `measured`: computed from the route's real GPS trace intersected against zwiftmap's world
    *   surface polygons - see `shared/data/routeSurfaces.ts` and `scripts/route-surfaces/`.
@@ -238,7 +267,10 @@ export interface TerrainProfile {
    * the synthetic named-climb/rolling-lap approximation - see
    * `geometryForRouteLaps`. Undefined for routes with no Strava segment.
    * Guaranteed lap-relative (first point `{0,0}` at the lap start) by the
-   * same generation-time normalization as `SurfaceSegment`.
+   * same generation-time normalization as `SurfaceSegment`, and rescaled
+   * onto the official lap distance by the same factor as that route's
+   * surface segments (`shared/utils/traceScale.ts`, issue #171) - distances
+   * move, measured elevations never do.
    */
   elevationProfile?: RouteElevationPoint[]
   /** The lead-in's own measured elevation shape (`distanceM: 0` at the ride start), present only when the source trace covered the lead-in. */

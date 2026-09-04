@@ -4,6 +4,7 @@ import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
 import { getRouteClimbs, getRouteSprints } from './routeClimbs'
+import { measuredTraceScale, rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 
 /**
  * `zwift-data` doesn't expose surface composition (road/gravel/cobbles) for
@@ -71,6 +72,13 @@ function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
 // route optimistic. Curated percentages from route descriptions are a
 // stopgap for ranking, not a second opinion on measured data, and they are
 // worst exactly where they matter most - predicted time.
+//
+// A curated entry carries percentages but no positions, so the simulator
+// rides these routes as one block per surface, in share order, rather than
+// at the real places the cobbles and gravel are - see
+// `surfaceSegmentsFromComposition` for that approximation and issue #172 for
+// why the previous behaviour (100% of the dominant surface, i.e. Peaky Pave
+// as pure tarmac) was worse than an approximate layout.
 const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {
   'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 },
   'peaky-pave': { road: 70, gravel: 0, cobble: 30 }
@@ -80,7 +88,22 @@ export function estimateSurface(route: Route): SurfaceEstimate {
   const measured = getGeneratedRouteSurface(route.slug)
   if (measured) {
     const composition = normalizeSurfaceComposition(measured.composition)
-    return { ...coarsenSurfaceComposition(composition), composition, segments: measured.segments, leadInSegments: measured.leadInSegments, confidence: 'measured' }
+    // Trace km -> official km, here and nowhere else: this and `computeTerrain`
+    // below are the only two doors the generated trace data comes through, so
+    // rescaling both at the door is what keeps a route's surfaces and its
+    // elevation shape in one coordinate system (issue #171). The percentages
+    // are computed before/independently of the scale and never move with it.
+    const traceScale = measuredTraceScale(measured.segments?.[measured.segments.length - 1]?.toKm, route.distance)
+    return {
+      ...coarsenSurfaceComposition(composition),
+      composition,
+      segments: rescaleSurfaceSegments(measured.segments, route.distance),
+      leadInSegments: rescaleSurfaceSegments(measured.leadInSegments, route.leadInDistance),
+      // Kept so a trace-relative position can still be read against the
+      // rescaled arrays - see the field's doc comment.
+      ...(traceScale === 1 ? {} : { traceScale }),
+      confidence: 'measured'
+    }
   }
 
   const curated = CURATED_SURFACE[route.slug]
@@ -131,7 +154,9 @@ export function computeTerrain(route: Route): TerrainProfile {
     weights,
     climbs: getRouteClimbs(route),
     sprints: getRouteSprints(route),
-    elevationProfile: measured?.elevationProfile,
-    leadInElevationProfile: measured?.leadInElevationProfile
+    // Rescaled onto the official distance for the same reason the surface
+    // segments are, with the same factor - see `estimateSurface` and #171.
+    elevationProfile: rescaleElevationProfile(measured?.elevationProfile, route.distance),
+    leadInElevationProfile: rescaleElevationProfile(measured?.leadInElevationProfile, route.leadInDistance)
   }
 }

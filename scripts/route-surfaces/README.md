@@ -54,6 +54,15 @@ nothing in `app/`, `server/`, or the Nuxt build runs these scripts.
    the generated file itself (hand-sourced for routes zwift-data gives no
    segment id) - never regenerate from scratch or those ids are lost.
 
+   **Trace length (issue #171):** a community segment's own length is never
+   exactly the official route distance. Positions in this file stay in the
+   trace's kilometres; `shared/utils/traceScale.ts` stretches both the surface
+   segments and the elevation profile onto the official distance, with one
+   shared factor, as the app loads them. The generator reports every route
+   over 3% on any run (four are, as of 2026-09, up to 8.3%). Rescaling makes
+   such a trace usable, but a segment cut at the right places is still better:
+   re-point the entry's `stravaSegmentId` and refetch with `--only`.
+
    Entries generated before `elevationProfile` was added won't have it until
    re-run with `--force` (see below) - existing routes are otherwise skipped.
 
