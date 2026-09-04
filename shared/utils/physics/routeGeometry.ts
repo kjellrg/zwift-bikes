@@ -1,7 +1,6 @@
 import type { RouteClimb, RouteElevationPoint, RouteWithMeta } from '../../types/catalog'
 import type { PhysicsSurface, RouteGeometry, RouteGeometryPoint, RouteSurfaceSegment } from '../../types/physics'
-import { sliceSurfaceSegments, unmeasuredLeadInSurface } from '../surfaceGeometry'
-import { geometryFromRoute } from './simulator'
+import { sliceSurfaceSegments, surfaceSegmentsFromComposition, unmeasuredLeadInSurface } from '../surfaceGeometry'
 
 /**
  * Builds compatibility geometry from the aggregate route data available in
@@ -179,11 +178,13 @@ function appendKnownClimbsSegment(
 /**
  * Real, position-tagged surface segments for one lap (`route.surface.segments`,
  * from `computeSurfaceProfile` via Strava GPS data), offset to `startDistanceM`
- * and clipped to `[startDistanceM, startDistanceM + lapDistanceM)`. Falls back
- * to a single segment covering the whole lap when no measured segments exist
- * (unmeasured routes) - the same "one surface for everything" approximation
- * `geometryFromRoute` already made, just scoped to one lap instead of the
- * whole ride.
+ * and clipped to `[startDistanceM, startDistanceM + lapDistanceM)`. They are
+ * in official km by the time they get here (`traceScale.ts`), so the clip
+ * takes the whole lap and leaves nothing over.
+ *
+ * Without measured positions, the lap is ridden as one block per surface in
+ * the route's known mix - see `surfaceSegmentsFromComposition` for what that
+ * models and what it deliberately does not (issue #172).
  */
 function lapSurfaceSegments(
   route: RouteWithMeta,
@@ -191,17 +192,28 @@ function lapSurfaceSegments(
   lapDistanceM: number,
   fallbackSurface: PhysicsSurface
 ): RouteSurfaceSegment[] {
+  if (!route.surface.segments?.length) {
+    return surfaceSegmentsFromComposition(route.surface.composition, fallbackSurface, lapDistanceM, startDistanceM)
+  }
   return sliceSurfaceSegments(route.surface.segments, 0, lapDistanceM / 1000, fallbackSurface, startDistanceM)
 }
 
+/** The surface with the largest share of a route's mix, or tarmac when nothing is known. */
+function dominantSurface(composition: RouteWithMeta['surface']['composition']): PhysicsSurface {
+  const top = Object.entries(composition ?? {}).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]
+  return (top?.[0] as PhysicsSurface | undefined) ?? 'tarmac'
+}
+
 export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteGeometry {
-  const base = geometryFromRoute(route)
   const lapCount = Math.max(1, Math.floor(laps))
   const leadInDistanceM = (route.leadInDistance ?? 0) * 1000
   const leadInElevationM = route.leadInElevation ?? 0
   const lapDistanceM = route.distance * 1000
   const lapElevationM = route.elevation
-  const fallbackSurface = base.surfaceSegments[0]?.surface ?? 'tarmac'
+  // The single most prevalent surface, for the two places that still want one
+  // answer rather than a mix: the fallback surface passed down to the slicing
+  // helpers, and a route with no composition at all.
+  const fallbackSurface = dominantSurface(route.surface.composition)
   // An unmeasured lead-in is ridden from a paved pen, not on the lap's
   // dominant surface - see `unmeasuredLeadInSurface` for the rule and the
   // routes it mattered on. `undefined` means the lead-in inherits the lap:
@@ -231,7 +243,14 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
   const measuredLeadIn = route.terrain.leadInElevationProfile
 
   if (leadInDistanceM > 0) {
-    surfaceSegments.push(...sliceSurfaceSegments(route.surface.leadInSegments, 0, leadInDistanceM / 1000, leadInFallbackSurface, distanceM))
+    // No measured lead-in: one paved block where the pen rule applies, and
+    // otherwise the lap's own mix, which is what "inherits the lap" has to
+    // mean now that a lap can be more than one surface (issue #172).
+    surfaceSegments.push(...(route.surface.leadInSegments?.length
+      ? sliceSurfaceSegments(route.surface.leadInSegments, 0, leadInDistanceM / 1000, leadInFallbackSurface, distanceM)
+      : unmeasuredLeadInSurface(route.surface)
+        ? [{ fromM: distanceM, toM: distanceM + leadInDistanceM, surface: leadInFallbackSurface }]
+        : surfaceSegmentsFromComposition(route.surface.composition, fallbackSurface, leadInDistanceM, distanceM)))
     const result = measuredLeadIn && measuredLeadIn.length > 1
       ? appendMeasuredLap(points, distanceM, elevationM, leadInDistanceM, measuredLeadIn)
       : leadInClimbs.length > 0

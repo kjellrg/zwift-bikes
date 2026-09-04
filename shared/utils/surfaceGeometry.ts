@@ -121,6 +121,56 @@ export function sliceSurfaceSegments(
   return sliced.length > 0 ? sliced : [{ fromM: offsetM, toM: offsetM + spanM, surface: fallbackSurface }]
 }
 
+/**
+ * The surface stretches to ride when a route has a known surface MIX but no
+ * measured positions for it - the two curated routes (`peaky-pave`,
+ * `handful-of-gravel-run`) that zwift-data still has no `stravaSegmentId`
+ * for, and any future route in the same position. One block per surface,
+ * sized to its share of the composition and ordered by descending share.
+ *
+ * Before issue #172 these routes were ridden as 100% of their single most
+ * prevalent surface, because the only thing built from a composition was one
+ * segment of the dominant type. Peaky Pave is a 70/30 tarmac/cobbles route
+ * and simulated as pure tarmac, while `estimateFinishTimeSec` - which blends
+ * Crr across the same composition - correctly charged for the cobbles. The
+ * two halves of the model disagreed about the road, and the simulator, which
+ * decides the ranking, was the one that was wrong.
+ *
+ * WHERE each surface sits is genuinely unknown here, and this does not
+ * pretend otherwise: the blocks are laid out in share order, not at real
+ * positions, so a route whose cobbles are all on its climbs is modelled with
+ * the right amount of cobbles at the wrong gradients. That is a much smaller
+ * error than not having them at all - over a lap, rolling resistance is paid
+ * per metre of surface - but it is the reason a real `stravaSegmentId` still
+ * beats this, and why measured data is always preferred when it exists.
+ */
+export function surfaceSegmentsFromComposition(
+  composition: SurfaceComposition | undefined,
+  fallbackSurface: PhysicsSurface,
+  spanM: number,
+  offsetM = 0
+): RouteSurfaceSegment[] {
+  const shares = Object.entries(composition ?? {})
+    .map(([surface, percent]) => ({ surface: surface as PhysicsSurface, percent: percent ?? 0 }))
+    .filter(share => share.percent > 0)
+    .sort((a, b) => b.percent - a.percent || a.surface.localeCompare(b.surface))
+  const total = shares.reduce((sum, share) => sum + share.percent, 0)
+  if (shares.length === 0 || total <= 0) return [{ fromM: offsetM, toM: offsetM + spanM, surface: fallbackSurface }]
+
+  const segments: RouteSurfaceSegment[] = []
+  let fromM = offsetM
+  for (const [index, share] of shares.entries()) {
+    // The last block takes whatever is left rather than its own rounded
+    // share, so the blocks always end exactly on `spanM` - a fractional
+    // shortfall would be a gap, and the simulator's surface lookup answers a
+    // gap with the following segment (see `traceScale.ts`).
+    const toM = index === shares.length - 1 ? offsetM + spanM : fromM + spanM * (share.percent / total)
+    if (toM > fromM) segments.push({ fromM, toM, surface: share.surface })
+    fromM = toM
+  }
+  return segments
+}
+
 /** Turns a sliced/position-tagged surface segment list back into aggregate percentages, e.g. for a single climb/sprint's own `SurfaceComposition`. */
 export function surfaceCompositionFromSegments(segments: RouteSurfaceSegment[]): SurfaceComposition {
   const totalsM: Partial<Record<PhysicsSurface, number>> = {}

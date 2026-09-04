@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getRouteBySlug } from '../catalog'
+import { getRouteBySlug, getRoutesWithMeta } from '../catalog'
 import { geometryForRouteLaps } from './routeGeometry'
 
 const route = (slug: string) => {
@@ -92,5 +92,46 @@ describe('geometryForRouteLaps', () => {
     // The lead-in span is covered by lead-in segments (measured for lutscher).
     expect(g.surfaceSegments[0]!.fromM).toBe(0)
     expect(g.surfaceSegments.some(s => s.fromM >= leadInM)).toBe(true)
+  })
+})
+
+describe('the simulator and the finish-time estimate ride the same road', () => {
+  // `estimateFinishTimeSec` blends Crr across `surface.composition`; the
+  // simulator rides `surfaceSegments`. Whenever those two describe different
+  // surface mixes, the two halves of the model disagree about the route -
+  // which is what issue #172 was (curated routes simulated as 100% of their
+  // dominant surface) and what issue #171 was on measured routes (a clipped
+  // trace losing its last kilometres of surface).
+  const share = (segments: { fromM: number, toM: number, surface: string }[], fromM: number, toM: number) => {
+    const totals: Record<string, number> = {}
+    for (const segment of segments) {
+      const overlapM = Math.min(segment.toM, toM) - Math.max(segment.fromM, fromM)
+      if (overlapM > 0) totals[segment.surface] = (totals[segment.surface] ?? 0) + overlapM
+    }
+    const totalM = Object.values(totals).reduce((sum, m) => sum + m, 0)
+    return Object.fromEntries(Object.entries(totals).map(([surface, m]) => [surface, (m / totalM) * 100]))
+  }
+
+  it('matches every route\'s lap surface mix to its published composition', () => {
+    for (const route of getRoutesWithMeta()) {
+      if (!route.surface.composition) continue
+      const leadInM = (route.leadInDistance ?? 0) * 1000
+      const geometry = geometryForRouteLaps(route, 1)
+      const lap = share(geometry.surfaceSegments, leadInM, geometry.totalDistanceM)
+      for (const [surface, percent] of Object.entries(route.surface.composition)) {
+        if ((percent ?? 0) <= 0) continue
+        // A percentage point of tolerance: `composition` is generated from the
+        // raw GPS stream, the segments from the same stream after merging and
+        // rescaling, so they agree closely but not bit for bit.
+        expect(lap[surface] ?? 0, `${route.slug} ${surface}`).toBeCloseTo(percent ?? 0, 0)
+      }
+    }
+  })
+
+  it('rides Peaky Pave\'s cobbles even though nobody has traced it', () => {
+    const route = getRouteBySlug('peaky-pave')!
+    const geometry = geometryForRouteLaps(route, 1)
+    const lap = share(geometry.surfaceSegments, (route.leadInDistance ?? 0) * 1000, geometry.totalDistanceM)
+    expect(lap.cobbles).toBeCloseTo(30, 0)
   })
 })

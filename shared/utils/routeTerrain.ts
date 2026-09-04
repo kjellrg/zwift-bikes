@@ -72,6 +72,13 @@ function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
 // route optimistic. Curated percentages from route descriptions are a
 // stopgap for ranking, not a second opinion on measured data, and they are
 // worst exactly where they matter most - predicted time.
+//
+// A curated entry carries percentages but no positions, so the simulator
+// rides these routes as one block per surface, in share order, rather than
+// at the real places the cobbles and gravel are - see
+// `surfaceSegmentsFromComposition` for that approximation and issue #172 for
+// why the previous behaviour (100% of the dominant surface, i.e. Peaky Pave
+// as pure tarmac) was worse than an approximate layout.
 const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {
   'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 },
   'peaky-pave': { road: 70, gravel: 0, cobble: 30 }

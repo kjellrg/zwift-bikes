@@ -2,6 +2,7 @@ import type { RouteWithMeta, Wheelset } from '../../types/catalog'
 import type { PhysicsEquipment, PhysicsRider, PhysicsSimulationResult, PhysicsState, PhysicsSurface, RouteGeometry, RouteSurfaceSegment } from '../../types/physics'
 import { calculateForces } from './forces'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
+import { surfaceSegmentsFromComposition } from '../surfaceGeometry'
 
 export interface SimulateRouteOptions {
   rider: PhysicsRider
@@ -307,9 +308,6 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
 export function geometryFromRoute(route: RouteWithMeta): RouteGeometry {
   const totalDistanceM = route.distance * 1000
   const totalElevationM = route.elevation
-  const dominantSurface = route.surface.composition
-    ? Object.entries(route.surface.composition).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]?.[0]
-    : undefined
 
   return {
     routeSlug: route.slug,
@@ -318,8 +316,9 @@ export function geometryFromRoute(route: RouteWithMeta): RouteGeometry {
       { distanceM: 0, elevationM: 0 },
       { distanceM: totalDistanceM, elevationM: totalElevationM }
     ],
-    surfaceSegments: [
-      { fromM: 0, toM: totalDistanceM, surface: (dominantSurface as PhysicsSurface) ?? 'tarmac' }
-    ]
+    // The route's whole surface mix, not just its most prevalent surface: a
+    // 70/30 tarmac/cobbles route ridden as pure tarmac is a route the
+    // simulator and `estimateFinishTimeSec` disagree about (issue #172).
+    surfaceSegments: surfaceSegmentsFromComposition(route.surface.composition, 'tarmac', totalDistanceM)
   }
 }
