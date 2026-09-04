@@ -150,7 +150,7 @@ function scoresForCategory(category: WheelCategory, depthMm?: number): Classific
   }
 }
 
-function classifyWheelCategory(name: string): { category: WheelCategory, depthMm?: number } {
+export function classifyWheelCategory(name: string): { category: WheelCategory, depthMm?: number } {
   if (NOVELTY_RE.test(name)) return { category: 'allrounder' }
   if (GRAVEL_RE.test(name)) return { category: 'gravel' }
   if (DISC_RE.test(name)) return { category: 'disc' }
