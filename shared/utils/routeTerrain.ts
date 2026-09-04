@@ -3,7 +3,7 @@ import type { SurfaceComposition, SurfaceEstimate, TerrainCategory, TerrainProfi
 import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
-import { getRouteClimbs } from './routeClimbs'
+import { getRouteClimbs, getRouteSprints } from './routeClimbs'
 
 /**
  * `zwift-data` doesn't expose surface composition (road/gravel/cobbles) for
@@ -130,6 +130,7 @@ export function computeTerrain(route: Route): TerrainProfile {
     category,
     weights,
     climbs: getRouteClimbs(route),
+    sprints: getRouteSprints(route),
     elevationProfile: measured?.elevationProfile,
     leadInElevationProfile: measured?.leadInElevationProfile
   }

@@ -20,7 +20,7 @@ function testRoute(overrides: Partial<RouteWithMeta>): RouteWithMeta {
     lap: true,
     supportsTT: true,
     supportsMeetups: true,
-    terrain: { climbRatio: 5, category: 'flat', weights: { aero: 0.8, climb: 0.2, gravel: 0, cobble: 0 }, climbs: [] },
+    terrain: { climbRatio: 5, category: 'flat', weights: { aero: 0.8, climb: 0.2, gravel: 0, cobble: 0 }, climbs: [], sprints: [] },
     surface: { road: 100, gravel: 0, cobble: 0, confidence: 'measured' },
     ...overrides
   }

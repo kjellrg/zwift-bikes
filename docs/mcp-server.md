@@ -229,3 +229,15 @@ curl -s localhost:3000/api/mcp \
   wrangler.jsonc): per Cloudflare location and eventually consistent, so the
   effective global ceiling is looser than the configured number.
 - **Sessions are best-effort**, for the reasons above.
+- **The recommend kill switch applies.** When `killSwitches.recommend` is
+  set in the runtime site flags (see `docs/site-flags.md`), the two
+  recommend tools answer with the same maintenance message the website's
+  API returns, without ranking anything.
+- **Request bodies are capped at 16 KB** (`MCP_MAX_BODY_BYTES` in
+  `server/utils/mcp/protocol.ts`); a larger one gets a 413 with a JSON-RPC
+  error. The largest legitimate message is well under 2 KB.
+- **Internal failures are not echoed.** A bug in a tool answers with a
+  generic JSON-RPC internal error; the message and stack go to Workers Logs
+  as an `mcp-tool-error` line. Tool-level failures the model can act on (a
+  missing profile, an unknown slug, bad arguments) still come back as
+  `isError` results with their full text.

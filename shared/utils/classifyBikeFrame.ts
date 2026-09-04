@@ -1,7 +1,8 @@
 import type { BikeFrame } from 'zwift-data'
-import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame, EquipmentPhysicsDelta } from '../types/catalog'
+import type { BikeCategory, BikeStyle, ClassificationScores, ClassifiedBikeFrame, EquipmentPhysicsDelta, UpgradeCurve } from '../types/catalog'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor, type StageChart, type StageCurve } from '../data/frameUpgradeSchemes'
+import type { FrameSpeedSample } from '../data/frameSpeedData'
 import { type TtBaseline, precomputedFrameDelta } from '../data/equipmentPhysics'
 import { CRR_COBBLE_SCORE, CRR_GRAVEL_SCORE } from './classifyWheel'
 import { solveFrameEquipmentDelta } from './physics/equipment'
@@ -131,6 +132,20 @@ export function interpolateGap(gap0: number, gap5: number, level: number, curve?
 function frameStageChart(frameName: string): StageChart | undefined {
   const scheme = FRAME_UPGRADE_SCHEMES[frameName]
   return scheme && stageChartFor(scheme)
+}
+
+const STAGES = [0, 1, 2, 3, 4, 5] as const
+
+/**
+ * The whole six-stage curve a measured frame is scored from, through the
+ * same `interpolateGap` tiers as any single level - so what the drawer shows
+ * for a stage is exactly the gap that stage would be classified at.
+ */
+function upgradeCurveFor(measured: FrameSpeedSample, chart: StageChart | undefined): UpgradeCurve {
+  return {
+    flat: STAGES.map(stage => interpolateGap(measured.flatGapSec0, measured.flatGapSec5, stage, chart?.flat, measured.flatGapSecByStage)),
+    climb: STAGES.map(stage => interpolateGap(measured.climbGapSec0, measured.climbGapSec5, stage, chart?.climb, measured.climbGapSecByStage))
+  }
 }
 
 // Presets only apply to frames WITHOUT a speed-data row, and being unmeasured
@@ -383,7 +398,7 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
         cobble: preset.cobble
       }
       const physics = precomputedFrameDelta(frame.name, clampedLevel, false)
-      return { ...frame, category, style, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
+      return { ...frame, category, style, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics, upgradeCurve: upgradeCurveFor(measured, chart), upgradeScheme: FRAME_UPGRADE_SCHEMES[frame.name] }
     }
 
     return { ...frame, category, style, scores: preset, confidence: 'estimated', hasFixedWheels, level: clampedLevel }
@@ -404,7 +419,7 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
         cobble: preset.cobble
       }
       const physics = precomputedFrameDelta(frame.name, clampedLevel, true)
-      return { ...frame, category, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics }
+      return { ...frame, category, scores, confidence: 'measured', hasFixedWheels, level: clampedLevel, physics, upgradeCurve: upgradeCurveFor(measured, chart), upgradeScheme: FRAME_UPGRADE_SCHEMES[frame.name] }
     }
 
     return { ...frame, category, scores: preset, confidence: 'estimated', hasFixedWheels, level: clampedLevel }

@@ -36,10 +36,21 @@ const { setOwned, setWheelOwned, isWheelOwned } = useGarage()
  * bar, and nested interactive elements inside one big click target break
  * keyboard semantics. The frame name is a second trigger for discoverability.
  */
-const { openBikeDetail } = useOverlays()
-function showDetails() {
-  openBikeDetail({ combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps })
+const { openBikeDetail, syncBikeDetail } = useOverlays()
+function bikeDetail() {
+  return { combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps, loadFrameCombos: props.loadWheelOptions }
 }
+function showDetails() {
+  openBikeDetail(bikeDetail())
+}
+// A refetch hands this card a new combo object; if the drawer is showing
+// this bike, it follows - see `syncBikeDetail`. Immediate, because a level
+// change can move a bike between component instances rather than update
+// one in place: the page renders the fastest combo in its own slot and the
+// rest keyed by frame and wheelset, so a bike that becomes the fastest (or
+// whose fastest wheel changes) mounts as a NEW card, and only a watcher
+// that also runs on mount reaches the drawer in that case.
+watch(() => [props.combo, props.fastestTimeSec, props.laps], () => syncBikeDetail(bikeDetail()), { immediate: true })
 
 /**
  * New quick-adds start at the rider's chosen default level for unowned bikes

@@ -32,6 +32,13 @@ workers.dev URL, then `npm run flags:push -- --prod`. Changes are live within
 ~60s (KV edge cache + the Worker's own 60s read memo, both set in
 `server/utils/siteFlags.ts`).
 
+`pull` will not mistake a broken binding for an empty namespace: wrangler
+reports a missing key and a missing namespace with the same 404, so the
+script lists the namespace before believing "nothing is set yet", and it
+refuses to overwrite a local file that differs from the defaults with the
+defaults unless you pass `-- --force`. Either refusal means: check
+`wrangler.jsonc` and push what you have, rather than pull.
+
 `push` validates against the *strict* schema (`shared/utils/siteFlags.ts`) -
 unknown keys are typos and reject. The Worker's runtime parse is lenient the
 other way (unknown keys ignored) so an older deploy survives a newer config.
@@ -45,7 +52,7 @@ longer provides.
 | `motd` | Site-wide banner under the header (`SiteMotdBanner.vue`). `id` keys dismissal - a new message needs a new id or riders who dismissed the old one won't see it. `tone` is `info`/`warning`/`error`; `startsAt`/`expiresAt` bound its display window (stage a banner ahead of a game update; let it self-remove after); `href` + `linkText` render an action button; `href` must be a site-relative path (`/routes`) or an `https://` URL - other schemes are rejected at push time and fail the runtime parse open to no-MOTD. |
 | `sections.events.mode: "hidden"` | Hides the Events nav entries and the homepage teaser, swaps the three events pages' content for an unavailable notice (with `notice` as its wording), and 503s `/api/events/**`. |
 | `notices.recommend` | A warning rendered above every results list (`RecommendDataNotice.vue`) while set - the kill switch's softer sibling. A Zwift rebalance is a three-position dial: normal → caveated (`notices.recommend`) → killed (`killSwitches.recommend`). |
-| `killSwitches.recommend` | 503s `/api/recommend/**` - for when serving wrong rankings (mid-rebalance) is worse than serving caveated ones. The refetch toast shows this state's own wording. |
+| `killSwitches.recommend` | 503s `/api/recommend/**` and makes the MCP `recommend_for_route` / `recommend_for_segment` tools answer with the same maintenance message - for when serving wrong rankings (mid-rebalance) is worse than serving caveated ones. The refetch toast shows this state's own wording. (The MCP tools reach the endpoints in-process, where the gate cannot see the flags, so they check it themselves - `RpcContext.recommendPaused`.) |
 | `killSwitches.mcp` | 503s `/api/mcp`. |
 
 ## How it hangs together

@@ -1,3 +1,4 @@
+import type { UpgradeScheme } from '../data/frameUpgradeSchemes'
 import type { BikeFrame, BikeFrontWheel, BikeRearWheel, Route, Sport, WorldSlug } from 'zwift-data'
 
 /**
@@ -54,6 +55,19 @@ export interface EquipmentPhysicsDelta {
   crrDelta: number
 }
 
+/**
+ * A measured frame's bot-test gap at every upgrade stage, `[stage0..stage5]`,
+ * in seconds saved (+) or lost (-) per hour against the category's reference
+ * bike at 300 W - the flat test and the climb test separately. The same
+ * numbers `classifyBikeFrame` scores each level from (see `interpolateGap`),
+ * exposed whole so the bike drawer can show what each stage is worth without
+ * a request or a second copy of the speed data in the browser.
+ */
+export interface UpgradeCurve {
+  flat: readonly number[]
+  climb: readonly number[]
+}
+
 export interface ClassifiedBikeFrame extends BikeFrame {
   category: BikeCategory
   style?: BikeStyle
@@ -64,6 +78,10 @@ export interface ClassifiedBikeFrame extends BikeFrame {
   /** Upgrade stage (0-5) these scores were computed at - see `classifyBikeFrame.ts`'s `level` param. */
   level: number
   physics?: EquipmentPhysicsDelta
+  /** Present for measured frames only - unmeasured ones have no per-stage numbers, and `level` has no effect on them. */
+  upgradeCurve?: UpgradeCurve
+  /** Zwift's upgrade scheme for this frame (progression axis x price tier), when catalogued - see `frameUpgradeSchemes.ts`. */
+  upgradeScheme?: UpgradeScheme
 }
 
 export interface ClassifiedWheel {
@@ -207,6 +225,13 @@ export interface TerrainProfile {
   /** Named climbs on this route with known length/gradient, ordered by position. Empty if none are mapped. */
   climbs: RouteClimb[]
   /**
+   * Named sprints on this route, ordered by position - see `getRouteSprints`.
+   * Computed server-side next to `climbs` so the route and race pages can
+   * expand both per lap (`shared/utils/routeOccurrences.ts`) without
+   * touching zwift-data's segment catalog or the measured surface data.
+   */
+  sprints: RouteSegmentPlacement[]
+  /**
    * Real per-lap elevation profile from the route's Strava GPS trace
    * (simplified - see `computeElevationProfile`), when available. Lets the
    * dynamic physics model use the route's actual measured shape instead of
@@ -226,7 +251,8 @@ export interface TerrainProfile {
  * generalized with a `type` discriminator so sprints can be represented too.
  * Unlike `RouteClimb`, sprint occurrences keep `elevationM`/`avgGradePercent`
  * at `0` rather than being skipped when `zwift-data` has no gradient for
- * them (most sprints legitimately don't have one) - see `routeSegments.ts`.
+ * them (most sprints legitimately don't have one) - see `getRouteSprints` in
+ * `routeClimbs.ts`.
  */
 export interface RouteSegmentPlacement {
   name: string

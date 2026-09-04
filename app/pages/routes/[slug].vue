@@ -3,6 +3,7 @@ import type { ComboScore } from '../../../shared/types/catalog'
 import type { PublishableRace } from '../../../shared/utils/events'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
+import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -179,24 +180,6 @@ const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeDat
 const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : [])
 const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : [])
 
-const loadedCombos = ref<ComboScore[]>([])
-const hasMore = ref(true)
-const loadingMore = ref(false)
-// How many pages of results are on screen. The garage toggles live on the
-// result cards themselves, so one can be fired from result 30 - and refetching
-// only the first page would drop the list back to nine cards, make the page
-// abruptly shorter, and leave the browser clamping scrollY to the new maximum:
-// the rider ends up at the top of the page with the bike they were looking at
-// three pages away. Every other control that triggers a refetch sits ABOVE the
-// list, where the rider is already at the top, so those still reset to one
-// page - see `reloadLoadedPages`.
-const loadedPages = ref(1)
-// Set while `reloadLoadedPages` is rebuilding the list: the watcher below
-// would otherwise apply the first page on its own and cause exactly the
-// collapse that function exists to avoid.
-const reloadingPages = ref(false)
-// Guards an older multi-page reload against a newer one landing first.
-let reloadToken = 0
 // The lap count the currently displayed combos were computed for. `laps`
 // itself moves the header stats immediately, which is right - but every speed
 // readout divides a distance by a `finishTimeSec` from the last response, and
@@ -204,12 +187,15 @@ let reloadToken = 0
 // refetch lands. The FAQ text and the result cards read this lagged value
 // instead, which catches up exactly when the recomputed times do.
 const resultsLaps = ref(laps.value)
-watch(recommendData, (data) => {
-  if (!data || reloadingPages.value) return
-  loadedCombos.value = data.combos ?? []
-  hasMore.value = data.pagination?.hasMore ?? false
-  resultsLaps.value = laps.value
-}, { immediate: true })
+const { loadedCombos, hasMore, loadingMore, reloadingPages, showMore, refreshFirstPage, reloadLoadedPages } = useRecommendResults<ComboScore>({
+  recommendData,
+  refresh: refreshRecommendations,
+  fetchPage: (offset, limit) => $fetch(`/api/recommend/${slug.value}`, { query: { ...recommendQuery.value, offset, limit } }),
+  pageSize,
+  onResultsApplied: () => {
+    resultsLaps.value = laps.value
+  }
+})
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
 
 // Whether the team climb pace control is worth showing at all - see the
@@ -238,15 +224,6 @@ watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
   resultsAnnouncement.value = 'Results updated'
 })
 
-async function refreshFirstPage() {
-  loadedPages.value = 1
-  // Keep the current results mounted while the new recommendation request is
-  // running. Clearing the cards first makes the page temporarily much shorter,
-  // which causes the browser to clamp scrollY back to the top. The refreshed
-  // results will replace these in-place once the request completes.
-  await refreshRecommendations()
-}
-
 /**
  * The wheel list behind a result card's disclosure. Fetched on click through
  * the endpoint's `wheelsForFrame` drill-down, with THIS page's live query, so
@@ -260,71 +237,11 @@ async function loadWheelOptions(frameId: number) {
   return data.combos ?? []
 }
 
-async function showMore() {
-  if (loadingMore.value || !hasMore.value) return
-  loadingMore.value = true
-  try {
-    const nextPage = await $fetch(`/api/recommend/${slug.value}`, {
-      query: { ...recommendQuery.value, offset: loadedCombos.value.length, limit: pageSize }
-    })
-    loadedCombos.value = [...loadedCombos.value, ...(nextPage.combos ?? [])]
-    hasMore.value = nextPage.pagination?.hasMore ?? false
-    loadedPages.value += 1
-  } finally {
-    loadingMore.value = false
-  }
-}
-
-/**
- * Refetches every page the rider has expanded to and swaps the whole list in
- * one assignment, so an expanded list comes back the same length it went in.
- *
- * `limit` is capped at `RECOMMEND_MAX_LIMIT` server-side - that cap IS the
- * per-request CPU bound - so "ask for one bigger page" is not available, and
- * the pages go out in parallel instead. The cards already on screen stay
- * mounted until every one of them has answered: applying the first page as
- * soon as it lands would show a bike twice for the length of a round trip,
- * once in its new position and once in its stale one.
- */
-async function reloadLoadedPages() {
-  if (loadedPages.value <= 1) return refreshFirstPage()
-  const token = ++reloadToken
-  reloadingPages.value = true
-  try {
-    // Both started before either is awaited, so the first page and the deeper
-    // ones are in flight together. The first page goes through the `useFetch`
-    // refresh rather than a bare `$fetch` because the physics block and the
-    // `fastestOverall` note read `recommendData` directly, and they move with
-    // the garage too.
-    const deeperPages = Promise.all(Array.from({ length: loadedPages.value - 1 }, (_, index) => $fetch(
-      `/api/recommend/${slug.value}`,
-      { query: { ...recommendQuery.value, offset: (index + 1) * pageSize, limit: pageSize } }
-    )))
-    const firstPage = refreshRecommendations()
-    const rest = await deeperPages
-    await firstPage
-    if (token !== reloadToken) return
-    loadedCombos.value = [...(recommendData.value?.combos ?? []), ...rest.flatMap(page => page.combos ?? [])]
-    hasMore.value = rest[rest.length - 1]?.pagination?.hasMore ?? false
-    // Self-correcting: a page that came back short (a filter narrowed the
-    // field) must not leave `loadedPages` claiming pages that no longer exist.
-    loadedPages.value = Math.max(1, Math.ceil(loadedCombos.value.length / pageSize))
-    resultsLaps.value = laps.value
-  } catch {
-    // A deeper page failed. Fall back to the first page rather than leave a
-    // stale list up with nothing to say it is stale; `useRefetchNotice`
-    // already covers the first page's own failures.
-    if (token !== reloadToken) return
-    loadedPages.value = 1
-    loadedCombos.value = recommendData.value?.combos ?? []
-    hasMore.value = recommendData.value?.pagination?.hasMore ?? false
-  } finally {
-    if (token === reloadToken) reloadingPages.value = false
-  }
-}
-
 watch([weightKg, heightCm, powerW, laps, defaultUnownedLevel, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
+const { noteRankedFrames } = useOverlays()
 watch(owned, () => reloadLoadedPages(), { deep: true })
+// Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
+watch(loadedCombos, list => noteRankedFrames(list), { immediate: true })
 watch(ownedWheels, () => reloadLoadedPages(), { deep: true })
 
 const combos = computed(() => loadedCombos.value)

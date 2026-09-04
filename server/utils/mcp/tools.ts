@@ -37,6 +37,9 @@ function failure(body: string): ToolResult {
   return { content: [{ type: 'text', text: body }], isError: true }
 }
 
+/** The wording the gate's own 503 uses, so a paused ranking reads the same from both surfaces. */
+const RECOMMEND_PAUSED_MESSAGE = 'Recommendations are temporarily paused for maintenance. Try again later.'
+
 /**
  * Every tool reaches the catalog and the ranking pipeline through the same
  * HTTP endpoints the web app uses, via Nitro's in-process `$fetch` (no network
@@ -45,6 +48,14 @@ function failure(body: string): ToolResult {
  * comments in `server/api/recommend/[slug].get.ts` about search, capping and
  * simulated-time re-ordering) - and means a filter added to an endpoint is
  * inherited here for free.
+ *
+ * One thing is NOT inherited: the site-flags gate. An internal event carries
+ * no Workers platform context, so `getSiteFlags` finds no KV binding on it
+ * and resolves to the defaults - the `killSwitches.recommend` 503 never
+ * fires for these calls. The recommend tools check the flag the transport
+ * put on the context instead (`RpcContext.recommendPaused`), before any
+ * fetch, so a paused ranking is refused here rather than served and
+ * edge-cached.
  */
 async function fetchApi<T>(path: string, query: Record<string, unknown>): Promise<T> {
   return await $fetch<T>(path, { query })
@@ -460,6 +471,7 @@ const TOOLS: ToolDefinition[] = [
       additionalProperties: false
     },
     handler: async (args, context) => {
+      if (context.recommendPaused) return failure(RECOMMEND_PAUSED_MESSAGE)
       const slug = String(args.route ?? '')
       const resolved = resolveProfile(args, context)
       if ('error' in resolved) return failure(resolved.error)
@@ -533,6 +545,7 @@ const TOOLS: ToolDefinition[] = [
       additionalProperties: false
     },
     handler: async (args, context) => {
+      if (context.recommendPaused) return failure(RECOMMEND_PAUSED_MESSAGE)
       const slug = String(args.segment ?? '')
       const resolved = resolveProfile(args, context)
       if ('error' in resolved) return failure(resolved.error)

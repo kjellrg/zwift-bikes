@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { routes } from 'zwift-data'
-import { getRouteClimbs, placementsAreRideRelative } from './routeClimbs'
+import { routes, segments } from 'zwift-data'
+import { getRouteClimbs, getRouteSprints, placementsAreRideRelative } from './routeClimbs'
 
 const routeBySlug = (slug: string) => {
   const route = routes.find(r => r.slug === slug)
@@ -52,5 +52,46 @@ describe('getRouteClimbs placement frames', () => {
     const itza = glyph.find(c => c.slug.includes('itza'))
     expect(itza?.perLap).toBe(true)
     expect(itza?.fromKm).toBeCloseTo(0.60, 1)
+  })
+})
+
+describe('getRouteSprints placement frames', () => {
+  it('rebases lap sprints on ride-relative routes and agrees with the climbs about the frame', () => {
+    // shisa-shakedown (4.04km lead-in, ride-relative): zwift-data places the
+    // railway sprint at ride km 17.75, which is lap km 13.71 once the lead-in
+    // is subtracted - the same subtraction its two KOMs get.
+    const route = routeBySlug('shisa-shakedown')
+    expect(placementsAreRideRelative(route)).toBe(true)
+    const sprints = getRouteSprints(route)
+    const railway = sprints.find(s => s.slug === 'railway-sprint')
+    expect(railway?.perLap).toBe(true)
+    expect(railway?.fromKm).toBeCloseTo(13.71, 1)
+    expect(railway?.type).toBe('sprint')
+    expect(getRouteClimbs(route).every(c => c.perLap)).toBe(true)
+  })
+
+  it('uses raw positions on lap-relative routes despite a big lead-in', () => {
+    // sugar-cookie (5.66km lead-in, lap-relative): the woodland sprint is
+    // already a lap position at km 15.14; subtracting the lead-in would move
+    // it 5.66km early, the issue #126 failure mode.
+    const route = routeBySlug('sugar-cookie')
+    expect(placementsAreRideRelative(route)).toBe(false)
+    const woodland = getRouteSprints(route).find(s => s.slug === 'woodland-sprint')
+    expect(woodland?.perLap).toBe(true)
+    expect(woodland?.fromKm).toBeCloseTo(15.14, 1)
+  })
+
+  it('places every sprint a route lists, gradient data or not', () => {
+    // Unlike climbs, a sprint with no published gradient is kept (as flat)
+    // rather than skipped: most sprints have no gradient data at all, and a
+    // sprint that vanished from the profile would read as "no sprint here".
+    const sprintSlugs = new Set(segments.filter(s => s.type === 'sprint').map(s => s.slug))
+    const missing = routes.filter((route) => {
+      const listed = (route.segmentsOnRoute ?? []).filter(p => sprintSlugs.has(p.segment) && p.to > p.from).length
+      return listed !== getRouteSprints(route).length
+    }).map(r => r.slug)
+    expect(missing).toEqual([])
+    const placed = routes.flatMap(route => getRouteSprints(route))
+    expect(placed.filter(s => s.elevationM === 0 && s.avgGradePercent === 0).length).toBeGreaterThan(0)
   })
 })

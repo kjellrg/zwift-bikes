@@ -1,12 +1,15 @@
 import {
+  bodyTooLarge,
   errorResponse,
   handleMessage,
   isInitialize,
   parseError,
+  payloadTooLarge,
   SUPPORTED_PROTOCOL_VERSIONS,
   type JsonRpcMessage
 } from '../utils/mcp/protocol'
 import { adoptSession, createSession, touchSession } from '../utils/mcp/session'
+import { getSiteFlags } from '../utils/siteFlags'
 
 /**
  * Model Context Protocol endpoint, Streamable HTTP transport.
@@ -20,7 +23,17 @@ import { adoptSession, createSession, touchSession } from '../utils/mcp/session'
  * genuinely unsupported rather than merely unimplemented - see `mcp.get.ts`.
  */
 export default defineEventHandler(async (event) => {
+  // Header first, so an oversized declared body is refused unread; raw text
+  // second, because a chunked request declares nothing - see `bodyTooLarge`.
+  if (bodyTooLarge(getRequestHeader(event, 'content-length'), undefined)) {
+    setResponseStatus(event, 413)
+    return payloadTooLarge()
+  }
   const raw = await readRawBody(event)
+  if (bodyTooLarge(undefined, raw)) {
+    setResponseStatus(event, 413)
+    return payloadTooLarge()
+  }
 
   let message: JsonRpcMessage
   try {
@@ -57,7 +70,11 @@ export default defineEventHandler(async (event) => {
     return errorResponse(message.id ?? null, -32001, 'Unknown or expired MCP session. Re-initialize, then set the rider profile again.')
   }
 
-  const response = await handleMessage(message, { sessionId })
+  // A memo hit: the site-flags gate already read the flags for this very
+  // request. Passed down because the tools' internal fetches cannot read
+  // them - see `RpcContext.recommendPaused`.
+  const { killSwitches } = await getSiteFlags(event)
+  const response = await handleMessage(message, { sessionId, recommendPaused: killSwitches.recommend })
 
   if (!response) {
     // A notification takes no reply at all.
