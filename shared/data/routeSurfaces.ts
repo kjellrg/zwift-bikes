@@ -26,6 +26,13 @@ import generated from './routeSurfaces.generated.json'
  * failing anything. `compute-route-surfaces.mjs` warns about keys that match
  * no route, which is how that gets caught.
  */
+/**
+ * As GENERATED: every position here is in the source Strava trace's own km,
+ * which is not quite the official route distance. `estimateSurface` and
+ * `computeTerrain` rescale both position-tagged arrays onto the official
+ * distance as they read this (see `shared/utils/traceScale.ts`, issue #171),
+ * so nothing outside `routeTerrain.ts` should read these fields directly.
+ */
 interface GeneratedRouteSurface {
   composition: SurfaceComposition
   /** LAP-relative (normalized - see `scripts/route-surfaces/normalize.mjs` and issue #126). */

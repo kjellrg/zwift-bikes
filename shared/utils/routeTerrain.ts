@@ -4,6 +4,7 @@ import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
 import { getRouteClimbs, getRouteSprints } from './routeClimbs'
+import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 
 /**
  * `zwift-data` doesn't expose surface composition (road/gravel/cobbles) for
@@ -80,7 +81,18 @@ export function estimateSurface(route: Route): SurfaceEstimate {
   const measured = getGeneratedRouteSurface(route.slug)
   if (measured) {
     const composition = normalizeSurfaceComposition(measured.composition)
-    return { ...coarsenSurfaceComposition(composition), composition, segments: measured.segments, leadInSegments: measured.leadInSegments, confidence: 'measured' }
+    // Trace km -> official km, here and nowhere else: this and `computeTerrain`
+    // below are the only two doors the generated trace data comes through, so
+    // rescaling both at the door is what keeps a route's surfaces and its
+    // elevation shape in one coordinate system (issue #171). The percentages
+    // are computed before/independently of the scale and never move with it.
+    return {
+      ...coarsenSurfaceComposition(composition),
+      composition,
+      segments: rescaleSurfaceSegments(measured.segments, route.distance),
+      leadInSegments: rescaleSurfaceSegments(measured.leadInSegments, route.leadInDistance),
+      confidence: 'measured'
+    }
   }
 
   const curated = CURATED_SURFACE[route.slug]
@@ -131,7 +143,9 @@ export function computeTerrain(route: Route): TerrainProfile {
     weights,
     climbs: getRouteClimbs(route),
     sprints: getRouteSprints(route),
-    elevationProfile: measured?.elevationProfile,
-    leadInElevationProfile: measured?.leadInElevationProfile
+    // Rescaled onto the official distance for the same reason the surface
+    // segments are, with the same factor - see `estimateSurface` and #171.
+    elevationProfile: rescaleElevationProfile(measured?.elevationProfile, route.distance),
+    leadInElevationProfile: rescaleElevationProfile(measured?.leadInElevationProfile, route.leadInDistance)
   }
 }

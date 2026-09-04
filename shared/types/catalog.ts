@@ -133,6 +133,14 @@ export type SurfaceComposition = Partial<Record<ZwiftSurfaceType, number>>
  * that covered the lead-in are split, with the lead-in's stretches moved to
  * `SurfaceEstimate.leadInSegments` (see `scripts/route-surfaces/normalize.mjs`,
  * issue #126). See `shared/utils/surfaceGeometry.ts`'s `computeSurfaceProfile`.
+ *
+ * Positions are OFFICIAL km, not the km the source GPS trace recorded: the
+ * two disagree by up to 8% on some routes, and `estimateSurface` rescales
+ * the generated trace onto the official distance on the way in, with the
+ * same factor it applies to `TerrainProfile.elevationProfile`, so the two
+ * always describe the same road (`shared/utils/traceScale.ts`, issue #171).
+ * The last segment therefore ends exactly on the lap distance, which is what
+ * lets the simulator chain laps without a surface-less gap between them.
  */
 export interface SurfaceSegment {
   fromKm: number
@@ -238,7 +246,10 @@ export interface TerrainProfile {
    * the synthetic named-climb/rolling-lap approximation - see
    * `geometryForRouteLaps`. Undefined for routes with no Strava segment.
    * Guaranteed lap-relative (first point `{0,0}` at the lap start) by the
-   * same generation-time normalization as `SurfaceSegment`.
+   * same generation-time normalization as `SurfaceSegment`, and rescaled
+   * onto the official lap distance by the same factor as that route's
+   * surface segments (`shared/utils/traceScale.ts`, issue #171) - distances
+   * move, measured elevations never do.
    */
   elevationProfile?: RouteElevationPoint[]
   /** The lead-in's own measured elevation shape (`distanceM: 0` at the ride start), present only when the source trace covered the lead-in. */

@@ -106,6 +106,26 @@ for (const slug of onlySlugs) {
   }
 }
 
+/**
+ * How far a trace's own length may stray from the official route distance
+ * before it is worth a human looking at the segment. Runtime does not throw
+ * such a route away - `shared/utils/traceScale.ts` stretches its surface
+ * segments and elevation profile onto the official distance, the same factor
+ * for both - but past a few percent the trace is probably not cut where the
+ * route starts and ends, and a curated replacement segment id beats a
+ * stretched one. Four routes are over this line as of 2026-09
+ * (valley-to-mountaintop 8.3%, macaron 6.9%, makuri-madness 6.1%,
+ * three-sisters-rev 4.6%); see issue #171.
+ */
+const TRACE_DRIFT_WARN_PERCENT = 3
+
+/** How much longer (+) or shorter (-) than the official lap the trace behind `entry` ran, in percent. */
+function traceDriftPercent(entry, officialKm) {
+  const traceKm = entry?.segments?.[entry.segments.length - 1]?.toKm
+  if (!traceKm || !officialKm) return undefined
+  return ((traceKm - officialKm) / officialKm) * 100
+}
+
 const results = { ...existing }
 let done = 0
 for (const route of routesToProcess) {
@@ -132,7 +152,11 @@ for (const route of routesToProcess) {
       ? ', ALTITUDE STREAM REJECTED (flat, or a lap that does not close) - elevation profile discarded (synthesis fallback applies)'
       : elevationProfile ? `, ${elevationProfile.length} elevation points` : ', no altitude stream'
     const alignmentNote = classification === 'ride-split' ? ', trace covered lead-in - split' : classification === 'ambiguous' ? ', ALIGNMENT AMBIGUOUS - check trace end vs lap distance' : ''
-    console.log(Object.entries(entry.composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${entry.segments.length} segments${elevationNote}${alignmentNote})`)
+    const drift = traceDriftPercent(entry, route.distance)
+    const driftNote = drift !== undefined && Math.abs(drift) > TRACE_DRIFT_WARN_PERCENT
+      ? `, TRACE ${drift > 0 ? 'LONGER' : 'SHORTER'} THAN OFFICIAL BY ${Math.abs(drift).toFixed(1)}% - positions are stretched onto the official distance at runtime`
+      : ''
+    console.log(Object.entries(entry.composition).map(([k, v]) => `${k} ${v.toFixed(1)}%`).join(', '), `(${entry.segments.length} segments${elevationNote}${alignmentNote}${driftNote})`)
   } catch (err) {
     console.log(`FAILED: ${err.message}`)
   }
@@ -149,6 +173,19 @@ console.log(`\nWrote ${outPath} (${Object.keys(results).length} routes total)`)
 // have measured data. That happens whenever zwift-data renames a slug,
 // including when it replaces a bare numeric id with a readable one. Cheap to
 // check, and the only thing standing between a rename and a silent regression.
+// Every entry in the file, not just the ones this run fetched: a drifting
+// trace is a standing data-quality problem, and it should be visible on any
+// run rather than only on the run that happened to refetch that route.
+const drifting = routes
+  .map(route => ({ slug: route.slug, drift: traceDriftPercent(results[route.slug], route.distance) }))
+  .filter(row => row.drift !== undefined && Math.abs(row.drift) > TRACE_DRIFT_WARN_PERCENT)
+  .sort((a, b) => Math.abs(b.drift) - Math.abs(a.drift))
+if (drifting.length > 0) {
+  console.warn(`\nWARNING: ${drifting.length} trace${drifting.length === 1 ? '' : 's'} disagree with the official route distance by more than ${TRACE_DRIFT_WARN_PERCENT}%:`)
+  for (const { slug, drift } of drifting) console.warn(`  ${slug} ${drift > 0 ? '+' : ''}${drift.toFixed(1)}%`)
+  console.warn('Runtime rescales them onto the official distance (traceScale.ts), but a better-cut Strava segment would beat a stretched one.')
+}
+
 const catalogSlugs = new Set(routes.map(r => r.slug))
 const orphaned = Object.keys(results).filter(slug => !catalogSlugs.has(slug))
 if (orphaned.length > 0) {
