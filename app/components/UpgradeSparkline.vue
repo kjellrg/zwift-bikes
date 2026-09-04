@@ -22,21 +22,40 @@ const props = defineProps<{
    * a more useful one - see `ComboScore.upgradeFinishTimesSec`.
    */
   unit?: string
+  /**
+   * Set on a chart that spans the drawer's full width rather than sharing a
+   * two-column row.
+   *
+   * The SVG scales to its container, so the same viewBox in twice the width
+   * draws everything at twice the size - line, dots, height and all - and the
+   * wide chart shouted next to the pair below it. The fix is the viewBox and
+   * nothing else: exactly twice as wide, for exactly twice the rendered
+   * width, which leaves the scale identical and therefore every mark the same
+   * size as on the two charts below. The chart gets its extra width by
+   * spreading six stages over more room, which is the point of giving it the
+   * room.
+   */
+  wide?: boolean
 }>()
 
 const unit = computed(() => props.unit ?? 's/h')
 
-const VIEW_WIDTH = 132
 const VIEW_HEIGHT = 40
 const PAD_X = 6
 const PAD_Y = 5
+const DOT_R = 1.75
+const ACTIVE_DOT_R = 3.5
+
+// The only thing a full-width chart changes: twice the user units for twice
+// the rendered width, so one unit stays one pixel either way.
+const viewWidth = computed(() => (props.wide ? 264 : 132))
 
 const gains = computed(() => props.values.map(value => value - (props.values[0] ?? 0)))
 
 const points = computed(() => {
   const min = Math.min(0, ...gains.value)
   const max = Math.max(1, ...gains.value)
-  const stepX = (VIEW_WIDTH - PAD_X * 2) / Math.max(1, gains.value.length - 1)
+  const stepX = (viewWidth.value - PAD_X * 2) / Math.max(1, gains.value.length - 1)
   return gains.value.map((gain, stage) => ({
     stage,
     gain,
@@ -63,7 +82,7 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
       </span>
     </div>
     <svg
-      :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
+      :viewBox="`0 0 ${viewWidth} ${VIEW_HEIGHT}`"
       class="w-full h-auto"
       role="img"
       :aria-label="summary"
@@ -71,7 +90,7 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
       <title>{{ summary }}</title>
       <line
         :x1="PAD_X"
-        :x2="VIEW_WIDTH - PAD_X"
+        :x2="viewWidth - PAD_X"
         :y1="points[0]?.y"
         :y2="points[0]?.y"
         stroke="currentColor"
@@ -94,7 +113,7 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
         :key="point.stage"
         :cx="point.x"
         :cy="point.y"
-        :r="point.stage === current?.stage ? 3.5 : 1.75"
+        :r="point.stage === current?.stage ? ACTIVE_DOT_R : DOT_R"
         fill="currentColor"
         :class="point.stage === current?.stage ? 'text-primary' : 'text-muted'"
       >

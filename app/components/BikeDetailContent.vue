@@ -358,6 +358,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
           :level="currentLevel"
           :label="routeUpgradeLabel"
           unit="s"
+          wide
         />
         <p class="text-xs text-muted">
           {{ routeUpgradeText }}
