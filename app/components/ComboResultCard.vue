@@ -38,7 +38,7 @@ const { setOwned, setWheelOwned, isWheelOwned } = useGarage()
  */
 const { openBikeDetail, syncBikeDetail } = useOverlays()
 function bikeDetail() {
-  return { combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps }
+  return { combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps, loadFrameCombos: props.loadWheelOptions }
 }
 function showDetails() {
   openBikeDetail(bikeDetail())

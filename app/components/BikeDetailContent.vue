@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ClassifiedWheel, EquipmentPhysicsDelta } from '../../shared/types/catalog'
+import type { ClassifiedWheel, ComboScore, EquipmentPhysicsDelta } from '../../shared/types/catalog'
 import type { BikeDetail } from '../composables/useOverlays'
 
 /**
@@ -11,17 +11,52 @@ import type { BikeDetail } from '../composables/useOverlays'
  */
 const props = defineProps<{ detail: BikeDetail }>()
 
-const combo = computed(() => props.detail.combo)
+const { owned, load, setOwned, setWheelOwned, isWheelOwned } = useGarage()
+const { defaultUnownedLevel } = useRiderProfile()
+const { bikeDetailDropped, rankedFastestTimeSec } = useOverlays()
+onMounted(() => load())
+
+/**
+ * A bike that a level change pushed off every loaded page has no card to
+ * sync the drawer from (`syncBikeDetail`), so the drawer fetches it itself
+ * through the page's per-frame drill-down, which ranks this frame's wheels
+ * under the live query regardless of where the frame sits overall. The
+ * fastest of those is the combo the card would have shown. Held apart from
+ * the snapshot in `detail` and cleared whenever a card syncs a fresh one.
+ */
+const refetched = ref<ComboScore>()
+const refetching = ref(false)
+let refetchToken = 0
+watch(() => props.detail, () => {
+  refetched.value = undefined
+})
+
+const combo = computed(() => refetched.value ?? props.detail.combo)
 const frame = computed(() => combo.value.frame)
 const wheelset = computed(() => combo.value.wheelset)
 
-const { owned, load, setOwned, setWheelOwned, isWheelOwned } = useGarage()
-const { defaultUnownedLevel } = useRiderProfile()
-const { bikeDetailDropped } = useOverlays()
-onMounted(() => load())
-
 const isOwnedFrame = computed(() => owned.value[frame.value.id] !== undefined)
 const ownedFrameLevel = computed(() => owned.value[frame.value.id])
+// The level the bike is scored at right now: the garage's, which moves the
+// instant a level button is pressed, ahead of any refetch.
+const currentLevel = computed(() => ownedFrameLevel.value ?? frame.value.level)
+
+watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
+  if (!dropped || !props.detail.loadFrameCombos) return
+  const token = ++refetchToken
+  refetching.value = true
+  try {
+    const combos = await props.detail.loadFrameCombos(props.detail.combo.frame.id)
+    // Superseded by a newer refetch, or by the bike ranking again (a card
+    // has synced a fresh combo since): this answer is for a state that is gone.
+    if (token !== refetchToken || !bikeDetailDropped.value) return
+    if (combos[0]) refetched.value = combos[0]
+  } catch {
+    // Leave the previous numbers up; the notice already says they predate the change.
+  } finally {
+    if (token === refetchToken) refetching.value = false
+  }
+}, { immediate: true })
 const isOwnedWheel = computed(() => !!wheelset.value && isWheelOwned(wheelset.value.key))
 
 // Same default as the card's quick-add and the garage modal - see the
@@ -34,8 +69,11 @@ function toggleWheelOwned() {
 }
 
 const finishTimeSec = computed(() => combo.value.finishTimeSec)
-const gapSec = computed(() => finishTimeSec.value !== undefined && props.detail.fastestTimeSec !== undefined
-  ? Math.max(0, finishTimeSec.value - props.detail.fastestTimeSec)
+// A dropped bike's own snapshot of the fastest time predates the change;
+// the list's current fastest is what it now trails.
+const fastestTimeSec = computed(() => (bikeDetailDropped.value ? rankedFastestTimeSec.value : undefined) ?? props.detail.fastestTimeSec)
+const gapSec = computed(() => finishTimeSec.value !== undefined && fastestTimeSec.value !== undefined
+  ? Math.max(0, finishTimeSec.value - fastestTimeSec.value)
   : undefined)
 const totalDistanceKm = computed(() => props.detail.route ? computeRouteTotals(props.detail.route, props.detail.laps ?? 1).distanceKm : undefined)
 const surfacePenaltyText = computed(() => props.detail.route ? formatSurfaceTimePenalty(props.detail.route.surface, combo.value.surfaceTimePenaltySec) : undefined)
@@ -181,7 +219,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
       variant="subtle"
       icon="i-lucide-arrow-down-to-line"
       title="This bike has dropped off the results you have loaded"
-      :description="`At level ${ownedFrameLevel ?? frame.level} it is slow enough to rank below every bike shown. The numbers below are from before the change. Once you close this drawer it will not be listed until you show more results or raise its level.`"
+      :description="`At level ${currentLevel} it is slow enough to rank below every bike shown. ${refetching ? 'Fetching its numbers at this level.' : refetched ? 'The numbers below are for this level.' : 'The numbers below are from before the change.'} Once you close this drawer it will not be listed until you show more results or raise its level.`"
     />
 
     <section
@@ -239,12 +277,12 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
       <div class="grid grid-cols-2 gap-4">
         <UpgradeSparkline
           :values="frame.upgradeCurve.flat"
-          :level="frame.level"
+          :level="currentLevel"
           label="Flat"
         />
         <UpgradeSparkline
           :values="frame.upgradeCurve.climb"
-          :level="frame.level"
+          :level="currentLevel"
           label="Climb"
         />
       </div>

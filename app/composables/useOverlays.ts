@@ -37,6 +37,14 @@ export interface BikeDetail {
   route?: RouteWithMeta
   fastestTimeSec?: number
   laps?: number
+  /**
+   * The page's per-frame drill-down (the same one behind a card's wheel
+   * list), which returns this frame's combos under the live query whether
+   * or not the frame ranks on a loaded page. The drawer uses it to refetch
+   * its bike after a level change that dropped the bike off every loaded
+   * page, where no card exists to sync from.
+   */
+  loadFrameCombos?: (frameId: number) => Promise<ComboScore[]>
 }
 
 export function useOverlays() {
@@ -56,6 +64,9 @@ export function useOverlays() {
   // True while the drawer's bike is on none of the result pages the rider has
   // loaded - see `noteRankedFrames`.
   const bikeDetailDropped = useState<boolean>('overlay-bike-detail-dropped', () => false)
+  // The fastest time on the loaded list, kept current for a dropped bike's
+  // "behind the fastest" figure - its own snapshot of it predates the change.
+  const rankedFastestTimeSec = useState<number | undefined>('overlay-ranked-fastest', () => undefined)
 
   function openBikeDetail(detail: BikeDetail) {
     bikeDetail.value = detail
@@ -89,7 +100,8 @@ export function useOverlays() {
    * drawer say so instead, and say that the bike will not be listed once the
    * drawer closes. Cleared as soon as the bike is ranked again.
    */
-  function noteRankedFrames(combos: readonly { frame: { id: number } }[]) {
+  function noteRankedFrames(combos: readonly { frame: { id: number }, finishTimeSec?: number }[]) {
+    rankedFastestTimeSec.value = combos[0]?.finishTimeSec
     const current = bikeDetail.value
     if (!current || !isBikeDetailOpen.value) return
     bikeDetailDropped.value = !combos.some(combo => combo.frame.id === current.combo.frame.id)
@@ -156,6 +168,7 @@ export function useOverlays() {
     isBikeDetailOpen,
     bikeDetail,
     bikeDetailDropped,
+    rankedFastestTimeSec,
     openBikeDetail,
     syncBikeDetail,
     noteRankedFrames,
