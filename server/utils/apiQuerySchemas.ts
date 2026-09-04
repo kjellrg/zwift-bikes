@@ -216,6 +216,13 @@ const recommendBaseShape = {
   // narrows what is *displayed* - it is applied after ranking, never before,
   // so it can't remove a candidate from consideration.
   maxWheelsetsPerFrame: qNumber.pipe(z.number().min(1).max(99).optional()).transform(value => (value === undefined ? undefined : Math.round(value))),
+  // Drill-down: return this frame's own wheel choices instead of a page of
+  // the ranking - the list a result card opens onto. Answered by the same
+  // handler, from the same query the card was rendered from, so the times in
+  // the list and the time on the card come out of one pipeline rather than
+  // two that can drift. It narrows the frame pool to this id and ignores
+  // `search`; `limit` then caps how many wheels come back.
+  wheelsForFrame: qNumber.pipe(z.number().int().min(1).optional()),
   // Falls back to the shared constant rather than a local 0, so an
   // unspecified call assumes the same stage the site does - see
   // `DEFAULT_UNOWNED_LEVEL`. The stage changes the ranking, not just the

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { bikeFrames } from 'zwift-data'
 import type { RouteGeometry, RouteGeometryPoint, RouteSurfaceSegment } from '../../types/physics'
-import type { RouteWithMeta, Wheelset } from '../../types/catalog'
+import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from '../../types/catalog'
 import { FRAME_SPEED_DATA } from '../../data/frameSpeedData'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
 import { classifyBikeFrame } from '../classifyBikeFrame'
@@ -10,7 +10,7 @@ import { getWheelsets } from '../wheelsets'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { speedForPower } from './forces'
 import { geometryFromRoute, RouteSimulationStallError, simulateRoute } from './simulator'
-import { orderBySimulatedTime, SIMULATED_ORDER_MARGIN } from './simulatedOrdering'
+import { confirmWheelPicks, WHEEL_PICK_CONFIRM_DEPTH, orderBySimulatedTime, SIMULATED_ORDER_MARGIN } from './simulatedOrdering'
 
 const RIDER = { weightKg: 75, heightCm: 183, powerW: 300 }
 
@@ -213,6 +213,109 @@ describe('orderBySimulatedTime', () => {
     expect(calls).toBe(1)
     expect(simulatedSec.get(a!)).toBe(42)
     expect(simulatedSec.get(twin)).toBe(42)
+  })
+})
+
+describe('confirmWheelPicks', () => {
+  // A frame with several wheels, as the pool reaches the page: ordered by the
+  // ESTIMATE, which is the whole reason this step exists.
+  const frame = { id: 1 } as ClassifiedBikeFrame
+  const otherFrame = { id: 2 } as ClassifiedBikeFrame
+  const row = (f: ClassifiedBikeFrame, key: string, est: number) => ({ frame: f, wheelset: { key } as Wheelset, est })
+  const pool = [
+    row(frame, 'w1', 10), row(frame, 'w2', 11), row(frame, 'w3', 12), row(frame, 'w4', 13),
+    row(otherFrame, 'x1', 20)
+  ]
+
+  it('swaps in the wheel the simulator prefers over the one the estimate picked', () => {
+    const simulated: Record<string, number> = { w1: 100, w2: 97, w3: 99, w4: 101 }
+    const [pick] = confirmWheelPicks({
+      page: [pool[0]!],
+      pool,
+      currentSec: () => 100,
+      valueOf: combo => combo.est,
+      simulate: combo => simulated[combo.wheelset!.key]!
+    })
+    expect(pick!.row.wheelset!.key).toBe('w2')
+    expect(pick!.seconds).toBe(97)
+  })
+
+  it('leaves the row alone when the estimate already had it right', () => {
+    const simulated: Record<string, number> = { w1: 90, w2: 97, w3: 99, w4: 101 }
+    const [pick] = confirmWheelPicks({
+      page: [pool[0]!],
+      pool,
+      currentSec: () => 90,
+      valueOf: combo => combo.est,
+      simulate: combo => simulated[combo.wheelset!.key]!
+    })
+    expect(pick!.row).toBe(pool[0])
+    expect(pick!.seconds).toBe(90)
+  })
+
+  it('only ever considers the row\'s own frame', () => {
+    const seen: string[] = []
+    confirmWheelPicks({
+      page: [pool[0]!],
+      pool,
+      currentSec: () => 100,
+      valueOf: combo => combo.est,
+      simulate: (combo) => {
+        seen.push(combo.wheelset!.key)
+        return 100
+      }
+    })
+    expect(seen).not.toContain('x1')
+  })
+
+  it('collapses estimate ties instead of spending an integration to rediscover them', () => {
+    const tied = [row(frame, 'w1', 10), row(frame, 'w2', 10), row(frame, 'w3', 12)]
+    const seen: string[] = []
+    confirmWheelPicks({
+      page: [tied[0]!],
+      pool: tied,
+      currentSec: () => 100,
+      valueOf: combo => combo.est,
+      simulate: (combo) => {
+        seen.push(combo.wheelset!.key)
+        return 100
+      }
+    })
+    expect(seen).toEqual(['w3'])
+  })
+
+  it('reuses times the ordering pass already computed', () => {
+    let calls = 0
+    const [pick] = confirmWheelPicks({
+      page: [pool[0]!],
+      pool,
+      currentSec: () => 100,
+      valueOf: combo => combo.est,
+      alreadySimulated: new Map(pool.map(combo => [combo, combo.wheelset!.key === 'w3' ? 95 : 100])),
+      simulate: () => {
+        calls++
+        return 100
+      }
+    })
+    expect(calls).toBe(0)
+    expect(pick!.row.wheelset!.key).toBe('w3')
+  })
+
+  it('never looks deeper than WHEEL_PICK_CONFIRM_DEPTH candidates per frame', () => {
+    const deep = Array.from({ length: 12 }, (_, i) => row(frame, `w${i}`, i))
+    const seen: string[] = []
+    confirmWheelPicks({
+      page: [deep[0]!],
+      pool: deep,
+      currentSec: () => 100,
+      valueOf: combo => combo.est,
+      simulate: (combo) => {
+        seen.push(combo.wheelset!.key)
+        return 100
+      }
+    })
+    // The page row itself is one of the candidates and is skipped, not simulated.
+    expect(seen).toHaveLength(WHEEL_PICK_CONFIRM_DEPTH - 1)
   })
 })
 

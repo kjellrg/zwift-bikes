@@ -1,12 +1,12 @@
 import { getFrames } from '../../../../shared/utils/catalog'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../../../shared/utils/routeSegments'
 import { getWheelsets } from '../../../../shared/utils/wheelsets'
-import { capWheelsetsPerFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
+import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../../../shared/utils/finishTime'
-import { FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from '../../../../shared/utils/physics'
+import { confirmWheelPicks, FASTEST_OVERALL_ORDER_MARGIN, geometryForSegment, geometryForWarmup, orderBySimulatedTime, prependWarmup, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, WHEEL_OPTIONS_ORDER_MARGIN } from '../../../../shared/utils/physics'
 import { sliceSurfaceSegments } from '../../../../shared/utils/surfaceGeometry'
-import type { BikeCategory } from '../../../../shared/types/catalog'
+import type { BikeCategory, ComboScore } from '../../../../shared/types/catalog'
 import { parseQuery, recommendSegmentQuerySchema } from '../../../utils/apiQuerySchemas'
 import { defineCachedRecommendHandler } from '../../../utils/recommendCache'
 import { addTimingMeta, markPhase } from '../../../utils/timing'
@@ -43,10 +43,13 @@ export default defineCachedRecommendHandler(async (event) => {
   // `server/utils/apiQuerySchemas.ts`. An invalid value throws a 400 here.
   const q = parseQuery(event, recommendSegmentQuerySchema)
   const {
-    search, category, limit, offset, verifiedOnly, includeHalo,
-    maxWheelsetsPerFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
+    search: listSearch, category, limit, offset, verifiedOnly, includeHalo,
+    maxWheelsetsPerFrame, wheelsForFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
     defaultUnownedLevel, physics: physicsMode, draftMode, tttRiders
   } = q
+  // See the equivalent comment in `recommend/[slug].get.ts` - a drill-down is
+  // one frame's wheels, so the list's search term has nothing to say about it.
+  const search = wheelsForFrame === undefined ? listSearch : undefined
   const segmentRoute = routeWithMetaForSegment(summary)
 
   // See the equivalent comment in `recommend/[slug].get.ts` - fall back to
@@ -96,6 +99,10 @@ export default defineCachedRecommendHandler(async (event) => {
   }
   const rankable = allFrames.filter(f => !isHiddenHalo(f))
   const frames = category ? rankable.filter(f => f.category === category) : rankable
+  // The wheel-options drill-down - see the equivalent comment (and the reason
+  // it is the same handler rather than a second endpoint) in
+  // `recommend/[slug].get.ts`.
+  const pool = wheelsForFrame === undefined ? frames : frames.filter(f => f.id === wheelsForFrame)
   // Carries this instance's lazy catalog init on a cold start.
   await markPhase(event, 'pool')
 
@@ -106,7 +113,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // abstract `score` (which zeroes aero/climb credit on off-road surfaces,
   // unlike real finish time). Otherwise a genuinely faster combo could rank
   // outside `score`'s view of "the best candidates" and never surface.
-  const rankedCombos = rankCombos(segmentRoute, frames, wheelsets, frames.length * wheelsets.length)
+  const rankedCombos = rankCombos(segmentRoute, pool, wheelsets, pool.length * wheelsets.length)
   await markPhase(event, 'rank')
 
   const rider = { weightKg, heightCm, powerW }
@@ -174,9 +181,10 @@ export default defineCachedRecommendHandler(async (event) => {
   // See the equivalent comment in `recommend/[slug].get.ts` - capping is
   // skipped entirely while searching, and matches are ordered frame-name
   // matches first (see `searchCombos`).
+  const rankValue = (combo: ComboScore): number => (hasRiderProfile ? combo.finishTimeSec! : combo.score)
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
-    : capWheelsetsPerFrame(orderedCombos, hasRiderProfile ? c => c.finishTimeSec! : c => c.score, maxWheelsetsPerFrame)
+    : capWheelsetsPerFrame(orderedCombos, rankValue, wheelsForFrame === undefined ? maxWheelsetsPerFrame : limit)
   await markPhase(event, 'filter')
 
   // See the equivalent comment in `recommend/[slug].get.ts` - the reachable
@@ -185,7 +193,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // order instead let a combo the simulator ranks higher fall off the page.
   const simulatedSec = new Map<typeof orderedCombos[number], number>()
   if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic') {
-    const ordering = orderBySimulatedTime(filteredRankedCombos, offset + limit + SIMULATED_ORDER_MARGIN, simulateSegmentSec)
+    const ordering = orderBySimulatedTime(filteredRankedCombos, offset + limit + (wheelsForFrame === undefined ? SIMULATED_ORDER_MARGIN : WHEEL_OPTIONS_ORDER_MARGIN), simulateSegmentSec)
     filteredRankedCombos = ordering.ordered
     for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
   }
@@ -205,8 +213,48 @@ export default defineCachedRecommendHandler(async (event) => {
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
+  }
+
+  // The wheel representing a frame on a one-row-per-frame page was chosen by
+  // `capWheelsetsPerFrame` from the ESTIMATE's order, before anything was
+  // simulated - and the estimate names the frame's fastest wheel only about
+  // 70% of the time (see `WHEEL_PICK_CONFIRM_DEPTH` for the measurement). So
+  // the rows that are actually displayed get that choice checked against the
+  // simulator, which is the model this endpoint's times come from: without it
+  // a card can name a slower wheel than the `wheelsForFrame` list it opens
+  // ranks first, and the page contradicts itself.
+  //
+  // Confined to `maxWheelsetsPerFrame=1` because that is the only shape where
+  // a frame HAS a single representative - at a wider cap the swap could
+  // collide with a sibling row of the same frame. Skipped while searching too:
+  // a search lists individual wheel matches, so swapping a row's wheel could
+  // silently replace the very match that was typed.
+  if (hasRiderProfile && warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && !search
+    && wheelsForFrame === undefined && maxWheelsetsPerFrame === 1) {
+    const picks = confirmWheelPicks({
+      page: pageCombos,
+      pool: orderedCombos,
+      currentSec: row => row.finishTimeSec!,
+      valueOf: rankValue,
+      simulate: simulateSegmentSec,
+      alreadySimulated: simulatedSec
+    })
+    for (const [index, pick] of picks.entries()) {
+      if (pick.row === pageCombos[index]) continue
+      pick.row.finishTimeSec = pick.seconds
+      pick.row.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(segmentRoute, pick.row.frame, pick.row.wheelset, weightKg, heightCm, powerW, 1)
+      pageCombos[index] = pick.row
+    }
+  }
+
+  if (hasRiderProfile) {
     if (physicsMode === 'compare') pageCombos.sort((a, b) => ((a as typeof a & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity) - ((b as typeof b & { legacyFinishTimeSec?: number }).legacyFinishTimeSec ?? Infinity))
     else pageCombos.sort((a, b) => (a.finishTimeSec ?? Infinity) - (b.finishTimeSec ?? Infinity))
+  }
+  // See the equivalent comment in `recommend/[slug].get.ts`.
+  if (wheelsForFrame === undefined) {
+    const wheelOptionsByFrame = countWheelOptionsByFrame(orderedCombos, rankValue)
+    for (const combo of pageCombos) combo.wheelOptions = wheelOptionsByFrame.get(combo.frame.id) ?? 1
   }
   await markPhase(event, 'page')
 
@@ -218,7 +266,7 @@ export default defineCachedRecommendHandler(async (event) => {
     const topCombo = pageCombos[0]
     let soloFinishTimeSec: number | undefined
     let tttSavedSec: number | undefined
-    if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+    if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
       soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry, powerSegmentsW: warmedPowerSegmentsW }).elapsedSec
         - countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
       tttSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
@@ -242,7 +290,7 @@ export default defineCachedRecommendHandler(async (event) => {
     const topCombo = pageCombos[0]
     let soloFinishTimeSec: number | undefined
     let raceSavedSec: number | undefined
-    if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && topCombo && typeof topCombo.finishTimeSec === 'number') {
+    if (warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
       soloFinishTimeSec = countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmedGeometry }).elapsedSec
         - countedSimulate({ rider, frame: topCombo.frame, wheelset: topCombo.wheelset, geometry: warmupOnlyGeometry }).elapsedSec
       raceSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
@@ -260,7 +308,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // are ranked, what `reason` is for, and why it is gated this narrowly.
   let fastestOverall: { frameId: number, frameName: string, category: BikeCategory, reason: 'category' | 'halo', wheelsetName?: string, finishTimeSec: number, deltaSec: number } | undefined
   const pageTopCombo = pageCombos[0]
-  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
+  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && wheelsForFrame === undefined && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
     const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
     if (hiddenFrames.length) {
       let candidates = rankCombos(segmentRoute, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
@@ -303,7 +351,8 @@ export default defineCachedRecommendHandler(async (event) => {
     combos: rankedCombos.length,
     sims: simCount,
     offset,
-    searching: Boolean(search)
+    searching: Boolean(search),
+    wheelDrillDown: wheelsForFrame !== undefined
   })
 
   const tttNote = ttt

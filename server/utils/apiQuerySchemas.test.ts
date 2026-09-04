@@ -33,6 +33,12 @@ describe('recommend query defaults', () => {
     expect(parsed.limit).toBe(9)
   })
 
+  it('accepts a frame id for the wheel-options drill-down, and leaves it unset otherwise', () => {
+    expect(recommendRouteQuerySchema.parse({ wheelsForFrame: '1554559006' }).wheelsForFrame).toBe(1554559006)
+    expect(recommendRouteQuerySchema.parse({}).wheelsForFrame).toBeUndefined()
+    expect(recommendRouteQuerySchema.parse({ wheelsForFrame: '' }).wheelsForFrame).toBeUndefined()
+  })
+
   it('normalizes search to trimmed lowercase', () => {
     expect(bikesQuerySchema.parse({ search: '  TarMAC ' }).search).toBe('tarmac')
   })
@@ -50,7 +56,10 @@ describe('wrong values reject rather than silently clamp', () => {
     ['non-boolean flag', { verifiedOnly: 'yes' }],
     ['weight below bound', { weightKg: String(RIDER_BOUNDS.weightKg.min - 1), heightCm: '183', powerW: '250' }],
     ['power below bound', { weightKg: '75', heightCm: '183', powerW: String(RIDER_BOUNDS.powerW.min - 1) }],
-    ['power above bound', { weightKg: '75', heightCm: '183', powerW: String(RIDER_BOUNDS.powerW.max + 1) }]
+    ['power above bound', { weightKg: '75', heightCm: '183', powerW: String(RIDER_BOUNDS.powerW.max + 1) }],
+    ['fractional frame id', { wheelsForFrame: '12.5' }],
+    ['zero frame id', { wheelsForFrame: '0' }],
+    ['non-numeric frame id', { wheelsForFrame: 'tarmac' }]
   ])('%s is a 400', (_label, query) => {
     expect(recommendRouteQuerySchema.safeParse(query).success).toBe(false)
   })

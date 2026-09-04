@@ -59,6 +59,101 @@ export const SIMULATED_ORDER_MARGIN = 45
 export const FASTEST_OVERALL_ORDER_MARGIN = 15
 
 /**
+ * The same idea again, for the wheel-options drill-down - the list a result
+ * card opens onto, showing the other wheels that fit that one frame.
+ *
+ * Small for the same reason `FASTEST_OVERALL_ORDER_MARGIN` is: the estimate's
+ * headline weakness is mispricing MASS across a mixed field (it charges the
+ * route's average grade uniformly and never gives the descent back), and this
+ * pool is one frame paired with every wheel that fits it - the frame mass, the
+ * frame's CdA and the whole route are identical down the list, so what is left
+ * varying is a couple of hundred grams of wheel and its aero and Crr. That
+ * arrives very nearly in the right order.
+ *
+ * It also has to stay small because this cost is paid interactively, on a
+ * click, rather than at build time: 6 rows plus this margin is ~21 route
+ * integrations, against the 54 a first page already costs.
+ */
+export const WHEEL_OPTIONS_ORDER_MARGIN = 15
+
+/**
+ * How many of a frame's wheels get their finish time confirmed by the
+ * simulator before the frame's single row is drawn.
+ *
+ * On a one-row-per-frame page the wheel that represents a frame is chosen by
+ * `capWheelsetsPerFrame`, which runs on the ESTIMATE's order - before anything
+ * has been simulated. The estimate picks the frame's genuinely fastest wheel
+ * only about seven times in ten. Measured over 112 frame x route x draft-mode
+ * cases (Achterbahn, Tempus Fugit, Road to Sky and Greater London Flat, solo
+ * and race, 14 road and TT frames each), the simulator's best wheel sat at
+ * estimate rank 1 in 70.5% of them, rank 2 in 25.0%, rank 3 in 2.7% and rank 4
+ * in 1.8% - never deeper, and the worst pick cost 1.69s over a 99-minute ride.
+ *
+ * That was survivable while a frame got three rows and the page sort could
+ * promote the best of them. With one row it is not: the card names one wheel
+ * while the wheel list it opens ranks another first, which is exactly how this
+ * was found. 5 clears the measured worst case by one.
+ *
+ * The cost is bounded by the PAGE, not by how deep a rider has paged - at most
+ * `limit x (depth - 1)` extra integrations, and none at all for a frame whose
+ * wheels are fixed or whose candidates tie.
+ */
+export const WHEEL_PICK_CONFIRM_DEPTH = 5
+
+/**
+ * Which wheel should actually represent each frame on a one-row-per-frame
+ * page, decided by the simulator rather than by the estimate that got the
+ * pool into order.
+ *
+ * `page` is the rows about to be displayed, already timed; `pool` is the full
+ * estimate-ordered candidate list they were drawn from. For every row, the
+ * frame's first `depth` distinct-value candidates in `pool` are simulated
+ * (reusing `alreadySimulated` wherever the ordering pass got there first) and
+ * the quickest wins. Candidates that tie on `valueOf` collapse the same way
+ * `capWheelsetsPerFrame` collapses them - a tied wheel is the same answer
+ * under another name, and simulating it would spend an integration to
+ * rediscover that.
+ *
+ * Returns one entry per page row, in page order, so the caller can write back
+ * the finish time and anything derived from the wheel. A row whose pick did
+ * not change comes back as itself with the time it already had.
+ */
+export function confirmWheelPicks<T extends OrderableCombo>(options: {
+  page: T[]
+  pool: T[]
+  currentSec: (row: T) => number
+  valueOf: (combo: T) => number
+  simulate: (combo: T) => number
+  alreadySimulated?: Map<T, number>
+  depth?: number
+}): { row: T, seconds: number }[] {
+  const { page, pool, currentSec, valueOf, simulate, alreadySimulated, depth = WHEEL_PICK_CONFIRM_DEPTH } = options
+  const pageFrameIds = new Set(page.map(row => row.frame.id))
+  const candidatesByFrame = new Map<number, T[]>()
+  for (const candidate of pool) {
+    if (!pageFrameIds.has(candidate.frame.id)) continue
+    const listed = candidatesByFrame.get(candidate.frame.id) ?? []
+    if (listed.length >= depth) continue
+    if (listed.some(other => valueOf(other) === valueOf(candidate))) continue
+    listed.push(candidate)
+    candidatesByFrame.set(candidate.frame.id, listed)
+  }
+
+  return page.map((row) => {
+    let best = row
+    let seconds = currentSec(row)
+    for (const candidate of candidatesByFrame.get(row.frame.id) ?? []) {
+      if (candidate.wheelset?.key === row.wheelset?.key) continue
+      const candidateSec = alreadySimulated?.get(candidate) ?? simulate(candidate)
+      if (candidateSec >= seconds) continue
+      best = candidate
+      seconds = candidateSec
+    }
+    return { row: best, seconds }
+  })
+}
+
+/**
  * Re-orders the head of `combos` by real simulated finish time, returning the
  * new ordering along with every time it computed so callers don't simulate
  * the same combo twice.

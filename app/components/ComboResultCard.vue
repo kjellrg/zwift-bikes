@@ -12,6 +12,14 @@ const props = defineProps<{
   fastestTimeSec?: number
   /** Frames the rider owns, keyed by frame id, mapped to their upgrade level - used to label whether `combo.frame.level` is an owned level or the rider's assumed default for unowned bikes. */
   owned?: Record<number, number>
+  /**
+   * Fetches the other wheelsets that fit this frame on this route, ranked and
+   * timed by the same request the card itself came from (the endpoints'
+   * `wheelsForFrame` drill-down). Supplied by the page, because only the page
+   * knows the endpoint and the live query; omit it and the card simply shows
+   * no wheel disclosure.
+   */
+  loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
 }>()
 
 const isOwnedFrame = computed(
@@ -74,6 +82,15 @@ function toggleWheelOwned() {
   setWheelOwned(props.combo.wheelset.key, !isOwnedWheel.value)
 }
 
+/** Same garage toggle as the card's own wheels, for a row of the disclosure below. */
+function isWheelOptionOwned(option: ComboScore): boolean {
+  return !!option.wheelset && isWheelOwned(option.wheelset.key)
+}
+function toggleWheelOptionOwned(option: ComboScore) {
+  if (!option.wheelset) return
+  setWheelOwned(option.wheelset.key, !isWheelOptionOwned(option))
+}
+
 /**
  * Always the server's number. The card used to carry a client-side
  * `estimateFinishTimeSec` fallback for the profile-less case, but every page
@@ -105,6 +122,52 @@ const isFastest = computed(() => {
 
 /** The card's headline number is the finish time; the 0-100 score only leads when there is no time to show. */
 const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
+
+/**
+ * The other wheels that fit this bike, behind a disclosure.
+ *
+ * The list itself is fetched on demand rather than shipped with every row, so
+ * a page that nobody expands costs exactly what it did before - the drill-down
+ * is ~21 route simulations against the 54 a first page already spends, and
+ * paying that for nine rows up front would have doubled the page. `wheelOptions`
+ * on the combo is only the COUNT, which the endpoint gets for free while it is
+ * already holding the ranked pool, and it is what decides whether there is a
+ * disclosure to offer at all.
+ */
+const wheelOptionsOpen = ref(false)
+const wheelOptions = ref<ComboScore[]>([])
+const wheelOptionsStatus = ref<'idle' | 'loading' | 'error'>('idle')
+const canShowWheelOptions = computed(() =>
+  Boolean(props.loadWheelOptions) && !!props.combo.wheelset && (props.combo.wheelOptions ?? 1) > 1
+)
+/** Gaps in the list are against its own fastest row, not the page's - the question being answered is "which wheels for THIS bike", so the frame's own best is the zero. */
+const bestWheelSec = computed(() => wheelOptions.value[0]?.finishTimeSec)
+
+async function fetchWheelOptions() {
+  if (!props.loadWheelOptions) return
+  wheelOptionsStatus.value = 'loading'
+  try {
+    wheelOptions.value = await props.loadWheelOptions(props.combo.frame.id)
+    wheelOptionsStatus.value = 'idle'
+  } catch {
+    wheelOptionsStatus.value = 'error'
+  }
+}
+
+function toggleWheelOptions() {
+  wheelOptionsOpen.value = !wheelOptionsOpen.value
+  if (wheelOptionsOpen.value && !wheelOptions.value.length && wheelOptionsStatus.value !== 'loading') fetchWheelOptions()
+}
+
+// A garage toggle, a filter or a rider-profile change re-ranks everything,
+// including these times - and Vue reuses this component when the row keeps its
+// key. Dropping the cached list rather than leaving it up is the difference
+// between an open drawer that follows the ranking and one quietly showing the
+// times from before the change.
+watch(() => props.combo, () => {
+  wheelOptions.value = []
+  if (wheelOptionsOpen.value) fetchWheelOptions()
+})
 </script>
 
 <template>
@@ -396,5 +459,101 @@ const showsTimeFirst = computed(() => finishTimeSec.value !== undefined)
     </div>
 
     <ScoreBreakdown :breakdown="combo.breakdown" />
+
+    <!--
+      One row per bike is the list's rule (the pages send
+      `maxWheelsetsPerFrame=1`), so this is where a frame's other wheels live.
+      It renders nothing at all unless the endpoint counted more than one real
+      wheel answer for this frame, which keeps it off every fixed-wheel bike
+      and off any pool filtered down to a single wheelset.
+    -->
+    <div v-if="canShowWheelOptions">
+      <UButton
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        class="px-0"
+        :icon="wheelOptionsOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+        :aria-expanded="wheelOptionsOpen"
+        @click="toggleWheelOptions"
+      >
+        {{ combo.wheelOptions }} wheel options for this bike
+      </UButton>
+
+      <div
+        v-if="wheelOptionsOpen"
+        class="mt-2 rounded-lg border border-default divide-y divide-default"
+      >
+        <p
+          v-if="wheelOptionsStatus === 'loading'"
+          class="flex items-center gap-1.5 px-3 py-2 text-sm text-muted"
+        >
+          <UIcon
+            name="i-lucide-loader-circle"
+            class="size-4 animate-spin"
+          />Working out the wheels…
+        </p>
+        <p
+          v-else-if="wheelOptionsStatus === 'error'"
+          class="px-3 py-2 text-sm text-muted"
+        >
+          Couldn't load the wheel options.
+          <UButton
+            color="neutral"
+            variant="link"
+            size="xs"
+            class="px-0"
+            @click="fetchWheelOptions"
+          >
+            Try again
+          </UButton>
+        </p>
+        <div
+          v-for="option in wheelOptions"
+          v-else
+          :key="option.wheelset?.key ?? 'fixed'"
+          class="flex items-center gap-2 px-3 py-1.5 text-sm"
+        >
+          <UTooltip
+            :text="isWheelOptionOwned(option) ? 'Remove wheels from garage' : 'Quick-add wheels to garage'"
+          >
+            <UButton
+              :icon="isWheelOptionOwned(option) ? 'i-lucide-circle-check' : 'i-lucide-circle-plus'"
+              size="xs"
+              :color="isWheelOptionOwned(option) ? 'success' : 'neutral'"
+              variant="ghost"
+              class="opacity-50 hover:opacity-100"
+              :aria-label="`${isWheelOptionOwned(option) ? 'Remove' : 'Quick-add'} ${option.wheelset?.name} ${isWheelOptionOwned(option) ? 'from' : 'to'} garage`"
+              @click="toggleWheelOptionOwned(option)"
+            />
+          </UTooltip>
+          <span class="min-w-0 flex-1 break-words">{{ option.wheelset?.name }}</span>
+          <UBadge
+            v-if="option.wheelset && combo.wheelset && option.wheelset.key === combo.wheelset.key"
+            color="primary"
+            variant="subtle"
+            size="sm"
+          >
+            picked
+          </UBadge>
+          <span
+            v-if="option.finishTimeSec !== undefined && bestWheelSec !== undefined"
+            class="shrink-0 tabular-nums"
+            :class="option.finishTimeSec - bestWheelSec > 0 ? 'text-warning' : 'text-primary'"
+          >{{ option.finishTimeSec - bestWheelSec > 0 ? formatDurationGap(option.finishTimeSec - bestWheelSec) : formatDuration(option.finishTimeSec) }}</span>
+        </div>
+        <!--
+          The count on the button is the whole pool's; the list is the best few
+          of it. Saying which is which keeps the button from reading as a
+          promise of 62 rows.
+        -->
+        <p
+          v-if="wheelOptionsStatus === 'idle' && wheelOptions.length && (combo.wheelOptions ?? 0) > wheelOptions.length"
+          class="px-3 py-1.5 text-xs text-muted"
+        >
+          Fastest {{ wheelOptions.length }} of {{ combo.wheelOptions }} on this route.
+        </p>
+      </div>
+    </div>
   </UCard>
 </template>
