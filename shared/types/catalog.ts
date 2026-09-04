@@ -388,6 +388,27 @@ export interface ComboScore {
    * `wheelsForFrame` drill-down that answers the disclosure omits it.
    */
   wheelOptions?: number
+  /**
+   * What upgrading this bike is worth ON THIS ROUTE: the simulated finish
+   * time, in seconds, for this exact combo and rider at each upgrade stage
+   * `[0..5]`.
+   *
+   * `ClassifiedBikeFrame.upgradeCurve` answers the same question in the
+   * abstract - seconds per hour against a reference bike at 300 W on
+   * ZwiftInsider's two bot tests - and a rider then has to interpolate
+   * between a flat test and a climb test to guess what their own ride would
+   * gain. This is that guess made: the route's real terrain, the rider's own
+   * weight, height and power, the laps and draft mode they picked, and the
+   * wheels they would actually be on.
+   *
+   * Set on the `wheelsForFrame` drill-down's fastest combo only, and only in
+   * dynamic physics mode for a measured frame - unmeasured frames have no
+   * per-stage data and upgrading does nothing to them. The entry for the
+   * frame's CURRENT stage is `finishTimeSec` itself rather than a fresh
+   * integration, so the curve is guaranteed to pass through the time shown
+   * next to it.
+   */
+  upgradeFinishTimesSec?: number[]
 }
 
 export interface RouteFilters {

@@ -10,6 +10,7 @@ import type { BikeCategory, ComboScore } from '../../../../shared/types/catalog'
 import { parseQuery, recommendSegmentQuerySchema } from '../../../utils/apiQuerySchemas'
 import { defineCachedRecommendHandler } from '../../../utils/recommendCache'
 import { addTimingMeta, markPhase } from '../../../utils/timing'
+import { upgradeFinishTimesSec } from '../../../utils/upgradeFinishTimes'
 
 // Flat lead-up distance simulated before the timed segment itself, long
 // enough for a rider's speed to converge close to steady-state for their
@@ -257,6 +258,20 @@ export default defineCachedRecommendHandler(async (event) => {
     for (const combo of pageCombos) combo.wheelOptions = wheelOptionsByFrame.get(combo.frame.id) ?? 1
   }
   await markPhase(event, 'page')
+
+  // "What upgrading does on THIS segment" - see the identical block in the
+  // route endpoint, and `upgradeFinishTimesSec` for what it is and why it is
+  // confined to the drill-down. Each stage goes through `simulateSegmentSec`,
+  // so every stage pays the same warm-up subtraction the displayed time does.
+  if (hasRiderProfile && warmedGeometry && warmupOnlyGeometry && physicsMode === 'dynamic' && wheelsForFrame !== undefined && offset === 0) {
+    const drawerCombo = pageCombos[0]
+    if (drawerCombo) {
+      drawerCombo.upgradeFinishTimesSec = upgradeFinishTimesSec(
+        drawerCombo,
+        staged => simulateSegmentSec({ ...drawerCombo, frame: staged })
+      )
+    }
+  }
 
   // "TTT saves X vs solo" - the same rider at the same power and pacing, with
   // the draft scaling removed from both halves of the subtraction, so the

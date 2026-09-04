@@ -12,7 +12,7 @@ import type { BikeDetail } from '../composables/useOverlays'
 const props = defineProps<{ detail: BikeDetail }>()
 
 const { owned, load, setOwned, setWheelOwned, isWheelOwned } = useGarage()
-const { defaultUnownedLevel } = useRiderProfile()
+const { defaultUnownedLevel, powerW } = useRiderProfile()
 const { bikeDetailDropped, rankedFastestTimeSec } = useOverlays()
 onMounted(() => load())
 
@@ -41,6 +41,75 @@ const ownedFrameLevel = computed(() => owned.value[frame.value.id])
 // instant a level button is pressed, ahead of any refetch.
 const currentLevel = computed(() => ownedFrameLevel.value ?? frame.value.level)
 
+/**
+ * What upgrading this bike is worth on the route being ranked, in seconds off
+ * this ride at each stage - the drawer's one number that cannot come from the
+ * card, since the card holds one stage and this is six. It arrives on the
+ * fastest combo of the same per-frame drill-down the card's wheel list uses
+ * (`ComboScore.upgradeFinishTimesSec`), so opening the drawer costs the
+ * request the "other wheels" disclosure would have cost anyway, and both
+ * views agree because they are one response.
+ *
+ * Refetched when the frame changes or when its fastest wheel does, and NOT on
+ * every level change: the six stage times are a property of the bike and the
+ * course, not of the stage the rider is on, so a level change only moves the
+ * marker. It does change which wheel is fastest sometimes, and that is what
+ * the wheelset key in the watch is there to catch.
+ */
+const routeUpgradeTimesSec = ref<number[]>()
+// What the loaded curve is for. The dropped-bike refetch below answers the
+// same request, so it hands its own response over rather than letting the
+// watcher fire a second, identical one.
+const curveKey = ref<string>()
+let curveToken = 0
+
+function takeUpgradeCurve(combos: ComboScore[], key: string) {
+  routeUpgradeTimesSec.value = combos[0]?.upgradeFinishTimesSec
+  curveKey.value = key
+}
+
+watch([() => props.detail.combo.frame.id, () => wheelset.value?.key], async ([frameId, wheelsetKey]) => {
+  const key = `${frameId}:${wheelsetKey ?? 'fixed'}`
+  if (key === curveKey.value) return
+  const token = ++curveToken
+  routeUpgradeTimesSec.value = undefined
+  curveKey.value = undefined
+  if (!props.detail.loadFrameCombos) return
+  try {
+    const combos = await props.detail.loadFrameCombos(frameId)
+    if (token !== curveToken) return
+    takeUpgradeCurve(combos, key)
+  } catch {
+    // The two bot-test curves below still answer the question in the
+    // abstract; a failed request just means this drawer does not also answer
+    // it for this course.
+  }
+}, { immediate: true })
+
+/**
+ * Seconds saved against the just-bought bike at each stage, which is the same
+ * "higher is better" shape the bot-test curves are already drawn in - finish
+ * times themselves run the other way.
+ */
+const routeUpgradeGainsSec = computed(() => {
+  const times = routeUpgradeTimesSec.value
+  if (!times || times.length < 2 || times[0] === undefined) return undefined
+  return times.map(time => times[0]! - time)
+})
+
+// A fixed short label, with the course named in the caption below it: a route
+// name in the chart header would squeeze the figures beside it, and some of
+// them are long ("2022 Cycling Esports World Championships Route").
+const routeUpgradeLabel = 'On this route'
+const routeUpgradeText = computed(() => {
+  const laps = props.detail.laps ?? 1
+  const rideText = props.detail.route
+    ? `${laps > 1 ? `${laps} laps of ` : ''}${props.detail.route.name}`
+    : 'this ride'
+  const wheelText = wheelset.value ? ` on ${wheelset.value.name}` : ''
+  return `Seconds off ${rideText} at ${Math.round(powerW.value)} W${wheelText}, simulated at each stage over the route's own terrain.`
+})
+
 watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
   if (!dropped || !props.detail.loadFrameCombos) return
   const token = ++refetchToken
@@ -50,7 +119,13 @@ watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
     // Superseded by a newer refetch, or by the bike ranking again (a card
     // has synced a fresh combo since): this answer is for a state that is gone.
     if (token !== refetchToken || !bikeDetailDropped.value) return
-    if (combos[0]) refetched.value = combos[0]
+    if (combos[0]) {
+      refetched.value = combos[0]
+      // Same frame, same query, same response the curve watcher would have
+      // asked for - claim it here so a level change that drops the bike does
+      // not fetch this twice.
+      takeUpgradeCurve(combos, `${combos[0].frame.id}:${combos[0].wheelset?.key ?? 'fixed'}`)
+    }
   } catch {
     // Leave the previous numbers up; the notice already says they predate the change.
   } finally {
@@ -274,6 +349,21 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
       <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
         What upgrading does
       </h3>
+      <div
+        v-if="routeUpgradeGainsSec"
+        class="rounded-lg border border-default p-3 space-y-2"
+      >
+        <UpgradeSparkline
+          :values="routeUpgradeGainsSec"
+          :level="currentLevel"
+          :label="routeUpgradeLabel"
+          unit="s"
+          wide
+        />
+        <p class="text-xs text-muted">
+          {{ routeUpgradeText }}
+        </p>
+      </div>
       <div class="grid grid-cols-2 gap-4">
         <UpgradeSparkline
           :values="frame.upgradeCurve.flat"

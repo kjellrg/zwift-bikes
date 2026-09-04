@@ -9,6 +9,7 @@ import type { BikeCategory, ComboScore } from '../../../shared/types/catalog'
 import { parseQuery, recommendRouteQuerySchema } from '../../utils/apiQuerySchemas'
 import { defineCachedRecommendHandler } from '../../utils/recommendCache'
 import { addTimingMeta, markPhase } from '../../utils/timing'
+import { upgradeFinishTimesSec } from '../../utils/upgradeFinishTimes'
 
 // Wrapped in the edge cache (see `recommendCache.ts`): everything below is a
 // pure function of path + query + the deployed bundle, so a computed response
@@ -279,6 +280,23 @@ export default defineCachedRecommendHandler(async (event) => {
     for (const combo of pageCombos) combo.wheelOptions = wheelOptionsByFrame.get(combo.frame.id) ?? 1
   }
   await markPhase(event, 'page')
+
+  // "What upgrading does on THIS route": five more integrations of the same
+  // ride (the sixth stage is the time already computed above), for the one
+  // combo the bike drawer is about to show. Confined to the drill-down
+  // because that is the request the drawer makes and the frame it makes it
+  // for - doing it per listed combo would be nine times this cost for eight
+  // curves nobody opened. Same rider, laps, draft mode and wheels as
+  // everything else in this response, so the curve and the time it is drawn
+  // beside come out of one pipeline.
+  if (hasRiderProfile && geometry && physicsMode === 'dynamic' && wheelsForFrame !== undefined && offset === 0) {
+    const drawerCombo = pageCombos[0]
+    if (drawerCombo) {
+      drawerCombo.upgradeFinishTimesSec = upgradeFinishTimesSec(drawerCombo, staged => countedSimulate({
+        rider, frame: staged, wheelset: drawerCombo.wheelset, geometry, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed
+      }).elapsedSec)
+    }
+  }
 
   // "Riding as a TTT saves X vs solo": ONE extra simulation per request (top
   // combo, first page, dynamic mode only) of the same rider at the same
