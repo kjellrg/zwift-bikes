@@ -320,6 +320,15 @@ const hasLongClimb = computed(() => routeData.value
   ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), powerW.value, weightKg.value).length > 0
   : true)
 
+// The same three readouts the route and segment pages show off the physics
+// block: whether the ranking ran on measured route geometry, and what the
+// race's own draft is worth over riding it alone. All three fall away by
+// themselves when the selected group has no catalog route - there is no
+// physics block without a ranking.
+const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
+const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
+const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
+
 // Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
 const { noteRankedFrames } = useOverlays()
 watch(combos, list => noteRankedFrames(list), { immediate: true })
@@ -470,24 +479,46 @@ useHead(() => {
             <span class="text-muted"> - signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.</span>
           </p>
         </div>
-        <div class="flex flex-wrap sm:justify-end gap-2">
-          <UBadge
-            :color="RACE_FORMAT_COLORS[race!.format!]"
-            variant="subtle"
+        <div class="flex flex-col items-start sm:items-end gap-1.5">
+          <div class="flex flex-wrap sm:justify-end gap-2">
+            <UBadge
+              :color="RACE_FORMAT_COLORS[race!.format!]"
+              variant="subtle"
+            >
+              {{ formatLabel }}
+            </UBadge>
+            <UBadge
+              v-if="isPast"
+              color="neutral"
+              variant="subtle"
+            >
+              Completed
+            </UBadge>
+            <template v-if="routeData">
+              <TerrainBadge :terrain="routeData.terrain" />
+              <SurfaceBadges :surface="routeData.surface" />
+            </template>
+            <UBadge
+              v-if="physicsIsDynamic"
+              color="primary"
+              variant="subtle"
+              icon="i-lucide-atom"
+            >
+              Dynamic physics
+            </UBadge>
+          </div>
+          <p
+            v-if="tttSavingText"
+            class="text-xs text-muted sm:text-right"
           >
-            {{ formatLabel }}
-          </UBadge>
-          <UBadge
-            v-if="isPast"
-            color="neutral"
-            variant="subtle"
+            {{ tttSavingText }}
+          </p>
+          <p
+            v-if="raceSavingText"
+            class="text-xs text-muted sm:text-right"
           >
-            Completed
-          </UBadge>
-          <template v-if="routeData">
-            <TerrainBadge :terrain="routeData.terrain" />
-            <SurfaceBadges :surface="routeData.surface" />
-          </template>
+            {{ raceSavingText }}
+          </p>
         </div>
       </div>
 
