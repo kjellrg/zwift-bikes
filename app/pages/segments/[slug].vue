@@ -33,9 +33,13 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, restCombos, fastestTimeSec, hasMore, loadingMore, showMore,
-  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, loadWheelOptions, owned
+  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, owned
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
+
+// `?bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No `laps`:
+// there is no lap count here (see the Ride above).
+useSharedView({ bikeSearch, bikeSearchDebounced })
 
 // Read-only here: the controls that write them live in
 // `RiderProfileControls` / `BikeFilterControls` - see the equivalent comment

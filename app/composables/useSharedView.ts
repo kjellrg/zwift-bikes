@@ -21,7 +21,8 @@ export interface SharedViewLaps {
  *   has loaded the rider's stored preferences, so a value in the link wins
  *   over the stored one for this visit. Assigned to the state refs directly
  *   rather than through the setters on purpose: a link someone sent must
- *   not overwrite the rider's saved category or draft mode.
+ *   not overwrite the rider's saved category or draft mode. Everything is
+ *   assigned in one tick, so the view costs one request.
  * - **Write from state, never from the query.** A watcher on the committed
  *   refs - the settled search term, not the keystrokes - replaces the query
  *   with what `sharedViewQueryPatch` says is worth carrying.
@@ -43,7 +44,15 @@ export function useSharedView(
   onMounted(() => {
     const view = sharedViewFromQuery(param, lapCount?.maxLaps())
     if (view.laps !== undefined && lapCount) lapCount.laps.value = view.laps
-    if (view.bike !== undefined) request.bikeSearch.value = view.bike
+    if (view.bike !== undefined) {
+      // Both refs, not just the box: the debounce exists to hold keystrokes
+      // back, and a link's term is already settled. Seeding only `bikeSearch`
+      // fetched the category and draft mode at once and the search 300 ms
+      // later - two requests for one view. The debounce timer still fires
+      // and finds the same value, which moves nothing.
+      request.bikeSearch.value = view.bike
+      request.bikeSearchDebounced.value = view.bike
+    }
     if (view.category !== undefined) bikeCategory.value = view.category
     if (view.draft !== undefined) draftMode.value = view.draft
   })
