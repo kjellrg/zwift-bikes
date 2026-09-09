@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BikeCategory } from '../../shared/types/catalog'
+import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
 import { clampTttClimbWkg, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '#shared/utils/physics/draft'
 import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 
@@ -61,11 +62,8 @@ watch(sprintPowerW, (value) => {
 
 const defaultUnownedLevelOptions = [0, 1, 2, 3, 4, 5].map(level => ({ label: level === 0 ? 'Level 0 (stock, just unlocked)' : `Level ${level}`, value: level }))
 const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }, { label: 'Race (pack draft)', value: 'race' }]
-const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = [
-  { label: 'All categories', value: 'all' }, { label: BIKE_CATEGORY_LABELS.standard, value: 'standard' },
-  { label: BIKE_CATEGORY_LABELS.tt, value: 'tt' }, { label: BIKE_CATEGORY_LABELS.gravel, value: 'gravel' },
-  { label: BIKE_CATEGORY_LABELS.funbike, value: 'funbike' }, { label: BIKE_CATEGORY_LABELS.handbike, value: 'handbike' }
-]
+const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = BIKE_CATEGORY_FILTERS
+  .map(value => ({ label: value === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[value], value }))
 // Where the climb slider sits. Once a team pace is stored that is what it
 // shows; until then it tracks the rider's normal power, so the control starts
 // at a sensible place without the profile actually claiming a value - which is

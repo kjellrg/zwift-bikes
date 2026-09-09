@@ -13,8 +13,7 @@ const slug = computed(() => route.params.slug as string)
 // same `useState`-backed state. `useRecommendRequest` reads it too, and owns
 // every refetch it triggers.
 const { weightKg, heightCm, powerW, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
-const { bikeCategory, showUpcomingRaces, setBikeCategory, setIncludeHaloBikes } = usePreferences()
-const { intParam, param, enumParam, replaceQuery } = useUrlState(route, useRouter())
+const { showUpcomingRaces, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 const laps = ref(1)
 const ride = computed<Ride>(() => ({ endpoint: `/api/recommend/${slug.value}`, laps: laps.value }))
@@ -46,6 +45,9 @@ const lapOptions = computed(() => Array.from(
 watch(lapOptions, (options) => {
   if (laps.value > options.length) laps.value = 1
 })
+
+// `?laps=3&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`.
+useSharedView({ bikeSearch, bikeSearchDebounced }, { laps, maxLaps: () => lapOptions.value.length })
 
 // Same 1-lap lead-in-inclusive totals the OG card uses below, so the SERP
 // snippet and the share card always quote the same numbers.
@@ -98,34 +100,6 @@ onMounted(() => {
   watch(slug, (value) => {
     upcomingEvents.value = getUpcomingEventsForRoute(value, new Date().toISOString().slice(0, 10))
   }, { immediate: true })
-
-  // `?laps=3&bike=tarmac&category=tt&draft=ttt` - a shareable view. Read
-  // here, after the child controls' own `onMounted` has loaded the stored
-  // preferences, so a value in the URL wins over the stored one for this
-  // visit. Assigned to the state refs directly rather than through the
-  // setters on purpose: a link someone sent must not overwrite the rider's
-  // saved category or draft mode.
-  const urlLaps = intParam('laps', 1, lapOptions.value.length)
-  if (urlLaps !== undefined) laps.value = urlLaps
-  const urlSearch = param('bike')
-  if (urlSearch) bikeSearch.value = urlSearch.slice(0, 100)
-  const urlCategory = enumParam('category', ['all', 'standard', 'tt', 'gravel', 'handbike', 'funbike'] as const)
-  if (urlCategory) bikeCategory.value = urlCategory
-  const urlDraft = enumParam('draft', ['solo', 'ttt', 'race'] as const)
-  if (urlDraft) draftMode.value = urlDraft
-})
-// Written from state only (never read back from the query - see
-// `useUrlState`). Defaults are omitted so a plain visit keeps a clean URL;
-// the stored preference is what "default" means for category and draft, so
-// a rider with a saved non-default one sees it in the URL - which is exactly
-// what makes their share link reproduce their view.
-watch([laps, bikeSearchDebounced, bikeCategory, draftMode], ([lapCount, search, category, draft]) => {
-  replaceQuery({
-    laps: lapCount > 1 ? lapCount : undefined,
-    bike: search || undefined,
-    category: category !== 'standard' ? category : undefined,
-    draft: draft !== 'solo' ? draft : undefined
-  })
 })
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined)

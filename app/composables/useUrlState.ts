@@ -1,10 +1,13 @@
 import type { LocationQueryRaw, RouteLocationNormalizedLoaded, Router } from 'vue-router'
 
 /**
- * The per-visit knobs (laps, category, search, draft mode, the homepage
- * filters, a race's category group) live in the URL as well as in state, so
- * a results view can be shared and the back button restores it. Two rules
- * every page follows, and the reason this is shared rather than three copies:
+ * A ranking page's shared view (see `CONTEXT.md`: the search, category, draft
+ * mode, and a route's laps or a race's category group - carried by
+ * `useSharedView` on the route and segment pages, by hand on the race page)
+ * lives in the URL as well as in state, so a results view can be shared and
+ * the back button restores it. The homepage filters ride on the same
+ * helpers without being one. Two rules every page follows, and the reason
+ * this is shared rather than three copies:
  *
  * - **Read once, after mount.** Every page here is prerendered or SSR'd from
  *   the defaults; reading the query during render would put the shared HTML

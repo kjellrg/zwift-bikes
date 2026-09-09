@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BikeCategory } from '../../shared/types/catalog'
+import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
 
 /**
  * The bike filter row: category select, search box, verified-only and
@@ -36,11 +37,9 @@ onMounted(() => {
   loadGarage()
 })
 
-const categoryOptions = computed<{ label: string, value: BikeCategory | 'all' }[]>(() => [
-  { label: 'All categories', value: 'all' as const }, { label: BIKE_CATEGORY_LABELS.standard, value: 'standard' as const },
-  { label: BIKE_CATEGORY_LABELS.tt, value: 'tt' as const }, { label: BIKE_CATEGORY_LABELS.gravel, value: 'gravel' as const },
-  { label: BIKE_CATEGORY_LABELS.funbike, value: 'funbike' as const }, { label: BIKE_CATEGORY_LABELS.handbike, value: 'handbike' as const }
-].filter(option => !(props.hideTtCategory && option.value === 'tt')))
+const categoryOptions = computed<{ label: string, value: BikeCategory | 'all' }[]>(() => BIKE_CATEGORY_FILTERS
+  .map(value => ({ label: value === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[value], value }))
+  .filter(option => !(props.hideTtCategory && option.value === 'tt')))
 
 // A rider whose persisted category is `tt` opening a page that hides the TT
 // option would otherwise see a select pointing at an option that isn't there.

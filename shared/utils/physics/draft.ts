@@ -44,6 +44,8 @@ import { speedForPower } from './forces'
  * wheel CdA the site owns.
  */
 export type DraftMode = 'solo' | 'ttt' | 'race'
+/** Every draft mode, for validating one that arrives as untrusted input (a stored profile, a shared view's `?draft=`). */
+export const DRAFT_MODES = ['solo', 'ttt', 'race'] as const satisfies readonly DraftMode[]
 
 export const TTT_MIN_RIDERS = 2
 export const TTT_MAX_RIDERS = 8
