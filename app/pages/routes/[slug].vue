@@ -46,8 +46,7 @@ watch(lapOptions, (options) => {
   if (laps.value > options.length) laps.value = 1
 })
 
-// `?laps=3&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. The
-// lap ceiling is a function because it is only known now, after the fetch.
+// `?laps=3&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`.
 useSharedView({ bikeSearch, bikeSearchDebounced }, { laps, maxLaps: () => lapOptions.value.length })
 
 // Same 1-lap lead-in-inclusive totals the OG card uses below, so the SERP

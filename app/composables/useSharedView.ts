@@ -5,8 +5,9 @@ import { sharedViewFromQuery, sharedViewQueryPatch } from '../utils/sharedView'
 export interface SharedViewLaps {
   laps: Ref<number>
   /**
-   * The lap picker's ceiling, asked for at mount rather than passed as a
-   * value: a route's ceiling is only known once its route has loaded.
+   * The lap picker's ceiling, read when the link is applied (at mount)
+   * rather than snapshotted at setup, so the page can call this anywhere in
+   * its setup - before or after the route fetch the ceiling comes from.
    */
   maxLaps: () => number
 }

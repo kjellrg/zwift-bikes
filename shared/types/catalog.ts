@@ -26,6 +26,11 @@ export type BikeCategory = 'standard' | 'tt' | 'gravel' | 'handbike' | 'funbike'
  * no frame has and filter every result away without an error anywhere.
  */
 export const BIKE_CATEGORY_FILTERS = ['all', 'standard', 'tt', 'gravel', 'funbike', 'handbike'] as const satisfies readonly (BikeCategory | 'all')[]
+// `satisfies` rejects a misspelled entry; this rejects a category missing
+// from the list - the same two-way guard `server/utils/apiQuerySchemas.ts`
+// keeps on its own `BIKE_CATEGORIES`.
+type ExpectNever<T extends never> = T
+export type _BikeCategoryFiltersDriftGuard = ExpectNever<Exclude<BikeCategory, (typeof BIKE_CATEGORY_FILTERS)[number]>>
 
 /**
  * Riding style used only to score `standard` road bikes against a route
