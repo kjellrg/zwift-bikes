@@ -2,7 +2,7 @@
 import type { PublishableRace } from '../../../shared/utils/events'
 import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
-import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
+import { rideForRoute } from '#shared/utils/recommendRide'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
 const route = useRoute()
@@ -84,7 +84,7 @@ if (routeData.value) {
     elevation: formatElevation(totals.elevationM),
     frameName: ogTopCombo?.frame.name,
     wheelName: ogTopCombo?.wheelset?.name,
-    profile: ogProfileFromPoints(geometryForRouteLaps(routeData.value, 1).points)
+    profile: ogProfileFromPoints(rideForRoute(routeData.value, 1).planGeometry().points)
   }, {
     alt: `Best bike for ${routeData.value.name} in ${routeData.value.worldName}: route profile and the fastest bike and wheel setup`
   })
@@ -111,6 +111,7 @@ const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(
 // a distance by a finish time computed for the SAME lap count. See
 // `appliedRide` on `useRecommendRequest`.
 const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
+const resolvedRide = computed(() => routeData.value ? rideForRoute(routeData.value, resultsLaps.value) : undefined)
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
 
 // Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
@@ -122,8 +123,8 @@ watch(combos, list => noteRankedFrames(list), { immediate: true })
 // rider's NORMAL power, never on `tttClimbWkg`: the climb pace must not
 // decide its own slider's visibility, or the control vanishes under the
 // user's cursor as they drag it.
-const hasLongClimb = computed(() => routeData.value
-  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), powerW.value, weightKg.value).length > 0
+const hasLongClimb = computed(() => resolvedRide.value
+  ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
   : true)
 
 const surfaceTimePenaltyText = computed(() => routeData.value ? formatSurfaceTimePenalty(routeData.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined)
