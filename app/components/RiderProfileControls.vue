@@ -4,7 +4,8 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 
 /**
  * The rider box: weight/height/power sliders plus the draft disclosure and
- * its TTT controls, shared verbatim by the route, segment and event race
+ * its TTT controls, shared verbatim by the event race page and, folded
+ * behind "Adjust effort" in `RideRiderSummary`, the route and segment
  * pages. Everything reads `useRiderProfile()` directly, whose state is
  * `useState`-backed, so the host page's own `watch([weightKg, ...])` refetch
  * wiring keeps firing exactly as it did when this markup lived inline.

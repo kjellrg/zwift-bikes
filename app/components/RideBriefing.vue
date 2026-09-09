@@ -1,25 +1,28 @@
 <script setup lang="ts">
 import type { RouteWithMeta } from '../../shared/types/catalog'
-import type { RouteTotals } from '../../shared/utils/routeLaps'
-import type { RouteClimbOccurrence } from '../../shared/utils/routeOccurrences'
 
 /**
- * The compact course briefing beside the recommendation: terrain, what the
- * model knows about the course (elevation profile, surface positions), the
- * surfaces by name, the mapped climbs and the lap/lead-in scope. Everything
- * here is a property of the Ride alone, so it renders with zero equipment
- * matches and during a refetch - the deeper, equipment-dependent analysis
- * (speed chart, TTT plan) lives in the course panels below the answer.
- * Percentages and Crr stay in those panels too: at a glance a rider wants
- * "Tarmac / Cobbles / Wood", not three decimals.
+ * The compact course briefing beside the recommendation: what the ride is,
+ * what the model knows about the course (elevation profile, surface
+ * positions) and the surfaces by name. Everything here is a property of the
+ * Ride alone, so it renders with zero equipment matches and during a refetch
+ * - the deeper, equipment-dependent analysis a route page offers (speed
+ * chart, TTT plan) lives in the course panels below the answer. Percentages
+ * and Crr stay in those panels too: at a glance a rider wants "Tarmac /
+ * Cobbles / Wood", not three decimals.
+ *
+ * The lines that differ between a route and a segment - the mapped climbs
+ * and the lap/lead-in scope on one, the timing scope, host routes and
+ * placement caveat on the other - come from the page through the default
+ * slot, as further `<li>`s of the same list.
  */
 const props = defineProps<{
+  /** The route, or the synthetic segment-as-route the segment page ranks against. */
   route: RouteWithMeta
-  /** The lap count the totals and occurrences below describe. */
-  laps: number
-  totals: RouteTotals
-  /** Already lap-expanded by the page, so the count and first occurrence agree with the climbs card and the elevation chart. */
-  climbs: RouteClimbOccurrence[]
+  /** The ride in a word or two: the terrain category for a route, "Climbing segment" for a segment. */
+  kind: string
+  /** Whether the surface mix describes one lap of a repeated course rather than the whole ride - a route, not a segment. */
+  perLap?: boolean
 }>()
 
 const hasElevationProfile = computed(() => (props.route.terrain.elevationProfile?.length ?? 0) > 1)
@@ -42,7 +45,7 @@ const surfaceNames = computed(() => surfaceNamesLine(props.route.surface.composi
       <span class="text-sm text-muted">{{ route.worldName }}</span>
     </div>
     <p class="mt-3 text-2xl text-highlighted">
-      {{ TERRAIN_LABELS[route.terrain.category] }}
+      {{ kind }}
     </p>
     <ul class="mt-4 space-y-2 text-sm text-muted">
       <li class="flex items-center gap-2">
@@ -58,22 +61,11 @@ const surfaceNames = computed(() => surfaceNamesLine(props.route.surface.composi
         />{{ surfaceCoverage }}
       </li>
       <li v-if="surfaceNames">
-        {{ surfaceNames }} (lap)
-      </li>
-      <li v-if="climbs[0]">
-        {{ climbs.length }} mapped climb occurrence{{ climbs.length === 1 ? '' : 's' }}. First: {{ climbs[0].name }} at km {{ climbs[0].rideFromKm.toFixed(1) }}.
-      </li>
-      <li v-else>
-        No mapped climbs on this ride.
-      </li>
-      <li>
-        {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="totals.leadInDistanceKm > 0">
-          + {{ formatDistance(totals.leadInDistanceKm) }} lead-in<template v-if="totals.leadInElevationM > 0">
-            / {{ formatElevation(totals.leadInElevationM) }}
-          </template>, ridden once
+        {{ surfaceNames }}<template v-if="perLap">
+          (lap)
         </template>
       </li>
+      <slot />
     </ul>
-    <slot />
   </section>
 </template>

@@ -42,7 +42,11 @@ const controlsId = useId()
 
 <template>
   <div>
-    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-default py-3 text-sm text-muted">
+    <div
+      class="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-default py-3 text-sm text-muted"
+      role="group"
+      aria-label="Rider"
+    >
       <span class="inline-flex items-center gap-1.5"><UIcon
         name="i-lucide-user-round"
         class="size-4 shrink-0"

@@ -4,8 +4,9 @@ import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
 
 /**
  * The bike filter row: category select, search box, verified-only and
- * my-garage switches - shared verbatim by the route, segment and event race
- * pages.
+ * my-garage switches. The event race page's controls; the route and segment
+ * pages moved to `RideEquipmentFilters` and the search on `RideAlternatives`,
+ * which bind the same preferences.
  *
  * Search is the only page-owned piece of state (each page debounces it into
  * its own recommend query), so it's a `defineModel`. Everything else binds

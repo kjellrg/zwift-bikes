@@ -4,7 +4,6 @@ import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
-import { comboKey } from '../../utils/comparison'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -144,16 +143,7 @@ const limitedDataNote = computed(() => routeData.value
     })
   : undefined)
 
-// The side-by-side comparison holds `comboKey`s in pick order; the combos
-// are looked up on the loaded list so a refetch that re-times a picked setup
-// shows the new time, and one that drops it drops it from the comparison.
-const comparisonKeys = ref<string[]>([])
-const comparedCombos = computed(() => comparisonKeys.value
-  .map(key => combos.value.find(combo => comboKey(combo) === key))
-  .filter((combo): combo is NonNullable<typeof combo> => combo !== undefined))
-watch(combos, (list) => {
-  comparisonKeys.value = comparisonKeys.value.filter(key => list.some(combo => comboKey(combo) === key))
-})
+const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined)
 // The visible answer under the recommendation and the FAQ structured data
@@ -435,14 +425,29 @@ useHead(() => {
           </div>
         </template>
       </div>
+      <!-- `laps` (the picker), not `resultsLaps`: the briefing describes the
+           ride the rider has chosen, and the climbs are expanded for it. -->
       <RideBriefing
         v-if="routeTotals"
         :route="routeData"
-        :laps="laps"
-        :totals="routeTotals"
-        :climbs="climbOccurrences"
+        :kind="TERRAIN_LABELS[routeData.terrain.category]"
+        per-lap
         class="lg:col-start-1 lg:row-start-1"
-      />
+      >
+        <li v-if="climbOccurrences[0]">
+          {{ climbOccurrences.length }} mapped climb occurrence{{ climbOccurrences.length === 1 ? '' : 's' }}. First: {{ climbOccurrences[0].name }} at km {{ climbOccurrences[0].rideFromKm.toFixed(1) }}.
+        </li>
+        <li v-else>
+          No mapped climbs on this ride.
+        </li>
+        <li>
+          {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
+            + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
+              / {{ formatElevation(routeTotals.leadInElevationM) }}
+            </template>, ridden once
+          </template>
+        </li>
+      </RideBriefing>
     </div>
 
     <!-- Full width beneath both columns: the answer the page's title asks
@@ -568,8 +573,8 @@ useHead(() => {
     <RideComparison
       :combos="comparedCombos"
       :fastest-time-sec="fastestTimeSec"
-      @clear="comparisonKeys = []"
-      @remove="key => comparisonKeys = comparisonKeys.filter(item => item !== key)"
+      @clear="clearComparison"
+      @remove="removeFromComparison"
     />
 
     <PhysicsNote
