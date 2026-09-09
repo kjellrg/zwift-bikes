@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
-import type { TimingMetaValue } from '../../shared/utils/recommendRide'
+import type { TimingMetaValue } from '../../shared/types/recommendRide'
 
-export type { TimingMetaValue } from '../../shared/utils/recommendRide'
+export type { TimingMetaValue } from '../../shared/types/recommendRide'
 
 /**
  * Per-request phase timing, emitted two ways:

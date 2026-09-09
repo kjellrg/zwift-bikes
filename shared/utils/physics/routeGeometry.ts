@@ -286,12 +286,11 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
  * actual grade changes, exactly as `geometryForRouteLaps` does for a whole
  * route's measured lap: distances rescaled onto the official length,
  * measured elevations kept. Without one (membership segments, unmeasured
- * hosts, legacy mode) it falls back to the original 2-point line at the
+ * hosts) it falls back to the original 2-point line at the
  * segment's own average grade (the same per-block approximation
  * `appendKnownClimbsSegment` already makes for a climb within a whole
  * route). Both carry the segment's real position-tagged surface data. Used
- * by the segment ranking endpoint - see `prependWarmup` for how this is
- * turned into a realistic "already at speed" simulation.
+ * by `rideForSegment` for both legacy pacing plans and dynamic timing.
  */
 export function geometryForSegment(slug: string, lengthKm: number, elevationM: number, surfaceSegments: RouteSurfaceSegment[], measuredProfile?: RouteElevationPoint[]): RouteGeometry {
   const totalDistanceM = lengthKm * 1000
@@ -311,7 +310,7 @@ export function geometryForSegment(slug: string, lengthKm: number, elevationM: n
   }
 }
 
-/** Flat, tarmac "warmup" stretch used to bring a rider up to steady-state speed before a segment - see `prependWarmup`. */
+/** Flat, tarmac "warmup" stretch used to bring a rider up to steady-state speed before a segment - see `rideForSegment`. */
 export function geometryForWarmup(distanceM: number): RouteGeometry {
   return {
     routeSlug: 'warmup',
@@ -331,13 +330,10 @@ export function geometryForWarmup(distanceM: number): RouteGeometry {
  * are always entered already moving, never from a standing start, and a
  * standing-start simulation would badly distort rankings on short sprints
  * (overrewarding low-mass/high-acceleration combos for reasons that have
- * nothing to do with how these are actually contested). The segment
- * endpoint runs `simulateRoute` on this combined geometry AND on
- * `geometryForWarmup(warmupDistanceM)` alone, then subtracts the warmup-only
- * elapsed time to isolate the segment's own time - since both runs share
- * identical starting conditions and warmup geometry, their elapsed time at
- * the warmup/segment boundary is identical, so the subtraction is exact, no
- * `simulateRoute` changes needed.
+ * nothing to do with how these are actually contested). Retained for the
+ * race-draft scripts; production's `rideForSegment` instead transfers the
+ * warm-up exit speed to a separate timed run, avoiding subtraction error
+ * from the steady-state shortcut and step alignment (issue #199).
  */
 export function prependWarmup(segmentGeometry: RouteGeometry, warmupDistanceM: number): RouteGeometry {
   const warmup = geometryForWarmup(warmupDistanceM)

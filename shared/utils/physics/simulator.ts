@@ -10,6 +10,8 @@ export interface SimulateRouteOptions {
   wheelset?: Wheelset
   geometry: RouteGeometry
   dtSec?: number
+  /** Acceleration threshold for constant-speed extrapolation; warm-up exit-speed handoffs require tighter convergence than route timing. */
+  steadyStateToleranceMps2?: number
   initialSpeedMps?: number
   /** Distances (m, ascending) to record cumulative elapsed time at as the simulation crosses them - see `boundaryCrossings` on the result. */
   boundariesM?: number[]
@@ -265,7 +267,7 @@ export function simulateRoute(options: SimulateRouteOptions): PhysicsSimulationR
     // last boundary is still carrying the old surface's/power's equilibrium -
     // exiting on it extrapolated the Alpe segment's dirt-converged speed over
     // 10km of tarmac (issue #124's verification caught this).
-    if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < 0.002 && segment.endDistanceM >= options.geometry.totalDistanceM && previousDistance >= lastPowerBoundaryM && previousDistance >= lastSurfaceBoundaryM) {
+    if (state.velocityMps > 1 && Math.abs(forces.accelerationMps2) < (options.steadyStateToleranceMps2 ?? 0.002) && segment.endDistanceM >= options.geometry.totalDistanceM && previousDistance >= lastPowerBoundaryM && previousDistance >= lastSurfaceBoundaryM) {
       const beforeRemainingDistance = state.distanceM
       const beforeRemainingElapsedSec = state.elapsedSec
       const remainingM = options.geometry.totalDistanceM - state.distanceM

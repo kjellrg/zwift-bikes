@@ -78,7 +78,7 @@ function routeRide(log: SimulateLog, overrides: Partial<RecommendRide> = {}): Re
   return loggedRide(rideForRoute(overrides.route ?? route, overrides.laps, overrides.excludeTT), log)
 }
 
-/** The segment endpoint's own ride: a warmed run minus its warm-up, so two integrations per combo. */
+/** The segment endpoint's own ride: warm-up then flying start, so two integrations per combo. */
 function segmentRide(log: SimulateLog): RecommendRide {
   return loggedRide(rideForSegment(segmentRoute), log)
 }
@@ -110,7 +110,7 @@ describe('runRecommendPipeline', () => {
     await runRecommendPipeline(segmentEvent, query(), segmentRide(segmentLog))
 
     // The route integrates once per combo it times; the segment integrates
-    // twice (warmed, minus warm-up), which is what the log line has to report.
+    // twice (warm-up, then segment), which is what the log line has to report.
     expect(getRequestTiming(routeEvent)?.meta.sims).toBe(routeLog.length)
     expect(getRequestTiming(segmentEvent)?.meta.sims).toBe(segmentLog.length * 2)
     // The ride's own fields lead the log line.

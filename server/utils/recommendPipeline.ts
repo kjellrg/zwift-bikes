@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import type { BikeCategory, ComboScore } from '../../shared/types/catalog'
-import type { RecommendRide } from '../../shared/utils/recommendRide'
+import type { RecommendRide } from '../../shared/types/recommendRide'
 import { getFrames } from '../../shared/utils/catalog'
 import { getWheelsets } from '../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../shared/utils/scoring'
@@ -11,7 +11,7 @@ import type { RecommendBaseQuery } from './apiQuerySchemas'
 import { addTimingMeta, markPhase } from './timing'
 import { upgradeFinishTimesSec } from './upgradeFinishTimes'
 
-export type { RecommendRide, RidePhysics, SimulateComboOptions } from '../../shared/utils/recommendRide'
+export type { RecommendRide, RidePhysics, SimulateComboOptions } from '../../shared/types/recommendRide'
 
 /**
  * The one implementation of the recommend orchestration, shared by
@@ -25,7 +25,7 @@ export type { RecommendRide, RidePhysics, SimulateComboOptions } from '../../sha
  * whether the ride is a whole route or one segment, and the ordering
  * between them is subtle enough that two copies drifted every time an
  * MCP-era change landed. What genuinely differs is described by
- * `RecommendRide` in shared/utils/recommendRide.ts: which `RouteWithMeta` is ranked against, how the
+ * `RecommendRide` in shared/types/recommendRide.ts: which `RouteWithMeta` is ranked against, how the
  * ride's geometry is built, and how one combo is timed on it.
  */
 
@@ -211,7 +211,7 @@ export async function runRecommendPipeline(
   const rider = { weightKg, heightCm, powerW }
   // The ride builds its own geometry, and hands back the one function that
   // knows how to time a combo on it - one integration for a route, a warmed
-  // run minus its warm-up for a segment.
+  // start after its warm-up for a segment.
   const { simulateSec } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
   // Computed ONCE per request and shared by every combo - a per-combo plan
   // would poison `orderBySimulatedTime`'s physics-keyed dedupe cache (see

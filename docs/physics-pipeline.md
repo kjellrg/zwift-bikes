@@ -386,27 +386,36 @@ is fully paved.
 
 `server/api/recommend/segments/[slug].get.ts` runs the identical pipeline -
 literally the same module - but a segment is entered at speed rather than from
-a standing start. So its ride simulates twice per combo and subtracts:
+a standing start. Both endpoints use the builders in
+`shared/utils/recommendRide.ts`. The ride owns lazy, memoised `planGeometry()`
+for the pipeline and the ranking pages; `prepare(simulate, rider)` only
+prepares per-combo timing. Legacy mode uses the same measured geometry for
+pacing plans, even though it retains the old finish-time model.
+
+The segment ride simulates twice per combo, passing the warm-up's exit speed
+into the timed segment:
 
 ```mermaid
 %%{ init: { "flowchart": { "nodeSpacing": 30, "rankSpacing": 40 } } }%%
 flowchart TD
     G["geometryForSegment<br/>measured profile slice, or a 2-point line at the segment's grade"]
-    W["prependWarmup<br/>+2 km of flat tarmac"]
-    S1["simulateRoute<br/>warmup + segment"]
+    S1["simulateRoute<br/>segment at initialSpeedMps"]
     WO["geometryForWarmup<br/>2 km"]
     S2["simulateRoute<br/>warmup only"]
-    SUB["subtract"]
     T(["The segment's own time"])
 
-    G --> W --> S1 --> SUB
-    WO --> S2 --> SUB
-    SUB --> T
+    G --> S1 --> T
+    WO --> S2
+    S2 -- "finalSpeedMps" --> S1
 ```
 
-Both runs share identical starting conditions and identical warmup geometry, so
-their elapsed time at the boundary is identical and the subtraction is exact —
-no simulator changes were needed to support it.
+The flat warm-up uses the rider's base power and the same draft scaling, but
+no climb overrides. Its steady-state shortcut uses a tighter acceleration
+tolerance so the exit speed has converged. The timed run uses the ride's
+unshifted geometry and pacing plan at the normal integration timestep.
+This avoids the numerical drift of subtracting independently approximated
+times. See [the #199 verification](shared-ride-verification.md) for the
+approved departure from the original subtraction design and before/after data.
 
 ## 7. Two models, one force calculation
 
