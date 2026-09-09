@@ -1,4 +1,4 @@
-import type { BikeCategory, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
 import type { Powerup, RaceFormat } from '../../shared/utils/events'
 
 export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
@@ -103,6 +103,17 @@ export const SURFACE_TYPE_ICONS: Record<ZwiftSurfaceType, string> = {
   grass: 'i-lucide-sprout',
   sand: 'i-lucide-waves',
   gravel: 'i-lucide-stone'
+}
+
+/**
+ * Whether every number behind a combo traces to ZwiftInsider bot tests - the
+ * `confidence` contract (see `.claude/skills/zwift-recommendation-accuracy`)
+ * reduced to one yes/no for a headline. A fixed-wheel frame has no wheel to
+ * ask. The recommendation and every ranked row must agree on this rule, which
+ * is why it is not spelled out in each of them.
+ */
+export function isBotTested(combo: { frame: { confidence: ScoreConfidence }, wheelset?: { confidence: ScoreConfidence } }): boolean {
+  return combo.frame.confidence === 'measured' && (!combo.wheelset || combo.wheelset.confidence === 'measured')
 }
 
 export function formatGrade(percent: number): string {

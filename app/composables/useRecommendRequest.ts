@@ -100,8 +100,9 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   const { owned, ownedWheels, load: loadGarage } = useGarage()
   // Read-only here: the controls that write these (sliders, draft
   // disclosure, category/search/switches) live in `RiderProfileControls` and
-  // `BikeFilterControls`, which bind and persist the same `useState`-backed
-  // state this reads.
+  // `BikeFilterControls` (segment and race pages) or `RideRiderSummary` and
+  // `RideEquipmentFilters` (route page), which bind and persist the same
+  // `useState`-backed state this reads.
   const {
     weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg,
     load: loadRiderProfile
@@ -302,7 +303,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     isFirstLoad,
     isRefreshing,
     resultsAnnouncement,
-    /** `v-model:search` for `BikeFilterControls`; the composable debounces it into the query. */
+    /** `v-model:search` for `BikeFilterControls` / `RideAlternatives`; the composable debounces it into the query. */
     bikeSearch,
     /** The settled search term - what the query was actually built from, and what a page writes to the URL. */
     bikeSearchDebounced,

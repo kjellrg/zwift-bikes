@@ -1,0 +1,17 @@
+{
+  // Typechecked by `nuxt typecheck` (vue-tsc -b) through the root tsconfig's
+  // references, so a spec that drifts from the page it drives fails the same
+  // check as the page. Kept apart from the Nuxt app config: the specs run in
+  // Playwright's Node runtime, not in the app.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "composite": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts", "../../playwright.config.ts"]
+}

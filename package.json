@@ -25,6 +25,7 @@
     "prepare": "husky",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:browser": "playwright test",
     "spellcheck": "cspell --no-progress",
     "typecheck": "nuxt typecheck",
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
@@ -45,6 +46,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
+    "@playwright/test": "1.63.0",
     "@types/node": "^22.20.1",
     "cspell": "^10.1.0",
     "esbuild": "^0.27.7",

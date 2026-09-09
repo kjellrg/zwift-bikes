@@ -13,13 +13,13 @@ This is a hobby project, built and run in spare time by fellow cyclists and
 Zwifters, for the fun of it. Bug reports, data corrections and pull requests
 are all very welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-![Sliders for rider weight, height and power above a route's top bike recommendations, ranked with match scores, estimated finish times and verified badges](docs/assets/screenshots/bikes-light.png#gh-light-mode-only)
-![Sliders for rider weight, height and power above a route's top bike recommendations, ranked with match scores, estimated finish times and verified badges](docs/assets/screenshots/bikes-dark.png#gh-dark-mode-only)
+![A route page: the recommended frame and wheels with their estimated finish time beside a short ride briefing, and the ranked alternatives beneath](docs/assets/screenshots/bikes-light.png#gh-light-mode-only)
+![A route page: the recommended frame and wheels with their estimated finish time beside a short ride briefing, and the ranked alternatives beneath](docs/assets/screenshots/bikes-dark.png#gh-dark-mode-only)
 
 *The heart of the site: set your weight, height and power, and any route
-gives you its top frame + wheelset combos — with estimated finish times,
-match scores and badges showing which numbers are backed by verified test
-data.*
+tells you its fastest frame + wheelset with an estimated finish time, the
+alternatives and how far behind they are, and whether each number is backed
+by verified test data or an estimate.*
 
 ## What it does
 
