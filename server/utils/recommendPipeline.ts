@@ -212,15 +212,13 @@ export async function runRecommendPipeline(
   // The ride builds its own geometry, and hands back the one function that
   // knows how to time a combo on it - one integration for a route, a warmed
   // run minus its warm-up for a segment.
-  const { planGeometry, simulateSec } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
+  const { simulateSec } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
   // Computed ONCE per request and shared by every combo - a per-combo plan
   // would poison `orderBySimulatedTime`'s physics-keyed dedupe cache (see
-  // `physics/draft.ts`). Legacy mode has no simulator geometry but still needs
-  // the plan for the estimate's two-phase split, so `planGeometry` builds one
-  // just for it (geometry construction is cheap; simulation is the expensive
-  // part).
+  // `physics/draft.ts`). Legacy mode uses the same ride geometry for the
+  // estimate's two-phase split, without running the simulator.
   const tttPlan = hasRiderProfile && tttClimbWkg
-    ? tttPowerPlan((planGeometry ?? ride.planGeometry)(), tttClimbWkg, weightKg, powerW)
+    ? tttPowerPlan(ride.planGeometry(), tttClimbWkg, weightKg, powerW)
     : undefined
   // The one object every draft-aware call site threads through: the draft
   // scaling for the simulator, and its closed-form twin for the estimate.
