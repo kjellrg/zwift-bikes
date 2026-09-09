@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
-import { geometryForSegment } from '#shared/utils/physics/routeGeometry'
+import { rideForSegment } from '#shared/utils/recommendRide'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -13,6 +13,7 @@ if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Seg
 // `routeWithMetaForSegment`). Positional segments on a measured host get a
 // real profile; membership segments don't, and the chart hides itself.
 const segmentRoute = computed(() => segmentData.value?.route)
+const resolvedRide = computed(() => segmentRoute.value ? rideForSegment(segmentRoute.value) : undefined)
 
 // Sprint segments rank at the rider's separate sprint power (see
 // `sprintPowerW` in `useRiderProfile`); everything else at their normal
@@ -97,7 +98,7 @@ if (segmentData.value) {
     frameName: ogTopCombo?.frame.name,
     wheelName: ogTopCombo?.wheelset?.name,
     profile: measuredProfile && measuredProfile.length > 1
-      ? ogProfileFromPoints(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, [], measuredProfile).points)
+      ? ogProfileFromPoints(resolvedRide.value!.planGeometry().points)
       : undefined
   }, {
     alt: `Best bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
@@ -115,13 +116,9 @@ const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.ra
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
 // power, never on `tttClimbWkg`, so the climb pace can't decide its own
-// slider's visibility. The empty surface list is deliberate: it only feeds
-// the simulator's Crr, and climb detection reads nothing but the geometry's
-// points - which must be the same geometry the endpoint simulates
-// (measured profile when the host route has one, 2-point line otherwise),
-// or this slider's visibility diverges from the actual sim.
-const hasLongClimb = computed(() => segmentData.value
-  ? detectLongClimbBlocks(geometryForSegment(segmentData.value.slug, segmentData.value.lengthKm, segmentData.value.elevationM, [], segmentRoute.value?.terrain.elevationProfile), powerW.value, weightKg.value).length > 0
+// slider's visibility.
+const hasLongClimb = computed(() => resolvedRide.value
+  ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
   : true)
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)

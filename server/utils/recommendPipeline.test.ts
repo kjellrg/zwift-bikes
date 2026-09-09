@@ -8,14 +8,13 @@ import { runRecommendPipeline } from './recommendPipeline'
 import { getRequestTiming, startRequestTiming } from './timing'
 import { getRouteBySlug } from '../../shared/utils/catalog'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../shared/utils/routeSegments'
-import { geometryForRouteLaps, geometryForSegment, geometryForWarmup, prependWarmup } from '../../shared/utils/physics'
-import { sliceSurfaceSegments } from '../../shared/utils/surfaceGeometry'
+import { rideForRoute, rideForSegment } from '../../shared/utils/recommendRide'
 
 /**
  * Invariants of the shared orchestration (issue #77), exercised against the
  * real catalog and the real simulator the way `scoring.test.ts` is - the two
- * endpoints differ only in the `RecommendRide` they build, so a ride assembled
- * here the way each endpoint assembles its own is the pipeline's real input.
+ * endpoints differ only in the `RecommendRide` they build, so the shared
+ * builders supply the pipeline's real input here too.
  *
  * A short flat route and a short sprint segment keep the suite quick while
  * still running true integrations; `markPhase`/`addTimingMeta` are no-ops
@@ -28,7 +27,6 @@ const ROUTE_SLUG = 'tempus-fugit'
 // pace differently, so the draft assertions need a route that has one.
 const CLIMB_ROUTE_SLUG = 'road-to-sky'
 const SEGMENT_SLUG = 'alley-sprint'
-const WARMUP_DISTANCE_M = 2000
 
 /** Fails loudly rather than through an `undefined` deep inside the pipeline if the catalog ever drops a fixture. */
 function fixtureRoute(slug: string): RouteWithMeta {
@@ -58,52 +56,31 @@ function query(params: Record<string, string> = {}): RecommendBaseQuery {
 /** Every `simulateSec` call the pipeline made, so the disclosures' call shapes can be asserted. */
 type SimulateLog = Pick<SimulateComboOptions, 'powerSegmentsW' | 'powerScaleAtSpeed'>[]
 
-/** The route endpoint's own ride, with a log of how the pipeline called it. */
-function routeRide(log: SimulateLog, overrides: Partial<RecommendRide> = {}): RecommendRide {
-  const ridden = overrides.route ?? route
+function loggedRide(ride: RecommendRide, log: SimulateLog): RecommendRide {
   return {
-    route: ridden,
-    laps: 1,
-    excludeTT: false,
-    timingMeta: { route: ridden.slug },
+    ...ride,
     prepare: (simulate, rider) => {
-      if (!rider) return { planGeometry: () => geometryForRouteLaps(ridden, 1) }
-      const geometry = geometryForRouteLaps(ridden, 1)
+      const physics = ride.prepare(simulate, rider)
+      const { simulateSec } = physics
       return {
-        planGeometry: () => geometry,
-        simulateSec: ({ frame, wheelset, powerSegmentsW, powerScaleAtSpeed }) => {
-          log.push({ powerSegmentsW, powerScaleAtSpeed })
-          return simulate({ rider, frame, wheelset, geometry, powerSegmentsW, powerScaleAtSpeed }).elapsedSec
-        }
-      }
-    },
-    ...overrides
-  }
-}
-
-/** The segment endpoint's own ride: a warmed run minus its warm-up, so two integrations per combo. */
-function segmentRide(log: SimulateLog): RecommendRide {
-  const surfaceSegments = sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')
-  return {
-    route: segmentRoute,
-    laps: 1,
-    excludeTT: false,
-    timingMeta: { segment: segmentSummary.slug, route: segmentRoute.slug },
-    prepare: (simulate, rider) => {
-      const geometry = geometryForSegment(segmentRoute.slug, segmentRoute.distance, segmentRoute.elevation, surfaceSegments, segmentRoute.terrain.elevationProfile)
-      if (!rider) return { planGeometry: () => geometry }
-      const warmedGeometry = prependWarmup(geometry, WARMUP_DISTANCE_M)
-      const warmupOnlyGeometry = geometryForWarmup(WARMUP_DISTANCE_M)
-      return {
-        planGeometry: () => geometry,
-        simulateSec: ({ frame, wheelset, powerSegmentsW, powerScaleAtSpeed }) => {
-          log.push({ powerSegmentsW, powerScaleAtSpeed })
-          return simulate({ rider, frame, wheelset, geometry: warmedGeometry, powerSegmentsW, powerScaleAtSpeed }).elapsedSec
-            - simulate({ rider, frame, wheelset, geometry: warmupOnlyGeometry, powerScaleAtSpeed }).elapsedSec
-        }
+        ...physics,
+        simulateSec: simulateSec && ((options) => {
+          log.push({ powerSegmentsW: options.powerSegmentsW, powerScaleAtSpeed: options.powerScaleAtSpeed })
+          return simulateSec(options)
+        })
       }
     }
   }
+}
+
+/** The route endpoint's own ride, with a log of how the pipeline called it. */
+function routeRide(log: SimulateLog, overrides: Partial<RecommendRide> = {}): RecommendRide {
+  return loggedRide(rideForRoute(overrides.route ?? route, overrides.laps, overrides.excludeTT), log)
+}
+
+/** The segment endpoint's own ride: warm-up then flying start, so two integrations per combo. */
+function segmentRide(log: SimulateLog): RecommendRide {
+  return loggedRide(rideForSegment(segmentRoute), log)
 }
 
 describe('runRecommendPipeline', () => {
@@ -133,7 +110,7 @@ describe('runRecommendPipeline', () => {
     await runRecommendPipeline(segmentEvent, query(), segmentRide(segmentLog))
 
     // The route integrates once per combo it times; the segment integrates
-    // twice (warmed, minus warm-up), which is what the log line has to report.
+    // twice (warm-up, then segment), which is what the log line has to report.
     expect(getRequestTiming(routeEvent)?.meta.sims).toBe(routeLog.length)
     expect(getRequestTiming(segmentEvent)?.meta.sims).toBe(segmentLog.length * 2)
     // The ride's own fields lead the log line.

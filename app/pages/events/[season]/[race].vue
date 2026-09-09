@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Ride } from '../../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
-import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
+import { rideForRoute } from '#shared/utils/recommendRide'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
 /**
@@ -310,14 +310,15 @@ const draftHint = computed(() => {
 // only advances when results for it actually arrive. See `appliedRide` on
 // `useRecommendRequest`.
 const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
+const resolvedRide = computed(() => routeData.value ? rideForRoute(routeData.value, resultsLaps.value, appliedRide.value.ttFramesAllowed === false) : undefined)
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
 
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
 // power, never on `tttClimbWkg`, so the climb pace can't decide its own
 // slider's visibility.
-const hasLongClimb = computed(() => routeData.value
-  ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), powerW.value, weightKg.value).length > 0
+const hasLongClimb = computed(() => resolvedRide.value
+  ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
   : true)
 
 // The same three readouts the route and segment pages show off the physics

@@ -6,7 +6,7 @@ Ranks every Zwift frame and wheelset by how fast it would carry a specific rider
 
 **Ride**:
 The thing being ranked, together with everything the page knows about it that the rider's stored profile does not: the route or segment, the lap count, whether TT frames are barred, and any rider-side substitution the ride itself demands (a sprint segment is ridden at sprint power; a race with drafting off is ridden solo). One Ride is what a page hands to the recommendation request, and what the server's pipeline receives from an endpoint.
-The type is `Ride` in `app/utils/recommendRequest.ts`; a page hands one to `useRecommendRequest` and owns nothing else about the request.
+One Ride has two representations, one on each side of the request. `Ride` in `app/utils/recommendRequest.ts` is what the page knows; a page hands one to `useRecommendRequest` and owns nothing else about the request. `RecommendRide` is the same Ride resolved against the catalog and ready to be timed: the route to rank against, the laps, the TT-frame rule, and how one combo is timed on it (a segment is entered at speed off a warm-up, a route from its lead-in). The rider-side substitutions never reach the server as part of the Ride; they arrive already applied, as a power figure and a draft mode.
 _Avoid_: context, request options, page config, ride params
 
 **Shared view**:

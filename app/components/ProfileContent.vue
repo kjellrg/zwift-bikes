@@ -114,7 +114,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="130"
           :step="1"
           aria-label="Rider weight in kilograms"
-          @update:model-value="(value: number | undefined) => { pendingWeightKg = value ?? pendingWeightKg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = (Array.isArray(value) ? value[0] : value) ?? pendingWeightKg }"
           @change="commitWeight"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -133,7 +133,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="220"
           :step="1"
           aria-label="Rider height in centimetres"
-          @update:model-value="(value: number | undefined) => { pendingHeightCm = value ?? pendingHeightCm }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = (Array.isArray(value) ? value[0] : value) ?? pendingHeightCm }"
           @change="commitHeight"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -152,7 +152,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="POWER_W_RANGE.max"
           :step="POWER_W_RANGE.step"
           aria-label="Race power in watts"
-          @update:model-value="(value: number | undefined) => { pendingPowerW = value ?? pendingPowerW }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = (Array.isArray(value) ? value[0] : value) ?? pendingPowerW }"
           @change="commitPower"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -171,7 +171,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="SPRINT_POWER_W_RANGE.max"
           :step="SPRINT_POWER_W_RANGE.step"
           aria-label="Sprint power in watts"
-          @update:model-value="(value: number | undefined) => { pendingSprintPowerW = value ?? pendingSprintPowerW }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingSprintPowerW = (Array.isArray(value) ? value[0] : value) ?? pendingSprintPowerW }"
           @change="commitSprintPower"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -264,7 +264,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="TTT_MAX_RIDERS"
           :step="1"
           aria-label="Riders in the paceline"
-          @update:model-value="(value: number | undefined) => { pendingRiders = value ?? pendingRiders }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingRiders = (Array.isArray(value) ? value[0] : value) ?? pendingRiders }"
           @change="commitRiders"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -286,7 +286,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="TTT_MAX_CLIMB_WKG"
           :step="0.1"
           aria-label="Team climb pace in watts per kilogram"
-          @update:model-value="(value: number | undefined) => { pendingClimbWkg = value ?? pendingClimbWkg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = (Array.isArray(value) ? value[0] : value) ?? pendingClimbWkg }"
           @change="commitClimbWkg"
         />
         <div class="flex justify-between text-xs text-muted mt-1">

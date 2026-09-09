@@ -1,4 +1,7 @@
 import type { H3Event } from 'h3'
+import type { TimingMetaValue } from '../../shared/types/recommendRide'
+
+export type { TimingMetaValue } from '../../shared/types/recommendRide'
 
 /**
  * Per-request phase timing, emitted two ways:
@@ -25,8 +28,6 @@ import type { H3Event } from 'h3'
  * why `markPhase` is async. In local dev (Node, and `wrangler dev`, whose
  * clocks advance regardless) it degrades to one cheap macrotask hop.
  */
-
-export type TimingMetaValue = string | number | boolean | undefined
 
 export interface RequestTiming {
   /**

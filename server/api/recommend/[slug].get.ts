@@ -1,6 +1,5 @@
 import { getRouteBySlug, toRouteSummary } from '../../../shared/utils/catalog'
-import { geometryForRouteLaps } from '../../../shared/utils/physics'
-import { clampLaps } from '../../../shared/utils/routeLaps'
+import { rideForRoute } from '../../../shared/utils/recommendRide'
 import { parseQuery, recommendRouteQuerySchema } from '../../utils/apiQuerySchemas'
 import { defineCachedRecommendHandler } from '../../utils/recommendCache'
 import { draftNotes, runRecommendPipeline } from '../../utils/recommendPipeline'
@@ -10,9 +9,8 @@ import { draftNotes, runRecommendPipeline } from '../../utils/recommendPipeline'
 // is served from the colo's cache until the next deploy.
 //
 // The ranking itself lives in `server/utils/recommendPipeline.ts`, shared with
-// the segment endpoint - what this file owns is the route: how many laps of
-// it, the geometry one integration covers, and the wording that describes how
-// faithfully its terrain is mapped.
+// the segment endpoint - what this file owns is the route lookup and the
+// wording that describes how faithfully its terrain is mapped.
 export default defineCachedRecommendHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing route slug' })
@@ -23,31 +21,7 @@ export default defineCachedRecommendHandler(async (event) => {
   // `recommendRouteQuerySchema` and its field comments in
   // `server/utils/apiQuerySchemas.ts`. An invalid value throws a 400 here.
   const q = parseQuery(event, recommendRouteQuerySchema)
-  const laps = clampLaps(route, q.laps)
-
-  const result = await runRecommendPipeline(event, q, {
-    route,
-    laps,
-    excludeTT: q.excludeTT,
-    // Route distance x laps is what the simulation cost scales with, so it
-    // leads the log line's request-shape fields.
-    timingMeta: { route: route.slug, distanceKm: Math.round(route.distance * laps * 10) / 10, laps },
-    prepare: (simulate, rider) => {
-      // Nothing is simulated without a rider profile, or in legacy mode - the
-      // only geometry those requests can need is the TTT plan's, and only if
-      // a plan is asked for at all.
-      if (!rider) return { planGeometry: () => geometryForRouteLaps(route, laps) }
-      // One integration covers the whole ride: the lead-in plus every lap.
-      // Built once and reused for the plan, which must describe the same
-      // coordinates the sims ride.
-      const geometry = geometryForRouteLaps(route, laps)
-      return {
-        planGeometry: () => geometry,
-        simulateSec: ({ frame, wheelset, powerSegmentsW, powerScaleAtSpeed }) =>
-          simulate({ rider, frame, wheelset, geometry, powerSegmentsW, powerScaleAtSpeed }).elapsedSec
-      }
-    }
-  })
+  const result = await runRecommendPipeline(event, q, rideForRoute(route, q.laps, q.excludeTT))
 
   const { physics } = result
   const { tttNote, raceNote, draftSummary } = draftNotes(physics, 'the race')

@@ -63,7 +63,7 @@ If phase durations ever read as implausible zeros on a deployed Worker while
 | `simulate` | `simulateRoute` - the per-metre integration. Normally the dominant phase. |
 | `page` | Surface penalties and final ordering for the returned page. |
 | `extras` | The solo-vs-draft and fastest-overall disclosures (extra simulations). |
-| `sims` | How many full integrations ran. `simulate` = `sims` x one route; the segments endpoint runs two per candidate (warmed minus warmup-only). |
+| `sims` | How many full integrations ran. `simulate` = `sims` x one route; the segments endpoint runs two per candidate (warm-up, then the segment entered at its exit speed). |
 
 Non-API requests (SSR page renders) get `path`, `status`, `totalMs` and an
 empty `phases` - useful on its own, since a page render's own internal API

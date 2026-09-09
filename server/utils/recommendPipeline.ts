@@ -1,7 +1,6 @@
 import type { H3Event } from 'h3'
-import type { BikeCategory, ClassifiedBikeFrame, ComboScore, RouteWithMeta, Wheelset } from '../../shared/types/catalog'
-import type { PhysicsRider, RouteGeometry } from '../../shared/types/physics'
-import type { PowerSegmentW } from '../../shared/utils/physics'
+import type { BikeCategory, ComboScore } from '../../shared/types/catalog'
+import type { RecommendRide } from '../../shared/types/recommendRide'
 import { getFrames } from '../../shared/utils/catalog'
 import { getWheelsets } from '../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../shared/utils/scoring'
@@ -9,9 +8,10 @@ import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES 
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../shared/utils/finishTime'
 import { confirmWheelPicks, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, WHEEL_OPTIONS_ORDER_MARGIN } from '../../shared/utils/physics'
 import type { RecommendBaseQuery } from './apiQuerySchemas'
-import type { TimingMetaValue } from './timing'
 import { addTimingMeta, markPhase } from './timing'
 import { upgradeFinishTimesSec } from './upgradeFinishTimes'
+
+export type { RecommendRide, RidePhysics, SimulateComboOptions } from '../../shared/types/recommendRide'
 
 /**
  * The one implementation of the recommend orchestration, shared by
@@ -25,75 +25,9 @@ import { upgradeFinishTimesSec } from './upgradeFinishTimes'
  * whether the ride is a whole route or one segment, and the ordering
  * between them is subtle enough that two copies drifted every time an
  * MCP-era change landed. What genuinely differs is described by
- * `RecommendRide` below: which `RouteWithMeta` is ranked against, how the
+ * `RecommendRide` in shared/types/recommendRide.ts: which `RouteWithMeta` is ranked against, how the
  * ride's geometry is built, and how one combo is timed on it.
  */
-
-/** Everything one combo's timing needs beyond the ride's own geometry. */
-export interface SimulateComboOptions {
-  frame: ClassifiedBikeFrame
-  wheelset?: Wheelset
-  /**
-   * The TTT pacing plan, in the RIDE's own coordinates - a ride that
-   * simulates on shifted geometry has to shift these to match.
-   */
-  powerSegmentsW?: PowerSegmentW[]
-  /**
-   * The draft power scaling. Absent for the "what would this be solo?"
-   * disclosures, which are the same ride with nothing but the draft removed.
-   */
-  powerScaleAtSpeed?: (speedMps: number) => number
-}
-
-/** What a ride's geometry pass hands back to the pipeline. */
-export interface RidePhysics {
-  /**
-   * The geometry a TTT power plan is built on, in the ride's own
-   * coordinates. Called at most once per request, and only when a plan is
-   * actually needed (a rider profile plus `tttClimbWkg`) - building one is
-   * cheap next to a simulation but not free on a long route. When the
-   * request simulates, this is the same geometry the sims ride; when it does
-   * not (legacy mode), the ride builds an equivalent throwaway.
-   */
-  planGeometry: () => RouteGeometry
-  /**
-   * Times one combo on this ride. Present exactly when `prepare` was given a
-   * rider, i.e. when this request simulates at all.
-   */
-  simulateSec?: (options: SimulateComboOptions) => number
-}
-
-/** The ride being ranked: a whole route, or one segment. */
-export interface RecommendRide {
-  /** What `rankCombos` / `estimateFinishTimeSec` / `estimateSurfaceTimePenaltySec` rank against. */
-  route: RouteWithMeta
-  /** Laps passed to the estimate functions: `clampLaps(route, q.laps)` for a route, 1 for a segment. */
-  laps: number
-  /**
-   * Drop TT frames from the pool entirely (a legality filter - see
-   * `excludeTT` on the route schema). A segment has no such parameter and
-   * passes `false`, which is what "no such parameter" always meant here.
-   */
-  excludeTT: boolean
-  /**
-   * Ride-specific fields for the timing log line, spread in FIRST so its key
-   * order is unchanged (route: `route`, `distanceKm`, `laps`; segment:
-   * `segment`, `route`, `distanceKm`).
-   */
-  timingMeta: Record<string, TimingMetaValue>
-  /**
-   * Builds this ride's geometry, and the function that times one combo on
-   * it. Called exactly once per request, in the `geometry` phase.
-   *
-   * `rider` is present exactly when this request simulates - a complete
-   * rider profile AND a physics mode that runs the simulator - so a ride
-   * builds its simulator geometry if and only if it is handed one.
-   * `simulate` is the pipeline's counted `simulateRoute`: every integration
-   * a ride runs has to go through it, or the `sims` figure in the timing log
-   * stops counting the work.
-   */
-  prepare: (simulate: typeof simulateRoute, rider?: PhysicsRider) => RidePhysics
-}
 
 /** The "a bike your filters are hiding is faster" disclosure. */
 export interface FastestOverall {
@@ -277,16 +211,14 @@ export async function runRecommendPipeline(
   const rider = { weightKg, heightCm, powerW }
   // The ride builds its own geometry, and hands back the one function that
   // knows how to time a combo on it - one integration for a route, a warmed
-  // run minus its warm-up for a segment.
-  const { planGeometry, simulateSec } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
+  // start after its warm-up for a segment.
+  const { simulateSec } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
   // Computed ONCE per request and shared by every combo - a per-combo plan
   // would poison `orderBySimulatedTime`'s physics-keyed dedupe cache (see
-  // `physics/draft.ts`). Legacy mode has no simulator geometry but still needs
-  // the plan for the estimate's two-phase split, so `planGeometry` builds one
-  // just for it (geometry construction is cheap; simulation is the expensive
-  // part).
+  // `physics/draft.ts`). Legacy mode uses the same ride geometry for the
+  // estimate's two-phase split, without running the simulator.
   const tttPlan = hasRiderProfile && tttClimbWkg
-    ? tttPowerPlan(planGeometry(), tttClimbWkg, weightKg, powerW)
+    ? tttPowerPlan(ride.planGeometry(), tttClimbWkg, weightKg, powerW)
     : undefined
   // The one object every draft-aware call site threads through: the draft
   // scaling for the simulator, and its closed-form twin for the estimate.
