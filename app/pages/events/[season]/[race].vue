@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ride } from '../../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
@@ -9,9 +10,9 @@ import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOc
  * disables TT frames for points and scratch races, so a recommendation that
  * ignored the format would put an illegal bike at the top of the list.
  *
- * The recommendation data flow deliberately mirrors `pages/routes/[slug].vue`
- * (parallel fetches, `watch: false` on the recommend call, explicit refresh
- * on profile/garage/laps changes) so the two pages can't drift in behaviour.
+ * The ranking itself goes through `useRecommendRequest`, the same composable
+ * the route and segment pages hand a Ride to, so the three can't drift in
+ * behaviour - this page's only job is to say what the ride IS.
  */
 const route = useRoute()
 const seasonSlug = computed(() => route.params.season as string)
@@ -24,27 +25,11 @@ if (!season || !race || !isRacePublishable(race)) {
 }
 const round = getRoundForRace(season, race)
 
-const { owned, ownedWheels, load: loadGarage } = useGarage()
 // Read-only plus `setDraftMode` (for the format hint below): the controls
-// themselves live in `RiderProfileControls` / `BikeFilterControls`.
-const { weightKg, heightCm, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, setDraftMode, load: loadRiderProfile } = useRiderProfile()
-const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, setBikeCategory, setIncludeHaloBikes, load: loadPreferences } = usePreferences()
-
-const bikeSearch = ref('')
-const bikeSearchDebounced = ref('')
-let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined
-watch(bikeSearch, (value) => {
-  clearTimeout(bikeSearchDebounceTimer)
-  bikeSearchDebounceTimer = setTimeout(() => {
-    bikeSearchDebounced.value = value
-  }, 300)
-})
-const pageSize = 9
-// How many wheel choices a card's disclosure asks for. Capped by the API's own
-// `limit` (RECOMMEND_MAX_LIMIT), and deliberately short of it: past half a
-// dozen the list is answering a question nobody asked, and every extra row is
-// another route simulation paid on a click.
-const wheelOptionsLimit = 6
+// themselves live in `RiderProfileControls` / `BikeFilterControls`, and
+// `useRecommendRequest` reads the rest of this state itself.
+const { weightKg, heightCm, powerW, draftMode, tttRiders, tttClimbWkg, setDraftMode } = useRiderProfile()
+const { setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 // A/B and C/D routinely race the same route over a different number of laps,
 // which changes the distance, the climbing and therefore the ranking - so the
@@ -74,138 +59,47 @@ const formatLabel = computed(() => RACE_FORMAT_LABELS[race!.format!])
 const formatPhrase = computed(() => race!.format === 'rot' ? 'Race of Truth' : formatLabel.value.toLowerCase())
 
 /**
- * The persisted bike-category preference, made race-legal: a rider whose
- * stored category is `tt` opening a race where TT frames are outlawed is
- * ranked across all legal categories instead (matching the "All categories"
- * the hidden-TT select shows), WITHOUT overwriting their stored preference.
+ * The Ride: this group's course and lap count, plus the two equipment rules
+ * a race has and a route page doesn't.
+ *
+ * `useRecommendRequest` makes the rider's stored settings race-legal from
+ * them - a rider whose stored category is `tt` is ranked across all legal
+ * categories where TT frames are outlawed (matching the "All categories" the
+ * hidden-TT select shows them), and a race WTRL turns drafting off in is
+ * ranked solo, because a ranking computed at bunch speeds there would be
+ * minutes fast and could genuinely reorder the list. Neither stored
+ * preference is touched: both still apply to every other race they open.
+ *
+ * A group with no catalog route has no endpoint, so nothing is requested and
+ * nothing is ranked - the page still shows that group's published figures.
  */
-const effectiveCategory = computed(() => {
-  if (bikeCategory.value === 'all') return undefined
-  if (bikeCategory.value === 'tt' && !ttAllowed) return undefined
-  return bikeCategory.value
-})
-
-/**
- * The persisted draft mode, made race-legal - the exact counterpart of
- * `effectiveCategory` above, and for the same reason. WTRL switches drafting
- * off entirely in a Race of Truth, so a ranking computed at bunch speeds there
- * would be minutes fast and could genuinely reorder the list; it is forced to
- * solo instead. The rider's stored preference is left alone, because it still
- * applies to every other race they open.
- */
-const effectiveDraftMode = computed(() => draftAllowed ? draftMode.value : 'solo')
-
-const recommendQuery = computed(() => ({
-  search: bikeSearchDebounced.value || undefined,
-  category: effectiveCategory.value,
-  limit: pageSize,
-  // One row per bike: a frame's other wheels live behind the result card's own
-  // disclosure (see `ComboResultCard`), not as repeat rows that spend the
-  // page's nine slots - and the simulated-ordering window with them - on the
-  // same bike two or three times.
-  maxWheelsetsPerFrame: 1,
-  offset: 0,
-  // Always sent, never omitted - see the equivalent comment in `routes/[slug].vue`.
-  verifiedOnly: verifiedOnly.value ? 'true' : 'false',
-  // Always sent - the endpoint's default is include, the preference's is
-  // exclude (see `usePreferences`).
-  includeHalo: includeHaloBikes.value ? 'true' : 'false',
-  ownedOnly: myBikesOnly.value ? 'true' : undefined,
-  owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
-  ownedWheels: Object.keys(ownedWheels.value).length ? JSON.stringify(Object.keys(ownedWheels.value)) : undefined,
-  defaultUnownedLevel: defaultUnownedLevel.value,
-  weightKg: weightKg.value,
-  heightCm: heightCm.value,
-  powerW: powerW.value,
+const ride = computed<Ride>(() => ({
+  endpoint: selectedRouteSlug.value ? `/api/recommend/${selectedRouteSlug.value}` : undefined,
   laps: laps.value,
-  // The whole point of an event page: rank only what the rider is allowed to
-  // start on. See `excludeTT` on `recommendRouteQuerySchema` in
-  // `server/utils/apiQuerySchemas.ts`.
-  excludeTT: ttAllowed ? undefined : 'true',
-  // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
-  draftMode: effectiveDraftMode.value === 'solo' ? undefined : effectiveDraftMode.value,
-  tttRiders: effectiveDraftMode.value === 'ttt' ? tttRiders.value : undefined,
-  tttClimbWkg: effectiveDraftMode.value === 'ttt' ? tttClimbWkg.value : undefined
+  ttFramesAllowed: ttAllowed,
+  draftingAllowed: draftAllowed
 }))
+const {
+  ready: recommendReady, physics: physicsInfo, fastestOverall,
+  combos, topCombo, restCombos, fastestTimeSec, hasMore, loadingMore, showMore,
+  draftMode: effectiveDraftMode, appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement,
+  bikeSearch, loadWheelOptions, owned
+} = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 
-// `useAsyncData` rather than `useFetch` here: the selected category group can
-// change which route is being shown, and can have no route at all, which a
-// `useFetch` URL can't express. The route lookup is keyed on the slug so
-// switching category fetches that group's route instead of reusing the
-// previous one.
-//
-// The recommend call's key is deliberately STATIC (fixed per race page), and
-// the explicit watchers below are its only refetch trigger (`watch: []` -
-// `useAsyncData`'s spelling of `useFetch`'s `watch: false`). A key that
-// changes with the query looks equivalent but is not: a reactive key change
-// itself executes the fetch (Nuxt watches the key with `flush: 'sync'`, so it
-// fires once per mutated ref), and back when weight changes re-derived the
-// stored W/kg, a weight commit wrote two refs - so a query-shaped key fired
-// three requests per slider move: two key-triggered (the first with a stale
-// power) plus the explicit watcher's own refresh. Power is stored in watts
-// now and a weight commit writes one ref, but the multi-ref hazard remains
-// (a category switch changes slug and laps together), so the key stays
-// static. `useFetch({ watch: false })` opts out of
-// key-triggered execution internally (`_keyTriggersExecute`), which is why
-// the route/segment pages never had this. A slug-shaped key has the same
-// problem one level up: a category switch can change slug and laps together,
-// double-fetching from the key watcher plus the laps watcher.
-//
-// The custom `getCachedData` is what makes the static key safe. Nuxt's
-// default answers ANY `refresh()` from the server-rendered payload while the
-// app is still hydrating (see `getDefaultCachedData` in Nuxt's `asyncData`),
-// and the rider's stored profile loads from localStorage inside that
-// hydration window - so with a plain static key the post-load refresh was
-// silently swallowed and page one kept the default-profile times, while
-// "Show more matches" fetched with the real profile, pinning faster times to
-// the bottom of the list. Refusing to serve the cache for manual refreshes
-// keeps hydration itself free (the initial load still reuses the payload)
-// while guaranteeing every `refreshRecommendations()` call hits the network.
-//
-// The cached entry is an envelope `{ forQuery, result }` so the cache can
-// answer the question the route/segment pages get for free from `useFetch`'s
-// query-hashing auto-key: was this data computed for the query I'm about to
-// send? It matters on client-side navigation: these pages are prerendered
-// with the DEFAULT rider profile, and Nuxt's payload plugin prefetches the
-// target page's `_payload.json` into `nuxtApp.static.data` under exactly
-// this static key. The profile watchers below can't correct a stale hit -
-// the profile loaded into app state long before this page's setup ran, so
-// nothing changes and nothing refreshes - which froze default-profile times
-// on every navigation from the calendar until a slider moved (issue #121).
-// Serving `static.data` only when the stored query matches the current one
-// keeps the prerendered payload answering client-side navigations for
-// default-profile riders while sending everyone else to the network - the
-// route pages' exact contract. (The old query-shaped key dodged #121 by
-// accident, and reintroducing it would reintroduce the multi-fetch bug.)
-const recommendKey = `race-recommend-${seasonSlug.value}-${raceSlug.value}`
-const [{ data: routeData }, { data: recommendEnvelope, status, refresh: refreshRecommendations, error: recommendError }] = await Promise.all([
+// `useAsyncData` rather than `useFetch` for the route lookup: the selected
+// category group can change which route is being shown, and can have no
+// route at all, which a `useFetch` URL can't express. The route lookup is
+// keyed on the slug so switching category fetches that group's route instead
+// of reusing the previous one. Fired together with the recommendation, which
+// doesn't depend on it resolving first.
+const [{ data: routeData }] = await Promise.all([
   useAsyncData(
     () => `race-route-${selectedRouteSlug.value ?? 'none'}`,
     () => selectedRouteSlug.value ? $fetch(`/api/routes/${selectedRouteSlug.value}`) : Promise.resolve(null),
     { watch: [selectedRouteSlug] }
   ),
-  useAsyncData(
-    recommendKey,
-    async () => {
-      // Serialized before the await: the envelope must record the query this
-      // result was fetched WITH, not whatever the refs hold when it lands.
-      const forQuery = JSON.stringify(recommendQuery.value)
-      const result = selectedRouteSlug.value ? await $fetch(`/api/recommend/${selectedRouteSlug.value}`, { query: recommendQuery.value }) : null
-      return { forQuery, result }
-    },
-    {
-      watch: [],
-      getCachedData: (key, nuxtApp, ctx) => {
-        if (ctx.cause === 'refresh:manual') return undefined
-        if (nuxtApp.isHydrating) return nuxtApp.payload.data[key]
-        const cached = nuxtApp.static.data[key]
-        return cached?.forQuery === JSON.stringify(recommendQuery.value) ? cached : undefined
-      }
-    }
-  )
+  recommendReady
 ])
-const recommendData = computed(() => recommendEnvelope.value?.result ?? null)
-useRefetchNotice(recommendError, status, refreshRecommendations)
 
 // Runtime site flags: with the events section hidden, this page swaps its
 // content for the unavailable notice post-mount - the prerendered HTML
@@ -214,14 +108,7 @@ useRefetchNotice(recommendError, status, refreshRecommendations)
 const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
 
 onMounted(() => {
-  loadGarage()
   loadSiteFlags()
-  // Normally the two control components load these themselves - but when the
-  // selected group has no catalog route the controls aren't mounted at all,
-  // and the query still wants the rider's stored profile. `load()` is an
-  // idempotent localStorage read, so running it twice costs nothing.
-  loadRiderProfile()
-  loadPreferences()
   // `?group=1` - which category group the shared link was looking at. The
   // group changes route and lap count, so it is the one knob a race link
   // has to carry. Read after mount like every URL-carried value here.
@@ -418,24 +305,11 @@ const draftHint = computed(() => {
   return undefined
 })
 
-/** Whatever `/api/recommend/[slug]` returns, kept in step with it by inference. */
-type ComboResult = NonNullable<typeof recommendData.value>['combos'][number]
-
-// Same lagged-laps rule as `routes/[slug].vue`: a speed readout must divide a
-// distance by a finish time computed for the SAME lap count, so the value the
-// cards and FAQ use only advances when results for it actually arrive.
-const resultsLaps = ref(laps.value)
-const { loadedCombos, hasMore, loadingMore, reloadingPages, showMore, refreshFirstPage, reloadLoadedPages } = useRecommendResults<ComboResult>({
-  recommendData,
-  refresh: refreshRecommendations,
-  fetchPage: (offset, limit) => selectedRouteSlug.value
-    ? $fetch(`/api/recommend/${selectedRouteSlug.value}`, { query: { ...recommendQuery.value, offset, limit } })
-    : Promise.resolve({}),
-  pageSize,
-  onResultsApplied: () => {
-    resultsLaps.value = laps.value
-  }
-})
+// The lap count the combos on screen were computed for - a speed readout must
+// divide a distance by a finish time computed for the SAME lap count, so this
+// only advances when results for it actually arrive. See `appliedRide` on
+// `useRecommendRequest`.
+const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
 
 // Whether the team climb pace control is worth showing - see the
@@ -446,58 +320,9 @@ const hasLongClimb = computed(() => routeData.value
   ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), powerW.value, weightKg.value).length > 0
   : true)
 
-const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
-const isRefreshingCombos = computed(() => (status.value === 'pending' || reloadingPages.value) && !!recommendData.value)
-// Announced to assistive tech when a refetch lands: the visual cue is
-// opacity and a spinner only. Cleared first so consecutive refreshes
-// re-announce (a live region only speaks on change).
-const resultsAnnouncement = ref('')
-watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
-  if (!wasRefreshing || refreshing) return
-  resultsAnnouncement.value = ''
-  await nextTick()
-  resultsAnnouncement.value = 'Results updated'
-})
-
-/**
- * The wheel list behind a result card's disclosure. Fetched on click through
- * the endpoint's `wheelsForFrame` drill-down, with THIS page's live query, so
- * the times in the list come out of the same pipeline - same rider, same laps,
- * same draft mode, same garage, and the race's own equipment rules - as the
- * time on the card that opened it.
- */
-async function loadWheelOptions(frameId: number) {
-  if (!selectedRouteSlug.value) return []
-  const data = await $fetch(`/api/recommend/${selectedRouteSlug.value}`, {
-    query: { ...recommendQuery.value, wheelsForFrame: frameId, offset: 0, limit: wheelOptionsLimit }
-  })
-  return data.combos ?? []
-}
-
-watch([weightKg, heightCm, powerW, laps, selectedRouteSlug, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, effectiveDraftMode, tttRiders, tttClimbWkg], () => {
-  refreshFirstPage()
-})
-const { noteRankedFrames } = useOverlays()
-watch(owned, () => {
-  reloadLoadedPages()
-}, { deep: true })
 // Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
-watch(loadedCombos, list => noteRankedFrames(list), { immediate: true })
-watch(ownedWheels, () => {
-  reloadLoadedPages()
-}, { deep: true })
-
-const combos = computed(() => loadedCombos.value)
-const topCombo = computed(() => combos.value[0])
-const restCombos = computed(() => combos.value.slice(1))
-const fastestTimeSec = computed(() => {
-  const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number')
-  return times.length ? Math.min(...times) : undefined
-})
-const physicsInfo = computed(() => recommendData.value?.physics)
-// Present only when the category filter is hiding a faster combo - and the
-// `excludeTT` pool means it can never advertise a bike that's illegal here.
-const fastestOverall = computed(() => recommendData.value?.fastestOverall)
+const { noteRankedFrames } = useOverlays()
+watch(combos, list => noteRankedFrames(list), { immediate: true })
 
 /** Only meaningful once the race window has closed - resolved client-side, see below. */
 const isPast = ref(false)
@@ -974,7 +799,7 @@ useHead(() => {
         </div>
         <template v-else>
           <p
-            v-if="isRefreshingCombos"
+            v-if="isRefreshing"
             class="flex items-center gap-1.5 text-sm text-muted mb-3"
           >
             <UIcon
@@ -990,7 +815,7 @@ useHead(() => {
           />
           <div
             class="transition-opacity"
-            :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
+            :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
           >
             <ComboResultCard
               v-if="topCombo"
