@@ -1,6 +1,6 @@
 import type { ComboScore, RouteSummary, SegmentSummary, SurfaceEstimate } from '../../../shared/types/catalog'
 import { formatDuration, formatDurationGap } from '../../../shared/utils/duration'
-import { RECOMMEND_MAX_OFFSET } from '../apiQuerySchemas'
+import { RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
 
 /**
  * The shape the recommend endpoints return. Declared here rather than inferred
