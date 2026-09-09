@@ -14,7 +14,21 @@ const props = defineProps<{
   draftMode?: DraftMode
   tttRiders?: number
   tttClimbWkg?: number
+  /**
+   * Render the chart alone, without the card, the collapsible header, its
+   * badge or tooltip - for a tab panel that already names and scopes the
+   * chart (`RideCourseAnalysis`). The race page keeps the default card.
+   */
+  flat?: boolean
+  /**
+   * In `flat` mode, whether the panel holding the chart is the one on
+   * screen. A hidden tab panel stays mounted, so this - not mounting - is
+   * what first triggers the simulation, the way expanding the card does.
+   */
+  active?: boolean
 }>()
+
+const UCard = resolveComponent('UCard')
 
 const VIEW_WIDTH = 800
 const PAD_LEFT = 56
@@ -45,15 +59,16 @@ const hasSurfaceData = computed(() =>
   && (props.route.surface.segments?.length ?? 0) > 0
 )
 
-// The simulation only runs once the panel has been expanded at least once - it's the same
-// `simulateRoute` the server already ran for `topCombo` to get its finish time, so running it again
-// eagerly (e.g. purely to populate the collapsed header's avg-speed badge) would duplicate that work
-// on every page load even for users who never open this panel.
+// The simulation only runs once the panel has been expanded (or, in `flat` mode, its tab selected)
+// at least once - it's the same `simulateRoute` the server already ran for `topCombo` to get its
+// finish time, so running it again eagerly (e.g. purely to populate the collapsed header's avg-speed
+// badge) would duplicate that work on every page load even for users who never open this panel.
 const hasOpened = ref(false)
 const isComputing = ref(false)
 
 // Always computed for one lap - see `computeRouteSurfaceSpeedProfile`'s own doc comment. The card title
-// gets a "(per lap)" qualifier below for lap-based routes so this scope stays clear to the reader.
+// gets a "(per lap)" qualifier below for lap-based routes so this scope stays clear to the reader; in
+// `flat` mode the tab panel's own scope line says it instead.
 const profile = computed(() => hasOpened.value
   ? computeRouteSurfaceSpeedProfile(
       props.route,
@@ -75,6 +90,13 @@ async function handleOpenChange(open: boolean) {
   hasOpened.value = true
   isComputing.value = false
 }
+// Client-only on purpose: the tab state a server render sees never selects this panel, and a
+// simulation in the server render would put the whole curve into every route's HTML.
+onMounted(() => {
+  watch(() => props.flat && props.active, (active) => {
+    if (active) void handleOpenChange(true)
+  }, { immediate: true })
+})
 const segments = computed(() => profile.value?.segments)
 const speedSamples = computed(() => profile.value?.speedSamples)
 
@@ -298,12 +320,21 @@ const summaryText = computed(() => {
 </script>
 
 <template>
-  <UCard v-if="hasSurfaceData">
+  <!-- `flat`: a plain wrapper and the collapsible held open with no trigger,
+       so the one chart template serves both the card and a tab panel. -->
+  <component
+    :is="flat ? 'div' : UCard"
+    v-if="hasSurfaceData"
+  >
     <UCollapsible
-      :ui="{ content: 'mt-3' }"
+      :open="flat || undefined"
+      :ui="{ content: flat ? '' : 'mt-3' }"
       @update:open="handleOpenChange"
     >
-      <template #default="{ open }">
+      <template
+        v-if="!flat"
+        #default="{ open }"
+      >
         <button
           type="button"
           class="flex w-full items-center justify-between gap-2 text-left"
@@ -348,6 +379,13 @@ const summaryText = computed(() => {
           />
         </div>
         <template v-else-if="profile">
+          <!-- The header badge's number, for the header-less mode. -->
+          <p
+            v-if="flat"
+            class="mb-2 text-sm text-muted"
+          >
+            <span class="font-medium text-highlighted">{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h</span> average over the whole simulated ride
+          </p>
           <svg
             :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
             class="w-full h-auto"
@@ -504,5 +542,5 @@ const summaryText = computed(() => {
         </template>
       </template>
     </UCollapsible>
-  </UCard>
+  </component>
 </template>

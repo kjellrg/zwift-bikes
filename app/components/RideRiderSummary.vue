@@ -33,8 +33,7 @@ const { weightKg, heightCm, hasStoredProfile } = useRiderProfile()
 // click handler would run before `preventDefault` - see `useOverlays`.
 const { openProfile } = useOverlays()
 
-const DRAFT_LABELS: Record<DraftMode, string> = { solo: 'Solo', race: 'Race draft', ttt: 'TTT paceline' }
-const draftLabel = computed(() => DRAFT_LABELS[props.draftMode])
+const draftLabel = computed(() => DRAFT_MODE_LABELS[props.draftMode])
 
 const adjustEffort = ref(false)
 const controlsId = useId()

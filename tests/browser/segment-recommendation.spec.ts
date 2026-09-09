@@ -172,7 +172,8 @@ test.describe('segment recommendation', () => {
     await expect(briefing(page).getByRole('link', { name: 'Sugar Cookie' })).toHaveAttribute('href', '/routes/sugar-cookie')
     // Nothing to chart without a profile; the borrowed surface mix still shows, as a mix.
     await expect(page.getByLabel('Elevation profile chart')).toHaveCount(0)
-    await expect(page.getByRole('heading', { name: 'Surface' })).toBeVisible()
+    await page.getByRole('tab', { name: 'Surface details' }).click()
+    await expect(page.getByRole('tabpanel', { name: 'Surface details' })).toContainText('Tarmac')
   })
 
   test('answers an unknown segment with a 404, not an empty page', async ({ page, request, isMobile }) => {

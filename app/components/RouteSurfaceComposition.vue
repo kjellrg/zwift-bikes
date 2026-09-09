@@ -4,7 +4,11 @@ import { SURFACE_CRR } from '#shared/data/surfaceCrr'
 
 const props = defineProps<{
   surface: SurfaceEstimate
+  /** Render the bar and table alone, without the card, header or tooltip - for a tab panel that already scopes them (`RideCourseAnalysis`). */
+  flat?: boolean
 }>()
+
+const UCard = resolveComponent('UCard')
 
 // Only `'measured'`/`'curated'` routes carry a detailed composition - see
 // `estimateSurface` in `routeTerrain.ts`. Unverified/heuristic routes don't
@@ -35,10 +39,20 @@ const tooltipText = computed(() =>
        already carry `SurfaceBadges` for the at-a-glance mix, and where the
        surface is actually the story (a fully cobbled race) the page says so in
        prose above. Same UCard + UCollapsible header button as
-       `RouteElevationProfile`, so the analysis cards behave alike. -->
-  <UCard v-if="rows.length">
-    <UCollapsible :ui="{ content: 'mt-3' }">
-      <template #default="{ open }">
+       `RouteElevationProfile`, so the analysis cards behave alike - and the
+       same `flat` escape from both, for a tab panel. -->
+  <component
+    :is="flat ? 'div' : UCard"
+    v-if="rows.length"
+  >
+    <UCollapsible
+      :open="flat || undefined"
+      :ui="{ content: flat ? '' : 'mt-3' }"
+    >
+      <template
+        v-if="!flat"
+        #default="{ open }"
+      >
         <button
           type="button"
           class="flex w-full items-center justify-between gap-2 text-left"
@@ -99,5 +113,5 @@ const tooltipText = computed(() =>
         </div>
       </template>
     </UCollapsible>
-  </UCard>
+  </component>
 </template>

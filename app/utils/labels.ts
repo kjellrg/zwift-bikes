@@ -1,5 +1,9 @@
 import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
 import type { Powerup, RaceFormat } from '../../shared/utils/events'
+import type { DraftMode } from '../../shared/utils/physics/draft'
+
+/** The draft mode as the rider strip and the course-analysis scope lines name it - one list, so the two never disagree. */
+export const DRAFT_MODE_LABELS: Record<DraftMode, string> = { solo: 'Solo', race: 'Race draft', ttt: 'TTT paceline' }
 
 export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
   standard: 'Standard (Road)',

@@ -13,3 +13,15 @@ _Avoid_: context, request options, page config, ride params
 The values a link to a ranking page carries so that the recipient sees what the sender saw: the bike search, the bike category, the draft mode, and whatever the page ranks by beyond the Ride's identity (the lap count on a route, the category group on a race). A shared view applies for that visit only and never changes the rider's stored preferences; a view that only shows the defaults has nothing to carry, so its link stays clean.
 The URL carries a shared view's non-default values. The homepage filters are not a shared view: that page ranks nothing.
 _Avoid_: URL state, per-visit knobs, query params, visit override
+
+**Ride-only**:
+Information that is a property of the Ride alone - the course's elevation, surfaces and mapped occurrences, and the terms the rider chose - so it exists with zero equipment matches and through a results refresh. Equipment-dependent analysis (the speed chart, the TTT plan) is not Ride-only: it describes one ranked setup.
+_Avoid_: static content, course info, non-equipment data
+
+**Sector**:
+A stretch of a Ride where a TTT paceline is likely to split or slow: a sustained climb, where draft gives almost nothing, or a sustained rough surface, priced as the extra watts the recommended wheels need there over tarmac. A Ride with no sectors flagged is not a Ride with an uninterrupted paceline; the model only flags what it can measure.
+_Avoid_: danger, race plan item, hazard
+
+**TTT plan**:
+The Ride's sectors in ride order for the recommended setup, with the coverage the model could not analyse disclosed beside them. It exists under TTT drafting only; race drafting models a bunch, not a paceline, and has no plan. The briefing's TTT line and the plan itself read one result.
+_Avoid_: race plan, sector list, paceline analysis

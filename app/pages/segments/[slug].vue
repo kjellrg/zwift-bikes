@@ -430,33 +430,19 @@ useHead(() => {
       </p>
     </section>
 
-    <!-- Ride-only panels, so they stay up through a refetch and with zero
-         matches. No speed chart or TTT plan here: both simulate the course
-         route-style, without the flying-start warm-up the timed estimate
-         above is entered with, and how to label that is #207/#208's question. -->
-    <section
-      v-if="hasElevationProfile || segmentRoute.surface.composition"
-      aria-labelledby="course-analysis-heading"
-      class="space-y-6"
-    >
-      <h2
-        id="course-analysis-heading"
-        class="text-xl font-semibold text-highlighted"
-      >
-        Course analysis
-      </h2>
-      <RouteElevationProfile
-        v-if="hasElevationProfile"
-        :route="segmentRoute"
-        :laps="1"
-      />
-      <div v-if="segmentRoute.surface.composition">
-        <h3 class="text-lg font-semibold text-highlighted mb-3">
-          Surface
-        </h3>
-        <RouteSurfaceComposition :surface="segmentRoute.surface" />
-      </div>
-    </section>
+    <!-- A segment is ridden once, so both lap counts are 1 and there is no
+         Segments tab. The speed chart and TTT plan simulate the segment
+         route-style, from a standing start, and their scope lines say so. -->
+    <RideCourseAnalysis
+      :route="segmentRoute"
+      :kind="segmentData.type"
+      :laps="1"
+      :results-laps="1"
+      :combo="topCombo"
+      :power-w="activePowerW"
+      :draft-mode="appliedDraftMode"
+      :refreshing="isRefreshing"
+    />
 
     <div
       v-if="!isFirstLoad"

@@ -3,7 +3,7 @@ import type { PublishableRace } from '../../../shared/utils/events'
 import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
-import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
+import { expandClimbsForLaps } from '#shared/utils/routeOccurrences'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -12,7 +12,7 @@ const slug = computed(() => route.params.slug as string)
 // `RiderProfileControls` / `RideEquipmentFilters`, which bind and persist this
 // same `useState`-backed state. `useRecommendRequest` reads it too, and owns
 // every refetch it triggers.
-const { weightKg, heightCm, powerW, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
+const { weightKg, powerW } = useRiderProfile()
 const { showUpcomingRaces, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 const laps = ref(1)
@@ -105,7 +105,6 @@ onMounted(() => {
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined)
 const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : [])
-const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : [])
 
 // The lap count the currently displayed combos were computed for - `laps`
 // itself moves the header stats immediately, but a speed readout must divide
@@ -473,82 +472,18 @@ useHead(() => {
       </p>
     </section>
 
-    <section
-      aria-labelledby="course-analysis-heading"
-      class="space-y-6"
-    >
-      <h2
-        id="course-analysis-heading"
-        class="text-xl font-semibold text-highlighted"
-      >
-        Course analysis
-      </h2>
-      <RouteSurfaceSpeedProfile
-        v-if="topCombo"
-        :route="routeData"
-        :frame="topCombo.frame"
-        :wheelset="topCombo.wheelset"
-        :weight-kg="weightKg"
-        :height-cm="heightCm"
-        :power-w="powerW"
-        :draft-mode="draftMode"
-        :ttt-riders="tttRiders"
-        :ttt-climb-wkg="tttClimbWkg"
-      />
-      <RacePlanPanel
-        v-if="draftMode === 'ttt' && topCombo"
-        :route="routeData"
-        :laps="laps"
-        :weight-kg="weightKg"
-        :height-cm="heightCm"
-        :power-w="powerW"
-        :frame="topCombo.frame"
-        :wheelset="topCombo.wheelset"
-        :ttt-riders="tttRiders"
-        :ttt-climb-wkg="tttClimbWkg"
-      />
-      <RouteElevationProfile
-        v-if="routeData.terrain.elevationProfile && routeData.terrain.elevationProfile.length > 1"
-        :route="routeData"
-        :laps="laps"
-        :climbs="climbOccurrences"
-        :sprints="sprintOccurrences"
-      />
-      <div
-        v-if="climbOccurrences.length || sprintOccurrences.length || routeData.surface.composition"
-        class="grid grid-cols-1 lg:grid-cols-3 gap-6"
-      >
-        <div
-          v-if="climbOccurrences.length || sprintOccurrences.length"
-          class="lg:col-span-2 space-y-6"
-        >
-          <div v-if="climbOccurrences.length">
-            <h3 class="text-lg font-semibold text-highlighted mb-3">
-              Climbs on this route
-            </h3>
-            <RouteClimbs :climbs="climbOccurrences" />
-          </div>
-          <div v-if="sprintOccurrences.length">
-            <h3 class="text-lg font-semibold text-highlighted mb-3">
-              Sprints on this route
-            </h3>
-            <RouteSprints :sprints="sprintOccurrences" />
-          </div>
-        </div>
-        <div v-if="routeData.surface.composition">
-          <h3 class="text-lg font-semibold text-highlighted mb-3">
-            Surface
-          </h3>
-          <RouteSurfaceComposition :surface="routeData.surface" />
-        </div>
-      </div>
-      <p
-        v-if="!topCombo && !isFirstLoad"
-        class="text-sm text-muted"
-      >
-        The speed &amp; surface profile and the TTT plan need a ranked setup to simulate; they return with the first match.
-      </p>
-    </section>
+    <!-- Ride-only tabs follow the picker `laps` like the briefing; the
+         equipment tabs follow the applied results, like the recommendation. -->
+    <RideCourseAnalysis
+      :route="routeData"
+      kind="route"
+      :laps="laps"
+      :results-laps="resultsLaps"
+      :combo="topCombo"
+      :power-w="activePowerW"
+      :draft-mode="appliedDraftMode"
+      :refreshing="isRefreshing"
+    />
 
     <div
       v-if="!isFirstLoad"
