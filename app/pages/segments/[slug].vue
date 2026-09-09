@@ -133,6 +133,15 @@ const limitedDataNote = computed(() => segmentRoute.value
       hasSurfaceLocations: (segmentRoute.value.surface.segments?.length ?? 0) > 0
     })
   : undefined)
+// One plan for the briefing's TTT line and the TTT plan tab - see
+// `useTttPlan`. One lap: the timed segment, with no lead-in.
+const tttPlan = useTttPlan({
+  route: () => segmentRoute.value,
+  combo: () => topCombo.value,
+  powerW: () => activePowerW.value,
+  laps: () => 1,
+  draftMode: () => appliedDraftMode.value
+})
 
 const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
 
@@ -400,6 +409,10 @@ useHead(() => {
             >{{ host.name }}</ULink><span v-if="index < segmentData.hostRoutes.length - 1">, </span>
           </template>
         </li>
+        <TttBriefingLine
+          v-if="tttPlan"
+          :plan="tttPlan"
+        />
         <li
           v-if="segmentData.placement === 'membership'"
           class="text-xs"
@@ -442,6 +455,7 @@ useHead(() => {
       :power-w="activePowerW"
       :draft-mode="appliedDraftMode"
       :refreshing="isRefreshing"
+      :plan="tttPlan"
     />
 
     <div

@@ -179,9 +179,14 @@ ridden. Switching the draft mode to **TTT (paceline)** models a rotating team:
 - **The "saves X vs riding alone" line** simulates the identical rider, power
   and pacing with the draft switched off, so the gap is purely what the
   paceline buys.
-- **The race plan panel** lists where the paceline is in danger: long climbs
-  and sustained rough-surface sectors (extra rolling resistance and reduced
-  draft), ignoring stretches too short to matter.
+- **The TTT plan** (the route and segment pages' plan tab and briefing line;
+  the race page's race plan panel) lists the sectors where the paceline is in
+  danger: long climbs and sustained rough-surface sectors (extra rolling
+  resistance and reduced draft), ignoring stretches too short to matter. It
+  discloses what it could not analyse: with no elevation profile it is
+  withheld, without positioned surfaces only climbs are flagged, and a lead-in
+  modelled from totals rather than a measured trace has nothing flagged inside
+  it (`app/utils/tttPlan.ts`).
 
 Full writeup — the data, the maths, the validation and the limits — is in
 [ttt-drafting.md](ttt-drafting.md).

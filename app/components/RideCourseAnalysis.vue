@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import type { DraftMode } from '../../shared/utils/physics/draft'
-import { buildRacePlan } from '#shared/utils/physics/racePlan'
-import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
+import type { TttPlan } from '../composables/useTttPlan'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
 /**
@@ -20,7 +19,9 @@ import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOc
  * equipment tabs follow the APPLIED results (`resultsLaps`, `combo`,
  * `powerW`, `draftMode`): a plan priced for a setup must describe the ride
  * that setup was ranked on, and during a refresh they keep the previous
- * results, dimmed, exactly as the recommendation does.
+ * results, dimmed, exactly as the recommendation does. The TTT plan itself
+ * arrives from the page (`useTttPlan`), which computes it once for the
+ * briefing's TTT line and this tab, so the two cannot disagree.
  */
 const props = defineProps<{
   /** The route, or the synthetic segment-as-route the segment page ranks against. */
@@ -39,6 +40,8 @@ const props = defineProps<{
   draftMode: DraftMode
   /** Whether the results are being recomputed - the equipment panels dim like the recommendation. */
   refreshing: boolean
+  /** The page's TTT plan, present under TTT drafting only - its presence is what adds the tab. */
+  plan?: TttPlan
 }>()
 
 // Weight and height have no per-ride substitution (see `RideRiderSummary`),
@@ -56,7 +59,7 @@ const items = computed(() => [
   ...(isRoute.value ? [{ label: 'Segments', value: 'segments' as const, slot: 'segments' as const, icon: 'i-lucide-route' }] : []),
   ...(props.kind !== 'sprint' ? [{ label: 'Speed & surface', value: 'speed' as const, slot: 'speed' as const, icon: 'i-lucide-gauge' }] : []),
   { label: 'Surface details', value: 'surface' as const, slot: 'surface' as const, icon: 'i-lucide-layers' },
-  ...(props.draftMode === 'ttt' ? [{ label: 'TTT plan', value: 'plan' as const, slot: 'plan' as const, icon: 'i-lucide-flag' }] : [])
+  ...(props.plan ? [{ label: 'TTT plan', value: 'plan' as const, slot: 'plan' as const, icon: 'i-lucide-flag' }] : [])
 ])
 // The remembered tab may have left the set: the plan when draft mode leaves
 // ttt, the speed chart on a sprint page. Elevation is always there.
@@ -106,24 +109,12 @@ const surfaceScope = computed(() =>
   `${surfaceCoverageLine(props.route.surface)}; the mix describes ${isRoute.value ? 'one lap' : 'the timed segment'}. `
   + 'Crr is Zwift\'s rolling resistance per surface and wheel class - higher means more effort at the same speed; see THIRD_PARTY_NOTICES.md for the data source.')
 
-// Pure closed-form (no simulation - see `buildRacePlan`), cheap enough to
-// compute eagerly, for the ride the applied results were ranked on.
-const planItems = computed(() => props.combo
-  ? buildRacePlan(geometryForRouteLaps(props.route, props.resultsLaps), {
-      weightKg: weightKg.value,
-      heightCm: heightCm.value,
-      riderPowerW: props.powerW,
-      climbWkg: tttClimbWkg.value,
-      riders: tttRiders.value,
-      frame: props.combo.frame,
-      wheelset: props.combo.wheelset
-    })
-  : [])
 const planScope = computed(() => {
+  if (!props.plan) return undefined
   const ride = isRoute.value
     ? `${lapsLabel(props.resultsLaps)}${leadInKm.value > 0 ? ', lead-in included once' : ''}; distances are from the ride start`
     : 'from the start of the timed segment; warm-up excluded'
-  const team = `${tttRiders.value}-rider paceline${tttClimbWkg.value ? `, team climb pace ${tttClimbWkg.value.toFixed(1)} W/kg` : ''}`
+  const team = `${props.plan.riders}-rider paceline${props.plan.climbWkg ? `, team climb pace ${props.plan.climbWkg.toFixed(1)} W/kg` : ''}`
   return `${setupLabel.value} · ${props.powerW} W · ${team} · ${ride}.`
 })
 const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface: 'i-lucide-triangle-alert' }
@@ -312,9 +303,18 @@ const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface
       </template>
 
       <template #plan>
-        <div class="space-y-3">
+        <div
+          v-if="plan"
+          class="space-y-3"
+        >
           <p
-            v-if="!combo"
+            v-if="plan.coverage.withheld"
+            class="text-sm text-muted"
+          >
+            {{ plan.coverage.withheld }}
+          </p>
+          <p
+            v-else-if="!plan.hasSetup"
             class="text-sm text-muted"
           >
             The TTT plan needs a ranked setup to price its sectors; it returns with the first match.
@@ -336,13 +336,20 @@ const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface
               <p class="text-xs text-muted">
                 {{ planScope }}
               </p>
+              <p
+                v-for="caveat in plan.coverage.caveats"
+                :key="caveat"
+                class="text-sm text-muted"
+              >
+                {{ caveat }}
+              </p>
               <ul
-                v-if="planItems.length"
+                v-if="plan.sectors.length"
                 aria-label="TTT sectors"
                 class="divide-y divide-default"
               >
                 <li
-                  v-for="item in planItems"
+                  v-for="item in plan.sectors"
                   :key="`${item.type}-${item.fromKm}`"
                   class="flex items-start gap-3 py-3 text-sm"
                 >

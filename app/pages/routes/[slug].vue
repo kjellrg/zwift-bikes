@@ -141,6 +141,15 @@ const limitedDataNote = computed(() => routeData.value
       hasSurfaceLocations: (routeData.value.surface.segments?.length ?? 0) > 0
     })
   : undefined)
+// One plan for the briefing's TTT line and the TTT plan tab, from the
+// applied results - see `useTttPlan`. Undefined outside TTT drafting.
+const tttPlan = useTttPlan({
+  route: () => routeData.value ?? undefined,
+  combo: () => topCombo.value,
+  powerW: () => activePowerW.value,
+  laps: () => resultsLaps.value,
+  draftMode: () => appliedDraftMode.value
+})
 
 const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
 
@@ -439,6 +448,10 @@ useHead(() => {
         <li v-else>
           No mapped climbs on this ride.
         </li>
+        <TttBriefingLine
+          v-if="tttPlan"
+          :plan="tttPlan"
+        />
         <li>
           {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
             + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
@@ -483,6 +496,7 @@ useHead(() => {
       :power-w="activePowerW"
       :draft-mode="appliedDraftMode"
       :refreshing="isRefreshing"
+      :plan="tttPlan"
     />
 
     <div

@@ -37,8 +37,13 @@ export interface RacePlanOptions {
 
 /** No plan for very short events - nothing on a <5 km blast is "long" enough to plan around (user request: ignore short distances). */
 const MIN_ROUTE_KM = 5
-/** Non-tarmac sectors shorter than this are ignored - a few metres of dirt where a path crosses the road isn't a race danger. */
-const MIN_SURFACE_SECTOR_M = 300
+/**
+ * Non-tarmac sectors shorter than this are ignored - a few metres of dirt
+ * where a path crosses the road isn't a race danger. Exported for the plan's
+ * coverage rule (`app/utils/tttPlan.ts`): a lead-in shorter than this could
+ * not hold a sector, so its missing measurements are nothing to disclose.
+ */
+export const MIN_SURFACE_SECTOR_M = 300
 
 /**
  * A rough sector's cost is reported the same way the speed/surface chart
