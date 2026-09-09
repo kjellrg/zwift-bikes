@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ComboScore } from '../../../shared/types/catalog'
+import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForSegment } from '#shared/utils/physics/routeGeometry'
 
@@ -13,6 +13,35 @@ if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Seg
 // `routeWithMetaForSegment`). Positional segments on a measured host get a
 // real profile; membership segments don't, and the chart hides itself.
 const segmentRoute = computed(() => segmentData.value?.route)
+
+// Sprint segments rank at the rider's separate sprint power (see
+// `sprintPowerW` in `useRiderProfile`); everything else at their normal
+// power. `segmentData` resolves in setup (awaited fetch above), so the Ride
+// below knows which one it is before the first ranking is asked for - which
+// is why the segment lookup is awaited first rather than fired alongside it.
+const isSprint = computed(() => segmentData.value?.type === 'sprint')
+/**
+ * No lap count: a segment is ridden exactly once and its endpoint has no lap
+ * parameter. With no fatigue model, which lap of a host route a `perLap`
+ * segment falls on doesn't change its physics - unlike a whole route, where
+ * lap count changes the total distance.
+ */
+const ride = computed<Ride>(() => ({
+  endpoint: `/api/recommend/segments/${slug.value}`,
+  power: isSprint.value ? 'sprint' : 'race'
+}))
+const {
+  ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
+  combos, topCombo, restCombos, fastestTimeSec, hasMore, loadingMore, showMore,
+  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, loadWheelOptions, owned
+} = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
+await recommendReady
+
+// Read-only here: the controls that write them live in
+// `RiderProfileControls` / `BikeFilterControls` - see the equivalent comment
+// in `routes/[slug].vue`.
+const { weightKg, powerW } = useRiderProfile()
+const { setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 // Stat-rich for SERP snippets: "12.2 km at 8.5%" is what long-tail queries
 // ("alpe du zwift gradient") actually contain, and numbers lift click-through
@@ -39,72 +68,6 @@ useSeoMeta({
   // No ogImage/twitterImage here: `defineOgImage` below emits og:image (with
   // width/height/alt) and the twitter:image set itself, same as the route page.
 })
-
-const { owned, ownedWheels, load: loadGarage } = useGarage()
-// Read-only here: the controls themselves live in `RiderProfileControls` /
-// `BikeFilterControls` - see the equivalent comment in `routes/[slug].vue`.
-const { weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
-const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
-onMounted(() => {
-  loadGarage()
-})
-
-// Sprint segments rank at the rider's separate sprint power (see
-// `sprintPowerW` in `useRiderProfile`); everything else at their normal
-// power. `segmentData` resolves in setup (awaited fetch above), so this is
-// stable by the time the controls mount.
-const isSprint = computed(() => segmentData.value?.type === 'sprint')
-const activePowerW = computed(() => isSprint.value ? sprintPowerW.value : powerW.value)
-
-const bikeSearch = ref('')
-const bikeSearchDebounced = ref('')
-let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined
-watch(bikeSearch, (value) => {
-  clearTimeout(bikeSearchDebounceTimer)
-  bikeSearchDebounceTimer = setTimeout(() => {
-    bikeSearchDebounced.value = value
-  }, 300)
-})
-const pageSize = 9
-// How many wheel choices a card's disclosure asks for. Capped by the API's own
-// `limit` (RECOMMEND_MAX_LIMIT), and deliberately short of it: past half a
-// dozen the list is answering a question nobody asked, and every extra row is
-// another route simulation paid on a click.
-const wheelOptionsLimit = 6
-
-// A ranking is always a single pass over the segment - there's no fatigue
-// model, so which lap a `perLap` segment falls on doesn't change its
-// physics, unlike a whole route where lap count changes total distance.
-const recommendQuery = computed(() => ({
-  search: bikeSearchDebounced.value || undefined,
-  // Omitted rather than sent as `all` - see the equivalent comment in `routes/[slug].vue`.
-  category: bikeCategory.value !== 'all' ? bikeCategory.value : undefined,
-  limit: pageSize,
-  // One row per bike: a frame's other wheels live behind the result card's own
-  // disclosure (see `ComboResultCard`), not as repeat rows that spend the
-  // page's nine slots - and the simulated-ordering window with them - on the
-  // same bike two or three times.
-  maxWheelsetsPerFrame: 1,
-  offset: 0,
-  // Always sent, never omitted - see the equivalent comment in `routes/[slug].vue`.
-  verifiedOnly: verifiedOnly.value ? 'true' : 'false',
-  // Always sent - the endpoint's default is include, the preference's is
-  // exclude (see `usePreferences`).
-  includeHalo: includeHaloBikes.value ? 'true' : 'false',
-  ownedOnly: myBikesOnly.value ? 'true' : undefined,
-  owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
-  ownedWheels: Object.keys(ownedWheels.value).length ? JSON.stringify(Object.keys(ownedWheels.value)) : undefined,
-  defaultUnownedLevel: defaultUnownedLevel.value,
-  weightKg: weightKg.value,
-  heightCm: heightCm.value,
-  powerW: activePowerW.value,
-  // Omitted entirely in solo mode - see the equivalent comment in `routes/[slug].vue`.
-  draftMode: draftMode.value === 'solo' ? undefined : draftMode.value,
-  tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
-  tttClimbWkg: draftMode.value === 'ttt' ? tttClimbWkg.value : undefined
-}))
-const { data: recommendData, status, refresh: refreshRecommendations, error: recommendError } = await useFetch(() => `/api/recommend/segments/${slug.value}`, { query: recommendQuery, watch: false })
-useRefetchNotice(recommendError, status, refreshRecommendations)
 
 // Issue #59 phase 2: a generated card replaces the old hotlinked world
 // minimap, now that #56 made segment pages prerenderable. Snapshotted once
@@ -137,61 +100,10 @@ if (segmentData.value) {
   })
 }
 
-const { loadedCombos, hasMore, loadingMore, reloadingPages, showMore, refreshFirstPage, reloadLoadedPages } = useRecommendResults<ComboScore>({
-  recommendData,
-  refresh: refreshRecommendations,
-  fetchPage: (offset, limit) => $fetch(`/api/recommend/segments/${slug.value}`, { query: { ...recommendQuery.value, offset, limit } }),
-  pageSize
-})
-
-// `recommendData` keeps its previous value while a refetch (filter/rider
-// profile change) is in flight, so `status === 'pending'` alone can't tell a
-// genuine first load (nothing to show yet) apart from a refresh of
-// already-visible results (show stale cards + a subtle "updating" hint).
-const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
-const isRefreshingCombos = computed(() => (status.value === 'pending' || reloadingPages.value) && !!recommendData.value)
-// Announced to assistive tech when a refetch lands: the visual cue is
-// opacity and a spinner only. Cleared first so consecutive refreshes
-// re-announce (a live region only speaks on change).
-const resultsAnnouncement = ref('')
-watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
-  if (!wasRefreshing || refreshing) return
-  resultsAnnouncement.value = ''
-  await nextTick()
-  resultsAnnouncement.value = 'Results updated'
-})
-
-/**
- * The wheel list behind a result card's disclosure. Fetched on click through
- * the endpoint's `wheelsForFrame` drill-down, with THIS page's live query, so
- * the times in the list come out of the same pipeline - same rider, same laps,
- * same draft mode, same garage - as the time on the card that opened it.
- */
-async function loadWheelOptions(frameId: number) {
-  const data = await $fetch(`/api/recommend/segments/${slug.value}`, {
-    query: { ...recommendQuery.value, wheelsForFrame: frameId, offset: 0, limit: wheelOptionsLimit }
-  })
-  return data.combos ?? []
-}
-
-watch([weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
-const { noteRankedFrames } = useOverlays()
-watch(owned, () => reloadLoadedPages(), { deep: true })
 // Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
-watch(loadedCombos, list => noteRankedFrames(list), { immediate: true })
-watch(ownedWheels, () => reloadLoadedPages(), { deep: true })
+const { noteRankedFrames } = useOverlays()
+watch(combos, list => noteRankedFrames(list), { immediate: true })
 
-const combos = computed(() => loadedCombos.value)
-const topCombo = computed(() => combos.value[0])
-const restCombos = computed(() => combos.value.slice(1))
-const fastestTimeSec = computed(() => {
-  const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number')
-  return times.length ? Math.min(...times) : undefined
-})
-const physicsInfo = computed(() => recommendData.value?.physics)
-// Present only when the category filter is hiding a faster combo - see
-// `FastestOverallNote` and the endpoint's `fastestOverall` block.
-const fastestOverall = computed(() => recommendData.value?.fastestOverall)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
 const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
@@ -428,7 +340,7 @@ useHead(() => {
       </div>
       <template v-else>
         <p
-          v-if="isRefreshingCombos"
+          v-if="isRefreshing"
           class="flex items-center gap-1.5 text-sm text-muted mb-3"
         >
           <UIcon
@@ -444,7 +356,7 @@ useHead(() => {
         />
         <div
           class="transition-opacity"
-          :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
+          :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
         >
           <ComboResultCard
             v-if="topCombo"

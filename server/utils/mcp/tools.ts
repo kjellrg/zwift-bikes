@@ -1,8 +1,9 @@
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
 import { DEFAULT_UNOWNED_LEVEL } from '../../../shared/utils/classifyBikeFrame'
 import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
+import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
 import { clampLaps, computeRouteTotals, MAX_LAPS, MAX_TOTAL_DISTANCE_KM, maxLapsForRoute } from '../../../shared/utils/routeLaps'
-import { BIKE_CATEGORIES, RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../apiQuerySchemas'
+import { BIKE_CATEGORIES } from '../apiQuerySchemas'
 import type { RpcContext } from './protocol'
 import {
   CONFIDENCE_NOTE,

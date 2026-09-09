@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ComboScore } from '../../../shared/types/catalog'
 import type { PublishableRace } from '../../../shared/utils/events'
+import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
@@ -8,80 +8,29 @@ import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOc
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-const { owned, ownedWheels, load: loadGarage } = useGarage()
-// Read-only here: the controls themselves (sliders, draft disclosure,
-// category/search/switches) live in `RiderProfileControls` /
-// `BikeFilterControls`, which bind and persist this same `useState`-backed
-// state - so the query and watchers below keep firing exactly as before.
-const { weightKg, heightCm, powerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
-const { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, includeHaloBikes, setBikeCategory, setIncludeHaloBikes } = usePreferences()
+// Read-only here: the controls that write them live in
+// `RiderProfileControls` / `BikeFilterControls`, which bind and persist this
+// same `useState`-backed state. `useRecommendRequest` reads it too, and owns
+// every refetch it triggers.
+const { weightKg, heightCm, powerW, draftMode, tttRiders, tttClimbWkg } = useRiderProfile()
+const { bikeCategory, showUpcomingRaces, setBikeCategory, setIncludeHaloBikes } = usePreferences()
 const { intParam, param, enumParam, replaceQuery } = useUrlState(route, useRouter())
 
-const bikeSearch = ref('')
-const bikeSearchDebounced = ref('')
-let bikeSearchDebounceTimer: ReturnType<typeof setTimeout> | undefined
-watch(bikeSearch, (value) => {
-  clearTimeout(bikeSearchDebounceTimer)
-  bikeSearchDebounceTimer = setTimeout(() => {
-    bikeSearchDebounced.value = value
-  }, 300)
-})
-const pageSize = 9
-// How many wheel choices a card's disclosure asks for. Capped by the API's own
-// `limit` (RECOMMEND_MAX_LIMIT), and deliberately short of it: past half a
-// dozen the list is answering a question nobody asked, and every extra row is
-// another route simulation paid on a click.
-const wheelOptionsLimit = 6
 const laps = ref(1)
+const ride = computed<Ride>(() => ({ endpoint: `/api/recommend/${slug.value}`, laps: laps.value }))
+const {
+  ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
+  combos, topCombo, restCombos, fastestTimeSec, hasMore, loadingMore, showMore,
+  appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, owned
+} = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 
-const recommendQuery = computed(() => ({
-  search: bikeSearchDebounced.value || undefined,
-  // Omitted rather than sent as `all`: the endpoint reads any non-empty
-  // `category` as a value to match against, so `all` would match no frame at
-  // all. "Absent" is the API's own spelling of "every category".
-  category: bikeCategory.value !== 'all' ? bikeCategory.value : undefined,
-  limit: pageSize,
-  // One row per bike: a frame's other wheels live behind the result card's own
-  // disclosure (see `ComboResultCard`), not as repeat rows that spend the
-  // page's nine slots - and the simulated-ordering window with them - on the
-  // same bike two or three times.
-  maxWheelsetsPerFrame: 1,
-  offset: 0,
-  // Always sent, never omitted: the endpoint now defaults this to on, so
-  // leaving it out when the switch is off would silently keep filtering.
-  verifiedOnly: verifiedOnly.value ? 'true' : 'false',
-  // Always sent for the same reason: the endpoint defaults to include, while
-  // this preference defaults to exclude (see `usePreferences`).
-  includeHalo: includeHaloBikes.value ? 'true' : 'false',
-  ownedOnly: myBikesOnly.value ? 'true' : undefined,
-  owned: Object.keys(owned.value).length ? JSON.stringify(owned.value) : undefined,
-  ownedWheels: Object.keys(ownedWheels.value).length ? JSON.stringify(Object.keys(ownedWheels.value)) : undefined,
-  defaultUnownedLevel: defaultUnownedLevel.value,
-  weightKg: weightKg.value,
-  heightCm: heightCm.value,
-  powerW: powerW.value,
-  laps: laps.value,
-  // Omitted entirely in solo mode, which is also the default: everything in
-  // this query renders server-side from the DEFAULT rider profile and
-  // preferences, since localStorage only loads onMounted. That default query
-  // is what gets prerendered and what crawlers see. The watch below then
-  // refetches after hydration, but only for a rider whose stored settings
-  // actually differ from the defaults.
-  // Race mode sends nothing but the mode itself - one calibrated constant, no
-  // parameters - so its cache key stays as clean as solo's.
-  draftMode: draftMode.value === 'solo' ? undefined : draftMode.value,
-  tttRiders: draftMode.value === 'ttt' ? tttRiders.value : undefined,
-  tttClimbWkg: draftMode.value === 'ttt' ? tttClimbWkg.value : undefined
-}))
-
-// Fired together (not sequentially) - the recommend query only depends on `slug` plus rider
-// profile/garage/preference state above, none of which depends on the route lookup resolving first.
-const [{ data: routeData, error: routeError }, { data: recommendData, status, refresh: refreshRecommendations, error: recommendError }] = await Promise.all([
+// Fired together (not sequentially): the recommendation depends on the Ride and the rider's own
+// stored state (both read inside `useRecommendRequest`), never on the route lookup resolving first.
+const [{ data: routeData, error: routeError }] = await Promise.all([
   useFetch(() => `/api/routes/${slug.value}`),
-  useFetch(() => `/api/recommend/${slug.value}`, { query: recommendQuery, watch: false })
+  recommendReady
 ])
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: 'Route not found', fatal: true })
-useRefetchNotice(recommendError, status, refreshRecommendations)
 
 // Per-route rather than a flat 1..MAX_LAPS: `maxLapsForRoute` also caps the
 // total ride at MAX_TOTAL_DISTANCE_KM, and offering a lap count the server's
@@ -139,12 +88,16 @@ if (routeData.value) {
   })
 }
 
+// "Featured in" cross-links - client-only: this page is prerendered, so
+// "upcoming" resolved at render time would bake the build date into the
+// shipped HTML. The row simply never appears when nothing is coming up.
+// Keyed on the slug rather than set once on mount, because Nuxt reuses this
+// component across a route -> route navigation (see #161).
+const upcomingEvents = ref<PublishableRace[]>([])
 onMounted(() => {
-  loadGarage()
-  // "Featured in" cross-links - client-only: this page is prerendered, so
-  // "upcoming" resolved at render time would bake the build date into the
-  // shipped HTML. The row simply never appears when nothing is coming up.
-  upcomingEvents.value = getUpcomingEventsForRoute(slug.value, new Date().toISOString().slice(0, 10))
+  watch(slug, (value) => {
+    upcomingEvents.value = getUpcomingEventsForRoute(value, new Date().toISOString().slice(0, 10))
+  }, { immediate: true })
 
   // `?laps=3&bike=tarmac&category=tt&draft=ttt` - a shareable view. Read
   // here, after the child controls' own `onMounted` has loaded the stored
@@ -174,29 +127,21 @@ watch([laps, bikeSearchDebounced, bikeCategory, draftMode], ([lapCount, search, 
     draft: draft !== 'solo' ? draft : undefined
   })
 })
-const upcomingEvents = ref<PublishableRace[]>([])
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined)
 const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : [])
 const sprintOccurrences = computed(() => routeData.value ? expandSprintsForLaps(routeData.value, laps.value) : [])
 
-// The lap count the currently displayed combos were computed for. `laps`
-// itself moves the header stats immediately, which is right - but every speed
-// readout divides a distance by a `finishTimeSec` from the last response, and
-// pairing the NEW distance with the OLD time shows a wrong km/h until the
-// refetch lands. The FAQ text and the result cards read this lagged value
-// instead, which catches up exactly when the recomputed times do.
-const resultsLaps = ref(laps.value)
-const { loadedCombos, hasMore, loadingMore, reloadingPages, showMore, refreshFirstPage, reloadLoadedPages } = useRecommendResults<ComboScore>({
-  recommendData,
-  refresh: refreshRecommendations,
-  fetchPage: (offset, limit) => $fetch(`/api/recommend/${slug.value}`, { query: { ...recommendQuery.value, offset, limit } }),
-  pageSize,
-  onResultsApplied: () => {
-    resultsLaps.value = laps.value
-  }
-})
+// The lap count the currently displayed combos were computed for - `laps`
+// itself moves the header stats immediately, but a speed readout must divide
+// a distance by a finish time computed for the SAME lap count. See
+// `appliedRide` on `useRecommendRequest`.
+const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
+
+// Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
+const { noteRankedFrames } = useOverlays()
+watch(combos, list => noteRankedFrames(list), { immediate: true })
 
 // Whether the team climb pace control is worth showing at all - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Deliberately keyed on the
@@ -207,55 +152,7 @@ const hasLongClimb = computed(() => routeData.value
   ? detectLongClimbBlocks(geometryForRouteLaps(routeData.value, resultsLaps.value), powerW.value, weightKg.value).length > 0
   : true)
 
-// `recommendData` keeps its previous value while a refetch (filter/rider
-// profile/laps change) is in flight, so `status === 'pending'` alone can't
-// tell a genuine first load (nothing to show yet) apart from a refresh of
-// already-visible results (show stale cards + a subtle "updating" hint).
-const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
-const isRefreshingCombos = computed(() => (status.value === 'pending' || reloadingPages.value) && !!recommendData.value)
-// Announced to assistive tech when a refetch lands: the visual cue is
-// opacity and a spinner only. Cleared first so consecutive refreshes
-// re-announce (a live region only speaks on change).
-const resultsAnnouncement = ref('')
-watch(isRefreshingCombos, async (refreshing, wasRefreshing) => {
-  if (!wasRefreshing || refreshing) return
-  resultsAnnouncement.value = ''
-  await nextTick()
-  resultsAnnouncement.value = 'Results updated'
-})
-
-/**
- * The wheel list behind a result card's disclosure. Fetched on click through
- * the endpoint's `wheelsForFrame` drill-down, with THIS page's live query, so
- * the times in the list come out of the same pipeline - same rider, same laps,
- * same draft mode, same garage - as the time on the card that opened it.
- */
-async function loadWheelOptions(frameId: number) {
-  const data = await $fetch(`/api/recommend/${slug.value}`, {
-    query: { ...recommendQuery.value, wheelsForFrame: frameId, offset: 0, limit: wheelOptionsLimit }
-  })
-  return data.combos ?? []
-}
-
-watch([weightKg, heightCm, powerW, laps, defaultUnownedLevel, myBikesOnly, verifiedOnly, includeHaloBikes, bikeCategory, bikeSearchDebounced, draftMode, tttRiders, tttClimbWkg], () => refreshFirstPage())
-const { noteRankedFrames } = useOverlays()
-watch(owned, () => reloadLoadedPages(), { deep: true })
-// Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
-watch(loadedCombos, list => noteRankedFrames(list), { immediate: true })
-watch(ownedWheels, () => reloadLoadedPages(), { deep: true })
-
-const combos = computed(() => loadedCombos.value)
-const topCombo = computed(() => combos.value[0])
-const restCombos = computed(() => combos.value.slice(1))
-const fastestTimeSec = computed(() => {
-  const times = combos.value.map(c => c.finishTimeSec).filter((t): t is number => typeof t === 'number')
-  return times.length ? Math.min(...times) : undefined
-})
 const surfaceTimePenaltyText = computed(() => routeData.value ? formatSurfaceTimePenalty(routeData.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined)
-const physicsInfo = computed(() => recommendData.value?.physics)
-// Present only when the category filter is hiding a faster combo - see
-// `FastestOverallNote` and the endpoint's `fastestOverall` block.
-const fastestOverall = computed(() => recommendData.value?.fastestOverall)
 const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
 const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
 const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
@@ -487,7 +384,7 @@ useHead(() => {
       </div>
       <template v-else>
         <p
-          v-if="isRefreshingCombos"
+          v-if="isRefreshing"
           class="flex items-center gap-1.5 text-sm text-muted mb-3"
         >
           <UIcon
@@ -503,7 +400,7 @@ useHead(() => {
         />
         <div
           class="transition-opacity"
-          :class="{ 'opacity-60 pointer-events-none': isRefreshingCombos }"
+          :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
         >
           <ComboResultCard
             v-if="topCombo"
