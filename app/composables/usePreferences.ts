@@ -1,14 +1,7 @@
 import type { BikeCategory } from '../../shared/types/catalog'
+import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
 
 const STORAGE_KEY = 'zwift-bikes:preferences'
-
-/**
- * Everything `bikeCategory` is allowed to hold. Validated on `load()` rather
- * than trusted: a stale or hand-edited localStorage value would otherwise be
- * forwarded straight to the recommend endpoints as a category no frame has,
- * silently filtering every result away with no error anywhere.
- */
-const BIKE_CATEGORY_VALUES = new Set<string>(['all', 'standard', 'tt', 'gravel', 'handbike', 'funbike'])
 
 /**
  * Small general-purpose UI preferences that should persist across visits
@@ -85,7 +78,10 @@ export function usePreferences() {
       const parsed = JSON.parse(raw)
       if (typeof parsed.verifiedOnly === 'boolean') verifiedOnly.value = parsed.verifiedOnly
       if (typeof parsed.myBikesOnly === 'boolean') myBikesOnly.value = parsed.myBikesOnly
-      if (typeof parsed.bikeCategory === 'string' && BIKE_CATEGORY_VALUES.has(parsed.bikeCategory)) bikeCategory.value = parsed.bikeCategory as BikeCategory | 'all'
+      // Validated against the one category list rather than trusted: a stale
+      // or hand-edited value would otherwise reach the recommend endpoints
+      // as a category no frame has - see `BIKE_CATEGORY_FILTERS`.
+      if (typeof parsed.bikeCategory === 'string' && (BIKE_CATEGORY_FILTERS as readonly string[]).includes(parsed.bikeCategory)) bikeCategory.value = parsed.bikeCategory as BikeCategory | 'all'
       if (typeof parsed.showUpcomingRaces === 'boolean') showUpcomingRaces.value = parsed.showUpcomingRaces
       if (typeof parsed.includeHaloBikes === 'boolean') includeHaloBikes.value = parsed.includeHaloBikes
     } catch {

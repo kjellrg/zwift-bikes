@@ -17,6 +17,17 @@ import type { BikeFrame, BikeFrontWheel, BikeRearWheel, Route, Sport, WorldSlug 
 export type BikeCategory = 'standard' | 'tt' | 'gravel' | 'handbike' | 'funbike'
 
 /**
+ * Everything the pages' category filter can hold: each garage category plus
+ * `all`, in the order the category selects list them. The one list that the
+ * stored preference (`usePreferences.load()`), a shared view's `?category=`
+ * (`app/utils/sharedView.ts`) and the selects themselves validate or render
+ * from - untrusted input arrives through the first two, and a value none of
+ * them recognise would otherwise reach the recommend endpoints as a category
+ * no frame has and filter every result away without an error anywhere.
+ */
+export const BIKE_CATEGORY_FILTERS = ['all', 'standard', 'tt', 'gravel', 'funbike', 'handbike'] as const satisfies readonly (BikeCategory | 'all')[]
+
+/**
  * Riding style used only to score `standard` road bikes against a route
  * (aero vs. lightweight vs. all-round vs. cobble-friendly endurance bike).
  * Not shown as a top-level filter, since Zwift doesn't expose it either.
