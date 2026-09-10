@@ -74,6 +74,23 @@ export async function rerank(page: Page, action: () => Promise<void>) {
   }
 }
 
+/**
+ * A colour as the browser resolves it, so a design token can be compared with
+ * a computed style. Shared because three specs check the same theme grounds
+ * and a fourth answer to "what is `--ui-bg` here" would be a fourth chance to
+ * get it subtly wrong.
+ */
+export async function resolvedColor(page: Page, cssColor: string) {
+  return page.evaluate((cssColor) => {
+    const probe = document.createElement('div')
+    probe.style.color = cssColor
+    document.body.append(probe)
+    const value = getComputedStyle(probe).color
+    probe.remove()
+    return value
+  }, cssColor)
+}
+
 export async function expectNoHorizontalOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
 }

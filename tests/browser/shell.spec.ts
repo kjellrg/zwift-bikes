@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { expectNoHorizontalOverflow, visit, visitPage } from './support'
+import { expectNoHorizontalOverflow, resolvedColor, visit, visitPage } from './support'
 
 /**
  * The shared shell (issue #212): the header and its section entries, the
@@ -46,18 +46,6 @@ async function expectMarked(within: Locator, name: string | null) {
     if (section === name) await expect(entry(within, section)).toHaveAttribute('aria-current', 'page')
     else await expect(entry(within, section)).not.toHaveAttribute('aria-current', 'page')
   }
-}
-
-/** A colour as the browser resolves it, so a token can be compared with a computed style. */
-async function resolvedColor(page: Page, cssColor: string) {
-  return page.evaluate((cssColor) => {
-    const probe = document.createElement('div')
-    probe.style.color = cssColor
-    document.body.append(probe)
-    const value = getComputedStyle(probe).color
-    probe.remove()
-    return value
-  }, cssColor)
 }
 
 test.describe('shell', () => {

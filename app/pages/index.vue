@@ -77,11 +77,24 @@ const query = computed(() => ({
     elevationRange.value[1] < 2000 ? elevationRange.value[1] : undefined
 }))
 
-const { data, status } = await useFetch('/api/routes', { query })
+const { data, status, refresh } = await useFetch('/api/routes', { query })
+
+// Nuxt resets `data` to its default when a fetch throws, which would empty
+// the grid under the very notice that says the previous routes are still
+// shown (`DiscoveryStatus`). So the last list served stays the one on
+// screen - and the world options with it - until a response replaces it.
+// The same bargain `useRecommendRequest` strikes with `servedEnvelope`, and
+// a computed for the same reason: no watcher runs after setup on the
+// server, where this page reads the list straight after awaiting the fetch.
+let servedRoutes: typeof data.value = null
+const loaded = computed(() => {
+  if (data.value) servedRoutes = data.value
+  return servedRoutes
+})
 
 const worldOptions = computed(() => [
   { label: 'All worlds', value: 'all' },
-  ...(data.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
+  ...(loaded.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
 ])
 
 const surfaceOptions = [
@@ -95,9 +108,11 @@ const surfaceOptions = [
 // mode - and the "Show" kind filter that gated it - is gone. One page per
 // content type keeps both lists' filters honest: the distance/elevation/
 // surface controls here never applied to segments anyway.
-const items = computed<RouteSummary[]>(() => data.value?.routes ?? [])
+const items = computed<RouteSummary[]>(() => loaded.value?.routes ?? [])
 const visibleItems = computed(() => items.value.slice(0, visibleCount.value))
-const isLoading = computed(() => status.value === 'pending')
+// Routes are the only thing counted here, so the line reads "24 results
+// found" - the segments page counts climbs and sprints separately.
+const resultCounts = computed(() => [{ value: items.value.length, noun: 'result' }])
 
 function resetFilters() {
   search.value = ''
@@ -170,6 +185,7 @@ watch(query, (value) => {
         v-model="search"
         icon="i-lucide-search"
         size="xl"
+        aria-label="Search routes"
         placeholder="Search routes, e.g. Road to Sky, Tick Tock, Volcano Climb..."
         class="w-full"
       />
@@ -193,6 +209,7 @@ watch(query, (value) => {
           value-key="value"
           :items="worldOptions"
           :search-input="false"
+          aria-label="World"
           class="w-44"
         />
       </div>
@@ -203,6 +220,7 @@ watch(query, (value) => {
           value-key="value"
           :items="surfaceOptions"
           :search-input="false"
+          aria-label="Surface"
           class="w-44"
         />
       </div>
@@ -252,45 +270,25 @@ watch(query, (value) => {
       </UButton>
     </div>
 
-    <div>
-      <div class="flex items-center justify-between mb-4">
-        <p
-          class="text-sm text-muted"
-          aria-live="polite"
-        >
-          <template v-if="isLoading">
-            Finding routes…
-          </template>
-          <template v-else>
-            {{ items.length }} result{{ items.length === 1 ? "" : "s" }} found
-          </template>
-        </p>
-      </div>
+    <!-- The count line, the empty message and a failed fetch's notice are
+         `DiscoveryStatus`; the grid it fills, and the skeleton cards in the
+         grid's own shape it loads into, are this page's. -->
+    <DiscoveryStatus
+      subject="routes"
+      :counts="resultCounts"
+      :status="status"
+      @retry="refresh"
+    >
+      <template #skeleton>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <RouteCardSkeleton
+            v-for="n in 6"
+            :key="n"
+          />
+        </div>
+      </template>
 
-      <!-- Skeleton cards in the grid's own shape while loading: the old
-           "Loading..." line collapsed the grid to nothing and the stale
-           count above it kept quoting the previous filter's total. -->
-      <div
-        v-if="isLoading"
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-      >
-        <RouteCardSkeleton
-          v-for="n in 6"
-          :key="n"
-        />
-      </div>
-
-      <div
-        v-else-if="items.length === 0"
-        class="text-center py-10 text-muted"
-      >
-        No routes match your filters.
-      </div>
-
-      <div
-        v-else
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-      >
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <RouteCard
           v-for="item in visibleItems"
           :key="item.slug"
@@ -310,6 +308,6 @@ watch(query, (value) => {
           Show more ({{ items.length - visibleCount }} remaining)
         </UButton>
       </div>
-    </div>
+    </DiscoveryStatus>
   </UContainer>
 </template>

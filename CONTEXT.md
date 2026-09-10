@@ -41,3 +41,7 @@ _Avoid_: modal, dialog, slideover, popup
 **Applied**:
 The rider values and Ride that the results on screen were computed from: weight, height, the power the ride was ridden at, the draft mode, the lap count and the category once made legal for the ride. The controls can run ahead of them - between a slider's release and the response that answers it, the live value and the applied value differ - and everything that explains a finish time (the rider strip, the answer, the equipment-dependent analysis) reads the applied value, so a time is never explained by inputs it was not computed from. The applied values catch up exactly when the times do; a failed refresh leaves them where they were.
 _Avoid_: current settings, live values, pending values, request inputs
+
+**Discovery page**:
+A page that lists Rides to choose from and ranks nothing: the homepage lists routes, the segments page lists climbs and sprints. Its search and filters belong to the page and are kept in its URL so that returning to it restores them; they are never a Shared view and never touch the rider's stored preferences. What a discovery page shows about a Ride is its identity and the numbers a rider scans to choose it, not anything a ranking would answer.
+_Avoid_: hub, list page, index page, landing page

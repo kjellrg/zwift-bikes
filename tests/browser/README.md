@@ -24,13 +24,15 @@ seeds storage itself. Waits are for real signals (hydration, a recommend
 response, the results region leaving `aria-busy`), never sleeps: every spec
 imports them from `support.ts`, which owns the waits and the one helper that
 seeds a rider profile before a page reads it - locators stay in the spec that
-uses them. A recommend response is stubbed in exactly one journey, where the
-failure itself is what is under test; a stub is never used to make a real
-journey faster. The one other stub is `site-flags.spec.ts`, which answers
+uses them. A response is stubbed only where the failure itself is what is
+under test - one recommend journey, and the aborted `/api/routes` refetch in
+`route-discovery.spec.ts`; a stub is never used to make a real journey
+faster. The one other stub is `site-flags.spec.ts`, which answers
 `/api/site-flags` by hand: the flags live in Workers KV and the dev server
 only ever serves the defaults, so a hidden section or a message of the day
 cannot be seen any other way. `visit` waits for a ranking page's results;
-`visitPage` is for the pages without one (hubs, events, profile).
+`visitPage` is for the pages without one (the discovery pages, events,
+profile).
 
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.
@@ -48,8 +50,8 @@ seconds later, so a single timeout of that shape is not evidence of a regression
 What keeps a long run honest:
 
 - **Start the dev server by hand and warm the pages first.** `curl` each route,
-  segment and hub page the specs visit before starting Playwright, so the first
-  spec does not pay a cold compile inside a test timeout.
+  segment and discovery page the specs visit before starting Playwright, so the
+  first spec does not pay a cold compile inside a test timeout.
 - **Run one project at a time** (`--project=desktop`, then `--project=mobile`),
   restarting `nuxt dev` between them. Two projects back to back is where the
   degradation shows, and a restart costs less than a 240 s timeout.
