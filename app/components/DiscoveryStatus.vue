@@ -75,7 +75,14 @@ const countLine = computed(() =>
     </p>
 
     <!-- The live region is always in the DOM: one that appears along with the
-         text it holds is announced by nothing. -->
+         text it holds is announced by nothing.
+
+         A failed fetch reports no count at all. The cards beneath are the
+         previous filter's, so a count would be a true statement about what is
+         on screen announced as the answer to the filter that was just moved -
+         which is the defect the skeleton grid was introduced to end ("the
+         stale count above it kept quoting the previous filter's total"). The
+         notice above says what actually happened. -->
     <p
       class="text-sm text-muted"
       aria-live="polite"
@@ -83,9 +90,7 @@ const countLine = computed(() =>
       <template v-if="isLoading">
         Finding {{ subject }}…
       </template>
-      <!-- A first load that failed has no count to report; the notice above
-           already says what happened. -->
-      <template v-else-if="!(failed && isEmpty)">
+      <template v-else-if="!failed">
         {{ countLine }}
       </template>
     </p>

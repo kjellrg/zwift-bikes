@@ -31,16 +31,16 @@ const { data, status, refresh } = await useFetch('/api/segments', { query: segme
 // the same bargain the homepage and `useRecommendRequest` strike. A computed
 // rather than a watcher because no watcher runs after setup on the server,
 // where this page reads the list straight after awaiting the fetch.
-let servedSegments: typeof data.value
-const loaded = computed(() => {
-  if (data.value) servedSegments = data.value
-  return servedSegments
+let lastServed: typeof data.value
+const served = computed(() => {
+  if (data.value) lastServed = data.value
+  return lastServed
 })
-const segments = computed<SegmentSummary[]>(() => loaded.value?.segments ?? [])
+const segments = computed<SegmentSummary[]>(() => served.value?.segments ?? [])
 
 const worldOptions = computed(() => [
   { label: 'All worlds', value: 'all' },
-  ...(loaded.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
+  ...(served.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
 ])
 
 const typeFilter = ref<'all' | 'climb' | 'sprint'>('all')
@@ -61,12 +61,12 @@ function resetFilters() {
 // the homepage does; see `useUrlState` for why the read never runs during
 // render. `kind` is the URL's name for the "Show" filter, which the rest of
 // this page calls the segment's type.
-const { param, enumParam, replaceQuery } = useUrlState(useRoute(), useRouter())
+const { enumParam, searchParam, slugParam, replaceQuery } = useUrlState(useRoute(), useRouter())
 onMounted(() => {
-  const q = param('q')
-  if (q) search.value = q.slice(0, 100)
-  const world = param('world')
-  if (world && /^[a-z0-9-]+$/.test(world)) worldFilter.value = world
+  const q = searchParam('q')
+  if (q) search.value = q
+  const world = slugParam('world')
+  if (world) worldFilter.value = world
   const kind = enumParam('kind', ['climb', 'sprint'] as const)
   if (kind) typeFilter.value = kind
 })

@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
-import { expectNoHorizontalOverflow, ready, resolvedColor, visitPage } from './support'
+import { expect, test, type Page } from '@playwright/test'
+import { expectNoHorizontalOverflow, ready, resolvedColor, tabTo, visitPage } from './support'
 
 /**
  * Route discovery (issue #210): the homepage as the way into a
@@ -42,19 +42,6 @@ async function pickFilter(page: Page, name: string, option: string) {
   await page.getByRole('option', { name: option, exact: true }).click()
   await responded
   await expect(statusLine(page)).not.toHaveText(/^Finding/)
-}
-
-/**
- * Tabs forward until `target` has focus, so a journey can assert reachability
- * and order without counting the tab stops of every control between them -
- * a count that a new filter would silently invalidate.
- */
-async function tabTo(page: Page, target: Locator, limit = 25) {
-  for (let step = 0; step < limit; step++) {
-    await page.keyboard.press('Tab')
-    if (await target.evaluate(element => element === document.activeElement)) return
-  }
-  throw new Error(`focus never reached ${target} within ${limit} tabs`)
 }
 
 test.describe('route discovery', () => {
@@ -171,6 +158,9 @@ test.describe('route discovery', () => {
     await page.getByRole('option', { name: 'New York', exact: true }).click()
     await expect(notice(page)).toContainText('Couldn\'t load routes.')
     expect(await cards(page).evaluateAll(links => links.map(link => link.getAttribute('href')))).toEqual(before)
+    // The cards below are the previous filter's, so no count is reported for
+    // the filter that failed - and none is announced.
+    await expect(statusLine(page)).toHaveText('')
 
     await page.unroute('**/api/routes**')
     const responded = page.waitForResponse(response => response.url().includes('/api/routes') && response.ok())

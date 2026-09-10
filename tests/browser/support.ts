@@ -1,4 +1,4 @@
-import { expect, type Page, type Response } from '@playwright/test'
+import { expect, type Locator, type Page, type Response } from '@playwright/test'
 
 /**
  * The waits every ranking-page journey needs, in one place. They are waits for
@@ -89,6 +89,20 @@ export async function resolvedColor(page: Page, cssColor: string) {
     probe.remove()
     return value
   }, cssColor)
+}
+
+/**
+ * Tabs forward until `target` has focus, so a journey can assert reachability
+ * and order without counting the tab stops of every control between them - a
+ * count a new filter would silently invalidate. Shared because both discovery
+ * pages walk the same path from the skip link to their first card.
+ */
+export async function tabTo(page: Page, target: Locator, limit = 25) {
+  for (let step = 0; step < limit; step++) {
+    await page.keyboard.press('Tab')
+    if (await target.evaluate(element => element === document.activeElement)) return
+  }
+  throw new Error(`focus never reached ${target} within ${limit} tabs`)
 }
 
 export async function expectNoHorizontalOverflow(page: Page) {

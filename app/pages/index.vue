@@ -86,15 +86,15 @@ const { data, status, refresh } = await useFetch('/api/routes', { query })
 // The same bargain `useRecommendRequest` strikes with `servedEnvelope`, and
 // a computed for the same reason: no watcher runs after setup on the
 // server, where this page reads the list straight after awaiting the fetch.
-let servedRoutes: typeof data.value
-const loaded = computed(() => {
-  if (data.value) servedRoutes = data.value
-  return servedRoutes
+let lastServed: typeof data.value
+const served = computed(() => {
+  if (data.value) lastServed = data.value
+  return lastServed
 })
 
 const worldOptions = computed(() => [
   { label: 'All worlds', value: 'all' },
-  ...(loaded.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
+  ...(served.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
 ])
 
 const surfaceOptions = [
@@ -108,7 +108,7 @@ const surfaceOptions = [
 // mode - and the "Show" kind filter that gated it - is gone. One page per
 // content type keeps both lists' filters honest: the distance/elevation/
 // surface controls here never applied to segments anyway.
-const items = computed<RouteSummary[]>(() => loaded.value?.routes ?? [])
+const items = computed<RouteSummary[]>(() => served.value?.routes ?? [])
 const visibleItems = computed(() => items.value.slice(0, visibleCount.value))
 // Routes are the only thing counted here, so the line reads "24 results
 // found" - the segments page counts climbs and sprints separately.
@@ -132,7 +132,7 @@ watch(query, () => {
 // &dist=10-40&elev=0-500` - read once after mount and written from the
 // committed values, see `useUrlState`. Ranges are validated as a pair: a
 // half-range or an inverted one is ignored rather than guessed at.
-const { param, enumParam, replaceQuery } = useUrlState(useRoute(), useRouter())
+const { param, enumParam, searchParam, slugParam, replaceQuery } = useUrlState(useRoute(), useRouter())
 const rangeParam = (key: string, max: number): [number, number] | undefined => {
   const match = /^(\d+)-(\d+)$/.exec(param(key) ?? '')
   if (!match) return undefined
@@ -141,10 +141,10 @@ const rangeParam = (key: string, max: number): [number, number] | undefined => {
   return low <= high ? [low, high] : undefined
 }
 onMounted(() => {
-  const q = param('q')
-  if (q) search.value = q.slice(0, 100)
-  const world = param('world')
-  if (world && /^[a-z0-9-]+$/.test(world)) worldFilter.value = world
+  const q = searchParam('q')
+  if (q) search.value = q
+  const world = slugParam('world')
+  if (world) worldFilter.value = world
   const surface = enumParam('surface', ['gravel', 'cobble'] as const)
   if (surface) surfaceFilter.value = surface
   const dist = rangeParam('dist', 120)
@@ -288,25 +288,29 @@ watch(query, (value) => {
         </div>
       </template>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <RouteCard
-          v-for="item in visibleItems"
-          :key="item.slug"
-          :route="item"
-        />
-      </div>
+      <!-- One child of the slot, so the button keeps its own distance from
+           the grid rather than the status block's tighter rhythm. -->
+      <div class="space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <RouteCard
+            v-for="item in visibleItems"
+            :key="item.slug"
+            :route="item"
+          />
+        </div>
 
-      <div
-        v-if="visibleCount < items.length"
-        class="text-center"
-      >
-        <UButton
-          color="neutral"
-          variant="subtle"
-          @click="visibleCount += 24"
+        <div
+          v-if="visibleCount < items.length"
+          class="text-center"
         >
-          Show more ({{ items.length - visibleCount }} remaining)
-        </UButton>
+          <UButton
+            color="neutral"
+            variant="subtle"
+            @click="visibleCount += 24"
+          >
+            Show more ({{ items.length - visibleCount }} remaining)
+          </UButton>
+        </div>
       </div>
     </DiscoveryStatus>
   </UContainer>

@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
-import { expectNoHorizontalOverflow, ready, resolvedColor, visitPage } from './support'
+import { expect, test, type Page } from '@playwright/test'
+import { expectNoHorizontalOverflow, ready, resolvedColor, tabTo, visitPage } from './support'
 
 /**
  * Segment discovery (issue #211): the segments page as the way into a climb's
@@ -41,24 +41,17 @@ async function pickFilter(page: Page, name: string, option: string) {
   await expect(filter(page, name)).toHaveText(option)
 }
 
-/**
- * Tabs forward until `target` has focus, so a journey can assert reachability
- * and order without counting the tab stops of every control between them.
- */
-async function tabTo(page: Page, target: Locator, limit = 25) {
-  for (let step = 0; step < limit; step++) {
-    await page.keyboard.press('Tab')
-    if (await target.evaluate(element => element === document.activeElement)) return
-  }
-  throw new Error(`focus never reached ${target} within ${limit} tabs`)
-}
-
 test.describe('segment discovery', () => {
   test('searches for a climb, opens it, and comes back to the same view', async ({ page }) => {
     await visitPage(page, '/segments')
     await refilter(page, () => searchBox(page).fill('temple kom'))
-    await expect(page).toHaveURL(/[?&]q=temple\+kom/)
     await expect(statusLine(page)).toHaveText(/^\d+ climbs? and 0 sprints found$/)
+    await pickFilter(page, 'Show', 'Climbs')
+    await expect(page).toHaveURL(/[?&]q=temple\+kom/)
+    await expect(page).toHaveURL(/[?&]kind=climb/)
+    await expect(statusLine(page)).toHaveText(/^\d+ climbs? found$/)
+    const shown = await cards(page).count()
+    expect(shown).toBeGreaterThan(0)
 
     const opened = page.locator(`a[href="${TEMPLE_KOM}"]`)
     const name = await opened.locator('p').first().innerText()
@@ -70,8 +63,10 @@ test.describe('segment discovery', () => {
 
     await page.goBack()
     await expect(page).toHaveURL(/[?&]q=temple\+kom/)
+    await expect(page).toHaveURL(/[?&]kind=climb/)
     await expect(searchBox(page)).toHaveValue('temple kom')
-    await expect(cards(page)).toHaveCount(await cards(page).count())
+    await expect(filter(page, 'Show')).toHaveText('Climbs')
+    await expect(cards(page)).toHaveCount(shown)
   })
 
   test('narrows to sprints, opens one, and ranks it at sprint power', async ({ page }) => {
@@ -160,6 +155,9 @@ test.describe('segment discovery', () => {
     await pickFilter(page, 'World', 'Watopia')
     await expect(notice(page)).toContainText('Couldn\'t load segments.')
     expect(await cards(page).evaluateAll(links => links.map(link => link.getAttribute('href')))).toEqual(before)
+    // The cards below are the previous filter's, so no count is reported for
+    // the filter that failed - and none is announced.
+    await expect(statusLine(page)).toHaveText('')
 
     await page.unroute('**/api/segments**')
     const responded = page.waitForResponse(response => response.url().includes('/api/segments') && response.ok())
