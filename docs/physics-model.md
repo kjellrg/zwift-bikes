@@ -180,9 +180,10 @@ ridden. Switching the draft mode to **TTT (paceline)** models a rotating team:
   and pacing with the draft switched off, so the gap is purely what the
   paceline buys.
 - **The TTT plan** (the route and segment pages' plan tab and briefing line;
-  the race page's race plan panel) lists the sectors where the paceline is in
-  danger: long climbs and sustained rough-surface sectors (extra rolling
-  resistance and reduced draft), ignoring stretches too short to matter. It
+  the race page's `RacePlanPanel`) lists the sectors where the paceline may
+  split or slow: long climbs and sustained rough-surface sectors (extra
+  rolling resistance and reduced draft), ignoring stretches too short to
+  matter. It
   discloses what it could not analyse: with no elevation profile it is
   withheld, without positioned surfaces only climbs are flagged, and a lead-in
   modelled from totals rather than a measured trace has nothing flagged inside

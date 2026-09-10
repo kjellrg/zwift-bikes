@@ -11,6 +11,8 @@ export interface TttPlan {
   coverage: TttPlanCoverage
   /** Whether a ranked setup exists to quote the sectors for - with zero matches the plan returns with the first match. */
   hasSetup: boolean
+  /** Whether the first ranking is still pending, so "no setup" is a loading state rather than zero matches. */
+  loading: boolean
   /** The team the sectors are priced for, from the stored profile. */
   riders: number
   climbWkg?: number
@@ -32,10 +34,14 @@ export function useTttPlan(inputs: {
   powerW: () => number
   laps: () => number
   draftMode: () => DraftMode
+  /** Whether the first ranking is still pending - nothing on screen yet, as opposed to zero matches. */
+  loading: () => boolean
 }) {
-  // Weight, height and the team inputs have no per-ride substitution, so
-  // they come straight from the stored profile - the same values
-  // `useRecommendRequest` sent with the ranking.
+  // Weight, height and the team inputs are read live from the stored
+  // profile (the request exposes no applied copy of them), so a profile
+  // edit reprices the sectors at once while the combo and power lag until
+  // the refetch lands - the same as the speed chart. Both readers of the
+  // plan see the same value either way.
   const { weightKg, heightCm, tttRiders, tttClimbWkg } = useRiderProfile()
 
   return computed<TttPlan | undefined>(() => {
@@ -55,6 +61,6 @@ export function useTttPlan(inputs: {
           wheelset: combo.wheelset
         }), coverage)
       : []
-    return { sectors, coverage, hasSetup: Boolean(combo), riders: tttRiders.value, climbWkg: tttClimbWkg.value }
+    return { sectors, coverage, hasSetup: Boolean(combo), loading: inputs.loading(), riders: tttRiders.value, climbWkg: tttClimbWkg.value }
   })
 }

@@ -305,6 +305,7 @@ test.describe('course analysis tabs', () => {
     expect((await applied).ok()).toBe(true)
     await page.unroute(isListing)
     await ready(page)
+    await expect(tab(page, 'TTT plan')).toHaveAttribute('aria-selected', 'true')
     await expect(plan).toContainText('2 laps, lead-in included once')
     await expect(sectorRows(page)).toHaveCount(await briefedSectorCount(page))
   })

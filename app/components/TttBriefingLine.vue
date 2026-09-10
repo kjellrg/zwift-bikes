@@ -17,6 +17,7 @@ const { show } = useCourseAnalysisTab()
 const summary = computed(() => {
   const { sectors, coverage, hasSetup } = props.plan
   if (coverage.withheld) return coverage.withheld
+  if (props.plan.loading) return 'TTT sectors follow the ranking.'
   if (!hasSetup) return 'TTT sectors return with the first match.'
   if (!sectors.length) return 'No sectors flagged by this model.'
   const first = sectors[0]!

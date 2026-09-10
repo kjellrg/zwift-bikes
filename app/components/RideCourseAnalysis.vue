@@ -2,6 +2,7 @@
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import type { TttPlan } from '../composables/useTttPlan'
+import { MIN_ROUTE_KM, type RacePlanItem } from '#shared/utils/physics/racePlan'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
 /**
@@ -40,6 +41,8 @@ const props = defineProps<{
   draftMode: DraftMode
   /** Whether the results are being recomputed - the equipment panels dim like the recommendation. */
   refreshing: boolean
+  /** Whether the first ranking is still pending (nothing on screen yet) - `isFirstLoad`, so a loading state never reads as zero matches. */
+  loading: boolean
   /** The page's TTT plan, present under TTT drafting only - its presence is what adds the tab. */
   plan?: TttPlan
 }>()
@@ -117,7 +120,7 @@ const planScope = computed(() => {
   const team = `${props.plan.riders}-rider paceline${props.plan.climbWkg ? `, team climb pace ${props.plan.climbWkg.toFixed(1)} W/kg` : ''}`
   return `${setupLabel.value} · ${props.powerW} W · ${team} · ${ride}.`
 })
-const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface: 'i-lucide-triangle-alert' }
+const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-mountain', surface: 'i-lucide-triangle-alert' }
 </script>
 
 <template>
@@ -246,7 +249,12 @@ const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface
             v-else-if="!combo"
             class="text-sm text-muted"
           >
-            The speed &amp; surface profile needs a ranked setup to simulate; it returns with the first match.
+            <template v-if="loading">
+              The speed &amp; surface profile follows the ranking.
+            </template>
+            <template v-else>
+              The speed &amp; surface profile needs a ranked setup to simulate; it returns with the first match.
+            </template>
           </p>
           <template v-else>
             <p
@@ -317,7 +325,12 @@ const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface
             v-else-if="!plan.hasSetup"
             class="text-sm text-muted"
           >
-            The TTT plan needs a ranked setup to price its sectors; it returns with the first match.
+            <template v-if="plan.loading">
+              The TTT plan follows the ranking.
+            </template>
+            <template v-else>
+              The TTT plan needs a ranked setup to price its sectors; it returns with the first match.
+            </template>
           </p>
           <template v-else>
             <p
@@ -354,7 +367,7 @@ const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface
                   class="flex items-start gap-3 py-3 text-sm"
                 >
                   <UIcon
-                    :name="PLAN_ICONS[item.type] ?? 'i-lucide-flag'"
+                    :name="PLAN_ICONS[item.type]"
                     class="mt-0.5 size-4 shrink-0"
                     :class="item.type === 'climb' ? 'text-success' : 'text-warning'"
                   />
@@ -373,7 +386,7 @@ const PLAN_ICONS: Record<string, string> = { climb: 'i-lucide-mountain', surface
                 v-else
                 class="text-sm text-muted"
               >
-                No sectors flagged by this model. Rides under 5 km, short surface stretches and low-cost surfaces are not flagged; this is not a guarantee of an uninterrupted paceline.
+                No sectors flagged by this model. Rides under {{ MIN_ROUTE_KM }} km, short surface stretches and low-cost surfaces are not flagged; this is not a guarantee of an uninterrupted paceline.
               </p>
             </div>
           </template>

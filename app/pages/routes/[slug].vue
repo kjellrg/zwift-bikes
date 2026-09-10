@@ -148,7 +148,8 @@ const tttPlan = useTttPlan({
   combo: () => topCombo.value,
   powerW: () => activePowerW.value,
   laps: () => resultsLaps.value,
-  draftMode: () => appliedDraftMode.value
+  draftMode: () => appliedDraftMode.value,
+  loading: () => isFirstLoad.value
 })
 
 const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
@@ -496,6 +497,7 @@ useHead(() => {
       :power-w="activePowerW"
       :draft-mode="appliedDraftMode"
       :refreshing="isRefreshing"
+      :loading="isFirstLoad"
       :plan="tttPlan"
     />
 

@@ -35,8 +35,8 @@ export interface RacePlanOptions {
   wheelset?: Wheelset
 }
 
-/** No plan for very short events - nothing on a <5 km blast is "long" enough to plan around (user request: ignore short distances). */
-const MIN_ROUTE_KM = 5
+/** No plan for very short events - nothing on a <5 km blast is "long" enough to plan around (user request: ignore short distances). Exported so the plan tab's empty state quotes the same number. */
+export const MIN_ROUTE_KM = 5
 /**
  * Non-tarmac sectors shorter than this are ignored - a few metres of dirt
  * where a path crosses the road isn't a race danger. Exported for the plan's
