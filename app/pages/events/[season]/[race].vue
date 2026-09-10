@@ -28,7 +28,7 @@ const round = getRoundForRace(season, race)
 // Read-only plus `setDraftMode` (for the format hint below): the controls
 // themselves live in `RiderProfileControls` / `BikeFilterControls`, and
 // `useRecommendRequest` reads the rest of this state itself.
-const { weightKg, heightCm, powerW, draftMode, tttRiders, tttClimbWkg, setDraftMode } = useRiderProfile()
+const { weightKg, powerW, draftMode, setDraftMode } = useRiderProfile()
 const { setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 // A/B and C/D routinely race the same route over a different number of laps,
@@ -1023,12 +1023,12 @@ useHead(() => {
       :route="routeInfo"
       :frame="topCombo.frame"
       :wheelset="topCombo.wheelset"
-      :weight-kg="weightKg"
-      :height-cm="heightCm"
-      :power-w="powerW"
+      :weight-kg="appliedInputs.weightKg"
+      :height-cm="appliedInputs.heightCm"
+      :power-w="appliedInputs.powerW"
       :draft-mode="appliedInputs.draftMode"
-      :ttt-riders="tttRiders"
-      :ttt-climb-wkg="tttClimbWkg"
+      :ttt-riders="appliedInputs.tttRiders"
+      :ttt-climb-wkg="appliedInputs.tttClimbWkg"
     />
 
     <div v-if="routeInfo?.terrain.elevationProfile && routeInfo.terrain.elevationProfile.length > 1">

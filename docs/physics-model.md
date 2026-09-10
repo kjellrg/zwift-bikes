@@ -154,7 +154,7 @@ In both cases, the design goal is the same: **new content should never be blocke
 
 By default every prediction models a **lone rider** — no draft, which is also
 exactly how ZwiftInsider's bot tests (the source of all equipment data) are
-ridden. Switching the draft mode to **TTT (paceline)** models a rotating team:
+ridden. Switching the draft mode to **TTT paceline** models a rotating team:
 
 - **Your power still means your own average.** In a rotation you push well
   above it while pulling on the front and sit well below it in the wheels; it
@@ -199,7 +199,7 @@ plateau) and their draft-savings-by-speed measurements. See
 
 ## Race draft mode
 
-**Race (pack draft)** is for anything ridden in a bunch — a points or
+**Race draft** is for anything ridden in a bunch — a points or
 scratch race, a crit, a group ride. Unlike TTT it asks for nothing extra:
 
 - **One number, measured from real races.** Sitting in a typical mass-start bunch

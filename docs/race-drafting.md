@@ -1,7 +1,7 @@
 # Race drafting: what a mass-start mode needs, and what real races say about it
 
 Reference for race draft mode, which **is now implemented** - `draftMode=race` on
-the recommend endpoints, "Race (pack draft)" in the rider profile. It
+the recommend endpoints, "Race draft" in the rider profile. It
 extends [`shared/utils/physics/draft.ts`](../shared/utils/physics/draft.ts)
 rather than duplicating it, as `ttt-drafting.md` §6 asked; this document is the
 evidence behind the one constant it ships, and the validation work behind that.

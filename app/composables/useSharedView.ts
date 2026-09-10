@@ -16,7 +16,9 @@ export interface SharedViewLaps {
  * Carries a ranking page's shared view (see `CONTEXT.md`) in the URL:
  * `?laps=3&bike=tarmac&category=tt&draft=ttt`. The rules are in
  * `app/utils/sharedView.ts`; this is the Nuxt side of them, and it follows
- * `useUrlState`'s two rules:
+ * `useUrlState`'s two rules, plus one carry of its own (below the read):
+ * a value a link supplied on the previous ranking page is written into this
+ * page's URL on mount when the URL lacks it, so the view lasts the visit.
  *
  * - **Read once, after mount.** By then the child controls' own `onMounted`
  *   has loaded the rider's stored preferences, so a value in the link wins

@@ -144,6 +144,11 @@ test.describe('rider settings', () => {
     await visit(page, page.url())
     await expect(restoreDraft(page)).toBeVisible()
     await expectExplained(page, { strip: ['TTT paceline'], answer: ['TTT paceline (8 riders);'] })
+    // ...and on to a route again, through the segment's host-route link.
+    await page.locator('a[href^="/routes/"]').first().click()
+    await page.waitForURL(/\/routes\/[^?]+\?draft=ttt/)
+    await ready(page)
+    await expectExplained(page, { strip: ['TTT paceline'], answer: ['TTT paceline (8 riders);'] })
 
     // Restoring drops the link's mode for the saved one: one refetch, a clean
     // URL, and still nothing stored.
@@ -166,6 +171,9 @@ test.describe('rider settings', () => {
     await page.waitForURL(/\/segments\/[^?]+\?category=tt/)
     await ready(page)
     await expect(filterSummary(page)).toHaveText('Time Trial / Verified only')
+    await visit(page, page.url())
+    await expect(filterSummary(page)).toHaveText('Time Trial / Verified only')
+    await expect(restoreCategory(page)).toBeVisible()
 
     const { query } = await rerank(page, () => restoreCategory(page).click())
     expect(query.get('category')).toBe('standard')
