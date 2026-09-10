@@ -21,7 +21,7 @@ const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
   category: appliedCategory, draftMode: appliedDraftMode, activePowerW,
-  appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions
+  appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 
 // Fired together (not sequentially): the recommendation depends on the Ride and the rider's own
@@ -382,6 +382,7 @@ useHead(() => {
               :laps="resultsLaps"
               :fastest-time-sec="fastestTimeSec"
               :load-wheel-options="loadWheelOptions"
+              :request-key="serializedQuery"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
             >
@@ -514,6 +515,7 @@ useHead(() => {
         :laps="resultsLaps"
         :fastest-time-sec="fastestTimeSec"
         :load-wheel-options="loadWheelOptions"
+        :request-key="serializedQuery"
         :has-more="hasMore"
         :loading-more="loadingMore"
         @show-more="showMore"

@@ -50,11 +50,13 @@ const currentLevel = computed(() => ownedFrameLevel.value ?? frame.value.level)
  * request the "other wheels" disclosure would have cost anyway, and both
  * views agree because they are one response.
  *
- * Refetched when the frame changes or when its fastest wheel does, and NOT on
- * every level change: the six stage times are a property of the bike and the
- * course, not of the stage the rider is on, so a level change only moves the
- * marker. It does change which wheel is fastest sometimes, and that is what
- * the wheelset key in the watch is there to catch.
+ * Refetched whenever the bike or the request behind it changes - see
+ * `upgradeCurveKey`. The six stage times are a property of the bike and the
+ * course rather than of the stage the rider is on, so a level change only
+ * moves the marker on a curve that is otherwise the same one; it is keyed on
+ * the whole request all the same, because the caption below renders from
+ * live state and a curve that outlives the ride it was simulated for is a
+ * caption that lies.
  *
  * That request costs five extra route integrations, so on a long route the
  * wide chart lands a second or two after the two bot-test curves beside it,
@@ -67,29 +69,42 @@ const currentLevel = computed(() => ownedFrameLevel.value ?? frame.value.level)
  */
 const routeUpgradeTimesSec = ref<number[]>()
 const routeUpgradeLoading = ref(false)
-// What the loaded curve is for. The dropped-bike refetch below answers the
-// same request, so it hands its own response over rather than letting the
-// watcher fire a second, identical one.
-const curveKey = ref<string>()
+/**
+ * What the loaded curve is for: the whole key, and the bike half of it on its
+ * own. Both are set together, so they cannot drift.
+ *
+ * The halves are held apart because only one of them empties the chart. A
+ * curve for different wheels is the wrong curve and has to go; a curve for
+ * the same bike under a changed request is almost always the same six
+ * numbers, and blanking it would flash the placeholder over the drawer's
+ * primary interaction every time a stage button is pressed. So a
+ * request-only change refetches underneath the chart that is already up.
+ *
+ * The dropped-bike refetch below answers the same request, so it hands its
+ * own response over rather than letting the watcher fire a second, identical
+ * one.
+ */
+const curveFor = ref<{ bike: string, request: string }>()
 let curveToken = 0
 
-function takeUpgradeCurve(combos: ComboScore[], key: string) {
+function takeUpgradeCurve(combos: ComboScore[], bike: string, request: string) {
   routeUpgradeTimesSec.value = combos[0]?.upgradeFinishTimesSec
-  curveKey.value = key
+  curveFor.value = { bike, request }
 }
 
-watch([() => props.detail.combo.frame.id, () => wheelset.value?.key], async ([frameId, wheelsetKey]) => {
-  const key = `${frameId}:${wheelsetKey ?? 'fixed'}`
-  if (key === curveKey.value) return
+watch(() => upgradeCurveKey(combo.value, props.detail.requestKey), async (key) => {
+  if (key === curveFor.value?.request) return
+  const bikeKey = comboKey(combo.value)
+  const frameId = combo.value.frame.id
   const token = ++curveToken
-  routeUpgradeTimesSec.value = undefined
-  curveKey.value = undefined
+  if (bikeKey !== curveFor.value?.bike) routeUpgradeTimesSec.value = undefined
+  curveFor.value = undefined
   if (!props.detail.loadFrameCombos) return
   routeUpgradeLoading.value = true
   try {
     const combos = await props.detail.loadFrameCombos(frameId)
     if (token !== curveToken) return
-    takeUpgradeCurve(combos, key)
+    takeUpgradeCurve(combos, bikeKey, key)
   } catch {
     // The two bot-test curves below still answer the question in the
     // abstract; a failed request just means this drawer does not also answer
@@ -149,8 +164,12 @@ watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
       refetched.value = combos[0]
       // Same frame, same query, same response the curve watcher would have
       // asked for - claim it here so a level change that drops the bike does
-      // not fetch this twice.
-      takeUpgradeCurve(combos, `${combos[0].frame.id}:${combos[0].wheelset?.key ?? 'fixed'}`)
+      // not fetch this twice. The request half can be behind while the bike
+      // is dropped: no card exists to sync a fresh `requestKey` from, so this
+      // labels a curve that WAS fetched under the live query with the last
+      // key the drawer was told about. The curve is right either way; the
+      // cost of the lag is one redundant refetch when the bike ranks again.
+      takeUpgradeCurve(combos, comboKey(combos[0]), upgradeCurveKey(combos[0], props.detail.requestKey))
     }
   } catch {
     // Leave the previous numbers up; the notice already says they predate the change.

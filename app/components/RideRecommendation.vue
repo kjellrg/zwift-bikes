@@ -17,6 +17,8 @@ const props = defineProps<{
   laps?: number
   fastestTimeSec?: number
   loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
+  /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
+  requestKey?: string
   /** The one-line "limited route data" warning, when the course inputs are partial - see `limitedCourseDataNote`. */
   limitedDataNote?: string
   /** Small evidence lines that qualify this time: the rough-surface cost, the paceline or bunch saving. */
@@ -28,7 +30,8 @@ const { openDetail } = useComboDetail({
   route: () => props.route,
   laps: () => props.laps,
   fastestTimeSec: () => props.fastestTimeSec,
-  loadFrameCombos: () => props.loadWheelOptions
+  loadFrameCombos: () => props.loadWheelOptions,
+  requestKey: () => props.requestKey
 })
 
 // Quick-adds start at the rider's chosen default level for unowned bikes -

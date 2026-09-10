@@ -21,6 +21,8 @@ defineProps<{
   laps?: number
   fastestTimeSec?: number
   loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
+  /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
+  requestKey?: string
   hasMore: boolean
   loadingMore: boolean
 }>()
@@ -101,6 +103,7 @@ const listId = useId()
         :laps="laps"
         :fastest-time-sec="fastestTimeSec"
         :load-wheel-options="loadWheelOptions"
+        :request-key="requestKey"
         :compared="selected.includes(comboKey(combo))"
         :compare-disabled="compareFull && !selected.includes(comboKey(combo))"
         @toggle-compare="toggle(combo)"

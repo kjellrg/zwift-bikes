@@ -7,6 +7,7 @@ export interface ComboDetailSource {
   laps: () => number | undefined
   fastestTimeSec: () => number | undefined
   loadFrameCombos: () => BikeDetail['loadFrameCombos']
+  requestKey: () => string | undefined
 }
 
 /**
@@ -31,11 +32,19 @@ export function useComboDetail(source: ComboDetailSource) {
       route: source.route(),
       laps: source.laps(),
       fastestTimeSec: source.fastestTimeSec(),
-      loadFrameCombos: source.loadFrameCombos()
+      loadFrameCombos: source.loadFrameCombos(),
+      requestKey: source.requestKey()
     }
   }
 
-  watch(() => [source.combo(), source.fastestTimeSec(), source.laps()], () => syncBikeDetail(detail()), { immediate: true })
+  // `requestKey` is watched alongside the combo rather than left to arrive
+  // with it: a refetch hands the row a new combo eventually, but the drawer's
+  // curve can start reloading the moment the ride it describes changes.
+  watch(
+    () => [source.combo(), source.fastestTimeSec(), source.laps(), source.requestKey()],
+    () => syncBikeDetail(detail()),
+    { immediate: true }
+  )
 
   return { openDetail: () => openBikeDetail(detail()) }
 }

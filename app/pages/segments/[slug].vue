@@ -35,7 +35,7 @@ const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
   category: appliedCategory, draftMode: appliedDraftMode, activePowerW,
-  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions
+  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
 
@@ -335,6 +335,7 @@ useHead(() => {
               :laps="1"
               :fastest-time-sec="fastestTimeSec"
               :load-wheel-options="loadWheelOptions"
+              :request-key="serializedQuery"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
             >
@@ -473,6 +474,7 @@ useHead(() => {
         :laps="1"
         :fastest-time-sec="fastestTimeSec"
         :load-wheel-options="loadWheelOptions"
+        :request-key="serializedQuery"
         :has-more="hasMore"
         :loading-more="loadingMore"
         @show-more="showMore"

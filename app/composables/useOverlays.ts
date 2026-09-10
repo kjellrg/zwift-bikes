@@ -45,6 +45,14 @@ export interface BikeDetail {
    * page, where no card exists to sync from.
    */
   loadFrameCombos?: (frameId: number) => Promise<ComboScore[]>
+  /**
+   * The serialised query the page's results belong to
+   * (`useRecommendRequest().serializedQuery`). The drawer's route upgrade
+   * curve is keyed on it, so a lap, power or filter change can never leave a
+   * curve up under a caption that describes the new ride - see
+   * `upgradeCurveKey`.
+   */
+  requestKey?: string
 }
 
 export function useOverlays() {

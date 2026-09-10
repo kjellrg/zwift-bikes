@@ -16,6 +16,8 @@ const props = defineProps<{
   laps?: number
   fastestTimeSec?: number
   loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
+  /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
+  requestKey?: string
   compared: boolean
   /** Whether the comparison is full and this row is not in it - the checkbox is then disabled rather than evicting a pick. */
   compareDisabled: boolean
@@ -28,7 +30,8 @@ const { openDetail } = useComboDetail({
   route: () => props.route,
   laps: () => props.laps,
   fastestTimeSec: () => props.fastestTimeSec,
-  loadFrameCombos: () => props.loadWheelOptions
+  loadFrameCombos: () => props.loadWheelOptions,
+  requestKey: () => props.requestKey
 })
 
 // Quick-adds start at the rider's chosen default level for unowned bikes -

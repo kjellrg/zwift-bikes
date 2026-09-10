@@ -20,6 +20,8 @@ const props = defineProps<{
    * no wheel disclosure.
    */
   loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
+  /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
+  requestKey?: string
 }>()
 
 const isOwnedFrame = computed(
@@ -38,7 +40,7 @@ const { setOwned, setWheelOwned, isWheelOwned } = useGarage()
  */
 const { openBikeDetail, syncBikeDetail } = useOverlays()
 function bikeDetail() {
-  return { combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps, loadFrameCombos: props.loadWheelOptions }
+  return { combo: props.combo, route: props.route, fastestTimeSec: props.fastestTimeSec, laps: props.laps, loadFrameCombos: props.loadWheelOptions, requestKey: props.requestKey }
 }
 function showDetails() {
   openBikeDetail(bikeDetail())
@@ -50,7 +52,10 @@ function showDetails() {
 // rest keyed by frame and wheelset, so a bike that becomes the fastest (or
 // whose fastest wheel changes) mounts as a NEW card, and only a watcher
 // that also runs on mount reaches the drawer in that case.
-watch(() => [props.combo, props.fastestTimeSec, props.laps], () => syncBikeDetail(bikeDetail()), { immediate: true })
+// `props.requestKey` is watched too, so the drawer's route curve starts
+// reloading when the ride it describes changes rather than when this card's
+// own combo finally arrives - see `upgradeCurveKey`.
+watch(() => [props.combo, props.fastestTimeSec, props.laps, props.requestKey], () => syncBikeDetail(bikeDetail()), { immediate: true })
 
 /**
  * New quick-adds start at the rider's chosen default level for unowned bikes

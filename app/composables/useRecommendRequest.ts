@@ -307,6 +307,13 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     bikeSearch,
     /** The settled search term - what the query was actually built from, and what a page writes to the URL. */
     bikeSearchDebounced,
+    /**
+     * The serialised query the results on screen belong to, for anything that
+     * has to notice when the ride being ranked changes underneath it. The bike
+     * drawer keys its route upgrade curve on this (`upgradeCurveKey`); nothing
+     * parses it back out.
+     */
+    serializedQuery,
     loadWheelOptions,
     owned
   }

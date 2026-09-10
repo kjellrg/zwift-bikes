@@ -83,7 +83,7 @@ const {
   ready: recommendReady, physics: physicsInfo, fastestOverall,
   combos, topCombo, restCombos, fastestTimeSec, hasMore, loadingMore, showMore,
   draftMode: effectiveDraftMode, appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement,
-  bikeSearch, loadWheelOptions, owned
+  bikeSearch, loadWheelOptions, serializedQuery, owned
 } = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 
 // `useAsyncData` rather than `useFetch` for the route lookup: the selected
@@ -852,6 +852,7 @@ useHead(() => {
             <ComboResultCard
               v-if="topCombo"
               :load-wheel-options="loadWheelOptions"
+              :request-key="serializedQuery"
               :combo="topCombo"
               :rank="1"
               :route="routeInfo"
@@ -868,6 +869,7 @@ useHead(() => {
                 v-for="(combo, index) in restCombos"
                 :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
                 :load-wheel-options="loadWheelOptions"
+                :request-key="serializedQuery"
                 :combo="combo"
                 :rank="index + 2"
                 :route="routeInfo"
