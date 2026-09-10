@@ -20,7 +20,10 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
  * the load-then-seed order the pages used - it matters for the one value the
  * watches below don't cover: a stored profile with a different power but no
  * committed team climb pace still seeds `pendingClimbWkg` from the loaded
- * power, not the default.
+ * power, not the default. On a later mount - the route and segment pages
+ * fold this box behind "Adjust effort" - the load is a no-op (storage is
+ * read once per app lifetime) and the seeding reads the state as it stands,
+ * including a draft mode a link supplied for the visit.
  */
 const props = withDefaults(defineProps<{
   /**

@@ -22,7 +22,13 @@ export interface SharedViewLaps {
  *   has loaded the rider's stored preferences, so a value in the link wins
  *   over the stored one for this visit. Assigned to the state refs directly
  *   rather than through the setters on purpose: a link someone sent must
- *   not overwrite the rider's saved category or draft mode. Everything is
+ *   not overwrite the rider's saved category or draft mode. The composables
+ *   keep that promise on their side too - they persist a stored copy of
+ *   those two fields, never the ref, so an unrelated setter during the
+ *   visit cannot store the link's value (issue #198), and they read storage
+ *   only once, so a control mounting later cannot reassign the ref from it.
+ *   `categoryFromLink` / `draftModeFromLink` report the divergence, and
+ *   `restoreBikeCategory` / `restoreDraftMode` end it. Everything is
  *   assigned in one tick, so the view costs one request.
  * - **Write from state, never from the query.** A watcher on the committed
  *   refs - the settled search term, not the keystrokes - replaces the query

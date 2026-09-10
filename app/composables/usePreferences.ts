@@ -32,6 +32,29 @@ export function usePreferences() {
    */
   const bikeCategory = useState<BikeCategory | 'all'>('pref-bike-category', () => 'standard')
   /**
+   * The category `persist()` writes: the rider's own choice, as last loaded
+   * or set through `setBikeCategory`. `bikeCategory` itself can hold a
+   * value a link supplied for the visit (`useSharedView` assigns the ref
+   * directly, on purpose), and serialising the ref stored that value on the
+   * next unrelated setter call - toggling Halo bikes after opening a
+   * `?category=tt` link saved TT as the rider's category (issue #198). So
+   * every setter persists this copy, and only `setBikeCategory` moves it.
+   * Seeded from the ref so the default above stays the one place it is
+   * written: a copy that drifted from it would report a link on every
+   * fresh visit.
+   */
+  const storedBikeCategory = useState<BikeCategory | 'all'>('pref-bike-category-stored', () => bikeCategory.value)
+  /** Whether the page shows a category a link supplied rather than the rider's own. */
+  const categoryFromLink = computed(() => bikeCategory.value !== storedBikeCategory.value)
+  /**
+   * Storage is read once per app lifetime. Every control component and
+   * `useRecommendRequest` call `load()` from their own `onMounted`, and a
+   * repeat read is not the harmless no-op it looks like: it reassigns the
+   * refs from storage, which would undo a link's category the moment a
+   * lazily mounted control ran it. The first caller wins; the rest return.
+   */
+  const loaded = useState<boolean>('pref-loaded', () => false)
+  /**
    * Whether the race-calendar teasers appear outside the events section: the
    * homepage's "Next race" card and the route pages' "Featured in upcoming
    * races" row. Defaults to on - the events pages themselves are always
@@ -64,14 +87,15 @@ export function usePreferences() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       verifiedOnly: verifiedOnly.value,
       myBikesOnly: myBikesOnly.value,
-      bikeCategory: bikeCategory.value,
+      bikeCategory: storedBikeCategory.value,
       showUpcomingRaces: showUpcomingRaces.value,
       includeHaloBikes: includeHaloBikes.value
     }))
   }
 
   function load() {
-    if (!import.meta.client) return
+    if (!import.meta.client || loaded.value) return
+    loaded.value = true
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return
@@ -81,7 +105,10 @@ export function usePreferences() {
       // Validated against the one category list rather than trusted: a stale
       // or hand-edited value would otherwise reach the recommend endpoints
       // as a category no frame has - see `BIKE_CATEGORY_FILTERS`.
-      if (typeof parsed.bikeCategory === 'string' && (BIKE_CATEGORY_FILTERS as readonly string[]).includes(parsed.bikeCategory)) bikeCategory.value = parsed.bikeCategory as BikeCategory | 'all'
+      if (typeof parsed.bikeCategory === 'string' && (BIKE_CATEGORY_FILTERS as readonly string[]).includes(parsed.bikeCategory)) {
+        bikeCategory.value = parsed.bikeCategory as BikeCategory | 'all'
+        storedBikeCategory.value = bikeCategory.value
+      }
       if (typeof parsed.showUpcomingRaces === 'boolean') showUpcomingRaces.value = parsed.showUpcomingRaces
       if (typeof parsed.includeHaloBikes === 'boolean') includeHaloBikes.value = parsed.includeHaloBikes
     } catch {
@@ -107,7 +134,18 @@ export function usePreferences() {
   // hydration. Don't mirror this into a second page-local ref.
   function setBikeCategory(value: BikeCategory | 'all') {
     bikeCategory.value = value
+    storedBikeCategory.value = value
     persist()
+  }
+
+  /**
+   * Drops a link's category in favour of the rider's own. Nothing to
+   * persist: the stored copy is what comes back, so storage already holds
+   * it. The assignment moves the ref only when a link changed it, and a
+   * moved ref is what refetches the ranking.
+   */
+  function restoreBikeCategory() {
+    bikeCategory.value = storedBikeCategory.value
   }
 
   function setShowUpcomingRaces(value: boolean) {
@@ -120,5 +158,5 @@ export function usePreferences() {
     persist()
   }
 
-  return { verifiedOnly, myBikesOnly, bikeCategory, showUpcomingRaces, includeHaloBikes, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, setShowUpcomingRaces, setIncludeHaloBikes }
+  return { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, showUpcomingRaces, includeHaloBikes, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setShowUpcomingRaces, setIncludeHaloBikes }
 }

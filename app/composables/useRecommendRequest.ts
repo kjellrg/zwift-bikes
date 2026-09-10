@@ -230,10 +230,12 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   onMounted(() => {
     // The two control components load these themselves, but they aren't
     // always mounted - a race group with no catalog route renders neither -
-    // and the query wants the rider's stored state regardless. Every `load()`
-    // here is an idempotent localStorage read that assigns nothing when the
-    // stored values match what state already holds, so running them twice
-    // costs nothing and fires no refetch.
+    // and the query wants the rider's stored state regardless. The profile
+    // and preferences read storage once per app lifetime and return on
+    // every later call; the garage re-reads but guards with a JSON-equality
+    // check. Either way a repeat call assigns nothing, so running them from
+    // every mount costs nothing, fires no refetch, and cannot undo a value
+    // `useSharedView` assigned for the visit.
     loadGarage()
     loadRiderProfile()
     loadPreferences()

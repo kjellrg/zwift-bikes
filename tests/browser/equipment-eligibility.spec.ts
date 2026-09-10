@@ -37,6 +37,7 @@ const garageSwitch = (page: Page) => page.getByRole('switch', { name: 'My garage
 const garageScope = (page: Page) => page.getByText(/Other filters and compatibility still apply\./)
 const filterSummary = (page: Page) => page.getByText(/^(All categories|Standard \(Road\)|Time Trial|Gravel|Hand Cycle|Fun Bike) \/ (Verified only|Includes estimates)$/)
 const noMatches = (page: Page) => page.getByText('No bikes match your filters.')
+const haloSwitch = (page: Page) => page.getByRole('switch', { name: 'Include Halo bikes' })
 
 interface Garage { frames?: Record<number, number>, wheels?: string[] }
 
@@ -163,11 +164,27 @@ test.describe('equipment eligibility', () => {
     await expect(note).toHaveCount(0)
 
     // A link is the other half of that contract: it shows the sender's view
-    // for the visit and leaves the rider's own saved category alone.
+    // for the visit and leaves the rider's own saved category alone - also
+    // when something unrelated is stored during the visit. The next persist
+    // used to write the link's category along with it (issue #198), so the
+    // whole stored object is compared, not just the field the link carried.
+    const before = await storedPreferences(page)
     await visit(page, `${ROUTE}?category=tt`)
     await expect(filterSummary(page)).toHaveText('Time Trial / Verified only')
+    await rerank(page, () => haloSwitch(page).click())
+    expect(await storedPreferences(page)).toEqual({ ...before, includeHaloBikes: true })
     await visit(page, ROUTE)
     await expect(filterSummary(page)).toHaveText('All categories / Verified only')
+
+    // Choosing a category through the control during a link visit is still
+    // the rider's own choice, and is stored like any other.
+    await visit(page, `${ROUTE}?category=tt`)
+    await page.getByRole('button', { name: 'More filters' }).click()
+    await page.getByRole('combobox', { name: 'Bike category' }).click()
+    await rerank(page, () => page.getByRole('option', { name: 'Standard (Road)' }).click())
+    expect((await storedPreferences(page)).bikeCategory).toBe('standard')
+    await visit(page, ROUTE)
+    await expect(filterSummary(page)).toHaveText('Standard (Road) / Verified only')
   })
 
   test('leaves the filters usable when a verified category has nothing in it', async ({ page, isMobile }) => {
@@ -189,6 +206,11 @@ test.describe('equipment eligibility', () => {
     await expect(filterSummary(page)).toHaveText('Gravel / Includes estimates')
   })
 })
+
+/** What `usePreferences` has stored, parsed - the one place a leaked link value would show up. */
+async function storedPreferences(page: Page): Promise<Record<string, unknown>> {
+  return page.evaluate(() => JSON.parse(localStorage.getItem('zwift-bikes:preferences') ?? '{}'))
+}
 
 /** The frame name of every loaded row, in rank order - the row's own details button carries it. */
 async function frameNames(page: Page) {
