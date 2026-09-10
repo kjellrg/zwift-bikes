@@ -39,17 +39,17 @@ async function nav(page: Page, isMobile: boolean): Promise<Locator> {
   return menu(page)
 }
 
-const entry = (nav: Locator, name: string) => nav.getByRole('link', { name, exact: true })
+const entry = (within: Locator, name: string) => within.getByRole('link', { name, exact: true })
 
-async function expectMarked(nav: Locator, name: string | null) {
+async function expectMarked(within: Locator, name: string | null) {
   for (const section of ['Routes', 'Segments', 'Events']) {
-    if (section === name) await expect(entry(nav, section)).toHaveAttribute('aria-current', 'page')
-    else await expect(entry(nav, section)).not.toHaveAttribute('aria-current', 'page')
+    if (section === name) await expect(entry(within, section)).toHaveAttribute('aria-current', 'page')
+    else await expect(entry(within, section)).not.toHaveAttribute('aria-current', 'page')
   }
 }
 
 /** A colour as the browser resolves it, so a token can be compared with a computed style. */
-async function resolved(page: Page, cssColor: string) {
+async function resolvedColor(page: Page, cssColor: string) {
   return page.evaluate((cssColor) => {
     const probe = document.createElement('div')
     probe.style.color = cssColor
@@ -74,7 +74,7 @@ test.describe('shell', () => {
     await expectMarked(entries, 'Routes')
 
     // The mark is the primary colour, nothing else: no pill, no underline.
-    const primary = await resolved(page, 'var(--ui-primary)')
+    const primary = await resolvedColor(page, 'var(--ui-primary)')
     expect(await entry(entries, 'Routes').evaluate(element => getComputedStyle(element).color)).toBe(primary)
     expect(await entry(entries, 'Segments').evaluate(element => getComputedStyle(element).color)).not.toBe(primary)
 
@@ -85,12 +85,15 @@ test.describe('shell', () => {
 
     await visit(page, SEGMENT)
     await expectMarked(await nav(page, isMobile), 'Segments')
+    await expectNoHorizontalOverflow(page)
 
     await visitPage(page, '/events')
     await expectMarked(await nav(page, isMobile), 'Events')
+    await expectNoHorizontalOverflow(page)
 
     await visitPage(page, '/profile')
     await expectMarked(await nav(page, isMobile), null)
+    await expectNoHorizontalOverflow(page)
   })
 
   test('puts the skip link first in the tab order and lands it in the main region', async ({ page }) => {
@@ -146,10 +149,16 @@ test.describe('shell', () => {
 
   test('carries the theme into an overlay', async ({ page, isMobile }) => {
     await visit(page, ROUTE)
+    const bodyBackground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+    const lightGround = await bodyBackground()
     await header(page).getByRole('button', { name: 'Switch to dark mode' }).click()
     await expect(page.locator('html')).toHaveClass(/\bdark\b/)
-    const ground = await resolved(page, 'var(--ui-color-neutral-950)')
-    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(ground)
+    // The dark ground is the palette's deepest neutral (main.css re-points
+    // `--ui-bg` to it), not merely "whatever `--ui-bg` is": that would hold
+    // in light mode too.
+    const ground = await resolvedColor(page, 'var(--ui-color-neutral-950)')
+    expect(ground).not.toBe(lightGround)
+    expect(await bodyBackground()).toBe(ground)
 
     await entry(await nav(page, isMobile), 'My Profile').click()
     await expect(profileOverlay(page)).toBeVisible()

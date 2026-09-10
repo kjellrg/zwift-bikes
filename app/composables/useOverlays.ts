@@ -1,10 +1,10 @@
 /**
- * Open/closed state for the about, garage, profile and report modals, plus
- * the click handlers that open them.
+ * Open/closed state for the about, garage, profile and report Overlays
+ * (see `CONTEXT.md`), plus the click handlers that open them.
  *
  * `useState` rather than Nuxt UI's `useOverlay()`: the openers live in
  * deeply nested components (the header, `BikeFilterControls`,
- * `RiderProfileControls`) while the modals themselves are mounted once in
+ * `RiderProfileControls`) while the overlays themselves are mounted once in
  * `app.vue` with `v-model:open`, exactly like `AboutModal`. A shared piece
  * of global state is what lets those two ends meet without prop drilling,
  * and it matches the idiom the rest of the app's composables already use.
@@ -12,7 +12,7 @@
  * The handlers carry the same modifier-key guard as `app.vue`'s About
  * opener: every call site keeps a real `href="/garage"` / `href="/profile"`
  * (both are still real routes), so cmd/ctrl/shift/alt-click and middle-click
- * open the page for real, while a plain left click shows the modal instead
+ * open the page for real, while a plain left click shows the overlay instead
  * of navigating away. Plain `<a>` elements rather than `ULink`/`NuxtLink` at
  * those call sites: vue-router's own click handler would run before this
  * one, so `.prevent` on a NuxtLink wouldn't reliably stop the navigation.
@@ -58,7 +58,7 @@ export interface BikeDetail {
 export function useOverlays() {
   // About started out as a plain `ref` in `app.vue`, which was fine while the
   // header was its only opener. `AboutContent` now links to the report form,
-  // and a link inside a modal has to be able to close the modal it's in - the
+  // and a link inside an overlay has to be able to close the overlay it's in - the
   // same reason Garage and Profile live here rather than in `app.vue`.
   const isAboutOpen = useState<boolean>('overlay-about-open', () => false)
   const isGarageOpen = useState<boolean>('overlay-garage-open', () => false)
@@ -75,10 +75,12 @@ export function useOverlays() {
   // The fastest time on the loaded list, kept current for a dropped bike's
   // "behind the fastest" figure - its own snapshot of it predates the change.
   const rankedFastestTimeSec = useState<number | undefined>('overlay-ranked-fastest', () => undefined)
-  // True while the open overlay was opened from the mobile menu - see
-  // `onOverlayCloseAutoFocus`. Set by `app.vue`'s menu openers, cleared by
-  // every opener below that is not the menu: those openers are still on the
-  // page when their overlay closes, so Reka's own focus return is right.
+  // True while the open overlay was opened from the mobile menu, which is
+  // gone by the time the overlay closes - `app.vue` then sends focus to the
+  // menu toggle instead of letting Reka return it to a detached entry. Set
+  // by `app.vue`'s menu openers and reset when the overlay chain closes;
+  // cleared here too by every opener that is not the menu, because those
+  // openers are still on the page and Reka's own return is right.
   const returnsFocusToMenuToggle = useState<boolean>('overlay-returns-to-menu-toggle', () => false)
 
   function openBikeDetail(detail: BikeDetail) {
@@ -156,14 +158,14 @@ export function useOverlays() {
   }
 
   /**
-   * Swaps the About modal for the Report modal, for the report link inside
-   * `AboutContent`. Without this the link just navigated: `/report` is a real
-   * route, so the rider was dropped on the page with the About dialog still
+   * Swaps the About overlay for the Report overlay, for the report link
+   * inside `AboutContent`. Without this the link just navigated: `/report`
+   * is a real route, so the rider was dropped on the page with About still
    * sitting over it.
    *
    * Closing About is deferred to `nextTick` rather than done in the same
-   * tick, so only one dialog is ever mounted at a time - two overlapping
-   * dialogs fight over focus trapping and the body scroll lock, and whichever
+   * tick, so only one overlay is ever mounted at a time - two overlapping
+   * ones fight over focus trapping and the body scroll lock, and whichever
    * unmounts second can leave the page unscrollable.
    */
   function openReportFromAbout(event: MouseEvent) {
@@ -174,29 +176,6 @@ export function useOverlays() {
       reportSeed.value = undefined
       isReportOpen.value = true
     })
-  }
-
-  /**
-   * Where focus goes when the about, garage, profile or report overlay closes.
-   * Reka returns it to the element that had it when the dialog mounted,
-   * and after a desktop opener that is exactly right. An overlay opened
-   * from the mobile menu is different: the menu unmounts in the same tick
-   * the overlay mounts, so the entry the rider pressed is already gone and
-   * Reka's return would land on `body`. The header's menu toggle is the
-   * one thing the rider pressed on the way in that is still there, so it
-   * gets focus instead - only in that case, hence the flag. The flag is
-   * left set on purpose: About's report link opens a second overlay in the
-   * same chain (`openReportFromAbout`), and that one should come back to
-   * the toggle too.
-   *
-   * Handed to each modal as UModal's `content.onCloseAutoFocus`; a
-   * `watch` on the open state could not do this, because Reka moves focus
-   * in a timeout after unmount and would win.
-   */
-  function onOverlayCloseAutoFocus(event: Event) {
-    if (!returnsFocusToMenuToggle.value) return
-    event.preventDefault()
-    document.querySelector<HTMLElement>('header [data-slot="toggle"]')?.focus()
   }
 
   return {
@@ -217,7 +196,6 @@ export function useOverlays() {
     openProfile,
     openReport,
     openReportFromAbout,
-    returnsFocusToMenuToggle,
-    onOverlayCloseAutoFocus
+    returnsFocusToMenuToggle
   }
 }

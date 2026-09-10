@@ -11,7 +11,7 @@ const open = defineModel<boolean>('open', { default: false })
 //
 // `content` is UModal's own: the dialog content's props and `onXxx` events.
 // `app.vue` uses it to say where focus goes when the overlay closes after
-// the mobile menu opened it - see `useOverlays().onOverlayCloseAutoFocus`.
+// the mobile menu opened it - see `overlayContent` there.
 defineProps<{
   seedKind?: ReportKind
   seedItem?: string

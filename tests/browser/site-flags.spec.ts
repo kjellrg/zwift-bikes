@@ -29,11 +29,6 @@ const banner = (page: Page) => page.getByText(MESSAGE)
 const eventsEntries = (page: Page) => page.locator('a[href="/events"]')
 const menuToggle = (page: Page) => page.getByRole('banner').getByRole('button', { name: 'Open menu' })
 
-/** The flags arrive after mount, so this waits for the first thing that changes. */
-async function flagsApplied(page: Page) {
-  await expect(banner(page)).toBeVisible()
-}
-
 test.describe('site flags', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/site-flags', route => route.fulfill({ json: FLAGS }))
@@ -41,7 +36,8 @@ test.describe('site flags', () => {
 
   test('takes a hidden section out of the nav and answers a direct visit with the notice', async ({ page, isMobile }) => {
     await visit(page, ROUTE)
-    await flagsApplied(page)
+    // The flags arrive after mount; the banner is the first thing they change.
+    await expect(banner(page)).toBeVisible()
     await expect(eventsEntries(page)).toHaveCount(0)
     if (isMobile) {
       await menuToggle(page).click()
@@ -57,7 +53,8 @@ test.describe('site flags', () => {
 
   test('shows the message of the day until dismissed, and keeps the dismissal across a reload', async ({ page }) => {
     await visit(page, ROUTE)
-    await flagsApplied(page)
+    // The flags arrive after mount; the banner is the first thing they change.
+    await expect(banner(page)).toBeVisible()
     await page.getByRole('button', { name: 'Close' }).click()
     await expect(banner(page)).toHaveCount(0)
     expect(await page.evaluate(key => localStorage.getItem(key), DISMISSED_KEY)).toBe(FLAGS.motd.id)

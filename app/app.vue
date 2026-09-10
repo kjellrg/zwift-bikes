@@ -11,11 +11,34 @@
 // are shared with links buried elsewhere - "(edit profile)" / "(edit garage)"
 // on the route, segment and event pages, and the report link inside the About
 // overlay itself.
-const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport, isBikeDetailOpen, returnsFocusToMenuToggle, onOverlayCloseAutoFocus } = useOverlays()
+const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport, isBikeDetailOpen, returnsFocusToMenuToggle } = useOverlays()
 
-// Forwarded to the about, garage, profile and report overlays as UModal's
-// `content`: the one hook that decides where focus goes when they close.
-const overlayContent = { onCloseAutoFocus: onOverlayCloseAutoFocus }
+// Where focus goes when the about, garage, profile or report overlay
+// closes. Reka returns it to the element that had it when the dialog
+// mounted, and after a desktop opener that is exactly right. An overlay
+// opened from the mobile menu is different: the menu unmounts in the same
+// tick the overlay mounts, so the entry the rider pressed is already gone
+// and Reka's return would land on `body`. The header's menu toggle is the
+// one thing the rider pressed on the way in that is still there, so it gets
+// focus instead - only in that case, hence the flag. UHeader stamps its
+// toggle `data-slot="toggle"` (Nuxt UI names every slot element that way,
+// and the in-menu copy is gone by now), which is the only handle on it
+// short of rendering the toggle ourselves. The flag outlives one close
+// while another overlay is still up - About's report link opens a second
+// overlay in the same chain (`openReportFromAbout`), which should come back
+// to the toggle too - and resets once the chain is closed.
+//
+// Forwarded to the overlays as UModal's `content.onCloseAutoFocus`: a
+// `watch` on the open state could not do this, because Reka moves focus in
+// a timeout after unmount and would win.
+const overlayContent = {
+  onCloseAutoFocus(event) {
+    if (!returnsFocusToMenuToggle.value) return
+    event.preventDefault()
+    document.querySelector('header [data-slot="toggle"]')?.focus()
+    returnsFocusToMenuToggle.value = isAboutOpen.value || isGarageOpen.value || isProfileOpen.value || isReportOpen.value
+  }
+}
 
 // The section a page belongs to, by path prefix, for the mark on the nav
 // entry. Computed by hand because the Routes entry links to `/`, which
@@ -44,9 +67,9 @@ onMounted(loadSiteFlags)
 // only when an overlay actually opened: a modifier-click falls through to
 // the real href, and the menu going away under a new tab is just noise.
 // The menu is not an Overlay (navigation, not content) but follows the same
-// rule: it closes as the overlay opens, so only one dialog is up at a time.
+// rule: it closes as the overlay opens, so only one of them is up at a time.
 // Its entry unmounts with it, which is why the overlay's closing focus is
-// sent to the menu toggle instead (`returnsFocusToMenuToggle`).
+// sent to the menu toggle instead (`overlayContent`).
 const isMenuOpen = ref(false)
 
 function openProfileFromMenu(event) {
