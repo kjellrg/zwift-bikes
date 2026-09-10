@@ -27,3 +27,31 @@ locators stay in the spec that uses them.
 
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.
+
+## Long runs on a memory-constrained machine
+
+`nuxt dev` gets slower the longer a run goes on, and it is the dev server that
+degrades, not the tests. Measured on the dev box: mobile journeys that finish in
+5.9 s and 7.9 s early in a run take 34.4 s and 20.4 s late in a long one, and a
+journey that passes in 8.8 s on its own can sit past the 240 s test timeout in a
+full two-project run. The failure always looks the same - `page.waitForResponse`
+or `ready()` timing out, never an assertion - and the same test passes on its own
+seconds later, so a single timeout of that shape is not evidence of a regression.
+
+What keeps a long run honest:
+
+- **Start the dev server by hand and warm the pages first.** `curl` each route,
+  segment and hub page the specs visit before starting Playwright, so the first
+  spec does not pay a cold compile inside a test timeout.
+- **Run one project at a time** (`--project=desktop`, then `--project=mobile`),
+  restarting `nuxt dev` between them. Two projects back to back is where the
+  degradation shows, and a restart costs less than a 240 s timeout.
+- **Split a full run by spec file** when even one project is shaky, and never run
+  the suite next to `npm run typecheck`, `npm run build` or a second dev server.
+- **Confirm before believing a failure.** Re-run the failing test alone, then its
+  whole file, then its project. A real regression fails at every level; a harness
+  timeout only fails in the long run. Read the timings of the tests around it -
+  inflation across the run is the tell.
+- **Prefer waiting on real signals.** Every wait in `support.ts` is for hydration,
+  a response or `aria-busy`; a sleep tuned to a fast run is what turns
+  degradation into a false failure.
