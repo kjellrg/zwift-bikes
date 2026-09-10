@@ -25,9 +25,9 @@ response, the results region leaving `aria-busy`), never sleeps: every spec
 imports them from `support.ts`, which owns the waits and the one helper that
 seeds a rider profile before a page reads it - locators stay in the spec that
 uses them. A response is stubbed only where the failure itself is what is
-under test - one recommend journey, and the aborted `/api/routes` refetch in
-`route-discovery.spec.ts`; a stub is never used to make a real journey
-faster. The one other stub is `site-flags.spec.ts`, which answers
+under test - one recommend journey, and the aborted refetch in each of
+`route-discovery.spec.ts` and `segment-discovery.spec.ts`; a stub is never
+used to make a real journey faster. The one other stub is `site-flags.spec.ts`, which answers
 `/api/site-flags` by hand: the flags live in Workers KV and the dev server
 only ever serves the defaults, so a hidden section or a message of the day
 cannot be seen any other way. `visit` waits for a ranking page's results;

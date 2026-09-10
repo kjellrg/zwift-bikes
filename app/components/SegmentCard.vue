@@ -1,6 +1,18 @@
 <script setup lang="ts">
 import type { SegmentSummary } from '../../shared/types/catalog'
 
+/**
+ * A segment as the segments page lists it: what it is (name, world, climb or
+ * sprint and its category) and the three numbers a rider picks a climb or a
+ * sprint by. The stat rows are the ride briefing's, the same as `RouteCard`'s,
+ * so the two discovery pages and the ranking page they lead to read as one
+ * design of the same facts.
+ *
+ * Elevation and grade prefer the measured pair over `zwift-data`'s published
+ * scalars wherever both exist - see `SegmentSummary`: every display surface
+ * does, and a card that disagreed with the segment page it links to would be
+ * the one place a rider could catch the site contradicting itself.
+ */
 defineProps<{
   segment: SegmentSummary
 }>()
@@ -13,7 +25,9 @@ defineProps<{
       :ui="{ body: 'space-y-3' }"
     >
       <div class="flex items-start justify-between gap-2">
-        <div>
+        <!-- `min-w-0` so a long name wraps inside its own column instead of
+             widening the card past its grid cell. -->
+        <div class="min-w-0">
           <p class="font-semibold text-highlighted">
             {{ segment.name }}
           </p>
@@ -21,14 +35,7 @@ defineProps<{
             {{ segment.worldName }}
           </p>
         </div>
-        <div class="flex flex-col items-end gap-1.5">
-          <UBadge
-            color="neutral"
-            variant="subtle"
-            icon="i-lucide-map-pin"
-          >
-            Segment
-          </UBadge>
+        <div class="flex shrink-0 flex-col items-end gap-1.5">
           <UBadge
             :color="segment.type === 'climb' ? 'success' : 'warning'"
             variant="subtle"
@@ -40,20 +47,24 @@ defineProps<{
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-4 text-sm">
-        <span class="inline-flex items-center gap-1.5">
+      <div class="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted">
+        <span class="inline-flex items-center gap-2">
           <UIcon
             name="i-lucide-ruler"
-            class="size-4 text-muted"
-          />
-          {{ formatDistance(segment.lengthKm) }}
+            class="size-4 shrink-0"
+          />{{ formatDistance(segment.lengthKm) }}
         </span>
-        <span class="inline-flex items-center gap-1.5">
+        <span class="inline-flex items-center gap-2">
           <UIcon
             name="i-lucide-trending-up"
-            class="size-4 text-muted"
-          />
-          {{ (segment.measuredAvgGradePercent ?? segment.avgGradePercent) ? formatGrade(segment.measuredAvgGradePercent ?? segment.avgGradePercent) : "Flat" }}
+            class="size-4 shrink-0"
+          />{{ formatElevation(segment.measuredElevationM ?? segment.elevationM) }}
+        </span>
+        <span class="inline-flex items-center gap-2">
+          <UIcon
+            name="i-lucide-triangle-right"
+            class="size-4 shrink-0"
+          />{{ (segment.measuredAvgGradePercent ?? segment.avgGradePercent) ? formatGrade(segment.measuredAvgGradePercent ?? segment.avgGradePercent) : "Flat" }}
         </span>
       </div>
     </UCard>

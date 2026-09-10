@@ -86,7 +86,7 @@ const { data, status, refresh } = await useFetch('/api/routes', { query })
 // The same bargain `useRecommendRequest` strikes with `servedEnvelope`, and
 // a computed for the same reason: no watcher runs after setup on the
 // server, where this page reads the list straight after awaiting the fetch.
-let servedRoutes: typeof data.value = null
+let servedRoutes: typeof data.value
 const loaded = computed(() => {
   if (data.value) servedRoutes = data.value
   return servedRoutes
@@ -298,7 +298,7 @@ watch(query, (value) => {
 
       <div
         v-if="visibleCount < items.length"
-        class="text-center mt-6"
+        class="text-center"
       >
         <UButton
           color="neutral"
