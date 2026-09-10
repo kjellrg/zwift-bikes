@@ -34,6 +34,10 @@ _Avoid_: danger, race plan item, hazard
 The Ride's sectors in ride order for the recommended setup, with the coverage the model could not analyse disclosed beside them. It exists under TTT drafting only; race drafting models a bunch, not a paceline, and has no plan. The briefing's TTT line and the plan itself read one result.
 _Avoid_: race plan, sector list, paceline analysis
 
+**Overlay**:
+Content shown over the page the rider is on, without leaving it. When that content also exists as a page of its own (about, profile, garage, report), the overlay is only the plain-click convenience: its opener keeps the page as a real destination, so a modifier-click, a middle-click, a crawler or a bookmark reaches the page, and the page, not the overlay, is what is server-rendered. The equipment drawer is an overlay with no page behind it, so its opener is a button. Only one overlay is open at a time; an overlay that opens another closes first.
+_Avoid_: modal, dialog, slideover, popup
+
 **Applied**:
 The rider values and Ride that the results on screen were computed from: weight, height, the power the ride was ridden at, the draft mode, the lap count and the category once made legal for the ride. The controls can run ahead of them - between a slider's release and the response that answers it, the live value and the applied value differ - and everything that explains a finish time (the rider strip, the answer, the equipment-dependent analysis) reads the applied value, so a time is never explained by inputs it was not computed from. The applied values catch up exactly when the times do; a failed refresh leaves them where they were.
 _Avoid_: current settings, live values, pending values, request inputs

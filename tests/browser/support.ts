@@ -33,19 +33,32 @@ export async function seedRiderProfile(page: Page, profile: Record<string, unkno
   }, profile)
 }
 
-/** Resolves once the page has hydrated and its results are no longer busy. */
-export async function ready(page: Page) {
+/** Resolves once the page has hydrated - the earliest point a click reaches a handler. */
+export async function hydrated(page: Page) {
   await page.waitForFunction(() => {
     const app = (document.querySelector('#__nuxt') as unknown as { __vue_app__?: { $nuxt?: { isHydrating?: boolean } } } | null)?.__vue_app__
     return app?.$nuxt?.isHydrating === false
   })
+}
+
+/** Resolves once the page has hydrated and its results are no longer busy. */
+export async function ready(page: Page) {
+  await hydrated(page)
   await expect(page.locator('#ride-results')).toHaveAttribute('aria-busy', 'false')
 }
 
+/** Opens a ranking page (route, segment, race) and waits for its results. */
 export async function visit(page: Page, path: string) {
   const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
   expect(response?.ok(), `${path} answered ${response?.status()}`).toBe(true)
   await ready(page)
+}
+
+/** Opens a page with no ranking on it (a hub, the events calendar, the profile page), where `visit`'s results wait has nothing to wait on. */
+export async function visitPage(page: Page, path: string) {
+  const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
+  expect(response?.ok(), `${path} answered ${response?.status()}`).toBe(true)
+  await hydrated(page)
 }
 
 /** Runs `action`, waits for the listing response it triggers and for the page to apply it, and hands back the request and the body. */

@@ -75,6 +75,11 @@ export function useOverlays() {
   // The fastest time on the loaded list, kept current for a dropped bike's
   // "behind the fastest" figure - its own snapshot of it predates the change.
   const rankedFastestTimeSec = useState<number | undefined>('overlay-ranked-fastest', () => undefined)
+  // True while the open overlay was opened from the mobile menu - see
+  // `onOverlayCloseAutoFocus`. Set by `app.vue`'s menu openers, cleared by
+  // every opener below that is not the menu: those openers are still on the
+  // page when their overlay closes, so Reka's own focus return is right.
+  const returnsFocusToMenuToggle = useState<boolean>('overlay-returns-to-menu-toggle', () => false)
 
   function openBikeDetail(detail: BikeDetail) {
     bikeDetail.value = detail
@@ -118,18 +123,21 @@ export function useOverlays() {
   function openAbout(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     isAboutOpen.value = true
   }
 
   function openGarage(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     isGarageOpen.value = true
   }
 
   function openProfile(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     isProfileOpen.value = true
   }
 
@@ -142,6 +150,7 @@ export function useOverlays() {
   function openReport(event: MouseEvent, seed?: ReportSeed) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     reportSeed.value = seed
     isReportOpen.value = true
   }
@@ -167,6 +176,29 @@ export function useOverlays() {
     })
   }
 
+  /**
+   * Where focus goes when the about, garage, profile or report overlay closes.
+   * Reka returns it to the element that had it when the dialog mounted,
+   * and after a desktop opener that is exactly right. An overlay opened
+   * from the mobile menu is different: the menu unmounts in the same tick
+   * the overlay mounts, so the entry the rider pressed is already gone and
+   * Reka's return would land on `body`. The header's menu toggle is the
+   * one thing the rider pressed on the way in that is still there, so it
+   * gets focus instead - only in that case, hence the flag. The flag is
+   * left set on purpose: About's report link opens a second overlay in the
+   * same chain (`openReportFromAbout`), and that one should come back to
+   * the toggle too.
+   *
+   * Handed to each modal as UModal's `content.onCloseAutoFocus`; a
+   * `watch` on the open state could not do this, because Reka moves focus
+   * in a timeout after unmount and would win.
+   */
+  function onOverlayCloseAutoFocus(event: Event) {
+    if (!returnsFocusToMenuToggle.value) return
+    event.preventDefault()
+    document.querySelector<HTMLElement>('header [data-slot="toggle"]')?.focus()
+  }
+
   return {
     isAboutOpen,
     isGarageOpen,
@@ -184,6 +216,8 @@ export function useOverlays() {
     openGarage,
     openProfile,
     openReport,
-    openReportFromAbout
+    openReportFromAbout,
+    returnsFocusToMenuToggle,
+    onOverlayCloseAutoFocus
   }
 }

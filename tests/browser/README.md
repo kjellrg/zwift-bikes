@@ -26,7 +26,11 @@ imports them from `support.ts`, which owns the waits and the one helper that
 seeds a rider profile before a page reads it - locators stay in the spec that
 uses them. A recommend response is stubbed in exactly one journey, where the
 failure itself is what is under test; a stub is never used to make a real
-journey faster.
+journey faster. The one other stub is `site-flags.spec.ts`, which answers
+`/api/site-flags` by hand: the flags live in Workers KV and the dev server
+only ever serves the defaults, so a hidden section or a message of the day
+cannot be seen any other way. `visit` waits for a ranking page's results;
+`visitPage` is for the pages without one (hubs, events, profile).
 
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.
