@@ -22,8 +22,11 @@ Every test gets a fresh browser context, so localStorage starts empty - the
 rider is the composable default (75 kg, 175 cm, 225 W, solo) unless a test
 seeds storage itself. Waits are for real signals (hydration, a recommend
 response, the results region leaving `aria-busy`), never sleeps: every spec
-imports them from `support.ts`, which owns the waits and nothing else -
-locators stay in the spec that uses them.
+imports them from `support.ts`, which owns the waits and the one helper that
+seeds a rider profile before a page reads it - locators stay in the spec that
+uses them. A recommend response is stubbed in exactly one journey, where the
+failure itself is what is under test; a stub is never used to make a real
+journey faster.
 
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.

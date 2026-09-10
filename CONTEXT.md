@@ -10,7 +10,7 @@ One Ride has two representations, one on each side of the request. `Ride` in `ap
 _Avoid_: context, request options, page config, ride params
 
 **Shared view**:
-The values a link to a ranking page carries so that the recipient sees what the sender saw: the bike search, the bike category, the draft mode, and whatever the page ranks by beyond the Ride's identity (the lap count on a route, the category group on a race). A shared view applies for that visit only and never changes the rider's stored preferences; a view that only shows the defaults has nothing to carry, so its link stays clean.
+The values a link to a ranking page carries so that the recipient sees what the sender saw: the bike search, the bike category, the draft mode, and whatever the page ranks by beyond the Ride's identity (the lap count on a route, the category group on a race). A shared view never changes the rider's stored preferences. It lasts for the visit: a value a link supplied follows the rider to the next ranking page, and is written into that page's link so a reload reproduces it, until the rider chooses that value through a control (which stores it) or restores their saved one. A fresh visit starts from the stored preferences. A view that only shows the defaults has nothing to carry, so its link stays clean.
 The URL carries a shared view's non-default values. The homepage filters are not a shared view: that page ranks nothing.
 _Avoid_: URL state, per-visit knobs, query params, visit override
 
@@ -33,3 +33,7 @@ _Avoid_: danger, race plan item, hazard
 **TTT plan**:
 The Ride's sectors in ride order for the recommended setup, with the coverage the model could not analyse disclosed beside them. It exists under TTT drafting only; race drafting models a bunch, not a paceline, and has no plan. The briefing's TTT line and the plan itself read one result.
 _Avoid_: race plan, sector list, paceline analysis
+
+**Applied**:
+The rider values and Ride that the results on screen were computed from: weight, height, the power the ride was ridden at, the draft mode, the lap count and the category once made legal for the ride. The controls can run ahead of them - between a slider's release and the response that answers it, the live value and the applied value differ - and everything that explains a finish time (the rider strip, the answer, the equipment-dependent analysis) reads the applied value, so a time is never explained by inputs it was not computed from. The applied values catch up exactly when the times do; a failed refresh leaves them where they were.
+_Avoid_: current settings, live values, pending values, request inputs

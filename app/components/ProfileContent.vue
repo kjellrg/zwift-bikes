@@ -29,9 +29,9 @@ onMounted(() => {
 
 // EVERY slider here commits on release (USlider's `change`), never per drag
 // tick, and every one of them needs to: the modal opens over route, segment
-// and event pages, whose refetch watchers observe weight, height, power,
-// draft mode, TTT riders and team climb pace alike (see the `watch([...])`
-// in `pages/routes/[slug].vue`). A per-tick commit therefore writes
+// and event pages, where `useRecommendRequest` refetches from one watcher on
+// the serialised query, and weight, height, power, draft mode, TTT riders
+// and team climb pace are all part of it. A per-tick commit therefore writes
 // localStorage and fires a recommend request per step crossed - dragging
 // weight 75->100 kg costs 25 of each (issue #155). Same pending-ref shape as
 // `RiderProfileControls.vue`, deliberately written out per control rather
@@ -61,7 +61,6 @@ watch(sprintPowerW, (value) => {
 })
 
 const defaultUnownedLevelOptions = [0, 1, 2, 3, 4, 5].map(level => ({ label: level === 0 ? 'Level 0 (stock, just unlocked)' : `Level ${level}`, value: level }))
-const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }, { label: 'Race (pack draft)', value: 'race' }]
 const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = BIKE_CATEGORY_FILTERS
   .map(value => ({ label: value === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[value], value }))
 // Where the climb slider sits. Once a team pace is stored that is what it
@@ -114,7 +113,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="130"
           :step="1"
           aria-label="Rider weight in kilograms"
-          @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = (Array.isArray(value) ? value[0] : value) ?? pendingWeightKg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = sliderValue(value, pendingWeightKg) }"
           @change="commitWeight"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -133,7 +132,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="220"
           :step="1"
           aria-label="Rider height in centimetres"
-          @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = (Array.isArray(value) ? value[0] : value) ?? pendingHeightCm }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = sliderValue(value, pendingHeightCm) }"
           @change="commitHeight"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -152,7 +151,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="POWER_W_RANGE.max"
           :step="POWER_W_RANGE.step"
           aria-label="Race power in watts"
-          @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = (Array.isArray(value) ? value[0] : value) ?? pendingPowerW }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = sliderValue(value, pendingPowerW) }"
           @change="commitPower"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -171,7 +170,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="SPRINT_POWER_W_RANGE.max"
           :step="SPRINT_POWER_W_RANGE.step"
           aria-label="Sprint power in watts"
-          @update:model-value="(value: number | number[] | undefined) => { pendingSprintPowerW = (Array.isArray(value) ? value[0] : value) ?? pendingSprintPowerW }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingSprintPowerW = sliderValue(value, pendingSprintPowerW) }"
           @change="commitSprintPower"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -241,8 +240,9 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
         <USelectMenu
           :model-value="draftMode"
           value-key="value"
-          :items="draftModeOptions"
+          :items="DRAFT_MODE_OPTIONS"
           :search-input="false"
+          aria-label="Default draft mode"
           @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')"
         />
         <p class="text-sm text-muted mt-1">
@@ -264,7 +264,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="TTT_MAX_RIDERS"
           :step="1"
           aria-label="Riders in the paceline"
-          @update:model-value="(value: number | number[] | undefined) => { pendingRiders = (Array.isArray(value) ? value[0] : value) ?? pendingRiders }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingRiders = sliderValue(value, pendingRiders) }"
           @change="commitRiders"
         />
         <div class="flex justify-between text-xs text-muted mt-1">
@@ -286,7 +286,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           :max="TTT_MAX_CLIMB_WKG"
           :step="0.1"
           aria-label="Team climb pace in watts per kilogram"
-          @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = (Array.isArray(value) ? value[0] : value) ?? pendingClimbWkg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = sliderValue(value, pendingClimbWkg) }"
           @change="commitClimbWkg"
         />
         <div class="flex justify-between text-xs text-muted mt-1">

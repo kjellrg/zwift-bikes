@@ -1,12 +1,15 @@
-import type { BikeCategory } from '../../shared/types/catalog'
-import type { DraftMode } from '../../shared/utils/physics/draft'
 import { formatDuration } from '#shared/utils/duration'
 import { BIKE_CATEGORY_LABELS, formatSpeedKmh } from './labels'
+import type { AppliedRiderInputs } from './recommendRequest'
 
 /**
  * Everything the visible best-bike answer depends on, read off the APPLIED
  * results and stored state by `useRecommendationAnswer` and handed over as
- * plain values so the wording can be tested without Nuxt.
+ * plain values so the wording can be tested without Nuxt. The rider side is
+ * one `AppliedRiderInputs` block on purpose: the answer explains a time, so
+ * every rider value in it must be one the time was computed from, and a
+ * caller cannot hand over a live slider value without building a fake
+ * snapshot to carry it.
  */
 export interface RecommendationAnswerInputs {
   frameName: string
@@ -17,16 +20,10 @@ export interface RecommendationAnswerInputs {
   distanceKm?: number
   /** "Watopia Hilly Route in Watopia" - the ride as the page titles it. */
   rideName: string
-  weightKg: number
-  heightCm: number
-  /** The power the ranking was computed at - sprint power on a sprint segment. */
-  powerW: number
-  draftMode: DraftMode
-  tttRiders: number
-  tttClimbWkg?: number
+  /** The rider the results on screen were computed for - `useRecommendRequest().appliedInputs`. */
+  rider: AppliedRiderInputs
   /** The applied lap count on a route; `undefined` on a segment, which is ridden once from its timed start. */
   laps?: number
-  bikeCategory: BikeCategory | 'all'
   verifiedOnly: boolean
   includeHaloBikes: boolean
   myBikesOnly: boolean
@@ -66,16 +63,17 @@ export function buildRecommendationAnswer(inputs: RecommendationAnswerInputs): R
   const speed = inputs.distanceKm ? ` (~${formatSpeedKmh(inputs.distanceKm, inputs.finishTimeSec)})` : ''
   const summary = `Our model puts ${equipment} fastest ${pool} for ${inputs.rideName}: ${formatDuration(inputs.finishTimeSec)}${speed}.`
 
-  const mode = inputs.draftMode === 'ttt'
-    ? `TTT paceline (${inputs.tttRiders} riders${inputs.tttClimbWkg ? `, ${inputs.tttClimbWkg.toFixed(1)} W/kg team climb pace` : ''})`
-    : inputs.draftMode === 'race' ? 'race drafting' : 'solo'
+  const rider = inputs.rider
+  const mode = rider.draftMode === 'ttt'
+    ? `TTT paceline (${rider.tttRiders} riders${rider.tttClimbWkg ? `, ${rider.tttClimbWkg.toFixed(1)} W/kg team climb pace` : ''})`
+    : rider.draftMode === 'race' ? 'race drafting' : 'solo'
   const scope = inputs.laps !== undefined
     ? `${inputs.laps} lap${inputs.laps === 1 ? '' : 's'}, including any lead-in once`
     : 'the timed segment, excluding warm-up'
-  const category = inputs.bikeCategory === 'all' ? 'all bike categories' : BIKE_CATEGORY_LABELS[inputs.bikeCategory]
+  const category = rider.category === 'all' ? 'all bike categories' : BIKE_CATEGORY_LABELS[rider.category]
   const search = inputs.search.trim()
   const halo = inputs.includeHaloBikes || search ? 'Halo bikes included' : 'unowned Halo bikes excluded'
-  const assumptions = `${inputs.weightKg} kg / ${inputs.heightCm} cm / ${inputs.powerW} W / ${mode}; ${scope}. ${category}; ${inputs.verifiedOnly ? 'verified only' : 'includes estimates'}; ${halo}${search ? `; search: ${search}` : ''}.`
+  const assumptions = `${rider.weightKg} kg / ${rider.heightCm} cm / ${rider.powerW} W / ${mode}; ${scope}. ${category}; ${inputs.verifiedOnly ? 'verified only' : 'includes estimates'}; ${halo}${search ? `; search: ${search}` : ''}.`
 
   return { summary, assumptions, text: `${summary} ${assumptions}` }
 }

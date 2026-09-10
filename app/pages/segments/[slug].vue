@@ -34,7 +34,7 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  category: appliedCategory, draftMode: appliedDraftMode, activePowerW,
+  appliedInputs,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
@@ -138,9 +138,8 @@ const limitedDataNote = computed(() => segmentRoute.value
 const tttPlan = useTttPlan({
   route: () => segmentRoute.value,
   combo: () => topCombo.value,
-  powerW: () => activePowerW.value,
+  rider: () => appliedInputs.value,
   laps: () => 1,
-  draftMode: () => appliedDraftMode.value,
   loading: () => isFirstLoad.value
 })
 
@@ -148,9 +147,9 @@ const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, re
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
 // The visible answer under the recommendation and the FAQ structured data
-// are one text (`answer.text`), built from the APPLIED ranking - the power
-// (sprint power on a sprint) and draft mode the request actually used - so
-// what a crawler reads is what a rider sees. No `laps`: the answer then
+// are one text (`answer.text`), built from the APPLIED ranking - the rider
+// the request was actually answered for, sprint power included - so what a
+// crawler reads is what a rider sees. No `laps`: the answer then
 // names the timed-segment scope instead. Renders from the prerendered
 // results on first paint; during a refetch it keeps describing the results
 // still on screen, the same way the dimmed results do.
@@ -158,10 +157,7 @@ const answer = useRecommendationAnswer({
   combo: () => topCombo.value,
   rideName: () => segmentData.value ? `the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}` : undefined,
   distanceKm: () => segmentData.value?.lengthKm,
-  powerW: () => activePowerW.value,
-  draftMode: () => appliedDraftMode.value,
-  // `undefined` is the query's spelling of every category - see `rideCategory`.
-  category: () => appliedCategory.value ?? 'all',
+  rider: () => appliedInputs.value,
   search: () => bikeSearchDebounced.value
 })
 const faqAnswer = computed(() => answer.value?.text)
@@ -170,7 +166,13 @@ const siteConfig = useSiteConfig()
 const canonicalUrl = useCanonicalUrl()
 useHead(() => {
   if (!segmentData.value) return {}
+  // Keyed, so unhead updates the server-rendered tag in place. Without a
+  // key it matches by content hash, and a patch that lands while the page
+  // is still hydrating - the answer's Halo clause reads the stored
+  // preference the moment `load()` runs - inserts a second FAQ script and
+  // leaves the crawler-facing default-rider one in the document.
   const scripts = [{
+    key: 'breadcrumbs',
     type: 'application/ld+json' as const,
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
@@ -184,6 +186,7 @@ useHead(() => {
   }]
   if (faqAnswer.value) {
     scripts.push({
+      key: 'faq',
       type: 'application/ld+json' as const,
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -277,8 +280,7 @@ useHead(() => {
         </dl>
       </div>
       <RideRiderSummary
-        :power-w="activePowerW"
-        :draft-mode="appliedDraftMode"
+        :rider="appliedInputs"
         :refreshing="isRefreshing"
         :has-long-climb="hasLongClimb"
         :sprint-power="isSprint"
@@ -454,8 +456,7 @@ useHead(() => {
       :laps="1"
       :results-laps="1"
       :combo="topCombo"
-      :power-w="activePowerW"
-      :draft-mode="appliedDraftMode"
+      :rider="appliedInputs"
       :refreshing="isRefreshing"
       :loading="isFirstLoad"
       :plan="tttPlan"

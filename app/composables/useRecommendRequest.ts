@@ -5,9 +5,9 @@ import {
   buildRecommendQuery,
   cachedRecommendToServe,
   recommendChangeKind,
-  rideDraftMode,
-  ridePowerW,
+  riderInputsForRide,
   serializeRecommendQuery,
+  type AppliedRiderInputs,
   type RecommendEnvelope,
   type RecommendRequest,
   type Ride,
@@ -178,7 +178,18 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     }
   )
   const { data: envelope, status, error, refresh } = asyncData
-  const recommendData = computed(() => envelope.value?.result ?? null)
+  // Nuxt resets `data` to its default when a refresh throws, which would
+  // empty the list under the very toast that says the previous results are
+  // still shown (`useRefetchNotice`). So the envelope last served stays the
+  // one on screen until a response replaces it. A computed rather than a
+  // watcher because no watcher runs after setup on the server, where the
+  // page reads this straight after awaiting the fetch. A no-endpoint ride
+  // still clears the list: its envelope is a real one with a null result.
+  let servedEnvelope: RecommendEnvelope<RecommendResponse> | null = null
+  const recommendData = computed(() => {
+    if (envelope.value) servedEnvelope = envelope.value
+    return servedEnvelope?.result ?? null
+  })
   useRefetchNotice(error, status, refresh)
 
   /**
@@ -190,6 +201,15 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * catches up exactly when the recomputed times do.
    */
   const appliedRide = ref<Ride>(currentRide.value)
+  /**
+   * The rider the combos on screen were computed for - see **Applied** in
+   * `CONTEXT.md`. Same rule and same lifecycle as `appliedRide`: the
+   * controls run ahead of it between a slider's release and the response,
+   * so the strip, the answer and the equipment-dependent analysis read this
+   * rather than the stored profile, and a failed refresh leaves it where it
+   * was, beside the results it still describes.
+   */
+  const appliedInputs = ref<AppliedRiderInputs>(riderInputsForRide(inputs.value, currentRide.value))
   const results = useRecommendResults<ComboScore>({
     recommendData,
     refresh,
@@ -199,6 +219,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     pageSize: RECOMMEND_MAX_LIMIT,
     onResultsApplied: () => {
       appliedRide.value = currentRide.value
+      appliedInputs.value = riderInputsForRide(inputs.value, currentRide.value)
     }
   })
   const { loadedCombos, loadingMore, reloadingPages, showMore, refreshFirstPage, reloadLoadedPages } = results
@@ -295,13 +316,8 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     hasMore,
     loadingMore,
     showMore,
-    /** The category the ranking actually used - the stored preference, made legal for this ride. */
-    category: computed(() => query.value.category),
-    /** The draft mode the ranking actually used, likewise. */
-    draftMode: computed(() => rideDraftMode(draftMode.value, currentRide.value)),
-    /** The power the ranking actually used - sprint power on a sprint ride. */
-    activePowerW: computed(() => ridePowerW(inputs.value, currentRide.value)),
     appliedRide,
+    appliedInputs,
     isFirstLoad,
     isRefreshing,
     resultsAnnouncement,

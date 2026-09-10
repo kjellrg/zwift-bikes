@@ -67,7 +67,8 @@ export function useRecommendResults<T>(options: RecommendResultsOptions<T>) {
       // The race page selects a category group with no catalog route: clear
       // the list rather than leave the previous group's ranking sitting
       // under the wrong heading. On the other pages data is never null once
-      // loaded, so this branch is inert there.
+      // loaded - a failed refresh keeps the last served response upstream
+      // (`useRecommendRequest`) - so this branch is inert there.
       loadedCombos.value = []
       hasMore.value = false
       return

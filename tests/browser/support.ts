@@ -7,8 +7,9 @@ import { expect, type Page, type Response } from '@playwright/test'
  * and a warm one ~5 s, and no sleep is both fast enough and safe enough for
  * that spread.
  *
- * Only the waits live here. Locators stay in the spec that uses them: they are
- * cheap, page-specific, and wanted in front of you when a selector breaks.
+ * The waits and one seeding helper live here. Locators stay in the spec that
+ * uses them: they are cheap, page-specific, and wanted in front of you when a
+ * selector breaks.
  */
 
 /** The listing body the ranking pages read - the fields a journey asserts on, not the whole response. */
@@ -17,8 +18,20 @@ export interface ListingBody {
   pagination?: { offset: number, returned: number, hasMore: boolean }
 }
 
-/** A recommend listing response - the drill-down behind the wheel list is a different question. */
-export const isListingResponse = (response: Response) => response.url().includes('/api/recommend/') && !response.url().includes('wheelsForFrame')
+/** A recommend listing request's URL - the drill-down behind the wheel list is a different question. */
+export const isListingUrl = (url: string) => url.includes('/api/recommend/') && !url.includes('wheelsForFrame')
+export const isListingResponse = (response: Response) => isListingUrl(response.url())
+
+/**
+ * Seeds the rider profile (`useRiderProfile`'s `zwift-bikes:rider-profile`)
+ * before the page's own `onMounted` reads it. The whole object is written, so
+ * a second seed in the same test replaces the first rather than merging.
+ */
+export async function seedRiderProfile(page: Page, profile: Record<string, unknown>) {
+  await page.addInitScript((profile) => {
+    localStorage.setItem('zwift-bikes:rider-profile', JSON.stringify(profile))
+  }, profile)
+}
 
 /** Resolves once the page has hydrated and its results are no longer busy. */
 export async function ready(page: Page) {

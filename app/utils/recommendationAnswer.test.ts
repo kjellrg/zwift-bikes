@@ -7,14 +7,8 @@ const base: RecommendationAnswerInputs = {
   finishTimeSec: 1062,
   distanceKm: 9.7,
   rideName: 'Watopia Hilly Route in Watopia',
-  weightKg: 75,
-  heightCm: 175,
-  powerW: 225,
-  draftMode: 'solo',
-  tttRiders: 8,
-  tttClimbWkg: undefined,
+  rider: { weightKg: 75, heightCm: 175, powerW: 225, draftMode: 'solo', tttRiders: 8, tttClimbWkg: undefined, category: 'standard' },
   laps: 1,
-  bikeCategory: 'standard',
   verifiedOnly: true,
   includeHaloBikes: false,
   myBikesOnly: false,
@@ -57,10 +51,15 @@ describe('buildRecommendationAnswer', () => {
       .toContain('fastest within the current filters')
   })
 
+  it('quotes the applied rider, not the stored profile: the block it is handed is the whole rider side', () => {
+    const applied = buildRecommendationAnswer({ ...base, rider: { ...base.rider, weightKg: 82, heightCm: 180, powerW: 900 } })
+    expect(applied.assumptions).toMatch(/^82 kg \/ 180 cm \/ 900 W \/ solo;/)
+  })
+
   it('states the draft model, including the paceline size and any team climb pace', () => {
-    expect(buildRecommendationAnswer({ ...base, draftMode: 'race' }).assumptions).toContain('/ race drafting;')
-    expect(buildRecommendationAnswer({ ...base, draftMode: 'ttt', tttRiders: 6 }).assumptions).toContain('/ TTT paceline (6 riders);')
-    expect(buildRecommendationAnswer({ ...base, draftMode: 'ttt', tttRiders: 6, tttClimbWkg: 3.25 }).assumptions)
+    expect(buildRecommendationAnswer({ ...base, rider: { ...base.rider, draftMode: 'race' } }).assumptions).toContain('/ race drafting;')
+    expect(buildRecommendationAnswer({ ...base, rider: { ...base.rider, draftMode: 'ttt', tttRiders: 6 } }).assumptions).toContain('/ TTT paceline (6 riders);')
+    expect(buildRecommendationAnswer({ ...base, rider: { ...base.rider, draftMode: 'ttt', tttRiders: 6, tttClimbWkg: 3.25 } }).assumptions)
       .toContain('/ TTT paceline (6 riders, 3.3 W/kg team climb pace);')
   })
 
@@ -70,7 +69,7 @@ describe('buildRecommendationAnswer', () => {
   })
 
   it('reflects the category, verification and Halo restrictions as applied', () => {
-    const answer = buildRecommendationAnswer({ ...base, bikeCategory: 'all', verifiedOnly: false, includeHaloBikes: true })
+    const answer = buildRecommendationAnswer({ ...base, rider: { ...base.rider, category: 'all' }, verifiedOnly: false, includeHaloBikes: true })
     expect(answer.assumptions).toContain('all bike categories; includes estimates; Halo bikes included.')
   })
 

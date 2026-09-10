@@ -45,8 +45,8 @@ export function useSharedView(
   lapCount?: SharedViewLaps
 ) {
   const { param, replaceQuery } = useUrlState(useRoute(), useRouter())
-  const { bikeCategory } = usePreferences()
-  const { draftMode } = useRiderProfile()
+  const { bikeCategory, categoryFromLink } = usePreferences()
+  const { draftMode, draftModeFromLink } = useRiderProfile()
 
   onMounted(() => {
     const view = sharedViewFromQuery(param, lapCount?.maxLaps())
@@ -62,6 +62,22 @@ export function useSharedView(
     }
     if (view.category !== undefined) bikeCategory.value = view.category
     if (view.draft !== undefined) draftMode.value = view.draft
+
+    // A link's value follows the rider to the next ranking page (see
+    // **Shared view** in `CONTEXT.md`): the refs still hold it, but a
+    // client-side navigation arrives with a clean query and the watcher
+    // below only writes when a ref moves. So an override that is active and
+    // missing from the URL is written now, and a reload of this page
+    // reproduces it. Only link overrides: a stored non-default preference is
+    // not written on load, as before - the rider's own choice keeps a clean
+    // URL until a control moves. (A link carrying the hard default, say
+    // `?category=standard` to a rider who stores `tt`, is carried here but
+    // dropped by the next write, which cannot tell it from "nothing to
+    // carry" - a link nobody can produce through the controls.)
+    const carry: Record<string, string | undefined> = {}
+    if (categoryFromLink.value && param('category') === undefined) carry.category = bikeCategory.value
+    if (draftModeFromLink.value && param('draft') === undefined) carry.draft = draftMode.value
+    if (Object.keys(carry).length) replaceQuery(carry)
   })
 
   watch(

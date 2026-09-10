@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DraftMode } from '../../shared/utils/physics/draft'
+import type { AppliedRiderInputs } from '../utils/recommendRequest'
 
 /**
  * The rider strip above the recommendation: the four numbers every finish
@@ -8,17 +8,21 @@ import type { DraftMode } from '../../shared/utils/physics/draft'
  * change them - the profile dialog for the saved values, or "Adjust effort"
  * for the existing slider box (`RiderProfileControls`) folded away beneath.
  *
- * Power and draft mode arrive as props rather than being read from the
- * profile: they are what the ranking was ACTUALLY computed at (sprint power
- * on a sprint segment, the ride's own draft rule), which only the page's
- * request knows. Weight and height have no such substitution, so they are
- * read straight from the profile like the controls themselves do.
+ * Every number is the APPLIED rider (see `CONTEXT.md`): what the times on
+ * screen were computed from, which only the page's request knows - sprint
+ * power on a sprint segment, the ride's own draft rule, and the weight and
+ * height the response was fetched for. The slider box beneath shows the
+ * live pending values instead; between a release and the response the two
+ * differ, and this strip lags under its "Updating estimates" spinner so a
+ * time is never explained by inputs it was not computed from.
+ *
+ * A draft mode a link supplied gets a "from link" marker: the strip is
+ * where the rider reads which mode the times assume, so it is also where
+ * they can drop the link's mode for their own saved one.
  */
 const props = defineProps<{
-  /** The power the results were ranked at - `useRecommendRequest().activePowerW`. */
-  powerW: number
-  /** The draft mode the results were ranked at - `useRecommendRequest().draftMode`. */
-  draftMode: DraftMode
+  /** The rider the results were ranked for - `useRecommendRequest().appliedInputs`. */
+  rider: AppliedRiderInputs
   /** Whether the times on screen are being recomputed. */
   refreshing: boolean
   /** Passed through to `RiderProfileControls` - see its own prop. */
@@ -27,13 +31,13 @@ const props = defineProps<{
   sprintPower?: boolean
 }>()
 
-const { weightKg, heightCm, hasStoredProfile } = useRiderProfile()
+const { hasStoredProfile, draftModeFromLink, restoreDraftMode } = useRiderProfile()
 // The profile and garage links keep a real `href` for deep links and
 // modifier-clicks, and are plain `<a>`s rather than ULinks: vue-router's own
 // click handler would run before `preventDefault` - see `useOverlays`.
 const { openProfile } = useOverlays()
 
-const draftLabel = computed(() => DRAFT_MODE_LABELS[props.draftMode])
+const draftLabel = computed(() => DRAFT_MODE_LABELS[props.rider.draftMode])
 
 const adjustEffort = ref(false)
 const controlsId = useId()
@@ -49,16 +53,33 @@ const controlsId = useId()
       <span class="inline-flex items-center gap-1.5"><UIcon
         name="i-lucide-user-round"
         class="size-4 shrink-0"
-      />{{ weightKg }} kg</span>
-      <span>{{ heightCm }} cm</span>
+      />{{ rider.weightKg }} kg</span>
+      <span>{{ rider.heightCm }} cm</span>
       <span class="inline-flex items-center gap-1.5"><UIcon
         name="i-lucide-zap"
         class="size-4 shrink-0"
-      />{{ powerW }} W<span class="text-xs">{{ (powerW / weightKg).toFixed(2) }} W/kg{{ sprintPower ? ', sprint' : '' }}</span></span>
-      <span class="inline-flex items-center gap-1.5"><UIcon
-        name="i-lucide-users-round"
-        class="size-4 shrink-0"
-      />{{ draftLabel }}</span>
+      />{{ rider.powerW }} W<span class="text-xs">{{ (rider.powerW / rider.weightKg).toFixed(2) }} W/kg{{ sprintPower ? ', sprint' : '' }}</span></span>
+      <span class="inline-flex items-center gap-1.5">
+        <UIcon
+          name="i-lucide-users-round"
+          class="size-4 shrink-0"
+        />{{ draftLabel }}
+        <!-- Restoring stores nothing; the refetch and the URL follow from the
+             ref moving, as for any control. -->
+        <button
+          v-if="draftModeFromLink"
+          type="button"
+          class="inline-flex items-center gap-0.5 rounded-full border border-default px-1.5 text-xs text-muted hover:text-highlighted"
+          aria-label="Restore my saved draft mode"
+          title="Restore my saved draft mode"
+          @click="restoreDraftMode"
+        >
+          from link<UIcon
+            name="i-lucide-x"
+            class="size-3"
+          />
+        </button>
+      </span>
       <!-- Until a profile is saved every time on the page is for the
            defaults - say so, or a first visit reads as a prediction. -->
       <span

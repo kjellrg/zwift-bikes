@@ -20,7 +20,7 @@ const ride = computed<Ride>(() => ({ endpoint: `/api/recommend/${slug.value}`, l
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  category: appliedCategory, draftMode: appliedDraftMode, activePowerW,
+  appliedInputs,
   appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 
@@ -146,9 +146,8 @@ const limitedDataNote = computed(() => routeData.value
 const tttPlan = useTttPlan({
   route: () => routeData.value ?? undefined,
   combo: () => topCombo.value,
-  powerW: () => activePowerW.value,
+  rider: () => appliedInputs.value,
   laps: () => resultsLaps.value,
-  draftMode: () => appliedDraftMode.value,
   loading: () => isFirstLoad.value
 })
 
@@ -157,7 +156,7 @@ const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, re
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined)
 // The visible answer under the recommendation and the FAQ structured data
 // are one text (`answer.text`), built from the APPLIED ranking - the lagged
-// lap count, the power and draft mode the request actually used - so what a
+// lap count and the rider the request was actually answered for - so what a
 // crawler reads is what a rider sees. Renders from the prerendered results
 // on first paint; during a refetch it keeps describing the results still on
 // screen, the same way the dimmed results do.
@@ -165,10 +164,7 @@ const answer = useRecommendationAnswer({
   combo: () => topCombo.value,
   rideName: () => routeData.value ? `${routeData.value.name} in ${routeData.value.worldName}` : undefined,
   distanceKm: () => resultsTotals.value?.distanceKm ?? routeData.value?.distance,
-  powerW: () => activePowerW.value,
-  draftMode: () => appliedDraftMode.value,
-  // `undefined` is the query's spelling of every category - see `rideCategory`.
-  category: () => appliedCategory.value ?? 'all',
+  rider: () => appliedInputs.value,
   laps: () => resultsLaps.value,
   search: () => bikeSearchDebounced.value
 })
@@ -178,7 +174,13 @@ const siteConfig = useSiteConfig()
 const canonicalUrl = useCanonicalUrl()
 useHead(() => {
   if (!routeData.value) return {}
+  // Keyed, so unhead updates the server-rendered tag in place. Without a
+  // key it matches by content hash, and a patch that lands while the page
+  // is still hydrating - the answer's Halo clause reads the stored
+  // preference the moment `load()` runs - inserts a second FAQ script and
+  // leaves the crawler-facing default-rider one in the document.
   const scripts = [{
+    key: 'breadcrumbs',
     type: 'application/ld+json' as const,
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
@@ -191,6 +193,7 @@ useHead(() => {
   }]
   if (faqAnswer.value) {
     scripts.push({
+      key: 'faq',
       type: 'application/ld+json' as const,
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -307,8 +310,7 @@ useHead(() => {
         </p>
       </div>
       <RideRiderSummary
-        :power-w="activePowerW"
-        :draft-mode="appliedDraftMode"
+        :rider="appliedInputs"
         :refreshing="isRefreshing"
         :has-long-climb="hasLongClimb"
       />
@@ -495,8 +497,7 @@ useHead(() => {
       :laps="laps"
       :results-laps="resultsLaps"
       :combo="topCombo"
-      :power-w="activePowerW"
-      :draft-mode="appliedDraftMode"
+      :rider="appliedInputs"
       :refreshing="isRefreshing"
       :loading="isFirstLoad"
       :plan="tttPlan"

@@ -18,7 +18,7 @@ import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
  * `loadPreferences()`/`loadGarage()` run here for the same child-before-
  * parent `onMounted` reason as in `BikeFilterControls`.
  */
-const { verifiedOnly, myBikesOnly, bikeCategory, includeHaloBikes, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory, setIncludeHaloBikes } = usePreferences()
+const { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, includeHaloBikes, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setIncludeHaloBikes } = usePreferences()
 const { owned, ownedWheels, load: loadGarage } = useGarage()
 // The profile and garage links keep a real `href` for deep links and
 // modifier-clicks, and are plain `<a>`s rather than ULinks: vue-router's own
@@ -99,6 +99,23 @@ const categoryId = useId()
       More filters
     </UButton>
     <span class="text-xs text-muted">{{ categoryLabel }} / {{ verifiedOnly ? 'Verified only' : 'Includes estimates' }}</span>
+    <!-- A category a link supplied for the visit, and the way out of it:
+         restoring stores nothing, the refetch and the URL follow from the
+         ref moving. A sibling of the summary rather than inside it, so the
+         summary's text stays the two values it names. -->
+    <button
+      v-if="categoryFromLink"
+      type="button"
+      class="-ml-3 inline-flex items-center gap-0.5 rounded-full border border-default px-1.5 text-xs text-muted hover:text-highlighted"
+      aria-label="Restore my saved category"
+      title="Restore my saved category"
+      @click="restoreBikeCategory"
+    >
+      from link<UIcon
+        name="i-lucide-x"
+        class="size-3"
+      />
+    </button>
     <div
       v-if="moreFilters"
       :id="moreFiltersId"

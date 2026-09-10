@@ -7,8 +7,9 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
  * its TTT controls, shared verbatim by the event race page and, folded
  * behind "Adjust effort" in `RideRiderSummary`, the route and segment
  * pages. Everything reads `useRiderProfile()` directly, whose state is
- * `useState`-backed, so the host page's own `watch([weightKg, ...])` refetch
- * wiring keeps firing exactly as it did when this markup lived inline.
+ * `useState`-backed: each setter persists, and `useRecommendRequest`
+ * refetches from its one watcher on the serialised query, so this box needs
+ * no wiring to the host page at all.
  *
  * The exceptions to "no props" are properties of the PAGE, not the rider -
  * this component deliberately knows nothing about the route. `hasLongClimb`:
@@ -115,7 +116,6 @@ watch(tttRiders, (value) => {
   pendingRiders.value = value
 })
 
-const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }, { label: 'Race (pack draft)', value: 'race' }]
 // The draft controls sit behind a disclosure. Solo is the default and covers
 // almost every visit (a road race is not ridden as a paceline), so the
 // paceline inputs stay folded away until someone asks for them - but ANY
@@ -177,7 +177,7 @@ const { openProfile } = useOverlays()
           :max="130"
           :step="1"
           aria-label="Rider weight in kilograms"
-          @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = (Array.isArray(value) ? value[0] : value) ?? pendingWeightKg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = sliderValue(value, pendingWeightKg) }"
           @change="commitWeight"
         />
       </div>
@@ -189,7 +189,7 @@ const { openProfile } = useOverlays()
           :max="220"
           :step="1"
           aria-label="Rider height"
-          @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = (Array.isArray(value) ? value[0] : value) ?? pendingHeightCm }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = sliderValue(value, pendingHeightCm) }"
           @change="commitHeight"
         />
       </div>
@@ -201,7 +201,7 @@ const { openProfile } = useOverlays()
           :max="powerRange.max"
           :step="powerRange.step"
           aria-label="Rider power in watts"
-          @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = (Array.isArray(value) ? value[0] : value) ?? pendingPowerW }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = sliderValue(value, pendingPowerW) }"
           @change="commitPower"
         />
       </div>
@@ -228,8 +228,9 @@ const { openProfile } = useOverlays()
         <USelectMenu
           :model-value="draftMode"
           value-key="value"
-          :items="draftModeOptions"
+          :items="DRAFT_MODE_OPTIONS"
           :search-input="false"
+          aria-label="Draft mode"
           @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')"
         />
       </div>
@@ -259,7 +260,7 @@ const { openProfile } = useOverlays()
           :max="TTT_MAX_RIDERS"
           :step="1"
           aria-label="Number of riders in the paceline"
-          @update:model-value="(value: number | number[] | undefined) => { pendingRiders = (Array.isArray(value) ? value[0] : value) ?? pendingRiders }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingRiders = sliderValue(value, pendingRiders) }"
           @change="commitRiders"
         />
       </div>
@@ -277,7 +278,7 @@ const { openProfile } = useOverlays()
           :max="TTT_MAX_CLIMB_WKG"
           :step="0.1"
           aria-label="Team average power on long climbs in watts per kilogram"
-          @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = (Array.isArray(value) ? value[0] : value) ?? pendingClimbWkg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = sliderValue(value, pendingClimbWkg) }"
           @change="commitClimbWkg"
         />
       </div>

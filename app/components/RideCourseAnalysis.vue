@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
-import type { DraftMode } from '../../shared/utils/physics/draft'
 import type { TttPlan } from '../composables/useTttPlan'
+import type { AppliedRiderInputs } from '../utils/recommendRequest'
 import { MIN_ROUTE_KM, type RacePlanItem } from '#shared/utils/physics/racePlan'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 
@@ -18,8 +18,8 @@ import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOc
  * Two lap counts on purpose. The Ride-only tabs follow the picker (`laps`),
  * like the briefing: they describe the ride the rider has chosen. The
  * equipment tabs follow the APPLIED results (`resultsLaps`, `combo`,
- * `powerW`, `draftMode`): a plan priced for a setup must describe the ride
- * that setup was ranked on, and during a refresh they keep the previous
+ * `rider`): a plan priced for a setup must describe the ride and the rider
+ * that setup was ranked for, and during a refresh they keep the previous
  * results, dimmed, exactly as the recommendation does. The TTT plan itself
  * arrives from the page (`useTttPlan`), which computes it once for the
  * briefing's TTT line and this tab, so the two cannot disagree.
@@ -35,10 +35,8 @@ const props = defineProps<{
   resultsLaps: number
   /** The applied top combo; absent with zero matches. */
   combo?: ComboScore
-  /** The power the ranking actually used - `useRecommendRequest().activePowerW`. */
-  powerW: number
-  /** The draft mode the ranking actually used - `useRecommendRequest().draftMode`. */
-  draftMode: DraftMode
+  /** The rider the applied results were computed for - `useRecommendRequest().appliedInputs`. */
+  rider: AppliedRiderInputs
   /** Whether the results are being recomputed - the equipment panels dim like the recommendation. */
   refreshing: boolean
   /** Whether the first ranking is still pending (nothing on screen yet) - `isFirstLoad`, so a loading state never reads as zero matches. */
@@ -47,9 +45,6 @@ const props = defineProps<{
   plan?: TttPlan
 }>()
 
-// Weight and height have no per-ride substitution (see `RideRiderSummary`),
-// so they come straight from the stored profile, as do the team inputs.
-const { weightKg, heightCm, tttRiders, tttClimbWkg } = useRiderProfile()
 const { selected } = useCourseAnalysisTab()
 
 const isRoute = computed(() => props.kind === 'route')
@@ -98,7 +93,7 @@ const speedScope = computed(() => {
     : props.route.lap
       ? `one lap${leadInKm.value > 0 ? ' plus the lead-in' : ''}; the finish estimate covers ${lapsLabel(props.resultsLaps)}`
       : 'the whole ride'
-  return `${setupLabel.value} · ${props.powerW} W · ${DRAFT_MODE_LABELS[props.draftMode]} · ${ride}.`
+  return `${setupLabel.value} · ${props.rider.powerW} W · ${DRAFT_MODE_LABELS[props.rider.draftMode]} · ${ride}.`
 })
 const speedUnavailable = computed(() => {
   if (hasElevation.value && hasSurfaceLocations.value) return undefined
@@ -118,7 +113,7 @@ const planScope = computed(() => {
     ? `${lapsLabel(props.resultsLaps)}${leadInKm.value > 0 ? ', lead-in included once' : ''}; distances are from the ride start`
     : 'from the start of the timed segment; warm-up excluded'
   const team = `${props.plan.riders}-rider paceline${props.plan.climbWkg ? `, team climb pace ${props.plan.climbWkg.toFixed(1)} W/kg` : ''}`
-  return `${setupLabel.value} · ${props.powerW} W · ${team} · ${ride}.`
+  return `${setupLabel.value} · ${props.rider.powerW} W · ${team} · ${ride}.`
 })
 const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-mountain', surface: 'i-lucide-triangle-alert' }
 </script>
@@ -277,12 +272,12 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
                 :route="route"
                 :frame="combo.frame"
                 :wheelset="combo.wheelset"
-                :weight-kg="weightKg"
-                :height-cm="heightCm"
-                :power-w="powerW"
-                :draft-mode="draftMode"
-                :ttt-riders="tttRiders"
-                :ttt-climb-wkg="tttClimbWkg"
+                :weight-kg="rider.weightKg"
+                :height-cm="rider.heightCm"
+                :power-w="rider.powerW"
+                :draft-mode="rider.draftMode"
+                :ttt-riders="rider.tttRiders"
+                :ttt-climb-wkg="rider.tttClimbWkg"
                 flat
                 :active="selected === 'speed'"
               />

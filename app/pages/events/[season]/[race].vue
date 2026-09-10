@@ -82,7 +82,7 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, physics: physicsInfo, fastestOverall,
   combos, topCombo, restCombos, fastestTimeSec, hasMore, loadingMore, showMore,
-  draftMode: effectiveDraftMode, appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement,
+  appliedInputs, appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement,
   bikeSearch, loadWheelOptions, serializedQuery, owned
 } = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 
@@ -396,8 +396,12 @@ defineOgImage('EventCard', {
 
 useHead(() => {
   if (!routeData.value) return {}
+  // Keyed for the same reason as on the route and segment pages: unhead
+  // then updates the server-rendered tag in place instead of adding a second
+  // FAQ script when the answer changes during hydration.
   const scripts = [
     {
+      key: 'breadcrumbs',
       type: 'application/ld+json' as const,
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -413,6 +417,7 @@ useHead(() => {
   ]
   if (faqAnswer.value) {
     scripts.push({
+      key: 'faq',
       type: 'application/ld+json' as const,
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -1021,7 +1026,7 @@ useHead(() => {
       :weight-kg="weightKg"
       :height-cm="heightCm"
       :power-w="powerW"
-      :draft-mode="effectiveDraftMode"
+      :draft-mode="appliedInputs.draftMode"
       :ttt-riders="tttRiders"
       :ttt-climb-wkg="tttClimbWkg"
     />

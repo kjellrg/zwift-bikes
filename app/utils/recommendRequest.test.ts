@@ -8,6 +8,7 @@ import {
   cachedRecommendToServe,
   recommendChangeKind,
   rideCategory,
+  riderInputsForRide,
   serializeRecommendQuery,
   type RecommendQuery,
   type RiderInputs,
@@ -221,5 +222,22 @@ describe('recommendChangeKind', () => {
   it('is a refresh when the garage moves together with a control', () => {
     const next = buildRecommendQuery({ ...DEFAULT_INPUTS, owned: { 12: 3 }, powerW: 300 }, ROUTE_RIDE)
     expect(recommendChangeKind(request(base), request(next))).toBe('refresh')
+  })
+})
+
+describe('riderInputsForRide', () => {
+  const inputs: RiderInputs = { ...DEFAULT_INPUTS, weightKg: 82, heightCm: 180, powerW: 260, sprintPowerW: 900, draftMode: 'ttt', tttRiders: 6, tttClimbWkg: 3.2, bikeCategory: 'tt' }
+
+  it('is the stored rider, made legal for an ordinary ride', () => {
+    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/hilly-route', laps: 2 })).toEqual({
+      weightKg: 82, heightCm: 180, powerW: 260, draftMode: 'ttt', tttRiders: 6, tttClimbWkg: 3.2, category: 'tt'
+    })
+  })
+
+  it('substitutes what the ride itself dictates: sprint power, solo where drafting is off, every category where TT frames are', () => {
+    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/segments/fuego-flats', power: 'sprint' }).powerW).toBe(900)
+    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/hilly-route', draftingAllowed: false }).draftMode).toBe('solo')
+    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/hilly-route', ttFramesAllowed: false }).category).toBe('all')
+    expect(riderInputsForRide({ ...inputs, bikeCategory: 'all' }, { endpoint: '/api/recommend/hilly-route' }).category).toBe('all')
   })
 })

@@ -1,5 +1,5 @@
-import type { BikeCategory, ComboScore } from '../../shared/types/catalog'
-import type { DraftMode } from '../../shared/utils/physics/draft'
+import type { ComboScore } from '../../shared/types/catalog'
+import type { AppliedRiderInputs } from '../utils/recommendRequest'
 import { buildRecommendationAnswer, type RecommendationAnswer } from '../utils/recommendationAnswer'
 
 export interface RecommendationAnswerOptions {
@@ -9,11 +9,8 @@ export interface RecommendationAnswerOptions {
   rideName: () => string | undefined
   /** The distance the combo's time covers, for the km/h; a page without one omits the speed. */
   distanceKm: () => number | undefined
-  /** The power and draft mode the ranking was ACTUALLY computed at - `useRecommendRequest`'s `activePowerW`/`draftMode`, not the stored profile. */
-  powerW: () => number
-  draftMode: () => DraftMode
-  /** The category the ranking actually used, made legal for the ride (`useRecommendRequest`'s `category`). */
-  category: () => BikeCategory | 'all'
+  /** The rider the results on screen were computed for - `useRecommendRequest`'s `appliedInputs`, never the stored profile. */
+  rider: () => AppliedRiderInputs
   /** The applied lap count on a route page; omit on a segment page. */
   laps?: () => number
   /** The settled search term the ranking was fetched for (`bikeSearchDebounced`). */
@@ -22,14 +19,14 @@ export interface RecommendationAnswerOptions {
 
 /**
  * The visible best-bike answer under the recommendation, and the FAQ
- * structured data's text, as one computed. Everything rider-side is read
- * from the stored state the request itself reads, and everything ride-side
- * comes from the page through the getters - so the answer describes the
- * ranking on screen, not a hypothetical one. The wording lives in
- * `buildRecommendationAnswer`, which is where it is tested.
+ * structured data's text, as one computed. The rider side is the applied
+ * snapshot the page hands over, the pool restrictions are the stored
+ * preferences the request itself reads, and everything ride-side comes from
+ * the page through the getters - so the answer describes the ranking on
+ * screen, not the one the controls are about to ask for. The wording lives
+ * in `buildRecommendationAnswer`, which is where it is tested.
  */
 export function useRecommendationAnswer(options: RecommendationAnswerOptions) {
-  const { weightKg, heightCm, tttRiders, tttClimbWkg } = useRiderProfile()
   const { myBikesOnly, verifiedOnly, includeHaloBikes } = usePreferences()
   const { owned, ownedWheels } = useGarage()
 
@@ -43,14 +40,8 @@ export function useRecommendationAnswer(options: RecommendationAnswerOptions) {
       finishTimeSec: combo.finishTimeSec,
       distanceKm: options.distanceKm(),
       rideName,
-      weightKg: weightKg.value,
-      heightCm: heightCm.value,
-      powerW: options.powerW(),
-      draftMode: options.draftMode(),
-      tttRiders: tttRiders.value,
-      tttClimbWkg: tttClimbWkg.value,
+      rider: options.rider(),
       laps: options.laps?.(),
-      bikeCategory: options.category(),
       verifiedOnly: verifiedOnly.value,
       includeHaloBikes: includeHaloBikes.value,
       myBikesOnly: myBikesOnly.value,
