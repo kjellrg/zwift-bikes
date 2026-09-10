@@ -1,14 +1,13 @@
-import { expect, test, type Page, type Response } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+import { expectNoHorizontalOverflow, isListingResponse, rerank, visit } from './support'
 
 /**
  * The route recommendation journey (issue #202): the recommendation-first
  * hierarchy on desktop and mobile in both themes, real results through the
  * page's own request, lap-aware totals, alternatives, comparison, the wheel
  * drill-down, catalog-wide search, basic keyboard access, and the
- * server-rendered answer a crawler reads. Every wait is for a real signal -
- * hydration, a recommend response, the results region leaving its busy
- * state - never a sleep, because a cold dev-server request takes ~20 s and
- * a warm one ~5 s.
+ * server-rendered answer a crawler reads. Every wait comes from `support.ts`
+ * and is for a real signal, never a sleep.
  *
  * Nothing here is committed as a screenshot; Playwright keeps failure
  * artefacts under `test-results/`, which is gitignored.
@@ -16,42 +15,15 @@ import { expect, test, type Page, type Response } from '@playwright/test'
 
 const ROUTE = '/routes/hilly-route'
 
-/** A recommend listing response - the drill-down behind the wheel list is a different question. */
-const isListingResponse = (response: Response) => response.url().includes('/api/recommend/') && !response.url().includes('wheelsForFrame')
-
-async function ready(page: Page) {
-  await page.waitForFunction(() => {
-    const app = (document.querySelector('#__nuxt') as unknown as { __vue_app__?: { $nuxt?: { isHydrating?: boolean } } } | null)?.__vue_app__
-    return app?.$nuxt?.isHydrating === false
-  })
-  await expect(page.locator('#ride-results')).toHaveAttribute('aria-busy', 'false')
-}
-
-async function visit(page: Page, path: string) {
-  const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
-  expect(response?.ok(), `${path} answered ${response?.status()}`).toBe(true)
-  await ready(page)
-}
-
-/** Runs `action`, waits for the listing response it triggers and for the page to apply it, and hands back the response body. */
-async function rerank(page: Page, action: () => Promise<void>) {
-  const responsePromise = page.waitForResponse(isListingResponse)
-  await action()
-  const response = await responsePromise
-  expect(response.ok()).toBe(true)
-  await ready(page)
-  return response.json() as Promise<{ combos: { frame: { name: string }, finishTimeSec?: number }[] }>
-}
-
-async function expectNoHorizontalOverflow(page: Page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
-}
-
 const recommendation = (page: Page) => page.locator('section:has(#ride-recommendation-heading)')
 const briefing = (page: Page) => page.getByRole('region', { name: 'Ride briefing' })
 const answer = (page: Page) => page.locator('section:has(#ride-answer-heading)')
 const finishTime = (page: Page) => recommendation(page).locator('p.tabular-nums').first()
-const rows = (page: Page) => page.getByRole('list', { name: 'Ranked setups' }).getByRole('listitem')
+const rankedList = (page: Page) => page.getByRole('list', { name: 'Ranked setups' })
+const rows = (page: Page) => rankedList(page).getByRole('listitem')
+const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search all frames and wheels' })
+/** The frame name of every loaded row, in rank order - the row's own details button carries it. */
+const frameNames = (page: Page) => rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
 
 const normalise = (text: string) => text.replace(/\s+/g, ' ').trim()
 
@@ -127,7 +99,7 @@ test.describe('route recommendation', () => {
     const distanceBefore = Number.parseFloat(await page.getByText('Total distance').locator('..').locator('dd').innerText())
     const timeBefore = await finishTime(page).innerText()
 
-    const data = await rerank(page, async () => {
+    const { data } = await rerank(page, async () => {
       // The lap picker is a `USelectMenu`: its trigger is a button carrying the label.
       await page.getByRole('button', { name: 'Laps' }).click()
       await page.getByRole('option', { name: '2 laps', exact: true }).click()
@@ -209,7 +181,7 @@ test.describe('route recommendation', () => {
     test.skip(isMobile, 'the desktop journey covers search')
     await visit(page, ROUTE)
     await expect(rows(page).first()).not.toContainText('PROJECT 74')
-    const found = await rerank(page, () => page.getByRole('textbox', { name: 'Search all frames and wheels' }).fill('PROJECT 74'))
+    const { data: found } = await rerank(page, () => searchBox(page).fill('PROJECT 74'))
     expect(found.combos[0]?.frame.name).toContain('PROJECT 74')
     await expect(rows(page).first()).toContainText('PROJECT 74')
     await expect(answer(page)).toContainText('Halo bikes included; search: PROJECT 74')
@@ -218,6 +190,40 @@ test.describe('route recommendation', () => {
     await rerank(page, () => page.getByRole('button', { name: 'Clear search' }).click())
     await expect(rows(page).first()).not.toContainText('PROJECT 74')
     await expect(answer(page)).toContainText('unowned Halo bikes excluded')
+  })
+
+  test('finds a frame beyond the loaded pages, and a wheel by name, without loading more first', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers search')
+    await visit(page, ROUTE)
+    // Which frame is out of reach is read off the ranking itself, never
+    // hardcoded and never a rank: equipment data drifts, and page one with it.
+    const onPageOne = await frameNames(page)
+    const nextPage = page.waitForResponse(response => isListingResponse(response) && response.url().includes('offset='))
+    await page.getByRole('button', { name: 'Show more matches' }).click()
+    expect((await nextPage).ok()).toBe(true)
+    await expect.poll(() => rows(page).count()).toBeGreaterThan(onPageOne.length)
+    const beyondPageOne = (await frameNames(page)).find(name => !onPageOne.includes(name))
+    expect(beyondPageOne, 'page two lists a frame page one did not').toBeTruthy()
+
+    // Searching resets the list to page one, so what comes back is what a
+    // rider who had never pressed "Show more matches" would have seen.
+    const { data } = await rerank(page, () => searchBox(page).fill(beyondPageOne!))
+    expect(data.pagination?.offset).toBe(0)
+    expect(data.combos.map(combo => combo.frame.name)).toContain(beyondPageOne)
+    // Somewhere in the matches, never at a fixed rank: a term can match
+    // several frames (the catalog holds near-namesakes), and which of them
+    // is quickest here is equipment data, not something to pin.
+    await expect(rankedList(page)).toContainText(beyondPageOne!)
+
+    // A wheel name reaches the catalog the same way. No frame is called Zipp,
+    // so every match here was found through the wheel it is paired with -
+    // which is only possible because the per-frame cap is lifted for a search
+    // (`recommendPipeline.test.ts` holds that rule).
+    const { data: wheels } = await rerank(page, () => searchBox(page).fill('zipp'))
+    expect(wheels.combos.length).toBeGreaterThan(1)
+    expect(wheels.combos.every(combo => combo.wheelset?.name.toLowerCase().includes('zipp'))).toBe(true)
+    expect(wheels.combos.every(combo => !combo.frame.name.toLowerCase().includes('zipp'))).toBe(true)
+    await expect(rows(page).first()).toContainText('Zipp')
   })
 
   test('keeps a long route name and the dark theme within the viewport', async ({ page }) => {

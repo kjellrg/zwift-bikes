@@ -1,4 +1,5 @@
-import { expect, test, type Page, type Response } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+import { isListingResponse, ready, rerank, visit } from './support'
 
 /**
  * The course-analysis tabs under the route and segment pages (issue #207)
@@ -7,9 +8,8 @@ import { expect, test, type Page, type Response } from '@playwright/test'
  * exist with zero matches and through a refresh, the equipment tabs (speed
  * chart, TTT plan) that follow the applied results and say so, honest
  * unavailable states, the panels served in the HTML before any click, and
- * the selected tab surviving a lap refresh and the bike drawer. Waits are
- * for real signals (hydration, a recommend response, the results region
- * leaving its busy state), never sleeps - see `route-recommendation.spec.ts`.
+ * the selected tab surviving a lap refresh and the bike drawer. Waits come
+ * from `support.ts` and are for real signals, never sleeps.
  *
  * Nothing here is committed as a screenshot; Playwright keeps failure
  * artefacts under `test-results/`, which is gitignored.
@@ -25,33 +25,6 @@ const FLAT_REV = '/routes/flat-route-rev'
 const CLIMB = '/segments/alpe-du-zwift'
 /** A positional sprint: a profile, but no standing-start speed chart. */
 const SPRINT = '/segments/fuego-flats'
-
-/** A recommend listing response - the drill-down behind the wheel list is a different question. */
-const isListingResponse = (response: Response) => response.url().includes('/api/recommend/') && !response.url().includes('wheelsForFrame')
-
-async function ready(page: Page) {
-  await page.waitForFunction(() => {
-    const app = (document.querySelector('#__nuxt') as unknown as { __vue_app__?: { $nuxt?: { isHydrating?: boolean } } } | null)?.__vue_app__
-    return app?.$nuxt?.isHydrating === false
-  })
-  await expect(page.locator('#ride-results')).toHaveAttribute('aria-busy', 'false')
-}
-
-async function visit(page: Page, path: string) {
-  const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
-  expect(response?.ok(), `${path} answered ${response?.status()}`).toBe(true)
-  await ready(page)
-}
-
-/** Runs `action`, waits for the listing response it triggers and for the page to apply it. */
-async function rerank(page: Page, action: () => Promise<void>) {
-  const responsePromise = page.waitForResponse(isListingResponse)
-  await action()
-  const response = await responsePromise
-  expect(response.ok()).toBe(true)
-  await ready(page)
-  return response.json() as Promise<{ combos: { frame: { name: string }, finishTimeSec?: number }[] }>
-}
 
 async function pickLaps(page: Page, label: string) {
   // The lap picker is a `USelectMenu`: its trigger is a button carrying the label.

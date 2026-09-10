@@ -21,7 +21,9 @@ small machine run it on its own, not alongside `npm run typecheck` or
 Every test gets a fresh browser context, so localStorage starts empty - the
 rider is the composable default (75 kg, 175 cm, 225 W, solo) unless a test
 seeds storage itself. Waits are for real signals (hydration, a recommend
-response, the results region leaving `aria-busy`), never sleeps.
+response, the results region leaving `aria-busy`), never sleeps: every spec
+imports them from `support.ts`, which owns the waits and nothing else -
+locators stay in the spec that uses them.
 
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.

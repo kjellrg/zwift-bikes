@@ -1,4 +1,5 @@
-import { expect, test, type Page, type Response } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+import { expectNoHorizontalOverflow, isListingResponse, rerank, visit } from './support'
 
 /**
  * The segment recommendation journey (issue #203): the same
@@ -6,9 +7,9 @@ import { expect, test, type Page, type Response } from '@playwright/test'
  * is specific to a segment - no lap controls or route-only panels, the sprint
  * ranked at the rider's separate sprint power, the timed-segment scope in the
  * answer, host-route navigation, and the missing-data states of a segment
- * whose position on its host route is unknown. Waits are for real signals
- * (hydration, a recommend response, the results region leaving its busy
- * state), never sleeps - see `route-recommendation.spec.ts`.
+ * whose position on its host route is unknown, and the catalog-wide search
+ * from a segment's own ranking. Waits come from `support.ts` and are for real
+ * signals, never sleeps.
  *
  * Nothing here is committed as a screenshot; Playwright keeps failure
  * artefacts under `test-results/`, which is gitignored.
@@ -21,45 +22,14 @@ const SPRINT = '/segments/fuego-flats'
 /** A membership-only sprint: no position on any host, so no profile and a borrowed surface mix. */
 const UNPLACED = '/segments/acropolis-sprint'
 
-/** A recommend listing response - the drill-down behind the wheel list is a different question. */
-const isListingResponse = (response: Response) => response.url().includes('/api/recommend/') && !response.url().includes('wheelsForFrame')
-
-async function ready(page: Page) {
-  await page.waitForFunction(() => {
-    const app = (document.querySelector('#__nuxt') as unknown as { __vue_app__?: { $nuxt?: { isHydrating?: boolean } } } | null)?.__vue_app__
-    return app?.$nuxt?.isHydrating === false
-  })
-  await expect(page.locator('#ride-results')).toHaveAttribute('aria-busy', 'false')
-}
-
-async function visit(page: Page, path: string) {
-  const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
-  expect(response?.ok(), `${path} answered ${response?.status()}`).toBe(true)
-  await ready(page)
-}
-
-/** Runs `action`, waits for the listing response it triggers and for the page to apply it, and hands back the request and the body. */
-async function rerank(page: Page, action: () => Promise<void>) {
-  const responsePromise = page.waitForResponse(isListingResponse)
-  await action()
-  const response = await responsePromise
-  expect(response.ok()).toBe(true)
-  await ready(page)
-  return {
-    query: new URL(response.url()).searchParams,
-    data: await response.json() as { combos: { frame: { name: string }, finishTimeSec?: number }[] }
-  }
-}
-
-async function expectNoHorizontalOverflow(page: Page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
-}
-
 const recommendation = (page: Page) => page.locator('section:has(#ride-recommendation-heading)')
 const briefing = (page: Page) => page.getByRole('region', { name: 'Ride briefing' })
 const answer = (page: Page) => page.locator('section:has(#ride-answer-heading)')
 const finishTime = (page: Page) => recommendation(page).locator('p.tabular-nums').first()
 const riderStrip = (page: Page) => page.getByRole('group', { name: 'Rider' })
+const rankedList = (page: Page) => page.getByRole('list', { name: 'Ranked setups' })
+const rows = (page: Page) => rankedList(page).getByRole('listitem')
+const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search all frames and wheels' })
 
 const normalise = (text: string) => text.replace(/\s+/g, ' ').trim()
 
@@ -174,6 +144,51 @@ test.describe('segment recommendation', () => {
     await expect(page.getByLabel('Elevation profile chart')).toHaveCount(0)
     await page.getByRole('tab', { name: 'Surface details' }).click()
     await expect(page.getByRole('tabpanel', { name: 'Surface details' })).toContainText('Tarmac')
+  })
+
+  test('reaches a bike no ranking lists, and puts the ranking back when the search is cleared', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers search')
+    await visit(page, CLIMB)
+    // The Golden Concept Z1 is the plain one in a gold light scheme - one bike,
+    // one measurement - so a ranking only ever lists the other half of the
+    // pair. Typing its name is the one way to ask for it.
+    await expect(rankedList(page)).not.toContainText('Golden')
+    const { query, data } = await rerank(page, () => searchBox(page).fill('golden'))
+    expect(data.combos.map(combo => combo.frame.name)).toContain('Zwift Golden Concept Z1')
+    expect(query.get('search')).toBe('golden')
+    await expect(rankedList(page)).toContainText('Zwift Golden Concept Z1')
+    // The term travels as a shared view, so the link shows what the rider sees.
+    expect(new URL(page.url()).searchParams.get('bike')).toBe('golden')
+
+    await rerank(page, () => page.getByRole('button', { name: 'Clear search' }).click())
+    await expect(rankedList(page)).not.toContainText('Golden')
+    expect(new URL(page.url()).searchParams.has('bike')).toBe(false)
+    expect(await rows(page).count()).toBeGreaterThan(1)
+  })
+
+  test('says when nothing in the catalog matches, and recovers on the next term', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers search')
+    await visit(page, CLIMB)
+    const { data } = await rerank(page, () => searchBox(page).fill('unobtainium'))
+    expect(data.combos).toHaveLength(0)
+    await expect(page.getByText('Nothing in the catalog matches "unobtainium" under the current filters.')).toBeVisible()
+    await expect(rankedList(page)).toHaveCount(0)
+    // The controls that got the rider here are still the way out.
+    await expect(searchBox(page)).toBeEnabled()
+
+    const { data: recovered } = await rerank(page, () => searchBox(page).fill('zwift'))
+    expect(recovered.combos.length).toBeGreaterThan(0)
+    await expect(rows(page).first()).toBeVisible()
+  })
+
+  test('shows more matches from the same segment ranking', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers pagination')
+    await visit(page, CLIMB)
+    const before = await rows(page).count()
+    const nextPage = page.waitForResponse(response => isListingResponse(response) && response.url().includes('offset='))
+    await page.getByRole('button', { name: 'Show more matches' }).click()
+    expect((await nextPage).ok()).toBe(true)
+    await expect.poll(() => rows(page).count()).toBeGreaterThan(before)
   })
 
   test('answers an unknown segment with a 404, not an empty page', async ({ page, request, isMobile }) => {

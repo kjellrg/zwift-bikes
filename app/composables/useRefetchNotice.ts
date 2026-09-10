@@ -26,10 +26,77 @@ interface RefetchError {
   data?: unknown
 }
 
+/** The parts of a Nuxt UI toast these notices set. */
+interface RefetchToast {
+  title: string
+  description: string
+  color: 'warning'
+  icon: string
+}
+
+/** What the watcher should do about one failed refetch. */
+interface RefetchNotice {
+  toast: RefetchToast
+  /** Set only for the one automatic retry a 429 earns. */
+  retryInSec?: number
+}
+
+/** What the episode so far allows: whether the 429 retry is spent, and how long since the last toast. */
+interface RefetchNoticeState {
+  autoRetried: boolean
+  msSinceLastToast: number
+}
+
+/** One notice per burst - rapid control changes while the API is unhappy should not stack a toast per failed request. */
+const TOAST_QUIET_MS = 5000
+
 /** The `message` h3's `createError` put in the error body, if one survived. */
 function bodyMessage(err: RefetchError): string | undefined {
   const message = (err.data as { message?: unknown } | null | undefined)?.message
   return typeof message === 'string' && message ? message : undefined
+}
+
+/**
+ * The rule behind the toasts, separated from the watcher that applies it so
+ * it can be exercised without a browser: which notice one failed refetch
+ * earns, given what the episode has already shown. `undefined` means say
+ * nothing.
+ */
+export function refetchNotice(err: RefetchError, state: RefetchNoticeState): RefetchNotice | undefined {
+  if (err.statusCode === 429 && !state.autoRetried) {
+    // The retry is the point of this branch, so it is never quieted: a burst
+    // that ends in a throttle still has to end in a request that succeeds.
+    const headerSec = Number(err.response?.headers?.get?.('retry-after'))
+    const retryInSec = Number.isFinite(headerSec) && headerSec > 0 ? Math.min(30, headerSec) : 2
+    return {
+      retryInSec,
+      toast: {
+        title: 'Too many requests',
+        description: `Showing the previous results - retrying in ${retryInSec}s.`,
+        color: 'warning',
+        icon: 'i-lucide-timer'
+      }
+    }
+  }
+  if (state.msSinceLastToast < TOAST_QUIET_MS) return undefined
+  if (err.statusCode === 503) {
+    return {
+      toast: {
+        title: 'Calculations are paused',
+        description: `${bodyMessage(err) ?? 'Temporarily unavailable for maintenance.'} The results shown are the previous ones.`,
+        color: 'warning',
+        icon: 'i-lucide-wrench'
+      }
+    }
+  }
+  return {
+    toast: {
+      title: 'Couldn\'t update the results',
+      description: 'Showing the previous ones - try again in a moment.',
+      color: 'warning',
+      icon: 'i-lucide-refresh-cw-off'
+    }
+  }
 }
 
 export function useRefetchNotice(
@@ -58,39 +125,13 @@ export function useRefetchNotice(
   watch(error, (err) => {
     if (!err || !import.meta.client) return
     const now = Date.now()
-    if (err.statusCode === 429 && !autoRetried) {
-      autoRetried = true
-      const headerSec = Number(err.response?.headers?.get?.('retry-after'))
-      const retrySec = Number.isFinite(headerSec) && headerSec > 0 ? Math.min(30, headerSec) : 2
-      toast.add({
-        title: 'Too many requests',
-        description: `Showing the previous results - retrying in ${retrySec}s.`,
-        color: 'warning',
-        icon: 'i-lucide-timer'
-      })
-      clearTimeout(retryTimer)
-      retryTimer = setTimeout(() => void refresh(), retrySec * 1000 + 250)
-      lastToastMs = now
-      return
-    }
-    // One notice per burst - rapid control changes while the API is unhappy
-    // should not stack a toast per failed request.
-    if (now - lastToastMs < 5000) return
+    const notice = refetchNotice(err, { autoRetried, msSinceLastToast: now - lastToastMs })
+    if (!notice) return
     lastToastMs = now
-    if (err.statusCode === 503) {
-      toast.add({
-        title: 'Calculations are paused',
-        description: `${bodyMessage(err) ?? 'Temporarily unavailable for maintenance.'} The results shown are the previous ones.`,
-        color: 'warning',
-        icon: 'i-lucide-wrench'
-      })
-      return
-    }
-    toast.add({
-      title: 'Couldn\'t update the results',
-      description: 'Showing the previous ones - try again in a moment.',
-      color: 'warning',
-      icon: 'i-lucide-refresh-cw-off'
-    })
+    toast.add(notice.toast)
+    if (notice.retryInSec === undefined) return
+    autoRetried = true
+    clearTimeout(retryTimer)
+    retryTimer = setTimeout(() => void refresh(), notice.retryInSec * 1000 + 250)
   })
 }

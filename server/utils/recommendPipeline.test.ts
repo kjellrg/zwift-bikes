@@ -139,6 +139,14 @@ describe('runRecommendPipeline', () => {
     expect(new Set(searched.combos.map(combo => combo.frame.id)).size).toBeLessThan(searched.combos.length)
   })
 
+  it('lets a search reach the cosmetic re-skin the ranked pool leaves out', async () => {
+    // With an empty garage the re-skin is the half of the pair that drops out
+    // of a ranking (`isRedundantCosmeticVariant`, covered at the classifier),
+    // so a rider who types its name is the only one who can ask for it.
+    const searched = await runRecommendPipeline(fakeEvent(), query({ search: 'golden' }), routeRide([]))
+    expect(searched.combos.map(combo => combo.frame.name)).toContain('Zwift Golden Concept Z1')
+  })
+
   it('answers a drill-down with one frame, no wheel-options count, and an upgrade curve', async () => {
     const page = await runRecommendPipeline(fakeEvent(), query({ category: 'standard', includeHalo: 'false', maxWheelsetsPerFrame: '1' }), routeRide([]))
     const frame = page.combos[0]!.frame

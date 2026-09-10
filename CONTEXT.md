@@ -14,6 +14,10 @@ The values a link to a ranking page carries so that the recipient sees what the 
 The URL carries a shared view's non-default values. The homepage filters are not a shared view: that page ranks nothing.
 _Avoid_: URL state, per-visit knobs, query params, visit override
 
+**Directed search**:
+A term typed on a ranking page, which reaches the whole eligible catalog rather than narrowing the rows already on screen. The pool's tidiness rules are lifted for it: the one-row-per-frame cap, the collapsing of a cosmetic re-skin into the bike it re-skins, and the hiding of the purchasable Halo frames - a rider who typed a bike's name is asking for that bike, not for a tidy list. Eligibility itself still applies (category, verification, the garage, compatibility), so a directed search can legitimately find nothing.
+_Avoid_: filter, query, list search, bike filter
+
 **Ride-only**:
 Information that is a property of the Ride alone - the course's elevation, surfaces and mapped occurrences, and the terms the rider chose - so it exists with zero equipment matches and through a results refresh. Equipment-dependent analysis (the speed chart, the TTT plan) is not Ride-only: it describes one ranked setup.
 _Avoid_: static content, course info, non-equipment data

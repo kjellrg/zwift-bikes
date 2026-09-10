@@ -150,8 +150,12 @@ export async function runRecommendPipeline(
   let allFrames = getFrames().filter((frame) => {
     // Never list the same bike twice: a cosmetic re-skin and the frame it
     // re-skins are one bike, so only one of the pair is shown - the re-skin
-    // only when it's explicitly in the rider's garage.
-    if (isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
+    // only when it's explicitly in the rider's garage. Bypassed while
+    // searching, for the same reason `isHiddenHalo` above is: tidiness is
+    // not a reason to answer "nothing matches" to someone who typed a real
+    // bike's name. `fastestOverall` never sees the difference - it is gated
+    // on an unsearched request.
+    if (!search && isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
     if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
     return true
   }).map((frame) => {
