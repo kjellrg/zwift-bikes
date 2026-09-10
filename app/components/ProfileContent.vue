@@ -11,11 +11,14 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 // header and would mark whatever page the modal happens to be open on as
 // noindex. That call stays on `pages/profile.vue`.
 
-const { weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg, load, setWeightKg, setHeightCm, setPowerW, setSprintPowerW, setDefaultUnownedLevel, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, draftMode, savedDraftMode, tttRiders, tttClimbWkg, load, setWeightKg, setHeightCm, setPowerW, setSprintPowerW, setDefaultUnownedLevel, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 // Bike category is a display filter rather than a rider attribute, so it
 // lives in `usePreferences` alongside the other filters - but it's set here,
 // because it's a default the rider picks once, not a per-route toggle.
-const { bikeCategory, showUpcomingRaces, load: loadPreferences, setBikeCategory, setShowUpcomingRaces } = usePreferences()
+// The two "Default ..." selects show the SAVED value, not the ref: the ref
+// can hold a value a link supplied for the visit, and this page edits the
+// default. Choosing here moves both, which also ends the link's override.
+const { savedBikeCategory, showUpcomingRaces, load: loadPreferences, setBikeCategory, setShowUpcomingRaces } = usePreferences()
 onMounted(() => {
   load()
   loadPreferences()
@@ -210,10 +213,11 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       <div class="max-w-xs">
         <label class="block text-xs font-medium text-muted mb-1">Default bike category</label>
         <USelectMenu
-          :model-value="bikeCategory"
+          :model-value="savedBikeCategory"
           value-key="value"
           :items="bikeCategoryOptions"
           :search-input="false"
+          aria-label="Default bike category"
           @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)"
         />
         <p class="text-sm text-muted mt-1">
@@ -238,7 +242,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       <div class="max-w-xs">
         <label class="block text-xs font-medium text-muted mb-1">Default draft mode</label>
         <USelectMenu
-          :model-value="draftMode"
+          :model-value="savedDraftMode"
           value-key="value"
           :items="DRAFT_MODE_OPTIONS"
           :search-input="false"

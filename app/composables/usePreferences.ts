@@ -46,6 +46,8 @@ export function usePreferences() {
   const storedBikeCategory = useState<BikeCategory | 'all'>('pref-bike-category-stored', () => bikeCategory.value)
   /** Whether the page shows a category a link supplied rather than the rider's own. */
   const categoryFromLink = computed(() => bikeCategory.value !== storedBikeCategory.value)
+  /** The rider's own category, for a control that edits the default rather than the visit - the profile page's select. */
+  const savedBikeCategory = computed(() => storedBikeCategory.value)
   /**
    * Storage is read once per app lifetime. Every control component and
    * `useRecommendRequest` call `load()` from their own `onMounted`, and a
@@ -158,5 +160,5 @@ export function usePreferences() {
     persist()
   }
 
-  return { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, showUpcomingRaces, includeHaloBikes, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setShowUpcomingRaces, setIncludeHaloBikes }
+  return { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, savedBikeCategory, showUpcomingRaces, includeHaloBikes, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setShowUpcomingRaces, setIncludeHaloBikes }
 }

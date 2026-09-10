@@ -68,6 +68,8 @@ export function useRiderProfile() {
   const storedDraftMode = useState<DraftMode>('rider-draft-mode-stored', () => draftMode.value)
   /** Whether the page ranks under a draft mode a link supplied rather than the rider's own. */
   const draftModeFromLink = computed(() => draftMode.value !== storedDraftMode.value)
+  /** The rider's own draft mode, for a control that edits the default rather than the visit - the profile page's select. */
+  const savedDraftMode = computed(() => storedDraftMode.value)
   /**
    * Storage is read once per app lifetime, for the same reason as in
    * `usePreferences`: `load()` is called from every control's `onMounted`,
@@ -191,6 +193,7 @@ export function useRiderProfile() {
     hasStoredProfile,
     draftMode,
     draftModeFromLink,
+    savedDraftMode,
     tttRiders,
     tttClimbWkg,
     load,

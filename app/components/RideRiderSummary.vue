@@ -66,19 +66,11 @@ const controlsId = useId()
         />{{ draftLabel }}
         <!-- Restoring stores nothing; the refetch and the URL follow from the
              ref moving, as for any control. -->
-        <button
+        <FromLinkMarker
           v-if="draftModeFromLink"
-          type="button"
-          class="inline-flex items-center gap-0.5 rounded-full border border-default px-1.5 text-xs text-muted hover:text-highlighted"
-          aria-label="Restore my saved draft mode"
-          title="Restore my saved draft mode"
-          @click="restoreDraftMode"
-        >
-          from link<UIcon
-            name="i-lucide-x"
-            class="size-3"
-          />
-        </button>
+          restore-label="Restore my saved draft mode"
+          @restore="restoreDraftMode"
+        />
       </span>
       <!-- Until a profile is saved every time on the page is for the
            defaults - say so, or a first visit reads as a prediction. -->

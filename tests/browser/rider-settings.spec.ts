@@ -32,7 +32,9 @@ const finishTime = (page: Page) => page.locator('section:has(#ride-recommendatio
 const adjustEffort = (page: Page) => page.getByRole('button', { name: 'Adjust effort' })
 const slider = (page: Page, name: string) => page.getByRole('slider', { name })
 const draftSelect = (page: Page) => page.getByRole('button', { name: 'Draft mode', exact: true })
-const restoreDraft = (page: Page) => page.getByRole('button', { name: 'Restore my saved draft mode' })
+/** The strip's marker; the slider box has one of its own beside the draft select. */
+const restoreDraft = (page: Page) => strip(page).getByRole('button', { name: 'Restore my saved draft mode' })
+const controlsRestoreDraft = (page: Page) => page.getByRole('button', { name: 'Restore my saved draft mode' }).nth(1)
 const restoreCategory = (page: Page) => page.getByRole('button', { name: 'Restore my saved category' })
 const filterSummary = (page: Page) => page.getByText(/^(All categories|Standard \(Road\)|Time Trial|Gravel|Hand Cycle|Fun Bike) \/ (Verified only|Includes estimates)$/)
 const haloSwitch = (page: Page) => page.getByRole('switch', { name: 'Include Halo bikes' })
@@ -133,6 +135,15 @@ test.describe('rider settings', () => {
     await expect(draftSelect(page)).toHaveText('TTT paceline')
     expect(new URL(page.url()).searchParams.get('draft')).toBe('ttt')
     expect(requests()).toBe(count)
+    // The slider box marks the link's mode beside its own select - the same
+    // control the race page mounts, which has no strip.
+    await expect(controlsRestoreDraft(page)).toBeVisible()
+
+    // The profile dialog edits the DEFAULT, so it shows the saved mode, not the link's.
+    await strip(page).getByRole('link', { name: 'Edit profile' }).click()
+    await expect(page.getByRole('button', { name: 'Default draft mode', exact: true })).toHaveText('Solo')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: 'Default draft mode', exact: true })).toHaveCount(0)
 
     // The link's value follows the rider to the next ranking page and into
     // that page's URL, so a reload there reproduces it.

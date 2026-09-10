@@ -61,7 +61,7 @@ const props = withDefaults(defineProps<{
   sprintPower?: boolean
 }>(), { hasLongClimb: true, draftLocked: false, sprintPower: false })
 
-const { weightKg, heightCm, powerW, sprintPowerW, draftMode, tttRiders, tttClimbWkg, hasStoredProfile, load: loadRiderProfile, setWeightKg, setPowerW, setSprintPowerW, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, sprintPowerW, draftMode, draftModeFromLink, tttRiders, tttClimbWkg, hasStoredProfile, load: loadRiderProfile, setWeightKg, setPowerW, setSprintPowerW, setHeightCm, setDraftMode, restoreDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 
 // The persisted power this page's slider edits (see the `sprintPower` prop).
 const activePowerW = computed(() => props.sprintPower ? sprintPowerW.value : powerW.value)
@@ -221,10 +221,21 @@ const { openProfile } = useOverlays()
         v-if="draftControlsOpen"
         class="w-44"
       >
-        <label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces. Race is a mass-start bunch: one draft benefit measured from real race fields, with your power still your own race average."><UIcon
-          name="i-lucide-info"
-          class="size-3 text-muted align-text-bottom"
-        /></UTooltip></label>
+        <!-- The marker sits by the select on every page that mounts this
+             box - including the race page, which has no rider strip - so a
+             link's mode is never ranked by without a way back to the saved
+             one. -->
+        <div class="mb-1 flex items-center gap-1.5">
+          <label class="text-xs font-medium text-muted">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces. Race is a mass-start bunch: one draft benefit measured from real race fields, with your power still your own race average."><UIcon
+            name="i-lucide-info"
+            class="size-3 text-muted align-text-bottom"
+          /></UTooltip></label>
+          <FromLinkMarker
+            v-if="draftModeFromLink"
+            restore-label="Restore my saved draft mode"
+            @restore="restoreDraftMode"
+          />
+        </div>
         <USelectMenu
           :model-value="draftMode"
           value-key="value"

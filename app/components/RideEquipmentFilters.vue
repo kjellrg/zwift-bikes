@@ -103,19 +103,12 @@ const categoryId = useId()
          restoring stores nothing, the refetch and the URL follow from the
          ref moving. A sibling of the summary rather than inside it, so the
          summary's text stays the two values it names. -->
-    <button
+    <FromLinkMarker
       v-if="categoryFromLink"
-      type="button"
-      class="-ml-3 inline-flex items-center gap-0.5 rounded-full border border-default px-1.5 text-xs text-muted hover:text-highlighted"
-      aria-label="Restore my saved category"
-      title="Restore my saved category"
-      @click="restoreBikeCategory"
-    >
-      from link<UIcon
-        name="i-lucide-x"
-        class="size-3"
-      />
-    </button>
+      class="-ml-3"
+      restore-label="Restore my saved category"
+      @restore="restoreBikeCategory"
+    />
     <div
       v-if="moreFilters"
       :id="moreFiltersId"
