@@ -149,21 +149,24 @@ test.describe('shell', () => {
     }
   })
 
-  test('carries the theme into an overlay', async ({ page, isMobile }) => {
+  test('starts dark and carries a switch to light into an overlay', async ({ page, isMobile }) => {
     await visit(page, ROUTE)
     const bodyBackground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-    const lightGround = await bodyBackground()
-    await header(page).getByRole('button', { name: 'Switch to dark mode' }).click()
+    // Dark is the Colour mode a first visit gets (nuxt.config sets the
+    // preference), and the dark ground is the palette's deepest neutral
+    // (main.css re-points `--ui-bg` to it) - not merely "whatever `--ui-bg`
+    // is", which would hold in light mode too.
     await expect(page.locator('html')).toHaveClass(/\bdark\b/)
-    // The dark ground is the palette's deepest neutral (main.css re-points
-    // `--ui-bg` to it), not merely "whatever `--ui-bg` is": that would hold
-    // in light mode too.
-    const ground = await resolvedColor(page, 'var(--ui-color-neutral-950)')
-    expect(ground).not.toBe(lightGround)
-    expect(await bodyBackground()).toBe(ground)
+    const darkGround = await resolvedColor(page, 'var(--ui-color-neutral-950)')
+    expect(await bodyBackground()).toBe(darkGround)
+
+    await header(page).getByRole('button', { name: 'Switch to light mode' }).click()
+    await expect(page.locator('html')).toHaveClass(/\blight\b/)
+    const lightGround = await bodyBackground()
+    expect(lightGround).not.toBe(darkGround)
 
     await entry(await nav(page, isMobile), 'My Profile').click()
     await expect(profileOverlay(page)).toBeVisible()
-    expect(await profileOverlay(page).evaluate(element => getComputedStyle(element).backgroundColor)).toBe(ground)
+    expect(await profileOverlay(page).evaluate(element => getComputedStyle(element).backgroundColor)).toBe(lightGround)
   })
 })

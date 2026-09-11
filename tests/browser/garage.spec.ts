@@ -199,21 +199,27 @@ test.describe('garage', () => {
     await expect(page.locator('[role="tooltip"]')).toContainText('no per-stage numbers to apply')
   })
 
-  test('carries the theme into both hosts', async ({ page, isMobile }) => {
+  test('carries a switch to light into both hosts', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the desktop journey covers the theme; the mobile one covers the width')
     await visitPage(page, '/garage')
-    await page.getByRole('button', { name: 'Switch to dark mode' }).click()
+    const bodyBackground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+    // A first visit is dark, on the palette's deepest neutral - not merely
+    // "whatever `--ui-bg` is": that would hold in light mode too (the lesson
+    // `shell.spec.ts` carries).
     await expect(page.locator('html')).toHaveClass(/\bdark\b/)
-    // The palette's deepest neutral, not merely "whatever `--ui-bg` is":
-    // that would hold in light mode too (the lesson `shell.spec.ts` carries).
-    const ground = await resolvedColor(page, 'var(--ui-color-neutral-950)')
-    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(ground)
+    const darkGround = await resolvedColor(page, 'var(--ui-color-neutral-950)')
+    expect(await bodyBackground()).toBe(darkGround)
+
+    await page.getByRole('button', { name: 'Switch to light mode' }).click()
+    await expect(page.locator('html')).toHaveClass(/\blight\b/)
+    const lightGround = await bodyBackground()
+    expect(lightGround).not.toBe(darkGround)
 
     await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
     await ready(page)
     await editGarage(page).click()
     await expect(overlay(page)).toBeVisible()
-    expect(await overlay(page).evaluate(element => getComputedStyle(element).backgroundColor)).toBe(ground)
+    expect(await overlay(page).evaluate(element => getComputedStyle(element).backgroundColor)).toBe(lightGround)
   })
 })
 

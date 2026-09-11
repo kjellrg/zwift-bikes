@@ -187,17 +187,20 @@ test.describe('segment discovery', () => {
     expect(served.routeLinks).toContain('Browse all routes')
   })
 
-  test('puts the cards on the dark ground in dark mode', async ({ page }) => {
+  test('puts the cards on the dark ground, and lifts them off it on a switch to light', async ({ page }) => {
     await visitPage(page, '/segments')
     const cardGround = () => cards(page).first().locator('> *').first()
       .evaluate(element => getComputedStyle(element).backgroundColor)
-    const lightGround = await cardGround()
-
-    await page.getByRole('banner').getByRole('button', { name: 'Switch to dark mode' }).click()
+    // A first visit is dark. The palette's deepest neutral, which `main.css`
+    // re-points `--ui-bg` to in dark mode - not merely "whatever `--ui-bg`
+    // is", which would hold in light mode too.
     await expect(page.locator('html')).toHaveClass(/\bdark\b/)
-    const ground = await resolvedColor(page, 'var(--ui-color-neutral-950)')
-    expect(ground).not.toBe(lightGround)
-    expect(await cardGround()).toBe(ground)
+    const darkGround = await resolvedColor(page, 'var(--ui-color-neutral-950)')
+    expect(await cardGround()).toBe(darkGround)
+
+    await page.getByRole('banner').getByRole('button', { name: 'Switch to light mode' }).click()
+    await expect(page.locator('html')).toHaveClass(/\blight\b/)
+    expect(await cardGround()).not.toBe(darkGround)
     await expectNoHorizontalOverflow(page)
   })
 })
