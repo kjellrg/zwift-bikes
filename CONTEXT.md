@@ -54,6 +54,10 @@ _Avoid_: hub, list page, index page, landing page
 One organiser's run of rounds under a series name, with the dates the rounds span and the organiser's own note on where the season stands. It is what the events hub lists and what a season page schedules, round by round. A season is past once its last Race has been run, and a past season is still a page: its races keep their rankings.
 _Avoid_: series (the name a season runs under, not the season), calendar, event
 
+**Round**:
+An organiser's block of Races inside a Season, with its own dates and usually its own name - "Fresh & Fast", "August: Makuri Madness". It is how a season page groups its calendar and what a Season card on the events hub links into. A round is over once its last Race has been run, and it then stops being listed among what is still to come; its races stay, under their round, among the past ones.
+_Avoid_: week (one race's slot inside a round), block, phase
+
 **Race**:
 A Ride an organiser has put on a Season's calendar: a date, a format, its Category groups and the rules those fix. A race stays upcoming until its last day has passed, so a week-long stage is upcoming all week; the first upcoming race in a season is its next race. A race with no format or no known course is on the schedule but has no page yet, and says so where it is listed.
 _Avoid_: event (the section's name, not a thing on it), stage (an organiser's word for a week-long race)

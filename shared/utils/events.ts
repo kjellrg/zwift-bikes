@@ -497,6 +497,28 @@ function seasonStartDate(season: EventSeason): string {
 }
 
 /**
+ * Whether a Round has been run: every Race on it is behind us. `today` is an
+ * ISO date and must come from the client, like every other past/upcoming
+ * question here - these pages are prerendered, so a build-time answer would
+ * ship frozen.
+ *
+ * A round with no races at all is deliberately NOT run. It is a window the
+ * organiser has announced and not yet filled in, and its dates are the only
+ * thing a rider planning a season has to go on - so it stays on the calendar
+ * while a round that has run out of races leaves it. Retired races don't
+ * count either way: a hidden race is not on the calendar, so it can neither
+ * hold a round open nor close it.
+ *
+ * Both the season page (which rounds it lists) and the events hub (whether a
+ * round tile still has a round to point at) ask this, so neither can drift
+ * into its own idea of when a round is over.
+ */
+export function isRoundRun(round: Pick<EventRound, 'races'>, today: string): boolean {
+  const races = round.races.filter(race => !race.hidden)
+  return races.length > 0 && races.every(race => raceEndDate(race) < today)
+}
+
+/**
  * What a Season's calendar adds up to: the days it spans and how much is on
  * it. The events hub prints this on a season card and the season page prints
  * it in its header, so one helper is what keeps the two from counting

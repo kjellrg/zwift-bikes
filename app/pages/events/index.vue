@@ -49,11 +49,19 @@ const seriesGroups = computed(() => {
 const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
 
 const pastSeasonSlugs = ref(new Set<string>())
+/**
+ * Today, once the page is on a rider's screen. Handed to the season cards so
+ * a round tile knows whether the round it points at is still on the season
+ * page - the cards must not ask the clock themselves, for the same reason
+ * this page resolves it here: it is prerendered, and a build-time answer
+ * would ship frozen.
+ */
+const today = ref<string>()
 onMounted(() => {
   loadSiteFlags()
-  const today = new Date().toISOString().slice(0, 10)
+  today.value = new Date().toISOString().slice(0, 10)
   pastSeasonSlugs.value = new Set(seasons
-    .filter(season => getVisibleSeasonRaces(season).every(race => raceEndDate(race) < today))
+    .filter(season => getVisibleSeasonRaces(season).every(race => raceEndDate(race) < today.value!))
     .map(season => season.slug))
 })
 const isPastSeason = (season: EventSeason) => pastSeasonSlugs.value.has(season.slug)
@@ -64,7 +72,17 @@ const isPastSeason = (season: EventSeason) => pastSeasonSlugs.value.has(season.s
  * segments page applies to a world its filters empty.
  */
 const activeSeriesGroups = computed(() => seriesGroups.value.filter(group => group.seasons.some(season => !isPastSeason(season))))
-const pastSeasons = computed(() => sortSeasonsNewestFirst(seasons.filter(isPastSeason)))
+/**
+ * Finished seasons keep their series grouping inside the disclosure, rather
+ * than becoming a flat list: the organiser badge hangs off the series
+ * heading, and a series whose every season has finished is listed nowhere
+ * else - so flattening this would take the only link to that organiser off
+ * the page with it.
+ */
+const pastSeriesGroups = computed(() => seriesGroups.value
+  .map(group => ({ ...group, seasons: sortSeasonsNewestFirst(group.seasons.filter(isPastSeason)) }))
+  .filter(group => group.seasons.length))
+const pastSeasonCount = computed(() => pastSeriesGroups.value.reduce((total, group) => total + group.seasons.length, 0))
 
 const siteConfig = useSiteConfig()
 
@@ -140,58 +158,51 @@ useHead({
       :key="series.seriesSlug"
       class="space-y-4"
     >
-      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 class="text-2xl font-semibold text-highlighted">
-          {{ series.seriesName }}
-        </h2>
-        <!-- Linked when the organiser's page is known: we complement the
-             original sources, so send riders back to them for signup and
-             rules. Omitted entirely otherwise. -->
-        <UBadge
-          v-if="series.organizerUrl"
-          color="neutral"
-          variant="subtle"
-        >
-          <ULink
-            :to="series.organizerUrl"
-            target="_blank"
-            rel="noopener"
-            class="hover:text-primary"
-          >{{ series.organizer }}</ULink>
-        </UBadge>
-        <UBadge
-          v-else
-          color="neutral"
-          variant="subtle"
-        >
-          {{ series.organizer }}
-        </UBadge>
-      </div>
+      <SeriesHeading
+        :series-name="series.seriesName"
+        :organizer="series.organizer"
+        :organizer-url="series.organizerUrl"
+      />
 
       <div class="grid grid-cols-1 gap-4">
         <SeasonCard
           v-for="season in series.seasons.filter(s => !isPastSeason(s))"
           :key="season.slug"
           :season="season"
+          :today="today"
         />
       </div>
     </div>
 
-    <UCollapsible v-if="pastSeasons.length">
+    <UCollapsible v-if="pastSeasonCount">
       <UButton
         color="neutral"
         variant="subtle"
         trailing-icon="i-lucide-chevron-down"
       >
-        Past seasons ({{ pastSeasons.length }})
+        Past seasons ({{ pastSeasonCount }})
       </UButton>
       <template #content>
-        <div class="mt-4 grid grid-cols-1 gap-4">
-          <SeasonCard
-            v-for="season in pastSeasons"
-            :key="season.slug"
-            :season="season"
-          />
+        <div class="mt-4 space-y-8">
+          <div
+            v-for="series in pastSeriesGroups"
+            :key="series.seriesSlug"
+            class="space-y-4"
+          >
+            <SeriesHeading
+              :series-name="series.seriesName"
+              :organizer="series.organizer"
+              :organizer-url="series.organizerUrl"
+            />
+            <div class="grid grid-cols-1 gap-4">
+              <SeasonCard
+                v-for="season in series.seasons"
+                :key="season.slug"
+                :season="season"
+                :today="today"
+              />
+            </div>
+          </div>
         </div>
       </template>
     </UCollapsible>

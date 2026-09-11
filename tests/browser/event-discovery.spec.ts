@@ -18,6 +18,7 @@ import { expectNoHorizontalOverflow, hydrated, visitPage } from './support'
  */
 
 const SEASON = '/events/zrl-2026-27'
+const ZRACING = '/events/zracing-2026'
 /** Mid-round 1: week 1 has been run, week 2 is next, rounds 2-4 are unannounced. */
 const DURING = new Date('2026-09-25T12:00:00Z')
 /** Past every race in both curated seasons. */
@@ -27,6 +28,8 @@ const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
 const raceCard = (page: Page, name: string | RegExp) => page.getByRole('link', { name })
 const pastRaces = (page: Page) => page.getByRole('button', { name: /^Past races \(\d+\)$/ })
 const pastSeasons = (page: Page) => page.getByRole('button', { name: /^Past seasons \(\d+\)$/ })
+/** A round tile on a season card - the hub's way into one round of a season page. */
+const roundTile = (page: Page, name: RegExp) => page.getByRole('link', { name })
 
 async function visitAt(page: Page, path: string, time: Date) {
   await page.clock.setFixedTime(time)
@@ -58,6 +61,8 @@ test.describe('event discovery', () => {
     await expect(card).toContainText('24 races')
     await expect(card).toContainText('Round 1')
     await expect(card).toContainText('Fresh & Fast')
+    // Each round tile is the way into that round of the season page.
+    await expect(roundTile(page, /^Round 1 Fresh & Fast/)).toHaveAttribute('href', `${SEASON}#round-1`)
     // We complement the organisers, so their own page is one click away.
     await expect(page.getByRole('link', { name: 'WTRL' })).toHaveAttribute('href', /wtrl/)
 
@@ -71,12 +76,46 @@ test.describe('event discovery', () => {
     await visitAt(page, '/events', AFTER)
     // Both curated seasons are over, so the hub keeps them but out of the way.
     await expect(pastSeasons(page)).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Zwift Racing League' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { level: 2, name: 'Zwift Racing League', exact: true })).toHaveCount(0)
     await pastSeasons(page).click()
     const season = page.getByRole('link', { name: 'Zwift Racing League 2026/27' })
     await expect(season).toBeVisible()
     // A finished season is still a page: its races keep their rankings.
     await expect(season).toHaveAttribute('href', SEASON)
+    // The series comes with it, and so does the organiser - who is named
+    // nowhere else on the page once their last season is over.
+    await expect(page.getByRole('heading', { level: 2, name: 'Zwift Racing League', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'WTRL' })).toHaveAttribute('href', /wtrl/)
+  })
+
+  test('takes a round tile to that round of the season page', async ({ page }) => {
+    await visitAt(page, '/events', DURING)
+    await roundTile(page, /^Round 3 Racecraft Rush/).click()
+    await page.waitForURL(`**${SEASON}#round-3`)
+    await hydrated(page)
+    // Landed at the round, and clear of the sticky header rather than under
+    // it - the heading's own `scroll-mt`.
+    const heading = page.getByRole('heading', { level: 2, name: 'Round 3: Racecraft Rush' })
+    await expect(heading).toBeInViewport()
+    expect((await heading.boundingBox())!.y).toBeGreaterThan(64)
+  })
+
+  test('drops a round that has been run, from the page and from its tile', async ({ page }) => {
+    // ZRacing's August round finished on 6 September; its September round has
+    // not. The run one is not on the calendar at all - no heading, and none
+    // of the "all of this round's races have been run" it used to lead with.
+    await visitAt(page, ZRACING, DURING)
+    await expect(page.getByRole('heading', { level: 2, name: /Round 9/ })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: /Round 8/ })).toHaveCount(0)
+    // Its races are where run races live, under their own round.
+    await pastRaces(page).click()
+    await expect(page.getByRole('heading', { level: 3, name: 'Round 8: August: Makuri Madness' })).toBeVisible()
+
+    // And the tile that pointed at it stops pointing at an anchor that isn't
+    // there, rather than silently landing nowhere.
+    await visitAt(page, '/events', DURING)
+    await expect(roundTile(page, /^Round 8 August/)).toHaveAttribute('href', ZRACING)
+    await expect(roundTile(page, /^Round 9 September/)).toHaveAttribute('href', `${ZRACING}#round-9`)
   })
 
   test('shows the season round by round, with the next race marked and run ones collapsed', async ({ page }) => {
@@ -138,7 +177,9 @@ test.describe('event discovery', () => {
     // no filters, and a finished season is an answer.
     await expect(page.getByText('Every race this season has been run - check back when the next season is announced.')).toBeVisible()
     await expect(page.getByText('races found')).toHaveCount(0)
+    // The disclosure holds the whole page here, so it is open on arrival.
     await expect(pastRaces(page)).toBeVisible()
+    await expect(raceCard(page, /Round 1 Week 1/)).toContainText('Completed')
   })
 
   test('keeps a failed calendar fetch on screen with a retry', async ({ page }) => {

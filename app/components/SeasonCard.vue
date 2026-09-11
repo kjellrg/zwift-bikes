@@ -3,32 +3,53 @@ import type { EventSeason } from '../../shared/utils/events'
 
 /**
  * A Season as the events hub lists it (see `CONTEXT.md`): what it is, what
- * the calendar adds up to, and the rounds it runs over. Same card box as
+ * the calendar adds up to, and the Rounds it runs over. Same card box as
  * `RouteCard` and `RaceCard`, so the hub reads as the discovery page it is.
  *
- * The title is the link, not the whole card: the round tiles beneath are the
- * substance of the card and a rider reads them in place, so a card-wide
- * hit area would swallow that reading into one destination. (A `RaceCard`
- * has nothing to read past its own summary, which is why that one is a link
- * end to end.)
+ * The card is not one link, because the round tiles are: each is the way
+ * into that round of the season page, which is where a rider asking "where
+ * are this season's races" is actually going. A card-wide link would swallow
+ * them, and a link inside a link is not a thing the HTML allows. So the
+ * title is a link in its own right, and styled as one - it was styled as a
+ * heading, and nobody could tell it was the way in.
  *
  * One card for current and finished seasons alike - a finished season is
  * still a page, and its races keep their rankings.
  */
 const props = defineProps<{
   season: EventSeason
+  /**
+   * Today, as an ISO date, from whichever page mounted this card - never read
+   * here, because the hub is prerendered and a card that asked the clock
+   * itself would bake the build date into the shipped HTML. Absent until the
+   * page has mounted, and then no round is treated as run: that is the state
+   * a crawler sees, with every tile pointing at a round that exists for it.
+   */
+  today?: string
 }>()
 
 const summary = computed(() => summariseSeason(props.season))
+
+/**
+ * Where a round tile goes: the season page, at that round. A round that has
+ * been run is no longer on that page (see `isRoundRun`, which the season page
+ * asks too), so its tile keeps the link and drops the hash rather than
+ * pointing at an anchor that isn't there - the rider lands at the top of the
+ * season, where the past races are.
+ */
+function roundHref(round: EventSeason['rounds'][number]): string {
+  const season = `/events/${props.season.slug}`
+  return props.today && isRoundRun(round, props.today) ? season : `${season}#round-${round.number}`
+}
 </script>
 
 <template>
   <UCard :ui="{ body: 'space-y-4' }">
     <div>
-      <h3 class="text-xl font-semibold text-highlighted">
+      <h3 class="text-xl font-semibold">
         <ULink
           :to="`/events/${season.slug}`"
-          class="hover:text-primary"
+          class="text-primary hover:underline"
         >
           {{ season.seriesName }} {{ season.label }}
         </ULink>
@@ -66,10 +87,11 @@ const summary = computed(() => summariseSeason(props.season))
       v-if="season.rounds.length"
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
     >
-      <div
+      <ULink
         v-for="round in season.rounds"
         :key="round.number"
-        class="rounded-lg border border-default p-3"
+        :to="roundHref(round)"
+        class="rounded-lg border border-default p-3 transition hover:border-primary hover:ring hover:ring-primary/50"
       >
         <p class="text-xs text-muted uppercase tracking-wide">
           Round {{ round.number }}
@@ -80,7 +102,7 @@ const summary = computed(() => summariseSeason(props.season))
         <p class="text-sm text-muted">
           {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
         </p>
-      </div>
+      </ULink>
     </div>
   </UCard>
 </template>

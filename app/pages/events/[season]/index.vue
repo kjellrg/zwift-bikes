@@ -42,6 +42,8 @@ const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
 
 const nextRaceSlug = ref<string>()
 const pastRaceSlugs = ref(new Set<string>())
+/** The rounds that have been run - see `isRoundRun`, which the hub's tiles ask too. */
+const runRoundNumbers = ref(new Set<number>())
 onMounted(() => {
   loadSiteFlags()
   const today = new Date().toISOString().slice(0, 10)
@@ -49,7 +51,19 @@ onMounted(() => {
   // A week-long stage that's mid-window still counts as the next race.
   nextRaceSlug.value = visible.find(race => raceEndDate(race) >= today)?.slug
   pastRaceSlugs.value = new Set(visible.filter(race => raceEndDate(race) < today).map(race => race.slug))
+  runRoundNumbers.value = new Set(season!.rounds.filter(round => isRoundRun(round, today)).map(round => round.number))
 })
+
+/**
+ * The calendar still to come. A round that has been run leaves it entirely -
+ * heading, dates and all - rather than standing there saying its races have
+ * been run, which put the least useful thing on the page at the top of it.
+ * Its races are under their round in "Past races" below.
+ *
+ * A round with no races yet stays: those dates are what a rider planning a
+ * season has to go on, and `isRoundRun` is written to say so.
+ */
+const listedRounds = computed(() => rounds.value.filter(round => !runRoundNumbers.value.has(round.number)))
 
 const upcomingRacesForRound = (round: { races: EventRaceWithRoute[] }) => round.races.filter(race => !pastRaceSlugs.value.has(race.slug))
 const upcomingCount = computed(() => rounds.value.reduce((total, round) => total + upcomingRacesForRound(round).length, 0))
@@ -224,10 +238,17 @@ useHead(() => ({
       <!-- One child of the slot, so the rounds keep the page's own rhythm
            apart from each other rather than the status block's tighter one. -->
       <div class="space-y-10">
-        <div
-          v-for="round in rounds"
+        <!-- Each round is a destination: the hub's season cards link to
+             `#round-2`. `scroll-mt-24` clears the sticky header, which a bare
+             hash jump would otherwise leave the heading under, and
+             `tabindex="-1"` means a full page load on that link lands a
+             keyboard rider here too, not just the scrollbar. -->
+        <section
+          v-for="round in listedRounds"
+          :id="`round-${round.number}`"
           :key="round.number"
-          class="space-y-4"
+          tabindex="-1"
+          class="space-y-4 scroll-mt-24 outline-none"
         >
           <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 class="text-xl font-semibold text-highlighted">
@@ -238,13 +259,15 @@ useHead(() => ({
             </p>
           </div>
 
-          <!-- Every race is on the calendar at SSR; run ones move to "Past
-               races" post-mount, which can empty a round entirely. -->
+          <!-- The round a rider is here to plan around, whose schedule the
+               organiser hasn't published yet. It is listed for its dates -
+               see `isRoundRun` - so it says why it is empty rather than
+               leaving a heading over nothing. -->
           <p
-            v-if="!upcomingRacesForRound(round).length"
+            v-if="!round.races.length"
             class="text-sm text-muted"
           >
-            All of this round's races have been run - see Past races below.
+            The organiser hasn't published this round's schedule yet.
           </p>
           <div
             v-else
@@ -258,7 +281,7 @@ useHead(() => ({
               :next="race.slug === nextRaceSlug"
             />
           </div>
-        </div>
+        </section>
       </div>
     </DiscoveryStatus>
 
@@ -277,7 +300,13 @@ useHead(() => ({
       </template>
     </p>
 
-    <UCollapsible v-if="pastRaceCount">
+    <!-- Open when nothing is upcoming: on a finished season this disclosure
+         holds the entire page, and hiding it behind a click is the same
+         defect as burying the rounds was. -->
+    <UCollapsible
+      v-if="pastRaceCount"
+      :default-open="!upcomingCount"
+    >
       <UButton
         color="neutral"
         variant="subtle"

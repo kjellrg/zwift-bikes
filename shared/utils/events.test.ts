@@ -13,6 +13,7 @@ import {
   getUpcomingEventsForRoute,
   hasSplitCourses,
   isRacePublishable,
+  isRoundRun,
   lapsForCategoryGroup,
   primaryRouteSlug,
   raceCategoryGroupSchema,
@@ -207,6 +208,22 @@ describe('what the events hub and a season page read off a Season', () => {
     expect(sortSeasonsNewestFirst([newer, outOfOrder, older]).map(season => season.slug))
       .toEqual(['zrl-2026-27', 'zrl-2025-26', 'zrl-2024-25'])
     expect(seasons.map(season => season.slug)).toEqual(['zrl-2025-26', 'zrl-2026-27'])
+  })
+
+  it('calls a round run once every race on it has been run, and never one that has none', () => {
+    const round = (races: EventRace[]) => ({ number: 1, startDate: '2026-09-22', endDate: '2026-10-27', races })
+    const first = testRace({ slug: 'round-1-week-1', date: '2026-09-22' })
+    const second = testRace({ slug: 'round-1-week-2', week: 2, date: '2026-09-29' })
+
+    expect(isRoundRun(round([first, second]), '2026-09-25')).toBe(false)
+    expect(isRoundRun(round([first, second]), '2026-09-30')).toBe(true)
+    // A week-long stage is not run until its window closes.
+    expect(isRoundRun(round([testRace({ date: '2026-09-22', endDate: '2026-09-28' })]), '2026-09-25')).toBe(false)
+    // A retired race is not on the calendar, so it cannot hold a round open...
+    expect(isRoundRun(round([first, testRace({ slug: 'round-1-week-9', week: 9, date: '2027-01-01', hidden: true })]), '2026-09-30')).toBe(true)
+    // ...but a round with no races at all is unpublished, not over: its dates
+    // are the only thing a rider planning a season has to go on.
+    expect(isRoundRun(round([]), '2027-12-31')).toBe(false)
   })
 
   it('adds a season up to what the hub and the season header both report', () => {
