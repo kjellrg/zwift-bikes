@@ -11,10 +11,10 @@ export const URL_SEARCH_MAX_LENGTH = 100
 
 /**
  * A ranking page's shared view (see `CONTEXT.md`: the search, category, draft
- * mode, and a route's laps or a race's category group - carried by
- * `useSharedView` on the route and segment pages, by hand on the race page)
- * lives in the URL as well as in state, so a results view can be shared and
- * the back button restores it. A discovery page's filters (see `CONTEXT.md`)
+ * mode, and a route's laps or a race's Category group - carried by
+ * `useSharedView` on all three ranking pages) lives in the URL as well as in
+ * state, so a results view can be shared and the back button restores it.
+ * A discovery page's filters (see `CONTEXT.md`)
  * ride on the same helpers without being one - they are the page's own view,
  * never a link's. Two rules every page follows, and the reason this is
  * shared rather than three copies:
@@ -38,15 +38,6 @@ export function useUrlState(route: RouteLocationNormalizedLoaded, router: Router
     const value = route.query[key]
     const first = Array.isArray(value) ? value[0] : value
     return typeof first === 'string' && first !== '' ? first : undefined
-  }
-
-  /** Integer param clamped to `[min, max]`, or undefined when absent/not a number. */
-  function intParam(key: string, min: number, max: number): number | undefined {
-    const raw = param(key)
-    if (raw === undefined) return undefined
-    const value = Number.parseInt(raw, 10)
-    if (!Number.isFinite(value)) return undefined
-    return Math.min(max, Math.max(min, value))
   }
 
   /** A search term, capped at `URL_SEARCH_MAX_LENGTH`. Both discovery pages read `?q=` this way. */
@@ -89,5 +80,5 @@ export function useUrlState(route: RouteLocationNormalizedLoaded, router: Router
     if (changed) router.replace({ query: next })
   }
 
-  return { param, intParam, enumParam, searchParam, slugParam, replaceQuery }
+  return { param, enumParam, searchParam, slugParam, replaceQuery }
 }
