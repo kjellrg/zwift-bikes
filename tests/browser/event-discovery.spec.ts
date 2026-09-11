@@ -28,8 +28,13 @@ const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
 const raceCard = (page: Page, name: string | RegExp) => page.getByRole('link', { name })
 const pastRaces = (page: Page) => page.getByRole('button', { name: /^Past races \(\d+\)$/ })
 const pastSeasons = (page: Page) => page.getByRole('button', { name: /^Past seasons \(\d+\)$/ })
-/** A round tile on a season card - the hub's way into one round of a season page. */
-const roundTile = (page: Page, name: RegExp) => page.getByRole('link', { name })
+/**
+ * A round tile on a season card, by its number and name - the hub's way into
+ * one round of a season page. Matched loosely between the two, because a
+ * round that is on now or over says so in a badge that sits between them.
+ */
+const roundTile = (page: Page, number: number, name: string) =>
+  page.getByRole('link', { name: new RegExp(`^Round ${number}\\b.*${name}`) })
 
 async function visitAt(page: Page, path: string, time: Date) {
   await page.clock.setFixedTime(time)
@@ -62,7 +67,7 @@ test.describe('event discovery', () => {
     await expect(card).toContainText('Round 1')
     await expect(card).toContainText('Fresh & Fast')
     // Each round tile is the way into that round of the season page.
-    await expect(roundTile(page, /^Round 1 Fresh & Fast/)).toHaveAttribute('href', `${SEASON}#round-1`)
+    await expect(roundTile(page, 1, 'Fresh & Fast')).toHaveAttribute('href', `${SEASON}#round-1`)
     // We complement the organisers, so their own page is one click away.
     await expect(page.getByRole('link', { name: 'WTRL' })).toHaveAttribute('href', /wtrl/)
 
@@ -90,7 +95,7 @@ test.describe('event discovery', () => {
 
   test('takes a round tile to that round of the season page', async ({ page }) => {
     await visitAt(page, '/events', DURING)
-    await roundTile(page, /^Round 3 Racecraft Rush/).click()
+    await roundTile(page, 3, 'Racecraft Rush').click()
     await page.waitForURL(`**${SEASON}#round-3`)
     await hydrated(page)
     // Landed at the round, and clear of the sticky header rather than under
@@ -100,7 +105,7 @@ test.describe('event discovery', () => {
     expect((await heading.boundingBox())!.y).toBeGreaterThan(64)
   })
 
-  test('drops a round that has been run, from the page and from its tile', async ({ page }) => {
+  test('drops a run round from the page, and its tile stops leading anywhere', async ({ page }) => {
     // ZRacing's August round finished on 6 September; its September round has
     // not. The run one is not on the calendar at all - no heading, and none
     // of the "all of this round's races have been run" it used to lead with.
@@ -111,11 +116,21 @@ test.describe('event discovery', () => {
     await pastRaces(page).click()
     await expect(page.getByRole('heading', { level: 3, name: 'Round 8: August: Makuri Madness' })).toBeVisible()
 
-    // And the tile that pointed at it stops pointing at an anchor that isn't
-    // there, rather than silently landing nowhere.
+    // And its tile stops being a way in at all, rather than promising a round
+    // it can no longer reach: the races are in that disclosure, which no link
+    // can open. It says so and leaves them there.
     await visitAt(page, '/events', DURING)
-    await expect(roundTile(page, /^Round 8 August/)).toHaveAttribute('href', ZRACING)
-    await expect(roundTile(page, /^Round 9 September/)).toHaveAttribute('href', `${ZRACING}#round-9`)
+    await expect(roundTile(page, 8, 'Makuri Madness')).toHaveCount(0)
+    await expect(cardWith(page, { hasText: 'August: Makuri Madness' })).toContainText('Past')
+    // The round being raced right now is still a way in, and says which it is.
+    const ongoing = roundTile(page, 9, 'DURA-ACE')
+    await expect(ongoing).toHaveAttribute('href', `${ZRACING}#round-9`)
+    await expect(ongoing).toContainText('Ongoing')
+    // A round still to come carries no badge: it is the default, and its
+    // dates are on the tile already.
+    const toCome = roundTile(page, 3, 'Racecraft Rush')
+    await expect(toCome).not.toContainText('Ongoing')
+    await expect(toCome).not.toContainText('Past')
   })
 
   test('shows the season round by round, with the next race marked and run ones collapsed', async ({ page }) => {

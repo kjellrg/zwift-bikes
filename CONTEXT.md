@@ -55,7 +55,7 @@ One organiser's run of rounds under a series name, with the dates the rounds spa
 _Avoid_: series (the name a season runs under, not the season), calendar, event
 
 **Round**:
-An organiser's block of Races inside a Season, with its own dates and usually its own name - "Fresh & Fast", "August: Makuri Madness". It is how a season page groups its calendar and what a Season card on the events hub links into. A round is over once its last Race has been run, and it then stops being listed among what is still to come; its races stay, under their round, among the past ones.
+An organiser's block of Races inside a Season, with its own dates and usually its own name - "Fresh & Fast", "August: Makuri Madness". It is how a season page groups its calendar and what a Season card on the events hub links into. A round is still to come until its first Race is run, ongoing from then until its last one has been, and past after that - the three states a Season card shows on the events hub, where a past round is no longer a way in. A past round stops being listed among what is still to come; its races stay, under their round, among the past ones.
 _Avoid_: week (one race's slot inside a round), block, phase
 
 **Race**:

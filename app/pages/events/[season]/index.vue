@@ -42,7 +42,7 @@ const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
 
 const nextRaceSlug = ref<string>()
 const pastRaceSlugs = ref(new Set<string>())
-/** The rounds that have been run - see `isRoundRun`, which the hub's tiles ask too. */
+/** The rounds that have been run - see `roundState`, which the hub's tiles ask too. */
 const runRoundNumbers = ref(new Set<number>())
 onMounted(() => {
   loadSiteFlags()
@@ -51,7 +51,7 @@ onMounted(() => {
   // A week-long stage that's mid-window still counts as the next race.
   nextRaceSlug.value = visible.find(race => raceEndDate(race) >= today)?.slug
   pastRaceSlugs.value = new Set(visible.filter(race => raceEndDate(race) < today).map(race => race.slug))
-  runRoundNumbers.value = new Set(season!.rounds.filter(round => isRoundRun(round, today)).map(round => round.number))
+  runRoundNumbers.value = new Set(season!.rounds.filter(round => roundState(round, today) === 'past').map(round => round.number))
 })
 
 /**
@@ -61,7 +61,7 @@ onMounted(() => {
  * Its races are under their round in "Past races" below.
  *
  * A round with no races yet stays: those dates are what a rider planning a
- * season has to go on, and `isRoundRun` is written to say so.
+ * season has to go on, and `roundState` is written to say so.
  */
 const listedRounds = computed(() => rounds.value.filter(round => !runRoundNumbers.value.has(round.number)))
 
@@ -261,7 +261,7 @@ useHead(() => ({
 
           <!-- The round a rider is here to plan around, whose schedule the
                organiser hasn't published yet. It is listed for its dates -
-               see `isRoundRun` - so it says why it is empty rather than
+               see `roundState` - so it says why it is empty rather than
                leaving a heading over nothing. -->
           <p
             v-if="!round.races.length"

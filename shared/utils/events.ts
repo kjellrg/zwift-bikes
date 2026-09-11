@@ -497,25 +497,32 @@ function seasonStartDate(season: EventSeason): string {
 }
 
 /**
- * Whether a Round has been run: every Race on it is behind us. `today` is an
- * ISO date and must come from the client, like every other past/upcoming
- * question here - these pages are prerendered, so a build-time answer would
- * ship frozen.
+ * Where a Round stands: still to come, on now, or run. `today` is an ISO date
+ * and must come from the client, like every other past/upcoming question here
+ * - these pages are prerendered, so a build-time answer would ship frozen.
  *
- * A round with no races at all is deliberately NOT run. It is a window the
- * organiser has announced and not yet filled in, and its dates are the only
- * thing a rider planning a season has to go on - so it stays on the calendar
- * while a round that has run out of races leaves it. Retired races don't
- * count either way: a hidden race is not on the calendar, so it can neither
- * hold a round open nor close it.
+ * Read off the Races, never the round's published window, so both ends of the
+ * state come from one source: a window a curator opened early would otherwise
+ * have a round reading as on now with its first race still days away.
  *
- * Both the season page (which rounds it lists) and the events hub (whether a
- * round tile still has a round to point at) ask this, so neither can drift
- * into its own idea of when a round is over.
+ * A round with no races at all is `upcoming` however long ago it was
+ * announced. It is a window the organiser hasn't filled in - there is nothing
+ * on it to be running or to have been run - and its dates are the only thing a
+ * rider planning a season has to go on, so the season page keeps listing it.
+ * Retired races count for neither end: a hidden race is not on the calendar,
+ * so it can't start a round or hold one open.
+ *
+ * Both events pages ask this - which rounds a season page lists, and what a
+ * round tile on the hub says and whether it leads anywhere - so neither can
+ * drift into its own idea of when a round is on.
  */
-export function isRoundRun(round: Pick<EventRound, 'races'>, today: string): boolean {
+export type RoundState = 'upcoming' | 'ongoing' | 'past'
+
+export function roundState(round: Pick<EventRound, 'races'>, today: string): RoundState {
   const races = round.races.filter(race => !race.hidden)
-  return races.length > 0 && races.every(race => raceEndDate(race) < today)
+  if (!races.length) return 'upcoming'
+  if (races.every(race => raceEndDate(race) < today)) return 'past'
+  return races.some(race => race.date <= today) ? 'ongoing' : 'upcoming'
 }
 
 /**

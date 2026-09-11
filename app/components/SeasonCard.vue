@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ULink } from '#components'
 import type { EventSeason } from '../../shared/utils/events'
 
 /**
@@ -31,16 +32,27 @@ const props = defineProps<{
 const summary = computed(() => summariseSeason(props.season))
 
 /**
- * Where a round tile goes: the season page, at that round. A round that has
- * been run is no longer on that page (see `isRoundRun`, which the season page
- * asks too), so its tile keeps the link and drops the hash rather than
- * pointing at an anchor that isn't there - the rider lands at the top of the
- * season, where the past races are.
+ * Each round tile, with where it stands and where it goes.
+ *
+ * A run round is not a link at all: it is no longer on the season page (see
+ * `roundState`, which that page asks too), and its races are inside a
+ * disclosure a link cannot open - so a tile that pointed there landed a rider
+ * at the top of the page with nothing to show for the click. It says "Past"
+ * and leaves them to the disclosure, which is as much as this site owes a
+ * race that has been run.
+ *
+ * Only the two exceptional states are badged. A round still to come is the
+ * default and carries its dates already; badging it too would put a chip on
+ * every tile of every card and drown the one a rider is looking for.
  */
-function roundHref(round: EventSeason['rounds'][number]): string {
-  const season = `/events/${props.season.slug}`
-  return props.today && isRoundRun(round, props.today) ? season : `${season}#round-${round.number}`
-}
+const roundTiles = computed(() => props.season.rounds.map((round) => {
+  const state = props.today ? roundState(round, props.today) : 'upcoming'
+  return {
+    round,
+    state,
+    to: state === 'past' ? undefined : `/events/${props.season.slug}#round-${round.number}`
+  }
+}))
 </script>
 
 <template>
@@ -87,22 +99,47 @@ function roundHref(round: EventSeason['rounds'][number]): string {
       v-if="season.rounds.length"
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
     >
-      <ULink
-        v-for="round in season.rounds"
-        :key="round.number"
-        :to="roundHref(round)"
-        class="rounded-lg border border-default p-3 transition hover:border-primary hover:ring hover:ring-primary/50"
+      <component
+        :is="tile.to ? ULink : 'div'"
+        v-for="tile in roundTiles"
+        :key="tile.round.number"
+        :to="tile.to"
+        class="rounded-lg border border-default p-3"
+        :class="tile.to
+          ? 'transition hover:border-primary hover:ring hover:ring-primary/50'
+          : 'opacity-75'"
       >
-        <p class="text-xs text-muted uppercase tracking-wide">
-          Round {{ round.number }}
-        </p>
-        <p class="font-medium text-highlighted">
-          {{ round.name ?? `Round ${round.number}` }}
+        <div class="flex items-baseline justify-between gap-2">
+          <p class="text-xs text-muted uppercase tracking-wide">
+            Round {{ tile.round.number }}
+          </p>
+          <UBadge
+            v-if="tile.state === 'ongoing'"
+            color="primary"
+            variant="subtle"
+            size="sm"
+          >
+            Ongoing
+          </UBadge>
+          <UBadge
+            v-else-if="tile.state === 'past'"
+            color="neutral"
+            variant="subtle"
+            size="sm"
+          >
+            Past
+          </UBadge>
+        </div>
+        <p
+          class="font-medium"
+          :class="tile.state === 'past' ? 'text-muted' : 'text-highlighted'"
+        >
+          {{ tile.round.name ?? `Round ${tile.round.number}` }}
         </p>
         <p class="text-sm text-muted">
-          {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
+          {{ formatRaceDateShort(tile.round.startDate) }} - {{ formatRaceDateShort(tile.round.endDate) }}
         </p>
-      </ULink>
+      </component>
     </div>
   </UCard>
 </template>
