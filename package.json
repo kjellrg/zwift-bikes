@@ -26,6 +26,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:browser": "playwright test",
+    "smoke": "node scripts/site-smoke/smoke.mjs",
     "spellcheck": "cspell --no-progress",
     "typecheck": "nuxt typecheck",
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
