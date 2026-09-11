@@ -47,6 +47,14 @@ scheduling waiting for a tick the test never grants.
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.
 
+`accessibility.spec.ts` is the one spec that asserts no journey: it runs
+[axe-core](https://github.com/dequelabs/axe-core) over one page of every
+kind and over each Overlay, dark then light, on both projects, against the
+WCAG 2.0 A/AA and 2.1 AA rules only. A critical or serious violation fails
+the test; a moderate or minor one is annotated on the test and printed as an
+`[axe]` line for the maintainer to weigh. The dev server's devtools widget and
+error overlay are excluded from the scan, since neither ships.
+
 ## Long runs on a memory-constrained machine
 
 `nuxt dev` gets slower the longer a run goes on, and it is the dev server that
