@@ -487,6 +487,51 @@ export function sortRacesByDate(races: EventRace[]): EventRace[] {
 }
 
 /**
+ * The day a Season's calendar opens - its earliest round's first day. Rounds
+ * are curated in the order the organiser publishes them, which is *usually*
+ * chronological and is not guaranteed to be, so this asks the dates rather
+ * than the array.
+ */
+function seasonStartDate(season: EventSeason): string {
+  return season.rounds.map(round => round.startDate).sort()[0] ?? ''
+}
+
+/**
+ * What a Season's calendar adds up to: the days it spans and how much is on
+ * it. The events hub prints this on a season card and the season page prints
+ * it in its header, so one helper is what keeps the two from counting
+ * differently - a retired race is on neither, and a round is counted whether
+ * or not the organiser has filled it in yet.
+ */
+export interface SeasonSummary {
+  /** First and last day the rounds cover. Both absent for a season with no rounds announced yet. */
+  startDate?: string
+  endDate?: string
+  rounds: number
+  races: number
+}
+
+export function summariseSeason(season: EventSeason): SeasonSummary {
+  return {
+    startDate: seasonStartDate(season) || undefined,
+    endDate: season.rounds.map(round => round.endDate).sort().at(-1),
+    rounds: season.rounds.length,
+    races: getVisibleSeasonRaces(season).length
+  }
+}
+
+/**
+ * Seasons newest first, which is the order the events hub lists a series in:
+ * the season a rider is racing now leads, and finished ones follow it. The
+ * files themselves are written oldest first (a new season is appended), and
+ * `label` is the organiser's own string - "2026/27", "2026" - so it sorts
+ * seasons no better than the file order does. Returns a new array.
+ */
+export function sortSeasonsNewestFirst(seasons: EventSeason[]): EventSeason[] {
+  return [...seasons].sort((a, b) => seasonStartDate(b).localeCompare(seasonStartDate(a)))
+}
+
+/**
  * Upcoming publishable races that run on the given route, soonest first -
  * the route page's "Featured in" cross-link. `today` is an ISO date and must
  * come from the client (the route pages are prerendered; resolving "today"

@@ -47,8 +47,16 @@ The rider values and Ride that the results on screen were computed from: weight,
 _Avoid_: current settings, live values, pending values, request inputs
 
 **Discovery page**:
-A page that lists Rides to choose from and ranks nothing: the homepage lists routes, the segments page lists climbs and sprints. Its search and filters belong to the page and are kept in its URL so that returning to it restores them; they are never a Shared view and never touch the rider's stored preferences. What a discovery page shows about a Ride is its identity and the numbers a rider scans to choose it, not anything a ranking would answer.
+A page that lists Rides to choose from and ranks nothing: the homepage lists routes, the segments page lists climbs and sprints, the events hub lists Seasons and a season page lists its Races. When a discovery page has search or filters they belong to the page and are kept in its URL so that returning to it restores them; they are never a Shared view and never touch the rider's stored preferences. The events pages have none. What a discovery page shows about a Ride is its identity and the numbers a rider scans to choose it, not anything a ranking would answer.
 _Avoid_: hub, list page, index page, landing page
+
+**Season**:
+One organiser's run of rounds under a series name, with the dates the rounds span and the organiser's own note on where the season stands. It is what the events hub lists and what a season page schedules, round by round. A season is past once its last Race has been run, and a past season is still a page: its races keep their rankings.
+_Avoid_: series (the name a season runs under, not the season), calendar, event
+
+**Race**:
+A Ride an organiser has put on a Season's calendar: a date, a format, its Category groups and the rules those fix. A race stays upcoming until its last day has passed, so a week-long stage is upcoming all week; the first upcoming race in a season is its next race. A race with no format or no known course is on the schedule but has no page yet, and says so where it is listed.
+_Avoid_: event (the section's name, not a thing on it), stage (an organiser's word for a week-long race)
 
 **Garage**:
 The frames and wheels a rider has told the site they own, with an upgrade stage per frame. It lives only in the rider's own browser, like the profile: no account, nothing follows them to another device. Ranking pages read it through Garage fallback, and a garage change refreshes what is already on screen rather than starting the list over, because the controls that change it sit on the results themselves. The garage is edited in an Overlay or on its own page; both edit the same thing.

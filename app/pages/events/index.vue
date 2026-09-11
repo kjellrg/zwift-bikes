@@ -2,14 +2,22 @@
 import type { EventSeason } from '../../../shared/utils/events'
 
 /**
- * Hub for the racing calendars this site covers, grouped by series. Imports
- * the calendar module directly rather than fetching it -
+ * The Discovery page for Seasons (see `CONTEXT.md`): every racing calendar
+ * this site covers, grouped by series and newest first. It ranks nothing and
+ * has no filters - what it shows about a season is its identity and the
+ * numbers a rider scans to pick one.
+ *
+ * Imports the calendar module directly rather than fetching it -
  * `shared/utils/events` is a leaf (plain dates and strings, no route surface
  * data), so there's nothing here worth an API round trip.
  */
 const seasons = getSeasons()
 
-/** Season order within a series: newest label first, so the current season leads. */
+/**
+ * Seasons within a series, newest first - `sortSeasonsNewestFirst` asks the
+ * round dates, since the files are written oldest first and `label` is the
+ * organiser's own string ("2026/27", "2026"), which sorts nothing.
+ */
 const seriesGroups = computed(() => {
   const bySeries = new Map<string, { seriesSlug: string, seriesName: string, organizer: string, organizerUrl?: string, seasons: EventSeason[] }>()
   for (const season of seasons) {
@@ -23,7 +31,7 @@ const seriesGroups = computed(() => {
     group.seasons.push(season)
     bySeries.set(season.seriesSlug, group)
   }
-  return [...bySeries.values()]
+  return [...bySeries.values()].map(group => ({ ...group, seasons: sortSeasonsNewestFirst(group.seasons) }))
 })
 
 /**
@@ -49,7 +57,7 @@ onMounted(() => {
     .map(season => season.slug))
 })
 const isPastSeason = (season: EventSeason) => pastSeasonSlugs.value.has(season.slug)
-const pastSeasons = computed(() => seasons.filter(isPastSeason))
+const pastSeasons = computed(() => sortSeasonsNewestFirst(seasons.filter(isPastSeason)))
 
 const siteConfig = useSiteConfig()
 
@@ -59,6 +67,8 @@ useSeoMeta({
   ogTitle: 'Zwift race calendars',
   ogDescription: 'Race dates, routes and the fastest bike and wheel combo for every round of Zwift Racing League and every ZRacing stage.'
 })
+
+defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - the fastest bike and wheelset for every race on the Zwift calendar' })
 
 useHead({
   script: [{
@@ -103,6 +113,12 @@ useHead({
       </p>
     </div>
 
+    <!-- The same teaser the homepage carries, and for the same reason: the
+         one race a rider is most likely here for is the next one, and it is
+         otherwise several rounds down a season page. It resolves and hides
+         itself (teasers off, section gated, calendars run dry). -->
+    <NextRaceCard />
+
     <!-- Reachable by hiding every season - rare, but an empty page with a
          heading and nothing under it reads as broken rather than deliberate. -->
     <p
@@ -112,8 +128,12 @@ useHead({
       No race calendars are being tracked at the moment. Check back when the next season is announced.
     </p>
 
+    <!-- A series whose every season has finished goes with its seasons into
+         the collapsible below: a heading with nothing under it reads as
+         broken, the same rule the segments page applies to a world a filter
+         empties. -->
     <div
-      v-for="series in seriesGroups"
+      v-for="series in seriesGroups.filter(group => group.seasons.some(season => !isPastSeason(season)))"
       :key="series.seriesSlug"
       class="space-y-4"
     >
@@ -145,55 +165,13 @@ useHead({
         </UBadge>
       </div>
 
-      <UCard
-        v-for="season in series.seasons.filter(s => !isPastSeason(s))"
-        :key="season.slug"
-      >
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <h3 class="text-xl font-semibold text-highlighted">
-              <ULink
-                :to="`/events/${season.slug}`"
-                class="hover:text-primary"
-              >
-                {{ season.seriesName }} {{ season.label }}
-              </ULink>
-            </h3>
-            <p class="text-muted mt-1 max-w-2xl">
-              {{ season.description }}
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div
-            v-for="round in season.rounds"
-            :key="round.number"
-            class="rounded-lg border border-default p-3"
-          >
-            <p class="text-xs text-muted uppercase tracking-wide">
-              Round {{ round.number }}
-            </p>
-            <p class="font-medium text-highlighted">
-              {{ round.name ?? `Round ${round.number}` }}
-            </p>
-            <p class="text-sm text-muted">
-              {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-4">
-          <UButton
-            :to="`/events/${season.slug}`"
-            color="primary"
-            variant="subtle"
-            trailing-icon="i-lucide-arrow-right"
-          >
-            See the {{ season.label }} calendar
-          </UButton>
-        </div>
-      </UCard>
+      <div class="grid grid-cols-1 gap-4">
+        <SeasonCard
+          v-for="season in series.seasons.filter(s => !isPastSeason(s))"
+          :key="season.slug"
+          :season="season"
+        />
+      </div>
     </div>
 
     <UCollapsible v-if="pastSeasons.length">
@@ -205,23 +183,12 @@ useHead({
         Past seasons ({{ pastSeasons.length }})
       </UButton>
       <template #content>
-        <div class="mt-4 space-y-4">
-          <UCard
+        <div class="mt-4 grid grid-cols-1 gap-4">
+          <SeasonCard
             v-for="season in pastSeasons"
             :key="season.slug"
-          >
-            <h3 class="text-lg font-semibold text-highlighted">
-              <ULink
-                :to="`/events/${season.slug}`"
-                class="hover:text-primary"
-              >
-                {{ season.seriesName }} {{ season.label }}
-              </ULink>
-            </h3>
-            <p class="text-muted mt-1">
-              {{ season.description }}
-            </p>
-          </UCard>
+            :season="season"
+          />
         </div>
       </template>
     </UCollapsible>

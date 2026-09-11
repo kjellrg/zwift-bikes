@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import type { EventRaceWithRoute } from '../../../../shared/types/events'
 
+/**
+ * The Discovery page for one Season's Races (see `CONTEXT.md`): the calendar
+ * round by round, each race a card that leads to its ranking. It ranks
+ * nothing itself and has no filters, so what it shows about a race is its
+ * identity and the numbers a rider scans to choose one.
+ */
 const route = useRoute()
 const seasonSlug = computed(() => route.params.season as string)
 
@@ -10,10 +16,15 @@ const seasonSlug = computed(() => route.params.season as string)
 const season = getSeasonBySlug(seasonSlug.value)
 if (!season) throw createError({ statusCode: 404, statusMessage: 'Season not found', fatal: true })
 
-const { data: seasonData } = await useFetch(() => `/api/events/${seasonSlug.value}`)
+// `status`, `error` and `refresh` as well as the data: a failed join used to
+// leave the header standing over nothing at all, with no way back short of a
+// reload. `DiscoveryStatus` says so and offers the retry - the same bargain
+// the homepage and the segments page strike.
+const { data: seasonData, status, refresh } = await useFetch(() => `/api/events/${seasonSlug.value}`)
 
 const rounds = computed(() => seasonData.value?.rounds ?? [])
 const title = computed(() => `${season.seriesName} ${season.label}`)
+const summary = computed(() => summariseSeason(season!))
 
 /**
  * Resolved in `onMounted`, never at render time: these pages are prerendered,
@@ -41,11 +52,23 @@ onMounted(() => {
 })
 
 const upcomingRacesForRound = (round: { races: EventRaceWithRoute[] }) => round.races.filter(race => !pastRaceSlugs.value.has(race.slug))
-const pastRaces = computed(() => rounds.value.flatMap(round => round.races.filter(race => pastRaceSlugs.value.has(race.slug))))
+const upcomingCount = computed(() => rounds.value.reduce((total, round) => total + upcomingRacesForRound(round).length, 0))
 
-function raceHref(race: EventRaceWithRoute): string | undefined {
-  return isRacePublishable(race) ? `/events/${season!.slug}/${race.slug}` : undefined
-}
+/** Past races keep their round headings in the collapsible - a race is not less findable for having been run. */
+const pastRounds = computed(() => rounds.value
+  .map(round => ({ ...round, races: round.races.filter(race => pastRaceSlugs.value.has(race.slug)) }))
+  .filter(round => round.races.length))
+const pastRaceCount = computed(() => pastRounds.value.reduce((total, round) => total + round.races.length, 0))
+
+/**
+ * The status block belongs to the fetch: still loading, failed, or a calendar
+ * with races still to come. A season whose races have all been run is not an
+ * empty search result - "0 races found" and "No races match your filters" are
+ * the homepage's voice for a filter that matched nothing, and this page has
+ * no filters at all. It says what has actually happened, in its own words,
+ * below.
+ */
+const showsStatus = computed(() => status.value === 'pending' || status.value === 'error' || upcomingCount.value > 0)
 
 const siteConfig = useSiteConfig()
 const seasonUrl = computed(() => `${siteConfig.url}/events/${season!.slug}`)
@@ -56,6 +79,8 @@ useSeoMeta({
   ogTitle: () => `${title.value} schedule`,
   ogDescription: () => season!.description
 })
+
+defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - the fastest bike and wheelset for every race on the calendar' })
 
 useHead(() => ({
   script: [
@@ -98,256 +123,190 @@ useHead(() => ({
     v-else
     class="py-10 space-y-10"
   >
-    <div>
-      <UButton
-        to="/events"
-        variant="link"
-        color="neutral"
-        icon="i-lucide-arrow-left"
-        class="mb-4 px-0"
-      >
-        All race calendars
-      </UButton>
-      <h1 class="text-3xl font-bold text-highlighted">
-        {{ title }} schedule
-      </h1>
-      <p class="text-muted mt-2 max-w-3xl">
-        {{ season!.description }}
-      </p>
-      <p class="text-sm text-muted mt-3">
-        Organised by
-        <ULink
-          v-if="season!.organizerUrl"
-          :to="season!.organizerUrl"
-          target="_blank"
-          rel="noopener"
-          class="text-primary underline"
-        >{{ season!.organizer }}</ULink>
-        <template v-else>
-          {{ season!.organizer }}
-        </template>. Race dates and routes are theirs; the bike and wheel
-        recommendations are ours.
-      </p>
-    </div>
-
-    <UAlert
-      v-if="season!.note"
-      color="primary"
-      variant="subtle"
-      icon="i-lucide-calendar-clock"
-      title="Season status"
-      :description="season!.note"
-    />
-
-    <div
-      v-for="round in rounds"
-      :key="round.number"
-      class="space-y-3"
-    >
-      <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="text-xl font-semibold text-highlighted">
-          {{ round.name ? `Round ${round.number}: ${round.name}` : `Round ${round.number}` }}
-        </h2>
-        <p class="text-sm text-muted">
-          {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
-        </p>
+    <div class="space-y-6">
+      <div class="flex flex-wrap items-center gap-3 text-sm text-muted">
+        <UButton
+          to="/events"
+          variant="link"
+          color="neutral"
+          icon="i-lucide-arrow-left"
+          class="px-0"
+        >
+          All race calendars
+        </UButton>
+      </div>
+      <!-- The race page's header, one level up: eyebrow, heading, what it is,
+           whose calendar it is - then the numbers on the right. A rider
+           arriving from a race page should read the same page continuing. -->
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <p class="text-xs font-semibold uppercase tracking-wide text-muted">
+            {{ season!.seriesName }}
+          </p>
+          <h1 class="mt-1 text-3xl font-bold text-highlighted break-words sm:text-4xl">
+            {{ title }} schedule
+          </h1>
+          <p class="text-muted mt-2 max-w-3xl">
+            {{ season!.description }}
+          </p>
+          <p class="text-sm text-muted mt-3">
+            Organised by
+            <ULink
+              v-if="season!.organizerUrl"
+              :to="season!.organizerUrl"
+              target="_blank"
+              rel="noopener"
+              class="text-primary underline"
+            >{{ season!.organizer }}</ULink>
+            <template v-else>
+              {{ season!.organizer }}
+            </template>. Race dates and routes are theirs; the bike and wheel
+            recommendations are ours.
+          </p>
+        </div>
+        <!-- The whole season, not the part still to come: these say how big
+             the calendar is, and a race being run does not shrink it. -->
+        <dl class="grid shrink-0 grid-cols-3 gap-4 sm:gap-8">
+          <div>
+            <dt class="text-xs text-muted">
+              Rounds
+            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
+              {{ summary.rounds }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted">
+              Races
+            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
+              {{ summary.races }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted">
+              Dates
+            </dt><dd class="text-base font-bold text-highlighted sm:text-lg">
+              {{ summary.startDate && summary.endDate
+                ? `${formatRaceDateShort(summary.startDate)} - ${formatRaceDateShort(summary.endDate)}`
+                : 'To come' }}
+            </dd>
+          </div>
+        </dl>
       </div>
 
-      <!-- Every race is a row at SSR; rows move to "Past races" post-mount. -->
-      <p
-        v-if="!upcomingRacesForRound(round).length"
-        class="text-sm text-muted"
-      >
-        All of this round's races have been run - see Past races below.
-      </p>
-      <div
-        v-else
-        class="overflow-x-auto rounded-lg border border-default"
-      >
-        <table class="w-full text-sm">
-          <thead class="bg-elevated/50">
-            <tr class="text-left text-muted">
-              <th class="px-4 py-2 font-medium">
-                Week
-              </th>
-              <th class="px-4 py-2 font-medium">
-                Date
-              </th>
-              <th class="px-4 py-2 font-medium">
-                Route
-              </th>
-              <th class="px-4 py-2 font-medium">
-                Format
-              </th>
-              <th class="px-4 py-2 font-medium">
-                Distance
-              </th>
-              <th class="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            <tr
+      <UAlert
+        v-if="season!.note"
+        color="primary"
+        variant="subtle"
+        icon="i-lucide-calendar-clock"
+        title="Season status"
+        :description="season!.note"
+      />
+    </div>
+
+    <!-- The count line, the pending skeletons and a failed fetch's retry are
+         `DiscoveryStatus`, shared with the homepage and the segments page;
+         the round groups it holds are this page's, the way the segments page
+         fills it with world groups. -->
+    <DiscoveryStatus
+      v-if="showsStatus"
+      subject="races"
+      :counts="[{ value: upcomingCount, noun: 'race' }]"
+      :status="status"
+      @retry="refresh"
+    >
+      <template #skeleton>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <RaceCardSkeleton
+            v-for="n in 6"
+            :key="n"
+          />
+        </div>
+      </template>
+
+      <!-- One child of the slot, so the rounds keep the page's own rhythm
+           apart from each other rather than the status block's tighter one. -->
+      <div class="space-y-10">
+        <div
+          v-for="round in rounds"
+          :key="round.number"
+          class="space-y-4"
+        >
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="text-xl font-semibold text-highlighted">
+              {{ round.name ? `Round ${round.number}: ${round.name}` : `Round ${round.number}` }}
+            </h2>
+            <p class="text-sm text-muted">
+              {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
+            </p>
+          </div>
+
+          <!-- Every race is on the calendar at SSR; run ones move to "Past
+               races" post-mount, which can empty a round entirely. -->
+          <p
+            v-if="!upcomingRacesForRound(round).length"
+            class="text-sm text-muted"
+          >
+            All of this round's races have been run - see Past races below.
+          </p>
+          <div
+            v-else
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            <RaceCard
               v-for="race in upcomingRacesForRound(round)"
               :key="race.slug"
-              class="border-t border-default"
-              :class="{ 'bg-primary/5': race.slug === nextRaceSlug }"
-            >
-              <td class="px-4 py-2 whitespace-nowrap">
-                {{ race.week }}
-                <UBadge
-                  v-if="race.slug === nextRaceSlug"
-                  color="primary"
-                  variant="subtle"
-                  size="sm"
-                  class="ml-1"
-                >
-                  Next
-                </UBadge>
-              </td>
-              <td class="px-4 py-2 whitespace-nowrap">
-                {{ formatRaceDateRange(race.date, race.endDate) }}
-              </td>
-              <td class="px-4 py-2">
-                <template v-if="race.categories.length">
-                  <div
-                    v-for="group in race.categories"
-                    :key="formatCategoryGroup(group)"
-                  >
-                    <!-- The category prefix only earns its place when the
-                         groups actually ride different courses. -->
-                    <span
-                      v-if="race.categories.length > 1"
-                      class="text-muted"
-                    >{{ formatCategoryGroup(group) }}:</span>
-                    {{ group.routeName ?? group.route?.name ?? 'TBC' }}
-                    <span
-                      v-if="group.route"
-                      class="text-muted"
-                    >- {{ group.route.worldName }}</span>
-                  </div>
-                </template>
-                <span
-                  v-else
-                  class="text-muted"
-                >TBC</span>
-              </td>
-              <td class="px-4 py-2 whitespace-nowrap">
-                <UBadge
-                  v-if="race.format"
-                  :color="RACE_FORMAT_COLORS[race.format]"
-                  variant="subtle"
-                  size="sm"
-                >
-                  {{ RACE_FORMAT_LABELS[race.format] }}
-                </UBadge>
-                <span
-                  v-else
-                  class="text-muted"
-                >TBC</span>
-              </td>
-              <td class="px-4 py-2 whitespace-nowrap">
-                <template v-if="race.categories.length">
-                  <div
-                    v-for="group in race.categories"
-                    :key="formatCategoryGroup(group)"
-                  >
-                    <template v-if="group.officialDistanceKm">
-                      {{ formatDistance(group.officialDistanceKm) }}
-                    </template>
-                    <template v-else-if="group.computed">
-                      {{ formatDistance(group.computed.distanceKm) }}
-                    </template>
-                    <span
-                      v-else
-                      class="text-muted"
-                    >-</span>
-                  </div>
-                </template>
-                <span
-                  v-else
-                  class="text-muted"
-                >-</span>
-              </td>
-              <td class="px-4 py-2 text-right whitespace-nowrap">
-                <ULink
-                  v-if="raceHref(race)"
-                  :to="raceHref(race)"
-                  class="text-primary underline"
-                >
-                  Best bike
-                </ULink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              :race="race"
+              :season-slug="season!.slug"
+              :next="race.slug === nextRaceSlug"
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </DiscoveryStatus>
 
-    <UCollapsible v-if="pastRaces.length">
+    <!-- Not "0 races found": see `showsStatus`. A finished season and a
+         season that hasn't been published yet are different answers, and
+         both of them are answers rather than an empty result. -->
+    <p
+      v-else
+      class="text-center py-10 text-muted"
+    >
+      <template v-if="pastRaceCount">
+        Every race this season has been run - check back when the next season is announced.
+      </template>
+      <template v-else>
+        No races are on the calendar yet - check back once the organiser announces the schedule.
+      </template>
+    </p>
+
+    <UCollapsible v-if="pastRaceCount">
       <UButton
         color="neutral"
         variant="subtle"
         trailing-icon="i-lucide-chevron-down"
       >
-        Past races ({{ pastRaces.length }})
+        Past races ({{ pastRaceCount }})
       </UButton>
       <template #content>
-        <div class="mt-4 overflow-x-auto rounded-lg border border-default">
-          <table class="w-full text-sm">
-            <thead class="bg-elevated/50">
-              <tr class="text-left text-muted">
-                <th class="px-4 py-2 font-medium">
-                  Race
-                </th>
-                <th class="px-4 py-2 font-medium">
-                  Date
-                </th>
-                <th class="px-4 py-2 font-medium">
-                  Route
-                </th>
-                <th class="px-4 py-2 font-medium">
-                  Format
-                </th>
-                <th class="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="race in pastRaces"
+        <div class="mt-4 space-y-10">
+          <div
+            v-for="round in pastRounds"
+            :key="round.number"
+            class="space-y-4"
+          >
+            <h3 class="text-lg font-semibold text-highlighted">
+              {{ round.name ? `Round ${round.number}: ${round.name}` : `Round ${round.number}` }}
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <RaceCard
+                v-for="race in round.races"
                 :key="race.slug"
-                class="border-t border-default"
-              >
-                <td class="px-4 py-2 whitespace-nowrap">
-                  {{ raceDisplayName(race) }}
-                </td>
-                <td class="px-4 py-2 whitespace-nowrap">
-                  {{ formatRaceDateRange(race.date, race.endDate) }}
-                </td>
-                <td class="px-4 py-2">
-                  {{ race.categories.map(group => group.routeName ?? group.route?.name).filter(Boolean).join(' / ') || 'TBC' }}
-                </td>
-                <td class="px-4 py-2 whitespace-nowrap">
-                  <UBadge
-                    v-if="race.format"
-                    :color="RACE_FORMAT_COLORS[race.format]"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    {{ RACE_FORMAT_LABELS[race.format] }}
-                  </UBadge>
-                </td>
-                <td class="px-4 py-2 text-right whitespace-nowrap">
-                  <ULink
-                    v-if="raceHref(race)"
-                    :to="raceHref(race)"
-                    class="text-primary underline"
-                  >
-                    Best bike
-                  </ULink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                :race="race"
+                :season-slug="season!.slug"
+                past
+              />
+            </div>
+          </div>
         </div>
       </template>
     </UCollapsible>
