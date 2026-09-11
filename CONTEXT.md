@@ -83,5 +83,5 @@ The one primary and one neutral scale the whole site is drawn in, shared by both
 _Avoid_: theme, colour scheme, skin, colours (which mode or which scale?)
 
 **Colour mode**:
-Light or dark, the rider's choice of ground for the page. The dark mode is the one the site is designed on and the one a first visit gets, whatever the device prefers, until the rider switches; the light mode is the same Palette on a white ground, which is why it needs its own primary shade rather than its own primary. Both modes are checked whenever a page or the palette changes.
+Light or dark, the rider's choice of ground for the page. The dark mode is the one the site is designed on and the one a first visit gets, whatever the device prefers, until the rider switches; the light mode is the same Palette on a white ground, which is why it takes its own shades of the primary, the status colours and the muted text rather than colours of its own. Both modes are checked whenever a page or the palette changes.
 _Avoid_: theme, dark theme, light theme, both themes

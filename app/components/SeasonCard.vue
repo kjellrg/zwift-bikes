@@ -39,7 +39,9 @@ const summary = computed(() => summariseSeason(props.season))
  * disclosure a link cannot open - so a tile that pointed there landed a rider
  * at the top of the page with nothing to show for the click. It says "Past"
  * and leaves them to the disclosure, which is as much as this site owes a
- * race that has been run.
+ * race that has been run. It is not dimmed: a tile at 75% opacity put its
+ * text under 3:1 on the light ground, and the badge and the muted name
+ * already say what the fade said.
  *
  * Only the two exceptional states are badged. A round still to come is the
  * default and carries its dates already; badging it too would put a chip on
@@ -105,9 +107,7 @@ const roundTiles = computed(() => props.season.rounds.map((round) => {
         :key="tile.round.number"
         :to="tile.to"
         class="rounded-lg border border-default p-3"
-        :class="tile.to
-          ? 'transition hover:border-primary hover:ring hover:ring-primary/50'
-          : 'opacity-75'"
+        :class="tile.to && 'transition hover:border-primary hover:ring hover:ring-primary/50'"
       >
         <div class="flex items-baseline justify-between gap-2">
           <p class="text-xs text-muted uppercase tracking-wide">
