@@ -51,9 +51,9 @@ const frames = computed<ClassifiedBikeFrame[]>(() => {
   return ownedFramesOnly.value ? all.filter(f => isOwned(f.id)) : all
 })
 
-const stageOptions = [0, 1, 2, 3, 4, 5].map(stage => ({
-  label: stage === 0 ? 'Stage 0 (stock)' : `Stage ${stage}`,
-  value: stage
+const levelOptions = [0, 1, 2, 3, 4, 5].map(level => ({
+  label: level === 0 ? 'Stage 0 (stock)' : `Stage ${level}`,
+  value: level
 }))
 
 // Added at the rider's default stage for unowned bikes - the same stage the
@@ -67,8 +67,8 @@ function toggleOwned(frame: ClassifiedBikeFrame, value: boolean) {
   setOwned(frame.id, value ? defaultUnownedLevel.value : null)
 }
 
-function updateStage(frameId: number, stage: number) {
-  setOwned(frameId, stage)
+function updateLevel(frameId: number, level: number) {
+  setOwned(frameId, level)
 }
 
 const ownedCount = computed(() => Object.keys(owned.value).length)
@@ -322,12 +322,12 @@ const activeTab = ref('bikes')
                   :model-value="owned[frame.id]"
                   :disabled="frame.confidence === 'estimated'"
                   value-key="value"
-                  :items="stageOptions"
+                  :items="levelOptions"
                   :search-input="false"
                   class="w-32"
                   :aria-label="`Upgrade stage for ${frame.name}`"
                   @update:model-value="
-                    (stage: number) => updateStage(frame.id, stage)
+                    (level: number) => updateLevel(frame.id, level)
                   "
                 />
               </UTooltip>

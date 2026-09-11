@@ -90,7 +90,7 @@ export function formatComboTable(combos: ComboScore[], startRank: number): strin
   // Only worth a column when this route actually has non-tarmac sections.
   const hasSurfaceCost = combos.some(combo => (combo.surfaceTimePenaltySec ?? 0) > 0)
 
-  const header = ['#', 'Frame', 'Level', 'Wheelset', hasTimes ? 'Time' : 'Score', hasTimes ? 'Gap' : '', hasSurfaceCost ? 'Off-road cost' : '', 'Data'].filter(Boolean)
+  const header = ['#', 'Frame', 'Stage', 'Wheelset', hasTimes ? 'Time' : 'Score', hasTimes ? 'Gap' : '', hasSurfaceCost ? 'Off-road cost' : '', 'Data'].filter(Boolean)
   const rows = combos.map((combo, index) => {
     // Frames with integrated, non-swappable wheels come back without a
     // wheelset at all - see `hasFixedWheels` in `classifyBikeFrame.ts`.

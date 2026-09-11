@@ -10,7 +10,7 @@ const props = defineProps<{
   laps?: number
   /** Fastest `finishTimeSec` among all currently-shown combos, used to show a "+Xs slower" gap instead of this card's own absolute time. */
   fastestTimeSec?: number
-  /** Frames the rider owns, keyed by frame id, mapped to their upgrade level - used to label whether `combo.frame.level` is an owned level or the rider's assumed default for unowned bikes. */
+  /** Frames the rider owns, keyed by frame id, mapped to their upgrade stage - used to label whether `combo.frame.level` is an owned stage or the rider's assumed default for unowned bikes. */
   owned?: Record<number, number>
   /**
    * Fetches the other wheelsets that fit this frame on this route, ranked and
@@ -58,11 +58,11 @@ function showDetails() {
 watch(() => [props.combo, props.fastestTimeSec, props.laps, props.requestKey], () => syncBikeDetail(bikeDetail()), { immediate: true })
 
 /**
- * New quick-adds start at the rider's chosen default level for unowned bikes
- * (see Profile), the same level unowned bikes are scored and displayed at
+ * New quick-adds start at the rider's chosen default stage for unowned bikes
+ * (see Profile), the same stage unowned bikes are scored and displayed at
  * everywhere else - so adding a bike never moves it in the ranking. The
  * garage modal's own add uses the same default; the two must agree, or the
- * same action persists a different level depending on where it was clicked.
+ * same action persists a different stage depending on where it was clicked.
  */
 const { defaultUnownedLevel } = useRiderProfile()
 
@@ -74,7 +74,7 @@ function toggleFrameOwned() {
 }
 
 /**
- * Lets riders adjust the owned upgrade level (0-5) right from the card: the
+ * Lets riders adjust the owned upgrade stage (0-5) right from the card: the
  * "Stage N" badge of an owned frame opens a popover with a slider. The
  * slider follows the same commit-on-release pattern as the profile sliders
  * (#155): dragging only moves `pendingLevel`, the garage - and with it the

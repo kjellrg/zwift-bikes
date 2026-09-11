@@ -92,11 +92,11 @@ export function useOverlays() {
   /**
    * Replaces what the open drawer shows when the card it was opened from
    * re-renders with a fresh combo for the same frame and wheels - after a
-   * garage change (an upgrade level set in the drawer itself, or on the
+   * garage change (an upgrade stage set in the drawer itself, or on the
    * card) refetches the results. The drawer holds a snapshot of the combo,
    * not a live reference, so without this its finish time, gap, scores and
-   * "scored at level N" line kept the old level's numbers until it was
-   * closed and reopened. Matched on the frame alone: a level change can
+   * "scored at upgrade stage N" line kept the old stage's numbers until it
+   * was closed and reopened. Matched on the frame alone: a stage change can
    * also change which wheelset is the frame's fastest, and the drawer should
    * then show the wheels the card now shows, title and all. A combo for a
    * different frame is ignored: that is another card's business.

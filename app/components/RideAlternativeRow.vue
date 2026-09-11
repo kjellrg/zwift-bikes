@@ -34,11 +34,11 @@ const { openDetail } = useComboDetail({
   requestKey: () => props.requestKey
 })
 
-// Quick-adds start at the rider's chosen default level for unowned bikes -
-// the level unowned bikes are scored and displayed at everywhere else - so
+// Quick-adds start at the rider's chosen default stage for unowned bikes -
+// the stage unowned bikes are scored and displayed at everywhere else - so
 // adding a bike never moves it in the ranking. The garage modal's own add
 // uses the same default; the two must agree, or the same action persists a
-// different level depending on where it was clicked (see `ComboResultCard`).
+// different stage depending on where it was clicked (see `ComboResultCard`).
 const { owned, setOwned } = useGarage()
 const { defaultUnownedLevel } = useRiderProfile()
 const isOwned = computed(() => owned.value[props.combo.frame.id] !== undefined)
