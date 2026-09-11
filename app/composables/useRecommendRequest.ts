@@ -30,7 +30,8 @@ export interface RecommendResponse {
     category: ComboScore['frame']['category']
     reason: 'category' | 'halo'
     wheelsetName?: string
-    deltaSec: number
+    /** Absent when the filters left no rank 1 to measure the gap against - see `FastestOverall`. */
+    deltaSec?: number
   }
   physics?: {
     mode: string

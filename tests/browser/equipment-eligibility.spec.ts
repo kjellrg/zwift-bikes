@@ -37,6 +37,8 @@ const garageSwitch = (page: Page) => page.getByRole('switch', { name: 'My garage
 const garageScope = (page: Page) => page.getByText(/Other filters and compatibility still apply\./)
 const filterSummary = (page: Page) => page.getByText(/^(All categories|Standard \(Road\)|Time Trial|Gravel|Hand Cycle|Fun Bike) \/ (Verified only|Includes estimates)$/)
 const noMatches = (page: Page) => page.getByText('No bikes match your filters.')
+/** The "a bike your filters are hiding is faster" line, which an empty ranking gets too (issue #221). */
+const fastestOverall = (page: Page) => page.locator('div').filter({ hasText: /^Fastest overall:/ }).last()
 const haloSwitch = (page: Page) => page.getByRole('switch', { name: 'Include Halo bikes' })
 
 interface Garage { frames?: Record<number, number>, wheels?: string[] }
@@ -137,7 +139,32 @@ test.describe('equipment eligibility', () => {
     await expect(garageSwitch(page)).toBeEnabled()
     await expect(page.getByRole('link', { name: 'Edit garage' })).toBeVisible()
 
+    // No fastest-overall line here, and rightly so: the garage is what emptied
+    // the page, and the category filter is hiding nothing the garage allows.
+    await expect(fastestOverall(page)).toHaveCount(0)
+
     const { data } = await rerank(page, () => garageSwitch(page).click())
+    expect(data.combos.length).toBeGreaterThan(0)
+    await expect(noMatches(page)).toHaveCount(0)
+    await expect(rows(page).first()).toBeVisible()
+  })
+
+  test('names the bike a category filter is hiding even with nothing ranked, and reveals it', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers the empty-page disclosure')
+    // Verified gravel again, this time for what the empty page SAYS: the
+    // restriction is a display filter, so the answer the rider came for exists
+    // and is one click away - it used to be withheld exactly here (issue #221).
+    await seed(page, { verifiedOnly: true, bikeCategory: 'gravel' })
+    await visit(page, ROUTE)
+    await expect(noMatches(page)).toBeVisible()
+    await expect(fastestOverall(page)).toBeVisible()
+    // The frame is named, and with no ranked setup to measure against the line
+    // says it is out of view rather than inventing a gap.
+    await expect(fastestOverall(page)).toContainText('not shown under your current filters')
+    await expect(fastestOverall(page)).not.toContainText('quicker')
+
+    const { data, query } = await rerank(page, () => page.getByText('Show all categories').click())
+    expect(query.has('category')).toBe(false)
     expect(data.combos.length).toBeGreaterThan(0)
     await expect(noMatches(page)).toHaveCount(0)
     await expect(rows(page).first()).toBeVisible()

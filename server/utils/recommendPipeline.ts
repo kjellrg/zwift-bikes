@@ -37,7 +37,12 @@ export interface FastestOverall {
   reason: 'category' | 'halo'
   wheelsetName?: string
   finishTimeSec: number
-  deltaSec: number
+  /**
+   * How much quicker than the page's rank 1, absent when there is no rank 1
+   * to measure against - a ranking the same filters emptied, which is the
+   * page that needs the disclosure most (issue #221).
+   */
+  deltaSec?: number
 }
 
 /** The "riding as a TTT saves X vs solo" disclosure. */
@@ -427,10 +432,13 @@ export async function runRecommendPipeline(
   //
   // Gated to the first page of an unsearched request with a rider profile -
   // the only render that shows the line - because it costs a second ranking
-  // pass and its own simulation window (see `SIMULATED_ORDER_MARGIN`).
+  // pass and its own simulation window (see `SIMULATED_ORDER_MARGIN`). NOT
+  // gated on the page having a rank 1: a category or Halo filter that leaves
+  // nothing to rank is the case where the rider is told least and needs the
+  // reveal most, and there the second pass is the only ranking work done.
   let fastestOverall: FastestOverall | undefined
-  const pageTopCombo = pageCombos[0]
-  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && wheelsForFrame === undefined && pageTopCombo && typeof pageTopCombo.finishTimeSec === 'number') {
+  const pageTopSec = typeof pageCombos[0]?.finishTimeSec === 'number' ? pageCombos[0].finishTimeSec : undefined
+  if ((category || !includeHalo) && hasRiderProfile && offset === 0 && !search && wheelsForFrame === undefined) {
     const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
     if (hiddenFrames.length) {
       let candidates = rankCombos(route, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
@@ -453,7 +461,10 @@ export async function runRecommendPipeline(
         overallTopSec = candidates[0] ? ordering.simulatedSec.get(candidates[0]) : undefined
       }
       const overallTop = candidates[0]
-      if (overallTop && typeof overallTopSec === 'number' && overallTopSec < pageTopCombo.finishTimeSec) {
+      // With a rank 1 on the page, only a winner that actually beats it is
+      // worth disclosing; with none, any hidden bike answers the question the
+      // empty page cannot.
+      if (overallTop && typeof overallTopSec === 'number' && (pageTopSec === undefined || overallTopSec < pageTopSec)) {
         fastestOverall = {
           frameId: overallTop.frame.id,
           frameName: overallTop.frame.name,
@@ -465,7 +476,7 @@ export async function runRecommendPipeline(
           reason: isHiddenHalo(overallTop.frame) ? 'halo' as const : 'category' as const,
           wheelsetName: overallTop.wheelset?.name,
           finishTimeSec: overallTopSec,
-          deltaSec: pageTopCombo.finishTimeSec - overallTopSec
+          deltaSec: pageTopSec === undefined ? undefined : pageTopSec - overallTopSec
         }
       }
     }

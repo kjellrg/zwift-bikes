@@ -150,6 +150,30 @@ describe('runRecommendPipeline', () => {
     expect(excluded.fastestOverall?.category).not.toBe('tt')
   })
 
+  it('discloses the hidden fastest bike to a ranking with nothing in it, with no gap to measure', async () => {
+    // Verified gravel is the known-empty case - no gravel wheel is bot-tested -
+    // and it is exactly where a rider most needs to be told which filter is
+    // holding the answer back (issue #221). The disclosure used to be gated on
+    // the page having a rank 1, so the emptiest page never got it.
+    const empty = await runRecommendPipeline(fakeEvent(), query({ category: 'gravel', includeHalo: 'false' }), routeRide([]))
+    expect(empty.combos).toHaveLength(0)
+    expect(empty.fastestOverall?.reason).toBe('category')
+    expect(empty.fastestOverall?.frameName).toBeTruthy()
+    expect(empty.fastestOverall?.finishTimeSec).toBeGreaterThan(0)
+    // Nothing on the page to measure against, so the line carries no gap.
+    expect(empty.fastestOverall?.deltaSec).toBeUndefined()
+
+    // A directed search that matches nothing keeps its own message: the rider
+    // asked for one bike, not for the filters to be explained.
+    const searched = await runRecommendPipeline(fakeEvent(), query({ category: 'gravel', includeHalo: 'false', search: 'unobtainium' }), routeRide([]))
+    expect(searched.combos).toHaveLength(0)
+    expect(searched.fastestOverall).toBeUndefined()
+
+    // A ranking that does have a rank 1 still measures the gap against it.
+    const ranked = await runRecommendPipeline(fakeEvent(), query({ category: 'standard', includeHalo: 'false', maxWheelsetsPerFrame: '1' }), routeRide([]))
+    expect(ranked.fastestOverall?.deltaSec).toBeGreaterThan(0)
+  })
+
   it('lets a search reach combos the per-frame cap would have hidden', async () => {
     const capped = await runRecommendPipeline(fakeEvent(), query({ maxWheelsetsPerFrame: '1' }), routeRide([]))
     expect(new Set(capped.combos.map(combo => combo.frame.id)).size).toBe(capped.combos.length)
