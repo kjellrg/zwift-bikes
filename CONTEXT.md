@@ -45,3 +45,11 @@ _Avoid_: current settings, live values, pending values, request inputs
 **Discovery page**:
 A page that lists Rides to choose from and ranks nothing: the homepage lists routes, the segments page lists climbs and sprints. Its search and filters belong to the page and are kept in its URL so that returning to it restores them; they are never a Shared view and never touch the rider's stored preferences. What a discovery page shows about a Ride is its identity and the numbers a rider scans to choose it, not anything a ranking would answer.
 _Avoid_: hub, list page, index page, landing page
+
+**Garage**:
+The frames and wheels a rider has told the site they own, with an upgrade stage per frame. It lives only in the rider's own browser, like the profile: no account, nothing follows them to another device. Ranking pages read it through Garage fallback, and a garage change refreshes what is already on screen rather than starting the list over, because the controls that change it sit on the results themselves. The garage is edited in an Overlay or on its own page; both edit the same thing.
+_Avoid_: owned bikes, my bikes, inventory, collection
+
+**Upgrade stage**:
+Where a frame stands on Zwift's five-step upgrade ladder. Stage 0 is the frame as bought, stage 5 is fully upgraded, and each stage is earned by riding it. A frame in the garage is ranked at the stage the rider set; a frame outside it at the stage the profile assumes for unowned frames, which is 5 unless changed and flatters a bike the rider might buy. Wheels have no stages. A frame nobody has bot-tested has no per-stage numbers, so its stage cannot be set.
+_Avoid_: level, upgrade level, tier (a frame's price class, a different axis)

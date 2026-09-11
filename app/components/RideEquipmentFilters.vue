@@ -37,14 +37,14 @@ const categoryLabel = computed(() => bikeCategory.value === 'all' ? 'All categor
 // no owned frames means every frame, no owned wheels means every compatible
 // wheel. The switch alone can't show which of the four cases applies, so
 // this line does - and says that the other filters still narrow the pool.
+// The four cases themselves are `garageFallback`, shared with the garage,
+// which explains an empty tab with the same rule (see `CONTEXT.md`).
 const garageScope = computed(() => {
   if (!myBikesOnly.value) return undefined
-  const ownsFrames = Object.keys(owned.value).length > 0
-  const ownsWheels = Object.keys(ownedWheels.value).length > 0
-  if (!ownsFrames && !ownsWheels) return 'Garage empty - showing all equipment'
-  if (!ownsFrames) return 'All frames / your wheels'
-  if (!ownsWheels) return 'Your frames / all wheels'
-  return 'Your frames / your wheels'
+  return GARAGE_FALLBACK_SCOPES[garageFallback({
+    frames: Object.keys(owned.value).length > 0,
+    wheels: Object.keys(ownedWheels.value).length > 0
+  })]
 })
 
 const moreFilters = ref(false)
