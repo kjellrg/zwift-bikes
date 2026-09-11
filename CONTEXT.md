@@ -77,3 +77,11 @@ _Avoid_: results list, alternatives list, the field, matches
 **Recommendation**:
 Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, and the paths deeper into it. It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. It carries everything a lower rank carries, the comparison pick included.
 _Avoid_: top combo, hero card, winner, best bike
+
+**Palette**:
+The one primary and one neutral scale the whole site is drawn in, shared by both Colour modes: every badge, button, chart and share card takes its colour from a semantic name that resolves into the palette, never from a colour of its own. A palette change is therefore a change to those two scales and to the brand assets that were painted from them, and it leaves no page looking different from the share card that announces it. It is not the light/dark switch; both modes are drawn in the same palette.
+_Avoid_: theme, colour scheme, skin, colours (which mode or which scale?)
+
+**Colour mode**:
+Light or dark, the rider's choice of ground for the page. The dark mode is the one the site is designed on and the one a first visit gets, whatever the device prefers, until the rider switches; the light mode is the same Palette on a white ground, which is why it needs its own primary shade rather than its own primary. Both modes are checked whenever a page or the palette changes.
+_Avoid_: theme, dark theme, light theme, both themes
