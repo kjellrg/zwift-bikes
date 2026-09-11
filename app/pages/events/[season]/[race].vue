@@ -74,8 +74,16 @@ const formatPhrase = computed(() => race!.format === 'rot' ? 'Race of Truth' : f
  * A group with no catalog route has no endpoint, so nothing is requested and
  * nothing is ranked - the page still shows that group's published figures.
  */
+/**
+ * One spelling of a course's recommend endpoint, because two things compare
+ * against it: the Ride that asks for a ranking, and the applied-course
+ * snapshot below that recognises the answer. A second spelling is how those
+ * two would drift into never matching, silently.
+ */
+const recommendEndpoint = (slug: string) => `/api/recommend/${slug}`
+
 const ride = computed<Ride>(() => ({
-  endpoint: selectedRouteSlug.value ? `/api/recommend/${selectedRouteSlug.value}` : undefined,
+  endpoint: selectedRouteSlug.value ? recommendEndpoint(selectedRouteSlug.value) : undefined,
   laps: laps.value,
   ttFramesAllowed: ttAllowed,
   draftingAllowed: draftAllowed
@@ -186,6 +194,17 @@ const coursesDiffer = hasSplitCourses(race)
  * `allowed: []` = explicitly no powerups, shown as a single badge.
  */
 const powerups = race.powerups
+/**
+ * The powerups in one line. Computed rather than written into the briefing,
+ * because a category group whose course isn't in the catalog has no briefing
+ * and this is organiser data that never needed one - so it is rendered twice
+ * and must read identically both times.
+ */
+const powerupsLine = computed(() => {
+  if (!powerups) return undefined
+  const allowed = powerups.allowed.length ? powerups.allowed.map(powerup => POWERUP_LABELS[powerup]).join(', ') : 'none'
+  return `${allowed}${powerups.note ? ` - ${powerups.note}` : ''}`
+})
 
 /**
  * Same split as the answer's `rideRules` line: Zwift disables TT frames
@@ -262,8 +281,6 @@ const scoringRows = computed(() => scoringSegments.value
   }))
   .sort((a, b) => (a.positionsKm[0] ?? Infinity) - (b.positionsKm[0] ?? Infinity)))
 
-const hasScoringPositions = computed(() => scoringRows.value.some(row => row.positionsKm.length))
-
 const scoringSegmentsTbd = computed(() => Boolean(selectedGroup.value?.scoringSegmentsTbd))
 /**
  * A points race with nothing listed is a real, published state (three of
@@ -328,11 +345,11 @@ const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
  * the briefing, the header stats and the Ride-only tabs follow the selector,
  * which is what the rider just moved.
  */
-const appliedRouteSlug = computed(() => appliedRide.value.endpoint?.split('/').pop())
 const appliedRoute = shallowRef<NonNullable<typeof routeData.value>>()
 watchEffect(() => {
-  if (!appliedRouteSlug.value) appliedRoute.value = undefined
-  else if (routeData.value?.slug === appliedRouteSlug.value) appliedRoute.value = routeData.value
+  const endpoint = appliedRide.value.endpoint
+  if (!endpoint) appliedRoute.value = undefined
+  else if (routeData.value && recommendEndpoint(routeData.value.slug) === endpoint) appliedRoute.value = routeData.value
 })
 const resultsTotals = computed(() => appliedRoute.value ? computeRouteTotals(appliedRoute.value, resultsLaps.value) : undefined)
 const resolvedRide = computed(() => appliedRoute.value ? rideForRoute(appliedRoute.value, resultsLaps.value, appliedRide.value.ttFramesAllowed === false) : undefined)
@@ -745,6 +762,33 @@ useHead(() => {
         </table>
       </div>
 
+      <!-- Curated race context, not a property of any ranking: it belongs
+           with the rules above rather than below results a group may not
+           even have. -->
+      <div
+        v-if="race!.note"
+        class="rounded-lg border border-default p-4"
+      >
+        <h2 class="text-lg font-semibold text-highlighted mb-2">
+          How this race tends to play out
+        </h2>
+        <p class="text-muted">
+          {{ race!.note }}
+        </p>
+        <p
+          v-if="race!.sourceUrl"
+          class="text-xs text-muted mt-2"
+        >
+          Race details from
+          <ULink
+            :to="race!.sourceUrl"
+            target="_blank"
+            rel="noopener"
+            class="text-primary underline"
+          >the published round guide</ULink>.
+        </p>
+      </div>
+
       <RideRiderSummary
         :rider="appliedInputs"
         :refreshing="isRefreshing"
@@ -771,6 +815,33 @@ useHead(() => {
       :title="`${displayRouteName} isn't in the public route catalog`"
       :description="`${season!.organizer} runs ${formatCategoryGroup(selectedGroup ?? { cats: [] })} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against - and a ranking computed from a guess would be worse than none. The published figures above are ${season!.organizer}'s own.${categoryGroupOptions.length > 1 ? ' Pick another race group above to see recommendations for the routes we do have.' : ''}`"
     />
+
+    <!-- Everything the organiser published that needs no catalog route. With
+         a course the briefing and the Scoring tab carry these; without one
+         there is neither, and they are not the ranking's to take away. -->
+    <div
+      v-if="groupHasNoRoute"
+      class="space-y-4"
+    >
+      <p
+        v-if="powerupsLine"
+        class="text-sm text-muted"
+      >
+        <span class="font-medium text-highlighted">PowerUps:</span> {{ powerupsLine }}
+      </p>
+      <div v-if="hasScoring">
+        <h2 class="text-lg font-semibold text-highlighted mb-2">
+          Where the points are
+        </h2>
+        <RaceScoringSegments
+          :rows="scoringRows"
+          :tbd="scoringSegmentsTbd"
+          :organizer="season!.organizer"
+          :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
+          :tt-allowed="ttAllowed"
+        />
+      </div>
+    </div>
 
     <template v-else>
       <div
@@ -925,11 +996,8 @@ useHead(() => {
             </template>
           </li>
           <!-- Curated fact only: absent powerup data renders no line at all. -->
-          <li v-if="powerups">
-            <span class="font-medium text-highlighted">PowerUps:</span>
-            {{ powerups.allowed.length ? powerups.allowed.map(powerup => POWERUP_LABELS[powerup]).join(', ') : 'none' }}<template v-if="powerups.note">
-              - {{ powerups.note }}
-            </template>
+          <li v-if="powerupsLine">
+            <span class="font-medium text-highlighted">PowerUps:</span> {{ powerupsLine }}
           </li>
         </RideBriefing>
       </div>
@@ -955,30 +1023,6 @@ useHead(() => {
         </p>
       </section>
 
-      <div
-        v-if="race!.note"
-        class="rounded-lg border border-default p-4"
-      >
-        <h2 class="text-lg font-semibold text-highlighted mb-2">
-          How this race tends to play out
-        </h2>
-        <p class="text-muted">
-          {{ race!.note }}
-        </p>
-        <p
-          v-if="race!.sourceUrl"
-          class="text-xs text-muted mt-2"
-        >
-          Race details from
-          <ULink
-            :to="race!.sourceUrl"
-            target="_blank"
-            rel="noopener"
-            class="text-primary underline"
-          >the published round guide</ULink>.
-        </p>
-      </div>
-
       <!-- Ride-only tabs follow the selector, like the briefing; the
            equipment tabs follow the applied results, like the
            recommendation - and on this page those can be different courses. -->
@@ -998,137 +1042,13 @@ useHead(() => {
         :scoring-slugs="scoringSlugs"
       >
         <template #scoring>
-          <div class="space-y-3">
-            <p
-              v-if="scoringSegmentsTbd"
-              class="text-muted"
-            >
-              <UBadge
-                color="neutral"
-                variant="subtle"
-                class="mr-1.5"
-              >
-                TBD
-              </UBadge>
-              {{ season!.organizer }} hasn't published the scoring segments for this race yet. They're
-              added here as soon as they appear.
-            </p>
-            <p
-              v-else-if="isPointsRaceWithoutSegments"
-              class="text-muted"
-            >
-              {{ season!.organizer }} lists no intermediate scoring segments for this race.
-            </p>
-            <template v-else>
-              <p class="text-xs text-muted">
-                Points are scored at these segments - <span class="font-medium text-highlighted">FAL</span> by the
-                order riders cross the line, <span class="font-medium text-highlighted">FTS</span> by elapsed time
-                across the segment.<template v-if="hasScoringPositions">
-                  Every scoring pass is starred on the elevation profile, in the order you meet it.
-                </template>
-              </p>
-              <div class="overflow-x-auto rounded-lg border border-default">
-                <table class="w-full text-sm">
-                  <caption class="sr-only">
-                    Scoring segments for {{ formatCategoryGroup(selectedGroup ?? { cats: [] }) }}, in the order they are ridden
-                  </caption>
-                  <thead class="bg-elevated/50">
-                    <tr class="text-left text-muted">
-                      <th
-                        scope="col"
-                        class="px-4 py-2 font-medium"
-                      >
-                        Segment
-                      </th>
-                      <th
-                        scope="col"
-                        class="px-4 py-2 font-medium"
-                      >
-                        FAL
-                      </th>
-                      <th
-                        scope="col"
-                        class="px-4 py-2 font-medium"
-                      >
-                        FTS
-                      </th>
-                      <!-- Only when the route publishes where its segments sit - see
-                           `scoringPositionsBySlug`. -->
-                      <th
-                        v-if="hasScoringPositions"
-                        scope="col"
-                        class="px-4 py-2 font-medium"
-                      >
-                        Comes at
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="segment in scoringRows"
-                      :key="segment.name"
-                      class="border-t border-default"
-                    >
-                      <td class="px-4 py-2">
-                        <!-- Linked only when the segment has a page here. -->
-                        <ULink
-                          v-if="segment.slug"
-                          :to="`/segments/${segment.slug}`"
-                          class="text-primary underline"
-                        >{{ segment.name }}</ULink>
-                        <template v-else>
-                          {{ segment.name }}
-                        </template>
-                      </td>
-                      <td class="px-4 py-2 whitespace-nowrap">
-                        <span v-if="segment.fal">{{ segment.fal }}x</span>
-                        <span
-                          v-else
-                          class="text-muted"
-                        >-</span>
-                      </td>
-                      <td class="px-4 py-2 whitespace-nowrap">
-                        <span v-if="segment.fts">{{ segment.fts }}x</span>
-                        <span
-                          v-else
-                          class="text-muted"
-                        >-</span>
-                      </td>
-                      <td
-                        v-if="hasScoringPositions"
-                        class="px-4 py-2 whitespace-nowrap"
-                      >
-                        <span v-if="segment.positionsKm.length">{{ segment.positionsKm.map(km => formatDistance(km)).join(', ') }}</span>
-                        <span
-                          v-else
-                          class="text-muted"
-                        >-</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <!-- The segment pages rank the whole catalog: they know nothing
-                   of this race, and cannot be told (#224). Saying so is the
-                   only honest thing to do while that is true. -->
-              <p class="text-xs text-muted">
-                Tap a segment for the fastest bikes over that sprint alone - the fastest bike for a sprint
-                isn't always the fastest over a whole race. A segment page ranks every bike in the game,
-                unrestricted.
-                <template v-if="!ttAllowed">
-                  This race's TT-frame rule is not applied there, so check that a bike is legal here
-                  before you start on it.
-                </template>
-              </p>
-              <p
-                v-if="scoringSegments.some(segment => !segment.slug)"
-                class="text-xs text-muted"
-              >
-                Segments without a link aren't in this site's segment catalog yet - it's built from routes
-                that publish where each segment sits along them, and this one doesn't.
-              </p>
-            </template>
-          </div>
+          <RaceScoringSegments
+            :rows="scoringRows"
+            :tbd="scoringSegmentsTbd"
+            :organizer="season!.organizer"
+            :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
+            :tt-allowed="ttAllowed"
+          />
         </template>
       </RideCourseAnalysis>
 

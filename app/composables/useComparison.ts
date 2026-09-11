@@ -7,7 +7,7 @@ import { comboKey } from '../utils/comparison'
  * than copied - so a refetch that re-times a picked setup shows the new
  * time, and one that drops it drops it from the comparison. The rules of
  * picking (limit, order, no eviction) are `toggleComparison`'s; this is only
- * the state, shared by the route and segment pages so the two can't drift.
+ * the state, shared by every ranking page so they can't drift.
  */
 export function useComparison(combos: () => ComboScore[]) {
   const keys = ref<string[]>([])

@@ -4,9 +4,8 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 
 /**
  * The rider box: weight/height/power sliders plus the draft disclosure and
- * its TTT controls, shared verbatim by the event race page and, folded
- * behind "Adjust effort" in `RideRiderSummary`, the route and segment
- * pages. Everything reads `useRiderProfile()` directly, whose state is
+ * its TTT controls, folded behind "Adjust effort" in `RideRiderSummary` on
+ * every ranking page. Everything reads `useRiderProfile()` directly, whose state is
  * `useState`-backed: each setter persists, and `useRecommendRequest`
  * refetches from its one watcher on the serialised query, so this box needs
  * no wiring to the host page at all.
@@ -21,9 +20,9 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
  * the load-then-seed order the pages used - it matters for the one value the
  * watches below don't cover: a stored profile with a different power but no
  * committed team climb pace still seeds `pendingClimbWkg` from the loaded
- * power, not the default. On a later mount - the route and segment pages
- * fold this box behind "Adjust effort" - the load is a no-op (storage is
- * read once per app lifetime) and the seeding reads the state as it stands,
+ * power, not the default. On a later mount - this box only mounts when the
+ * rider opens "Adjust effort" - the load is a no-op (storage is read once
+ * per app lifetime) and the seeding reads the state as it stands,
  * including a draft mode a link supplied for the visit.
  */
 const props = withDefaults(defineProps<{
@@ -221,10 +220,10 @@ const { openProfile } = useOverlays()
         v-if="draftControlsOpen"
         class="w-44"
       >
-        <!-- The marker sits by the select on every page that mounts this
-             box - including the race page, which has no rider strip - so a
-             link's mode is never ranked by without a way back to the saved
-             one. -->
+        <!-- The marker sits by the select as well as on the rider strip
+             that folds this box away: whichever of the two the rider has in
+             front of them, a link's mode is never ranked by without a way
+             back to the saved one. -->
         <div class="mb-1 flex items-center gap-1.5">
           <label class="text-xs font-medium text-muted">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces. Race is a mass-start bunch: one draft benefit measured from real race fields, with your power still your own race average."><UIcon
             name="i-lucide-info"

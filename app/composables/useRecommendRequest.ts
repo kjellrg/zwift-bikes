@@ -278,7 +278,6 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   }
 
   const topCombo = computed(() => combos.value[0])
-  const restCombos = computed(() => combos.value.slice(1))
   const fastestTimeSec = computed(() => {
     const times = combos.value.map(combo => combo.finishTimeSec).filter((time): time is number => typeof time === 'number')
     return times.length ? Math.min(...times) : undefined
@@ -311,7 +310,6 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     /** What is on screen: the loaded pages in the browser, the fetched page on the server. */
     combos,
     topCombo,
-    restCombos,
     fastestTimeSec,
     hasMore,
     loadingMore,
@@ -332,7 +330,6 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
      * parses it back out.
      */
     serializedQuery,
-    loadWheelOptions,
-    owned
+    loadWheelOptions
   }
 }

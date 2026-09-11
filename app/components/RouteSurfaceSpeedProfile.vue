@@ -17,7 +17,8 @@ const props = defineProps<{
   /**
    * Render the chart alone, without the card, the collapsible header, its
    * badge or tooltip - for a tab panel that already names and scopes the
-   * chart (`RideCourseAnalysis`). The race page keeps the default card.
+   * chart (`RideCourseAnalysis`). Every ranking page
+   * shows it this way; the card is what a caller outside the tabs would get.
    */
   flat?: boolean
   /**

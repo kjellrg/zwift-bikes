@@ -318,6 +318,30 @@ test.describe('race recommendation', () => {
     expect(served.segmentLinks.length).toBeGreaterThan(0)
   })
 
+  test('keeps every destination the organiser and the calendar own', async ({ page }) => {
+    await visit(page, SPLIT_BY_COURSE)
+    // Back to the calendar this race is listed on.
+    await expect(page.getByRole('link', { name: 'Zwift Racing League 2026/27 schedule' })).toHaveAttribute('href', '/events/zrl-2026-27')
+    // Out to the organiser, who owns signup, the rules and the results.
+    const official = page.getByRole('link', { name: 'Official event info' })
+    await expect(official).toHaveAttribute('target', '_blank')
+    await expect(official).toHaveAttribute('href', /^https?:\/\//)
+    await expect(page.getByText(/signup, full rules and results live with WTRL/)).toBeVisible()
+    // On to the route outside the event, with the difference spelled out.
+    const analysis = page.getByRole('link', { name: /See the full Makuri 40 route analysis/ })
+    await expect(analysis).toHaveAttribute('href', '/routes/makuri-40')
+    await expect(analysis.locator('..')).toContainText('this race\'s rule is the race\'s, not the route\'s')
+
+    // The breadcrumb trail a crawler walks: home, calendars, season, race.
+    expect(await page.evaluate(() => {
+      for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+        const schema = JSON.parse(script.textContent ?? '{}')
+        if (schema['@type'] === 'BreadcrumbList') return schema.itemListElement.map((item: { name: string }) => item.name)
+      }
+      return undefined
+    })).toEqual(['Home', 'Race calendars', 'Zwift Racing League 2026/27', 'Round 1 Week 3'])
+  })
+
   test('keeps the split-course table and the dark theme inside the viewport', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('nuxt-color-mode', 'dark'))
     await visit(page, SPLIT_BY_COURSE)
