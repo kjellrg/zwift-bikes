@@ -185,9 +185,7 @@ useHead(() => ({
             <dt class="text-xs text-muted">
               Dates
             </dt><dd class="text-base font-bold text-highlighted sm:text-lg">
-              {{ summary.startDate && summary.endDate
-                ? `${formatRaceDateShort(summary.startDate)} - ${formatRaceDateShort(summary.endDate)}`
-                : 'To come' }}
+              {{ formatSeasonSpan(summary) ?? 'To come' }}
             </dd>
           </div>
         </dl>

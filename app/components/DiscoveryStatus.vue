@@ -4,14 +4,20 @@
  * Rides matched, that they are still being fetched, that none matched, or
  * that the fetch failed. The filter rows above it stay on the pages - the
  * homepage has ranges and a surface, the segments page a kind, and they share
- * not one control - but the four states a list can be in are the same on both,
- * and one component is how they stay one vocabulary instead of two.
+ * not one control - but the states a list can be in are the same on each of
+ * them, and one component is how they stay one vocabulary instead of three.
  *
  * The matched Rides come through the default slot and the shape they load
  * into through `#skeleton`: a flat card grid on the homepage, world groups on
- * the segments page. Which of the two is on screen is decided here, so
- * neither page has to spell out that a skeleton and an empty message are
- * mutually exclusive.
+ * the segments page, round groups on a season page. Which of the two is on
+ * screen is decided here, so no page has to spell out that a skeleton and an
+ * empty message are mutually exclusive.
+ *
+ * The empty branch belongs to the pages that have filters, and says so - "No
+ * routes match your filters". A season page has none, so it does not render
+ * this component at all once its calendar is loaded and has nothing upcoming:
+ * a season being over is an answer in its own words, not a search that
+ * matched nothing. See `showsStatus` in `pages/events/[season]/index.vue`.
  */
 
 /** One counted noun of the count line, e.g. `{ value: 12, noun: 'climb' }` -> "12 climbs". Every noun these pages count takes a plain `-s`. */

@@ -1,5 +1,5 @@
 import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
-import type { Powerup, RaceFormat } from '../../shared/utils/events'
+import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
 
@@ -278,6 +278,17 @@ export function formatRaceDateRange(isoDate: string, isoEndDate?: string): strin
   const day = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' })
   const dayMonth = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
   return sameMonth ? `${day(from)}-${dayMonth(to)}` : `${dayMonth(from)} - ${dayMonth(to)}`
+}
+
+/**
+ * A Season's date span, as the hub's card and the season page's header both
+ * print it - one format, since they are the same fact in two places. Absent
+ * when the season has no rounds to span; each caller words that in its own
+ * voice, because a stat tile has less room than a card's stat row.
+ */
+export function formatSeasonSpan(summary: Pick<SeasonSummary, 'startDate' | 'endDate'>): string | undefined {
+  if (!summary.startDate || !summary.endDate) return undefined
+  return `${formatRaceDateShort(summary.startDate)} - ${formatRaceDateShort(summary.endDate)}`
 }
 
 /** Zwift's race powerups, as spelled in event listings. */

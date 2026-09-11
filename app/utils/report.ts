@@ -291,7 +291,7 @@ export function formatRideLine({ subject, ride, rider }: RideLineInputs): string
   const power = `${rider.powerW} W${ride.power === 'sprint' ? ' sprint power' : ''}`
   // The applied draft mode is already solo where the ride bars drafting
   // (`rideDraftMode`), which on its own reads as the rider's own choice.
-  const draft = `${DRAFT_MODE_LABELS[rider.draftMode]}`
+  const draft = DRAFT_MODE_LABELS[rider.draftMode]
     + (rider.draftMode === 'ttt' ? ` (${rider.tttRiders} riders)` : '')
     + (ride.draftingAllowed === false ? ' (this race bars drafting)' : '')
   const frames = ride.ttFramesAllowed === false ? 'TT frames barred' : undefined

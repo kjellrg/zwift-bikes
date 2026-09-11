@@ -57,6 +57,13 @@ onMounted(() => {
     .map(season => season.slug))
 })
 const isPastSeason = (season: EventSeason) => pastSeasonSlugs.value.has(season.slug)
+/**
+ * A series is listed while any of its seasons is still running. One whose
+ * every season has finished goes, seasons and all, into the collapsible
+ * below - a heading with nothing under it reads as broken, the same rule the
+ * segments page applies to a world its filters empty.
+ */
+const activeSeriesGroups = computed(() => seriesGroups.value.filter(group => group.seasons.some(season => !isPastSeason(season))))
 const pastSeasons = computed(() => sortSeasonsNewestFirst(seasons.filter(isPastSeason)))
 
 const siteConfig = useSiteConfig()
@@ -128,12 +135,8 @@ useHead({
       No race calendars are being tracked at the moment. Check back when the next season is announced.
     </p>
 
-    <!-- A series whose every season has finished goes with its seasons into
-         the collapsible below: a heading with nothing under it reads as
-         broken, the same rule the segments page applies to a world a filter
-         empties. -->
     <div
-      v-for="series in seriesGroups.filter(group => group.seasons.some(season => !isPastSeason(season)))"
+      v-for="series in activeSeriesGroups"
       :key="series.seriesSlug"
       class="space-y-4"
     >

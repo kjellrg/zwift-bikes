@@ -25,14 +25,24 @@ response, the results region leaving `aria-busy`), never sleeps: every spec
 imports them from `support.ts`, which owns the waits and the one helper that
 seeds a rider profile before a page reads it - locators stay in the spec that
 uses them. A response is stubbed only where the failure itself is what is
-under test - one recommend journey, and the aborted refetch in each of
-`route-discovery.spec.ts` and `segment-discovery.spec.ts`; a stub is never
-used to make a real journey faster. The one other stub is `site-flags.spec.ts`, which answers
+under test - one recommend journey, the aborted refetch in each of
+`route-discovery.spec.ts` and `segment-discovery.spec.ts`, and the failed
+season calendar in `event-discovery.spec.ts` (which closes two doors: the API
+and the route's extracted payload, which Nuxt would otherwise answer that
+navigation from); a stub is never used to make a real journey faster. The one other stub is `site-flags.spec.ts`, which answers
 `/api/site-flags` by hand: the flags live in Workers KV and the dev server
 only ever serves the defaults, so a hidden section or a message of the day
 cannot be seen any other way. `visit` waits for a ranking page's results;
 `visitPage` is for the pages without one (the discovery pages, events,
 profile).
+
+The events pages resolve next/upcoming/past post-mount from the browser's own
+clock, because they are prerendered and a build-time answer would ship frozen.
+So `event-discovery.spec.ts` pins the clock with `page.clock.setFixedTime`
+before navigating, and asserts against the real curated calendars.
+`setFixedTime` rather than `clock.install`: only `Date` has to be
+deterministic here, and freezing the timers with it would leave the app's own
+scheduling waiting for a tick the test never grants.
 
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.

@@ -46,9 +46,7 @@ const summary = computed(() => summariseSeason(props.season))
         <UIcon
           name="i-lucide-calendar-days"
           class="size-4 shrink-0"
-        />{{ summary.startDate && summary.endDate
-          ? `${formatRaceDateShort(summary.startDate)} - ${formatRaceDateShort(summary.endDate)}`
-          : 'Dates to come' }}
+        />{{ formatSeasonSpan(summary) ?? 'Dates to come' }}
       </span>
       <span class="inline-flex items-center gap-2">
         <UIcon

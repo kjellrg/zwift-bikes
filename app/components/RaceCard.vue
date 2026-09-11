@@ -39,31 +39,49 @@ const wrapper = computed(() => href.value ? ULink : 'div')
  * differently: either the organiser hasn't announced it, or they have and it
  * is run on a course the public catalog doesn't contain (ZRL's unlisted
  * "exclusive" routes), which is a course nothing can be ranked on.
+ *
+ * Keyed on a named course rather than on `categories.length`, because a group
+ * can exist with no course named at all - and telling that rider the course
+ * is missing from our data would blame us for a schedule the organiser hasn't
+ * published. This has to move with `isRacePublishable`, which is what
+ * actually decides there is no page: a new condition there without one here
+ * leaves this sentence naming the wrong culprit.
  */
-const noPageReason = computed(() => props.race.format && props.race.categories.length
+const noPageReason = computed(() => props.race.format && courses.value.some(course => course.name)
   ? 'this course isn\'t in our route data, so there is nothing to rank on it'
   : 'the organiser hasn\'t published the details yet')
 
 /**
- * One line per course, not one per Category group: where every group rides
- * the same route over the same laps there is only one course to name, and
- * repeating it under each group's label would be three ways of saying the
- * same thing. Where the groups split, each line is labelled with the group
- * it belongs to - that split IS the news.
+ * One line per distinct course, not one per Category group: where every group
+ * rides the same route over the same distance there is one course to name,
+ * and repeating it under each group's label would be three ways of saying the
+ * same thing. Groups that differ in any of it get a line each, labelled -
+ * that split IS the news, and it is why the lines are collapsed on what they
+ * actually show rather than on `hasSplitCourses`: two groups can share a
+ * route and a lap count and still be published at different distances.
  */
 const courses = computed(() => {
-  const groups = hasSplitCourses(props.race)
-    ? props.race.categories
-    : props.race.categories.slice(0, 1)
-  return groups.map(group => ({
-    key: formatCategoryGroup(group),
-    label: hasSplitCourses(props.race) ? formatCategoryGroup(group) : undefined,
-    name: group.routeName ?? group.route?.name,
-    worldName: group.route?.worldName,
-    // The organiser's own figure first, this site's computed total second -
-    // the same rule the race page's header follows, so a rider reads the
-    // distance they were told to expect.
-    distanceKm: group.officialDistanceKm ?? group.computed?.distanceKm
+  const byLine = new Map<string, { labels: string[], name?: string, worldName?: string, distanceKm?: number }>()
+  for (const group of props.race.categories) {
+    const line = {
+      name: group.routeName ?? group.route?.name,
+      worldName: group.route?.worldName,
+      // The organiser's own figure first, this site's computed total second -
+      // the same rule the race page's header follows, so a rider reads the
+      // distance they were told to expect.
+      distanceKm: group.officialDistanceKm ?? group.computed?.distanceKm
+    }
+    const key = `${line.name ?? ''}#${line.worldName ?? ''}#${line.distanceKm ?? ''}`
+    const entry = byLine.get(key) ?? { labels: [], ...line }
+    entry.labels.push(formatCategoryGroup(group))
+    byLine.set(key, entry)
+  }
+  const lines = [...byLine.values()]
+  return lines.map(line => ({
+    ...line,
+    key: line.labels.join(', '),
+    // A race with one course to its name doesn't need telling whose it is.
+    label: lines.length > 1 ? line.labels.join(', ') : undefined
   }))
 })
 </script>
