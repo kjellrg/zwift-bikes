@@ -3,8 +3,8 @@
  * (see `CONTEXT.md`), plus the click handlers that open them.
  *
  * `useState` rather than Nuxt UI's `useOverlay()`: the openers live in
- * deeply nested components (the header, `BikeFilterControls`,
- * `RiderProfileControls`) while the overlays themselves are mounted once in
+ * deeply nested components (the header, `RideEquipmentFilters`,
+ * `RideRiderSummary`) while the overlays themselves are mounted once in
  * `app.vue` with `v-model:open`, exactly like `AboutModal`. A shared piece
  * of global state is what lets those two ends meet without prop drilling,
  * and it matches the idiom the rest of the app's composables already use.

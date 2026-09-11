@@ -9,14 +9,14 @@ import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
  * beside the button - a restriction the rider cannot see is a restriction
  * they will blame the ranking for.
  *
- * Every control binds `usePreferences()` directly through its setter, the
- * same way `BikeFilterControls` does and for the same reason: the category
- * is one persisted value shared with the profile page, and a page-local
- * mirror of it is where a spurious refetch loop would come from. Search is
- * deliberately not here - it sits on the ranked list it filters.
+ * Every control binds `usePreferences()` directly through its setter: the
+ * category is one persisted value shared with the profile page, and a
+ * page-local mirror of it is where a spurious refetch loop would come from.
+ * Search is deliberately not here - it sits on the ranked list it filters.
  *
- * `loadPreferences()`/`loadGarage()` run here for the same child-before-
- * parent `onMounted` reason as in `BikeFilterControls`.
+ * `loadPreferences()`/`loadGarage()` run here because a child's `onMounted`
+ * fires before its parent's, so the stored values are in state before the
+ * page reads them - the same reason `RiderProfileControls` loads its own.
  */
 const props = defineProps<{
   /**
