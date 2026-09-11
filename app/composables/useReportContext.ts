@@ -13,8 +13,15 @@
  * The profile is the only genuinely personal item in here, so it's opt-in and
  * defaults to off - a rider who doesn't tick it still sends a useful report,
  * just one that may need a follow-up question.
+ *
+ * `ride` is the one thing this composable cannot read for itself: the laps,
+ * power, draft rule and TT rule a page fixed for the ranking the rider was
+ * looking at are the page's, not the rider's stored state, and a `?group=1`
+ * in the URL does not spell any of them out. Whichever link opened the form
+ * supplies it (see `ReportSeed`), already worded by `formatRideLine`, and it
+ * is absent on `/report` itself, which sits under no ranking.
  */
-export function useReportContext() {
+export function useReportContext(ride?: () => string | undefined) {
   const route = useRoute()
   const colorMode = useColorMode()
   const config = useRuntimeConfig()
@@ -59,9 +66,9 @@ export function useReportContext() {
   )
 
   const profile = computed(() => {
-    // The rider's normal page power - what route/event rankings actually
-    // used. (A sprint segment page ranks at the separate sprint power; this
-    // composable has no page context, so that value isn't threaded in here.)
+    // The rider's stored page power. What the ranking on screen was actually
+    // ridden at is the Ride line's business - a sprint segment ranks at the
+    // separate sprint power, and a race can override the draft mode below.
     const base = `${weightKg.value} kg, ${heightCm.value} cm, ${powerW.value} W `
       + `(${(powerW.value / weightKg.value).toFixed(2)} W/kg), unowned bikes assumed at stage ${defaultUnownedLevel.value}`
     // Only spell out team size when it can actually affect the numbers - race
@@ -96,8 +103,10 @@ export function useReportContext() {
 
   /** The block exactly as it will be sent - what the form shows and copies. */
   const contextText = computed(() => {
+    const rideLine = ride?.()
     const lines = [
       `Page:     ${pageUrl.value}`,
+      ...(rideLine ? [`Ride:     ${rideLine}`] : []),
       `Filters:  ${filters.value}`,
       `Build:    ${build.value}`,
       `Browser:  ${browser.value}`

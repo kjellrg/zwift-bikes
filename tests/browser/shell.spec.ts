@@ -94,24 +94,34 @@ test.describe('shell', () => {
     await expect(page.locator('main')).toBeFocused()
   })
 
-  test('opens the profile overlay on a plain click and the profile page on a modifier click', async ({ page, context, isMobile }) => {
-    await visit(page, ROUTE)
-    let entries = await nav(page, isMobile)
-    await entry(entries, 'My Profile').click()
-    await expect(profileOverlay(page)).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe(ROUTE)
-    await page.keyboard.press('Escape')
-    await expect(profileOverlay(page)).toHaveCount(0)
+  // Every entry whose content is also a real page: a plain click shows the
+  // Overlay, a modifier click opens the page. About was a button with no
+  // href until #215, so a modifier click on it did nothing at all.
+  for (const [name, path, dialogName] of [
+    ['My Profile', '/profile', 'My Profile'],
+    ['About', '/about', 'About ZwiftBikes']
+  ] as const) {
+    test(`opens the ${name} overlay on a plain click and its page on a modifier click`, async ({ page, context, isMobile }) => {
+      const overlay = page.getByRole('dialog', { name: dialogName })
+      await visit(page, ROUTE)
+      let entries = await nav(page, isMobile)
+      await expect(entry(entries, name)).toHaveAttribute('href', path)
+      await entry(entries, name).click()
+      await expect(overlay).toBeVisible()
+      expect(new URL(page.url()).pathname).toBe(ROUTE)
+      await page.keyboard.press('Escape')
+      await expect(overlay).toHaveCount(0)
 
-    entries = await nav(page, isMobile)
-    const popupPromise = context.waitForEvent('page')
-    await entry(entries, 'My Profile').click({ modifiers: ['ControlOrMeta'] })
-    const popup = await popupPromise
-    await popup.waitForURL('**/profile')
-    expect(new URL(page.url()).pathname).toBe(ROUTE)
-    await expect(profileOverlay(page)).toHaveCount(0)
-    await popup.close()
-  })
+      entries = await nav(page, isMobile)
+      const popupPromise = context.waitForEvent('page')
+      await entry(entries, name).click({ modifiers: ['ControlOrMeta'] })
+      const popup = await popupPromise
+      await popup.waitForURL(`**${path}`)
+      expect(new URL(page.url()).pathname).toBe(ROUTE)
+      await expect(overlay).toHaveCount(0)
+      await popup.close()
+    })
+  }
 
   test('hands the keyboard from the menu to an overlay and back to the toggle', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'the menu only exists on mobile')
@@ -125,14 +135,18 @@ test.describe('shell', () => {
 
     await page.keyboard.press('Enter')
     await expect(menu(page)).toBeVisible()
-    await entry(menu(page), 'My Profile').focus()
-    await page.keyboard.press('Enter')
-    await expect(profileOverlay(page)).toBeVisible()
-    await expect(menu(page)).toHaveCount(0)
-    expect(new URL(page.url()).pathname).toBe(ROUTE)
-    await page.keyboard.press('Escape')
-    await expect(profileOverlay(page)).toHaveCount(0)
-    await expect(menuToggle(page)).toBeFocused()
+    for (const [name, dialogName] of [['My Profile', 'My Profile'], ['About', 'About ZwiftBikes']] as const) {
+      if (!(await menu(page).isVisible())) await menuToggle(page).click()
+      const overlay = page.getByRole('dialog', { name: dialogName })
+      await entry(menu(page), name).focus()
+      await page.keyboard.press('Enter')
+      await expect(overlay).toBeVisible()
+      await expect(menu(page)).toHaveCount(0)
+      expect(new URL(page.url()).pathname).toBe(ROUTE)
+      await page.keyboard.press('Escape')
+      await expect(overlay).toHaveCount(0)
+      await expect(menuToggle(page)).toBeFocused()
+    }
   })
 
   test('carries the theme into an overlay', async ({ page, isMobile }) => {

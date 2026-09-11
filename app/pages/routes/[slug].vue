@@ -112,6 +112,9 @@ const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(ro
 // a distance by a finish time computed for the SAME lap count. See
 // `appliedRide` on `useRecommendRequest`.
 const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
+
+/** What a report filed from this page says the ranking was ridden as - see `formatRideLine`. */
+const reportRideLine = computed(() => formatRideLine({ ride: appliedRide.value, rider: appliedInputs.value }))
 const resolvedRide = computed(() => routeData.value ? rideForRoute(routeData.value, resultsLaps.value) : undefined)
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
 
@@ -516,7 +519,10 @@ useHead(() => {
         :loading-more="loadingMore"
         @show-more="showMore"
       />
-      <ReportDataLink :item="routeData?.name" />
+      <ReportDataLink
+        :item="routeData?.name"
+        :ride="reportRideLine"
+      />
     </div>
 
     <!-- Ride-only tabs follow the picker `laps` like the briefing; the

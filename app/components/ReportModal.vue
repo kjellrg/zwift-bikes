@@ -15,6 +15,7 @@ const open = defineModel<boolean>('open', { default: false })
 defineProps<{
   seedKind?: ReportKind
   seedItem?: string
+  seedRide?: string
   content?: ModalProps['content']
 }>()
 </script>
@@ -31,6 +32,7 @@ defineProps<{
       <ReportContent
         :seed-kind="seedKind"
         :seed-item="seedItem"
+        :seed-ride="seedRide"
       />
     </template>
   </UModal>

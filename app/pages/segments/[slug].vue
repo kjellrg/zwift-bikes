@@ -34,10 +34,21 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs,
+  appliedInputs, appliedRide,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
+
+/**
+ * What a report filed from this page says the ranking was ridden as - see
+ * `formatRideLine`. The kind comes off the applied Ride rather than
+ * `isSprint`, so the power and the word for it can never disagree.
+ */
+const reportRideLine = computed(() => formatRideLine({
+  subject: appliedRide.value.power === 'sprint' ? 'Sprint segment' : 'Climbing segment',
+  ride: appliedRide.value,
+  rider: appliedInputs.value
+}))
 
 // `?bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No `laps`:
 // there is no lap count here (see the Ride above).
@@ -473,7 +484,10 @@ useHead(() => {
         :loading-more="loadingMore"
         @show-more="showMore"
       />
-      <ReportDataLink :item="segmentData?.name" />
+      <ReportDataLink
+        :item="segmentData?.name"
+        :ride="reportRideLine"
+      />
     </div>
 
     <!-- A segment is ridden once, so both lap counts are 1 and there is no

@@ -86,8 +86,9 @@ function openGarageFromMenu(event) {
   returnsFocusToMenuToggle.value = true
 }
 
-function openAboutFromMenu() {
-  isAboutOpen.value = true
+function openAboutFromMenu(event) {
+  openAbout(event)
+  if (!event.defaultPrevented) return
   isMenuOpen.value = false
   returnsFocusToMenuToggle.value = true
 }
@@ -242,11 +243,14 @@ useHead({
           />
 
           <UButton
+            as="a"
+            href="/about"
+            aria-haspopup="dialog"
             icon="i-lucide-info"
             label="About"
             color="neutral"
             variant="ghost"
-            @click="isAboutOpen = true"
+            @click="openAbout"
           />
 
           <UButton
@@ -326,6 +330,9 @@ useHead({
           />
 
           <UButton
+            as="a"
+            href="/about"
+            aria-haspopup="dialog"
             icon="i-lucide-info"
             label="About"
             color="neutral"
@@ -366,6 +373,7 @@ useHead({
       :content="overlayContent"
       :seed-kind="reportSeed?.kind"
       :seed-item="reportSeed?.item"
+      :seed-ride="reportSeed?.ride"
     />
 
     <SiteMotdBanner />

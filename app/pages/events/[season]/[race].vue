@@ -351,6 +351,24 @@ watchEffect(() => {
   if (!endpoint) appliedRoute.value = undefined
   else if (routeData.value && recommendEndpoint(routeData.value.slug) === endpoint) appliedRoute.value = routeData.value
 })
+/**
+ * What a report filed from this page says the ranking was ridden as - see
+ * `formatRideLine`. The Category group is matched on the course and lap count
+ * the results were fetched for rather than read off the selector, which moves
+ * the moment it is clicked while the list underneath is still the old group's.
+ * Groups that tie on both race identically, so either name describes the
+ * ranking the report is about.
+ */
+const appliedGroup = computed(() => race!.categories.find(group =>
+  group.routeSlug
+  && recommendEndpoint(group.routeSlug) === appliedRide.value.endpoint
+  && group.laps === appliedRide.value.laps))
+const reportRideLine = computed(() => formatRideLine({
+  subject: appliedGroup.value ? formatCategoryGroup(appliedGroup.value) : undefined,
+  ride: appliedRide.value,
+  rider: appliedInputs.value
+}))
+
 const resultsTotals = computed(() => appliedRoute.value ? computeRouteTotals(appliedRoute.value, resultsLaps.value) : undefined)
 const resolvedRide = computed(() => appliedRoute.value ? rideForRoute(appliedRoute.value, resultsLaps.value, appliedRide.value.ttFramesAllowed === false) : undefined)
 
@@ -1049,7 +1067,10 @@ useHead(() => {
           :loading-more="loadingMore"
           @show-more="showMore"
         />
-        <ReportDataLink :item="`${raceTitle}${routeInfo ? ` (${routeInfo.name})` : ''}`" />
+        <ReportDataLink
+          :item="`${raceTitle}${routeInfo ? ` (${routeInfo.name})` : ''}`"
+          :ride="reportRideLine"
+        />
       </div>
 
       <!-- Ride-only tabs follow the selector, like the briefing; the

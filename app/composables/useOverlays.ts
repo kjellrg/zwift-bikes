@@ -25,6 +25,13 @@ export interface ReportSeed {
   kind: ReportKind
   /** Which frame, wheelset or route the link was next to. */
   item?: string
+  /**
+   * The APPLIED Ride the ranking above the link was computed for, already
+   * worded by `formatRideLine`. The report's auto-context can read the page
+   * URL and the stored filters on its own, but not the laps, power, draft
+   * rule or TT rule a page fixed for one ranking - only the page knows those.
+   */
+  ride?: string
 }
 
 /**
