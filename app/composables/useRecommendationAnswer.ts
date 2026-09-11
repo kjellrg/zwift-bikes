@@ -15,6 +15,8 @@ export interface RecommendationAnswerOptions {
   laps?: () => number
   /** The settled search term the ranking was fetched for (`bikeSearchDebounced`). */
   search: () => string
+  /** The Ride's own equipment and drafting rules, ahead of the answer - a race has them, a route does not. */
+  rideRules?: () => string | undefined
 }
 
 /**
@@ -42,6 +44,7 @@ export function useRecommendationAnswer(options: RecommendationAnswerOptions) {
       rideName,
       rider: options.rider(),
       laps: options.laps?.(),
+      rideRules: options.rideRules?.(),
       verifiedOnly: verifiedOnly.value,
       includeHaloBikes: includeHaloBikes.value,
       myBikesOnly: myBikesOnly.value,

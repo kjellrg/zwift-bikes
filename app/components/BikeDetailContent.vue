@@ -13,7 +13,7 @@ const props = defineProps<{ detail: BikeDetail }>()
 
 const { owned, load, setOwned, setWheelOwned, isWheelOwned } = useGarage()
 const { defaultUnownedLevel, powerW } = useRiderProfile()
-const { bikeDetailDropped, rankedFastestTimeSec } = useOverlays()
+const { bikeDetailDropped, rankedFastestTimeSec, rankedRideBarsTtFrames } = useOverlays()
 onMounted(() => load())
 
 /**
@@ -34,6 +34,17 @@ watch(() => props.detail, () => {
 const combo = computed(() => refetched.value ?? props.detail.combo)
 const frame = computed(() => combo.value.frame)
 const wheelset = computed(() => combo.value.wheelset)
+
+/**
+ * Whether this bike is absent from the ranking because the Ride outlaws it
+ * rather than because it lost. The drawer outlives a client-side navigation,
+ * so a TT frame opened on a route page is still open on the points race the
+ * rider clicks through to - where nothing the pipeline produces can name it,
+ * not the ranking and not the per-frame drill-down. It is not slow there; it
+ * is illegal there, and every number the drawer holds is still true of the
+ * page it was opened from.
+ */
+const barredByRide = computed(() => bikeDetailDropped.value && rankedRideBarsTtFrames.value && frame.value.category === 'tt')
 
 const isOwnedFrame = computed(() => owned.value[frame.value.id] !== undefined)
 const ownedFrameLevel = computed(() => owned.value[frame.value.id])
@@ -151,8 +162,10 @@ const routeUpgradeText = computed(() => {
   return `Seconds off ${rideText} at ${Math.round(powerW.value)} W${wheelText}, simulated at each stage over the route's own terrain.`
 })
 
+// No refetch for a barred bike: the drill-down is the same pipeline, past
+// the same legality filter, so it can only answer with an empty list.
 watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
-  if (!dropped || !props.detail.loadFrameCombos) return
+  if (!dropped || barredByRide.value || !props.detail.loadFrameCombos) return
   const token = ++refetchToken
   refetching.value = true
   try {
@@ -190,8 +203,10 @@ function toggleWheelOwned() {
 
 const finishTimeSec = computed(() => combo.value.finishTimeSec)
 // A dropped bike's own snapshot of the fastest time predates the change;
-// the list's current fastest is what it now trails.
-const fastestTimeSec = computed(() => (bikeDetailDropped.value ? rankedFastestTimeSec.value : undefined) ?? props.detail.fastestTimeSec)
+// the list's current fastest is what it now trails. Not for a barred bike:
+// it is not in that ranking at all, and its own time is for another ride
+// entirely, so the two subtract to a number about nothing.
+const fastestTimeSec = computed(() => (bikeDetailDropped.value && !barredByRide.value ? rankedFastestTimeSec.value : undefined) ?? props.detail.fastestTimeSec)
 const gapSec = computed(() => finishTimeSec.value !== undefined && fastestTimeSec.value !== undefined
   ? Math.max(0, finishTimeSec.value - fastestTimeSec.value)
   : undefined)
@@ -334,7 +349,15 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
     </section>
 
     <UAlert
-      v-if="bikeDetailDropped"
+      v-if="barredByRide"
+      color="warning"
+      variant="subtle"
+      icon="i-lucide-ban"
+      title="This bike is barred from the ride you are looking at"
+      description="TT frames cannot be started on it, so it is missing from the ranking rather than beaten by it - no upgrade stage would list it here. The numbers below are still those of the ride this drawer was opened from, and it stays eligible everywhere TT frames are."
+    />
+    <UAlert
+      v-else-if="bikeDetailDropped"
       color="warning"
       variant="subtle"
       icon="i-lucide-arrow-down-to-line"

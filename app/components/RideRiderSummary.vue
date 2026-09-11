@@ -18,7 +18,9 @@ import type { AppliedRiderInputs } from '../utils/recommendRequest'
  *
  * A draft mode a link supplied gets a "from link" marker: the strip is
  * where the rider reads which mode the times assume, so it is also where
- * they can drop the link's mode for their own saved one.
+ * they can drop the link's mode for their own saved one. Not under
+ * `draftLocked`, where no draft mode is honoured at all and the marker would
+ * offer to restore a saved value this ride would ignore just as thoroughly.
  */
 const props = defineProps<{
   /** The rider the results were ranked for - `useRecommendRequest().appliedInputs`. */
@@ -29,6 +31,8 @@ const props = defineProps<{
   hasLongClimb?: boolean
   /** Whether the effort slider edits sprint power - see `RiderProfileControls`. */
   sprintPower?: boolean
+  /** Whether this ride is ridden with no draft at all, which hides the draft controls beneath - see `RiderProfileControls`. */
+  draftLocked?: boolean
 }>()
 
 const { hasStoredProfile, draftModeFromLink, restoreDraftMode } = useRiderProfile()
@@ -67,7 +71,7 @@ const controlsId = useId()
         <!-- Restoring stores nothing; the refetch and the URL follow from the
              ref moving, as for any control. -->
         <FromLinkMarker
-          v-if="draftModeFromLink"
+          v-if="draftModeFromLink && !draftLocked"
           restore-label="Restore my saved draft mode"
           @restore="restoreDraftMode"
         />
@@ -122,6 +126,7 @@ const controlsId = useId()
         v-if="adjustEffort"
         :has-long-climb="hasLongClimb"
         :sprint-power="sprintPower"
+        :draft-locked="draftLocked"
       />
     </div>
   </div>

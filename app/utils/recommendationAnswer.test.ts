@@ -77,4 +77,17 @@ describe('buildRecommendationAnswer', () => {
     const answer = buildRecommendationAnswer({ ...base, search: ' Concept ' })
     expect(answer.assumptions).toContain('Halo bikes included; search: Concept.')
   })
+
+  it('leads with the ride\'s own rules where it has any, in the one string a crawler reads', () => {
+    const rules = 'TT bikes are disabled for this points race.'
+    const answer = buildRecommendationAnswer({ ...base, rideRules: rules })
+    expect(answer.summary).toBe(`${rules} ${buildRecommendationAnswer(base).summary}`)
+    // One string, so the visible answer and the FAQ structured data carry the rule alike.
+    expect(answer.text).toBe(`${answer.summary} ${answer.assumptions}`)
+  })
+
+  it('says nothing extra for a ride with no rules beyond physics', () => {
+    expect(buildRecommendationAnswer({ ...base, rideRules: undefined }).summary)
+      .toMatch(/^Our model puts /)
+  })
 })

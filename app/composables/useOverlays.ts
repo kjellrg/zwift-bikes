@@ -75,6 +75,12 @@ export function useOverlays() {
   // The fastest time on the loaded list, kept current for a dropped bike's
   // "behind the fastest" figure - its own snapshot of it predates the change.
   const rankedFastestTimeSec = useState<number | undefined>('overlay-ranked-fastest', () => undefined)
+  // Whether the Ride those results were ranked for bars TT frames. A barred
+  // frame is absent from every list the page can produce (the server drops it
+  // before the ranked pool, the drill-down pool and the hidden-frames list
+  // alike), so it reads as "dropped" without having been beaten by anything -
+  // see the attribution branch in `BikeDetailContent`.
+  const rankedRideBarsTtFrames = useState<boolean>('overlay-ranked-bars-tt', () => false)
   // True while the open overlay was opened from the mobile menu, which is
   // gone by the time the overlay closes - `app.vue` then sends focus to the
   // menu toggle instead of letting Reka return it to a detached entry. Set
@@ -114,9 +120,19 @@ export function useOverlays() {
    * would silently keep showing the old level's numbers. Marking it lets the
    * drawer say so instead, and say that the bike will not be listed once the
    * drawer closes. Cleared as soon as the bike is ranked again.
+   *
+   * `ride` is what the list was ranked for, so the drawer can tell a bike
+   * that lost on pace from one that was never allowed to start: an open
+   * drawer survives a client-side navigation, and a TT frame carried onto a
+   * points race is absent from the ranking for a reason that has nothing to
+   * do with how fast it is.
    */
-  function noteRankedFrames(combos: readonly { frame: { id: number }, finishTimeSec?: number }[]) {
+  function noteRankedFrames(
+    combos: readonly { frame: { id: number }, finishTimeSec?: number }[],
+    ride?: { ttFramesAllowed?: boolean }
+  ) {
     rankedFastestTimeSec.value = combos[0]?.finishTimeSec
+    rankedRideBarsTtFrames.value = ride?.ttFramesAllowed === false
     const current = bikeDetail.value
     if (!current || !isBikeDetailOpen.value) return
     bikeDetailDropped.value = !combos.some(combo => combo.frame.id === current.combo.frame.id)
@@ -188,6 +204,7 @@ export function useOverlays() {
     bikeDetail,
     bikeDetailDropped,
     rankedFastestTimeSec,
+    rankedRideBarsTtFrames,
     openBikeDetail,
     syncBikeDetail,
     noteRankedFrames,

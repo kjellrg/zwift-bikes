@@ -1,21 +1,30 @@
 import type { Ref } from 'vue'
-import { sharedViewFromQuery, sharedViewQueryPatch } from '../utils/sharedView'
+import { sharedViewFromQuery, sharedViewQueryPatch, type SharedViewSelectionKey } from '../utils/sharedView'
 
-/** The lap count on a page that ranks by one - a route page; a segment is ridden exactly once. */
-export interface SharedViewLaps {
-  laps: Ref<number>
+/**
+ * What a page ranks by beyond the Ride's identity, where it has such a thing:
+ * the lap count on a route, the category group on a race. A segment page
+ * passes none - it is ridden exactly once, by everybody.
+ */
+export interface SharedViewSelection {
+  /** The query key it rides under: `?laps=3`, `?group=1`. */
+  key: SharedViewSelectionKey
+  value: Ref<number>
+  /** The lowest selectable value: one lap, or the first category group. */
+  min: number
   /**
-   * The lap picker's ceiling, read when the link is applied (at mount)
-   * rather than snapshotted at setup, so the page can call this anywhere in
-   * its setup - before or after the route fetch the ceiling comes from.
+   * The ceiling, read when the link is applied (at mount) rather than
+   * snapshotted at setup, so the page can call this anywhere in its setup -
+   * before or after the fetch the ceiling comes from.
    */
-  maxLaps: () => number
+  max: () => number
 }
 
 /**
  * Carries a ranking page's shared view (see `CONTEXT.md`) in the URL:
- * `?laps=3&bike=tarmac&category=tt&draft=ttt`. The rules are in
- * `app/utils/sharedView.ts`; this is the Nuxt side of them, and it follows
+ * `?laps=3&bike=tarmac&category=tt&draft=ttt`, or `?group=1&...` on a race.
+ * The rules are in `app/utils/sharedView.ts`; this is the Nuxt side of them,
+ * and it follows
  * `useUrlState`'s two rules, plus one carry of its own (below the read):
  * a value a link supplied on the previous ranking page is written into this
  * page's URL on mount when the URL lacks it, so the view lasts the visit.
@@ -38,21 +47,22 @@ export interface SharedViewLaps {
  *
  * Reads `bikeCategory` and `draftMode` from their composables itself, the
  * way `useRecommendRequest` reaches the same stored state; the search refs
- * come from the page's request because they are the page's, not stored.
+ * and the selection come from the page because they are the page's own, not
+ * stored.
  * Called after `useRecommendRequest`, so its `onMounted` runs after the
  * request's own `load()` calls.
  */
 export function useSharedView(
   request: Pick<ReturnType<typeof useRecommendRequest>, 'bikeSearch' | 'bikeSearchDebounced'>,
-  lapCount?: SharedViewLaps
+  selection?: SharedViewSelection
 ) {
   const { param, replaceQuery } = useUrlState(useRoute(), useRouter())
   const { bikeCategory, categoryFromLink } = usePreferences()
   const { draftMode, draftModeFromLink } = useRiderProfile()
 
   onMounted(() => {
-    const view = sharedViewFromQuery(param, lapCount?.maxLaps())
-    if (view.laps !== undefined && lapCount) lapCount.laps.value = view.laps
+    const view = sharedViewFromQuery(param, selection && { key: selection.key, min: selection.min, max: selection.max() })
+    if (view.selection !== undefined && selection) selection.value.value = view.selection
     if (view.bike !== undefined) {
       // Both refs, not just the box: the debounce exists to hold keystrokes
       // back, and a link's term is already settled. Seeding only `bikeSearch`
@@ -83,9 +93,14 @@ export function useSharedView(
   })
 
   watch(
-    [() => lapCount?.laps.value, request.bikeSearchDebounced, bikeCategory, draftMode],
-    ([laps, bike, category, draft]) => {
-      replaceQuery(sharedViewQueryPatch({ laps, bike, category, draft }))
+    [() => selection?.value.value, request.bikeSearchDebounced, bikeCategory, draftMode],
+    ([value, bike, category, draft]) => {
+      replaceQuery(sharedViewQueryPatch({
+        selection: selection && value !== undefined ? { key: selection.key, value, min: selection.min } : undefined,
+        bike,
+        category,
+        draft
+      }))
     }
   )
 }

@@ -20,6 +20,16 @@ export interface RecommendationAnswerInputs {
   distanceKm?: number
   /** "Watopia Hilly Route in Watopia" - the ride as the page titles it. */
   rideName: string
+  /**
+   * The Ride's own equipment and drafting regulations, as one sentence ahead
+   * of the answer - "TT bikes are disabled for this points race, and WTRL
+   * turns drafting off, so the time below is ridden solo." Absent on a route
+   * or a segment, which have no rules beyond physics. It leads rather than
+   * follows because a rider deciding what to start on needs to know what is
+   * legal before they are told what is fastest, and it lives in the one
+   * string so the visible answer and the FAQ structured data cannot diverge.
+   */
+  rideRules?: string
   /** The rider the results on screen were computed for - `useRecommendRequest().appliedInputs`. */
   rider: AppliedRiderInputs
   /** The applied lap count on a route; `undefined` on a segment, which is ridden once from its timed start. */
@@ -34,7 +44,7 @@ export interface RecommendationAnswerInputs {
 }
 
 export interface RecommendationAnswer {
-  /** The one-sentence answer: equipment, pool, ride, time. */
+  /** The answer: the Ride's rules where it has any, then equipment, pool, ride, time. */
   summary: string
   /** The rider values and restrictions the time depends on, as a second smaller line. */
   assumptions: string
@@ -44,9 +54,10 @@ export interface RecommendationAnswer {
 
 /**
  * The visible best-bike answer and its structured-data twin, built from one
- * set of inputs so they can never disagree. Every restriction that narrowed
- * the pool is stated, because "fastest" is only true inside it: the garage
- * fallbacks (frames only, wheels only, or none - the server ranks the whole
+ * set of inputs so they can never disagree. The Ride's own rules come first
+ * where it has any (`rideRules`), then the verdict. Every restriction that
+ * narrowed the pool is stated, because "fastest" is only true inside it: the
+ * garage fallbacks (frames only, wheels only, or none - the server ranks the whole
  * catalog when the garage is empty), the category, verified-only, and the
  * Halo rule - which a directed search bypasses server-side, so a search term
  * flips the Halo clause too.
@@ -61,7 +72,8 @@ export function buildRecommendationAnswer(inputs: RecommendationAnswerInputs): R
         ? 'among all eligible frames with your wheels, within the current filters'
         : 'within the current filters'
   const speed = inputs.distanceKm ? ` (~${formatSpeedKmh(inputs.distanceKm, inputs.finishTimeSec)})` : ''
-  const summary = `Our model puts ${equipment} fastest ${pool} for ${inputs.rideName}: ${formatDuration(inputs.finishTimeSec)}${speed}.`
+  const verdict = `Our model puts ${equipment} fastest ${pool} for ${inputs.rideName}: ${formatDuration(inputs.finishTimeSec)}${speed}.`
+  const summary = inputs.rideRules ? `${inputs.rideRules} ${verdict}` : verdict
 
   const rider = inputs.rider
   const mode = rider.draftMode === 'ttt'
