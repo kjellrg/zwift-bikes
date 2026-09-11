@@ -116,11 +116,11 @@ const botTested = computed(() => isBotTested(props.combo))
           :class="botTested ? 'text-success' : ''"
         />{{ botTested ? 'Bot-tested equipment' : 'Includes estimated data' }}
         <!-- Only a measured frame has per-stage data, so only there does the
-             level mean anything - same gate as the card and the drawer. -->
+             stage mean anything - same gate as the card and the drawer. -->
         <span
           v-if="combo.frame.confidence === 'measured'"
           class="border-l border-default pl-2"
-        >Level {{ combo.frame.level }}{{ isOwned ? ', your bike' : ', assumed' }}</span>
+        >Stage {{ combo.frame.level }}{{ isOwned ? ', your bike' : ', assumed' }}</span>
       </li>
       <li
         v-for="note in notes"

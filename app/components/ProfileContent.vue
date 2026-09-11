@@ -63,7 +63,7 @@ watch(sprintPowerW, (value) => {
   pendingSprintPowerW.value = value
 })
 
-const defaultUnownedLevelOptions = [0, 1, 2, 3, 4, 5].map(level => ({ label: level === 0 ? 'Level 0 (stock, just unlocked)' : `Level ${level}`, value: level }))
+const defaultUnownedLevelOptions = [0, 1, 2, 3, 4, 5].map(level => ({ label: level === 0 ? 'Stage 0 (stock, just unlocked)' : `Stage ${level}`, value: level }))
 const bikeCategoryOptions: { label: string, value: BikeCategory | 'all' }[] = BIKE_CATEGORY_FILTERS
   .map(value => ({ label: value === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[value], value }))
 // Where the climb slider sits. Once a team pace is stored that is what it
@@ -197,7 +197,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-xs">
-        <label class="block text-xs font-medium text-muted mb-1">Assumed upgrade level for bikes you don't own</label>
+        <label class="block text-xs font-medium text-muted mb-1">Assumed upgrade stage for bikes you don't own</label>
         <USelectMenu
           :model-value="defaultUnownedLevel"
           value-key="value"
@@ -206,7 +206,7 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
           @update:model-value="(level: number) => setDefaultUnownedLevel(level)"
         />
         <p class="text-sm text-muted mt-1">
-          Your garage bikes use their actual upgrade level; other bikes use this assumed level.
+          Your garage bikes use their actual upgrade stage; other bikes use this assumed stage.
         </p>
       </div>
 

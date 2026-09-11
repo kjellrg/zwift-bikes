@@ -51,7 +51,7 @@ const frames = computed<ClassifiedBikeFrame[]>(() => {
 })
 
 const levelOptions = [0, 1, 2, 3, 4, 5].map(level => ({
-  label: level === 0 ? 'Level 0 (stock)' : `Level ${level}`,
+  label: level === 0 ? 'Stage 0 (stock)' : `Stage ${level}`,
   value: level
 }))
 
@@ -116,9 +116,9 @@ const activeTab = ref('bikes')
   <div class="space-y-8">
     <p class="text-muted mt-1">
       Mark which bike frames and wheels you own (and each frame's current
-      upgrade level - 0 = stock, just purchased, 5 = fully upgraded). Route
+      upgrade stage - 0 = stock, just purchased, 5 = fully upgraded). Route
       recommendations can then be limited to just your equipment, using their
-      real per-level performance.
+      real per-stage performance.
     </p>
 
     <UAlert
@@ -209,8 +209,8 @@ const activeTab = ref('bikes')
                 v-if="isOwned(frame.id)"
                 :text="
                   frame.confidence === 'estimated'
-                    ? 'ZwiftInsider doesn\'t bot-test this frame, so there are no per-stage numbers to apply - its upgrade level can\'t change its estimate'
-                    : 'This bike\'s current upgrade level (0 = stock, just purchased, 5 = fully upgraded)'
+                    ? 'ZwiftInsider doesn\'t bot-test this frame, so there are no per-stage numbers to apply - its upgrade stage can\'t change its estimate'
+                    : 'This bike\'s current upgrade stage (0 = stock, just purchased, 5 = fully upgraded)'
                 "
               >
                 <USelectMenu

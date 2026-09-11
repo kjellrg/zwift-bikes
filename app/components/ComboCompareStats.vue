@@ -25,10 +25,10 @@ defineProps<{ combo: ComboScore }>()
         {{ combo.wheelset ? (combo.wheelset.confidence === 'measured' ? 'Bot-tested' : 'Estimated') : 'Fixed disc' }}
       </dd>
     </div>
-    <!-- Only a measured frame has per-stage data, so only there is the level a statistic. -->
+    <!-- Only a measured frame has per-stage data, so only there is the stage a statistic. -->
     <div v-if="combo.frame.confidence === 'measured'">
       <dt class="text-muted">
-        Upgrade level
+        Upgrade stage
       </dt><dd class="text-highlighted tabular-nums">
         {{ combo.frame.level }} / 5
       </dd>

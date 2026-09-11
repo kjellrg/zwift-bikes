@@ -81,7 +81,7 @@ test.describe('equipment drawer', () => {
     // interaction stuttering for five route integrations.
     slowDrillDown = true
     const reranked = page.waitForResponse(isListingResponse)
-    await drawer(page).getByRole('button', { name: `Set upgrade level 4 for ${frameName}` }).click()
+    await drawer(page).getByRole('button', { name: `Set upgrade stage 4 for ${frameName}` }).click()
     await drillDown
     // Sampled without auto-retry, while the refetch is still in flight: the
     // claim is that the chart NEVER blanks, and a retrying assertion would
@@ -94,14 +94,14 @@ test.describe('equipment drawer', () => {
 
     // Stage 0 is the just-bought bike, so the marker reads the curve's own
     // zero and the ride gets slower, while the curve itself stays put.
-    await rerank(page, () => drawer(page).getByRole('button', { name: `Set upgrade level 0 for ${frameName}` }).click())
-    await expect(drawer(page).getByRole('button', { name: `Set upgrade level 0 for ${frameName}`, pressed: true })).toBeVisible()
+    await rerank(page, () => drawer(page).getByRole('button', { name: `Set upgrade stage 0 for ${frameName}` }).click())
+    await expect(drawer(page).getByRole('button', { name: `Set upgrade stage 0 for ${frameName}`, pressed: true })).toBeVisible()
     await expect(routeCurveMarker(page)).toContainText('now +0.0')
     expect(secondsOf(await finishEstimate(page).innerText())).toBeGreaterThan(secondsOf(timeAtDefault))
     expect(await routeCurve(page).getAttribute('aria-label')).toBe(curveAtDefault)
 
     // Raising it again puts the estimate back where it started.
-    await rerank(page, () => drawer(page).getByRole('button', { name: `Set upgrade level 5 for ${frameName}` }).click())
+    await rerank(page, () => drawer(page).getByRole('button', { name: `Set upgrade stage 5 for ${frameName}` }).click())
     await expect(finishEstimate(page)).toHaveText(timeAtDefault)
   })
 
@@ -117,13 +117,13 @@ test.describe('equipment drawer', () => {
     const timeAtDefault = await finishEstimate(page).innerText()
 
     await rerank(page, () => drawer(page).getByRole('button', { name: 'Add frame to garage' }).click())
-    await rerank(page, () => drawer(page).getByRole('button', { name: `Set upgrade level 0 for ${frameName}` }).click())
+    await rerank(page, () => drawer(page).getByRole('button', { name: `Set upgrade stage 0 for ${frameName}` }).click())
 
     await expect(drawer(page).getByText('This bike has dropped off the results you have loaded')).toBeVisible()
     await expect(rows(page).getByRole('button', { name: `Details for ${frameName}` })).toHaveCount(0)
     // Refetched through the drill-down rather than left on the numbers the
     // card last carried, and the notice says which of the two it is showing.
-    await expect(drawer(page)).toContainText('The numbers below are for this level.')
+    await expect(drawer(page)).toContainText('The numbers below are for this stage.')
     expect(secondsOf(await finishEstimate(page).innerText())).toBeGreaterThan(secondsOf(timeAtDefault))
     await expect(routeCurveMarker(page)).toContainText('now +0.0')
   })

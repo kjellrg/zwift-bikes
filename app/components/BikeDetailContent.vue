@@ -307,7 +307,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
         v-if="isOwnedFrame && frame.confidence === 'measured'"
         class="flex flex-wrap items-center gap-2 text-sm"
       >
-        <span class="text-muted">Your upgrade level</span>
+        <span class="text-muted">Your upgrade stage</span>
         <div class="flex items-center gap-0.5">
           <button
             v-for="level in [0, 1, 2, 3, 4, 5]"
@@ -315,7 +315,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
             type="button"
             class="flex size-6 items-center justify-center rounded text-xs font-medium transition-colors"
             :class="level === ownedFrameLevel ? 'bg-primary text-inverted' : 'bg-elevated text-muted hover:bg-accented'"
-            :aria-label="`Set upgrade level ${level} for ${frame.name}`"
+            :aria-label="`Set upgrade stage ${level} for ${frame.name}`"
             :aria-pressed="level === ownedFrameLevel"
             @click="setOwned(frame.id, level)"
           >
@@ -327,7 +327,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
         v-else
         class="text-xs text-muted"
       >
-        Scored at upgrade level {{ frame.level }}<template v-if="!isOwnedFrame && frame.confidence === 'measured'">
+        Scored at upgrade stage {{ frame.level }}<template v-if="!isOwnedFrame && frame.confidence === 'measured'">
           (your default for bikes you don't own - change it in your profile)
         </template>.
       </p>
@@ -339,7 +339,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
       variant="subtle"
       icon="i-lucide-arrow-down-to-line"
       title="This bike has dropped off the results you have loaded"
-      :description="`At level ${currentLevel} it is slow enough to rank below every bike shown. ${refetching ? 'Fetching its numbers at this level.' : refetched ? 'The numbers below are for this level.' : 'The numbers below are from before the change.'} Once you close this drawer it will not be listed until you show more results or raise its level.`"
+      :description="`At stage ${currentLevel} it is slow enough to rank below every bike shown. ${refetching ? 'Fetching its numbers at this stage.' : refetched ? 'The numbers below are for this stage.' : 'The numbers below are from before the change.'} Once you close this drawer it will not be listed until you show more results or raise its stage.`"
     />
 
     <section

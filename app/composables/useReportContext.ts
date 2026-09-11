@@ -63,7 +63,7 @@ export function useReportContext() {
     // used. (A sprint segment page ranks at the separate sprint power; this
     // composable has no page context, so that value isn't threaded in here.)
     const base = `${weightKg.value} kg, ${heightCm.value} cm, ${powerW.value} W `
-      + `(${(powerW.value / weightKg.value).toFixed(2)} W/kg), unowned bikes assumed at level ${defaultUnownedLevel.value}`
+      + `(${(powerW.value / weightKg.value).toFixed(2)} W/kg), unowned bikes assumed at stage ${defaultUnownedLevel.value}`
     // Only spell out team size when it can actually affect the numbers - race
     // mode has no parameters at all, so its name is the whole story.
     const draft = draftMode.value === 'ttt'

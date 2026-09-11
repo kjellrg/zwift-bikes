@@ -409,10 +409,10 @@ published chart's stage-2 transcription defect (see above), not the bike.
 
 ## Practical guidance
 
-- **Set your real levels in the garage.** An un-upgraded bike can be 30–60 s/hr
+- **Set your real stages in the garage.** An un-upgraded bike can be 30–60 s/hr
   off its maxed self; comparing your stage-2 frame against everyone else's
   stage-5 numbers is the single biggest source of "the app says X but I ride Y".
-- **Unowned bikes default to level 5** on the Profile page. That's an
+- **Unowned bikes default to stage 5** on the Profile page. That's an
   aspirational comparison — useful for shopping, misleading for racing. Drop it
   to 0 if you want to see what you'd actually get on day one.
 - **The last stage is worth the most on TT frames**, and disproportionately so

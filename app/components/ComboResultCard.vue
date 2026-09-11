@@ -75,7 +75,7 @@ function toggleFrameOwned() {
 
 /**
  * Lets riders adjust the owned upgrade level (0-5) right from the card: the
- * "Level N" badge of an owned frame opens a popover with a slider. The
+ * "Stage N" badge of an owned frame opens a popover with a slider. The
  * slider follows the same commit-on-release pattern as the profile sliders
  * (#155): dragging only moves `pendingLevel`, the garage - and with it the
  * recommend refetch - updates on release.
@@ -421,7 +421,7 @@ watch(() => props.combo, () => {
         </UBadge>
       </UTooltip>
       <!--
-        An owned frame's level is a button that looks like the badge next to
+        An owned frame's stage is a button that looks like the badge next to
         it but reads as clickable (chevron, hover ring): it opens a slider
         rather than a row of six digits, which sat oddly among the badges.
       -->
@@ -430,27 +430,27 @@ watch(() => props.combo, () => {
         v-model:open="levelPopoverOpen"
         :ui="{ content: 'p-3 w-64' }"
       >
-        <UTooltip text="Your upgrade level for this bike - click to change it">
+        <UTooltip text="Your upgrade stage for this bike - click to change it">
           <UButton
             color="neutral"
             variant="subtle"
             size="xs"
             icon="i-lucide-gauge"
             trailing-icon="i-lucide-chevron-down"
-            :aria-label="`Change upgrade level for ${combo.frame.name}, currently level ${combo.frame.level}`"
+            :aria-label="`Change upgrade stage for ${combo.frame.name}, currently stage ${combo.frame.level}`"
           >
-            Level {{ combo.frame.level }}
+            Stage {{ combo.frame.level }}
           </UButton>
         </UTooltip>
         <template #content>
           <div class="space-y-2">
-            <label class="block text-xs font-medium text-muted">Upgrade level: {{ pendingLevel }}</label>
+            <label class="block text-xs font-medium text-muted">Upgrade stage: {{ pendingLevel }}</label>
             <USlider
               :model-value="pendingLevel"
               :min="0"
               :max="5"
               :step="1"
-              :aria-label="`Upgrade level for ${combo.frame.name}`"
+              :aria-label="`Upgrade stage for ${combo.frame.name}`"
               @update:model-value="(value: number | undefined) => { pendingLevel = value ?? pendingLevel }"
               @change="commitFrameLevel"
             />
@@ -462,14 +462,14 @@ watch(() => props.combo, () => {
       </UPopover>
       <UTooltip
         v-else-if="combo.frame.confidence === 'measured'"
-        text="You don't own this bike - scored at your default assumed level for unowned bikes (change on the Profile page)"
+        text="You don't own this bike - scored at your default assumed stage for unowned bikes (change on the Profile page)"
       >
         <UBadge
           color="neutral"
           variant="subtle"
           icon="i-lucide-gauge"
         >
-          Level {{ combo.frame.level }}
+          Stage {{ combo.frame.level }}
         </UBadge>
       </UTooltip>
     </div>
