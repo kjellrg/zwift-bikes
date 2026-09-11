@@ -326,7 +326,7 @@ useHead(() => {
           v-if="isFirstLoad"
           class="space-y-4"
         >
-          <ComboResultCardSkeleton />
+          <RideRecommendationSkeleton />
         </div>
         <template v-else>
           <p

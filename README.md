@@ -28,9 +28,9 @@ by verified test data or an estimate.*
   power. The rankings aim to reflect how equipment actually behaves in-game —
   which often differs from real-world cycling.
 - **Explore routes and segments.** See each route's surface breakdown
-  (road / gravel / cobbles), climb profile and lap info, plus its named
-  climbs and sprints — and get recommendations scoped to a single climb or
-  sprint, not just the whole route.
+  (road / gravel / cobbles), climb profile and lap info — and get
+  recommendations scoped to a single climb or sprint, not just the whole
+  route.
 - **Ride what you own.** Keep a Garage of your bikes, wheels and frame
   upgrade levels, and filter recommendations down to it — or to "verified
   only" results backed by real test data rather than estimates.
@@ -73,6 +73,8 @@ npm install        # install dependencies
 npm run dev        # dev server on http://localhost:3000
 npm run typecheck  # TypeScript checks
 npm run lint       # add -- --fix to auto-fix
+npm test           # vitest unit suite
+npm run test:browser  # Playwright journeys through the dev server, see tests/browser/README.md
 npm run build      # production build; npm run preview to serve it locally
 ```
 

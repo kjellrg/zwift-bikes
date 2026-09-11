@@ -4,8 +4,8 @@
  * shared component so the wording can't drift between the route and segment
  * pages, same reasoning as `EventsDisclaimer`.
  *
- * Deliberately one link per *list* rather than one per `ComboResultCard`: a
- * per-card link would be several hundred of them on a route page, all
+ * Deliberately one link per *list* rather than one per `RideAlternativeRow`: a
+ * per-row link would be several hundred of them on a route page, all
  * competing with the quick-add-to-garage controls, for something a rider does
  * once in a blue moon.
  *

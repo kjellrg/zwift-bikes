@@ -7,7 +7,7 @@ import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
  * fastest, where its numbers come from, and the same three paths the
  * recommendation offers - the drawer, the garage, the frame's other wheels -
  * plus the comparison checkbox. Its own component so each row owns its drawer
- * sync and its wheel-list state, the way `ComboResultCard` did.
+ * sync and its wheel-list state.
  */
 const props = defineProps<{
   combo: ComboScore
@@ -38,7 +38,7 @@ const { openDetail } = useComboDetail({
 // the stage unowned bikes are scored and displayed at everywhere else - so
 // adding a bike never moves it in the ranking. The garage modal's own add
 // uses the same default; the two must agree, or the same action persists a
-// different stage depending on where it was clicked (see `ComboResultCard`).
+// different stage depending on where it was clicked (see `GarageContent`).
 const { owned, setOwned } = useGarage()
 const { defaultUnownedLevel } = useRiderProfile()
 const isOwned = computed(() => owned.value[props.combo.frame.id] !== undefined)
@@ -47,7 +47,7 @@ function toggleOwned() {
 }
 
 // The tie check quantises the gap the way `formatDurationGap` does (hundredths), so a row
-// that would render `+0.00s` shows its time instead - same rule as `ComboResultCard`.
+// that would render `+0.00s` shows its time instead.
 const isFastest = computed(() => props.combo.finishTimeSec !== undefined
   && (props.fastestTimeSec === undefined || Math.round((props.combo.finishTimeSec - props.fastestTimeSec) * 100) <= 0))
 const botTested = computed(() => isBotTested(props.combo))

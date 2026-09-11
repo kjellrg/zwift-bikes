@@ -479,7 +479,7 @@ export interface TttPowerPlan {
  * visibility check, which always used the rider's normal power for exactly
  * this reason. The returned blocks' `climbSpeedMps`/`estDurationSec` are
  * re-timed at the climb power - that is the pace they are actually ridden
- * at, and what the race plan panel shows.
+ * at, and what the TTT plan tab shows.
  */
 export function tttPowerPlan(geometry: RouteGeometry, climbWkg: number, weightKg: number, riderPowerW: number): TttPowerPlan | undefined {
   const climbPowerW = climbWkg * weightKg

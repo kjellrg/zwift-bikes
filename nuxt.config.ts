@@ -163,16 +163,7 @@ export default defineNuxtConfig({
         'lucide:sprout',
         'lucide:waves',
         'lucide:stone',
-        'lucide:mountain-snow',
-        // `POWERUP_ICONS` in app/utils/labels.ts - object lookup, invisible
-        // to `scan`, rendered by the event race pages' powerup badges.
-        'lucide:feather',
-        'lucide:wind',
-        'lucide:truck',
-        'lucide:ghost',
-        'lucide:anvil',
-        'lucide:tractor',
-        'lucide:sandwich'
+        'lucide:mountain-snow'
       ]
     }
   },

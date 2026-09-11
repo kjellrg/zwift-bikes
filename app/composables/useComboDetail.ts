@@ -16,9 +16,8 @@ export interface ComboDetailSource {
  * combo across refetches. Shared by the recommendation block and every
  * ranked row so the two can't disagree about what a drawer is opened with.
  *
- * The watcher is immediate on purpose, the same reason `ComboResultCard`
- * gives: a refetch can move a bike between component instances rather than
- * update one in place (the fastest combo renders in its own slot, the rest
+ * The watcher is immediate on purpose: a refetch can move a bike between
+ * component instances rather than update one in place (the fastest combo renders in its own slot, the rest
  * keyed by frame and wheelset), so only a watcher that also runs on mount
  * reaches a drawer whose bike just became the fastest. `syncBikeDetail`
  * itself ignores every combo but the drawer's own.

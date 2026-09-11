@@ -192,8 +192,8 @@ watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
 }, { immediate: true })
 const isOwnedWheel = computed(() => !!wheelset.value && isWheelOwned(wheelset.value.key))
 
-// Same default as the card's quick-add and the garage modal - see the
-// comment on `defaultUnownedLevel` in `ComboResultCard.vue`.
+// Same default as the ranking's quick-adds and the garage modal - see the
+// comment on `defaultUnownedLevel` in `RideRecommendation.vue`.
 function toggleFrameOwned() {
   setOwned(frame.value.id, isOwnedFrame.value ? null : defaultUnownedLevel.value)
 }

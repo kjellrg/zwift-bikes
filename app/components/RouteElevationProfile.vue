@@ -6,8 +6,8 @@ import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 const props = defineProps<{
   route: RouteWithMeta
   laps?: number
-  /** Already lap-expanded occurrences, as used by the sibling `RouteClimbs`/`RouteSprints` cards - reused here so a
-   * climb/sprint's position lines up with those cards without re-deriving lap expansion a second way. */
+  /** Already lap-expanded occurrences, as the Segments tab (`RideCourseAnalysis`) lists them - reused here so a
+   * climb/sprint's position lines up with that list without re-deriving lap expansion a second way. */
   climbs?: RouteClimbOccurrence[]
   sprints?: (RouteSegmentPlacement & SegmentOccurrence)[]
   /**

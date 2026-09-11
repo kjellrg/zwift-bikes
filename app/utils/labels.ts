@@ -55,14 +55,6 @@ export const TERRAIN_COLORS: Record<TerrainCategory, 'success' | 'primary' | 'wa
 }
 
 /** Strava-style climb categories, steepest/hardest (HC) to gentlest (4). Not every mapped climb has one. */
-export const CLIMB_TYPE_LABELS: Record<'HC' | '4' | '3' | '2' | '1', string> = {
-  HC: 'Hors Catégorie',
-  1: 'Category 1',
-  2: 'Category 2',
-  3: 'Category 3',
-  4: 'Category 4'
-}
-
 export const CLIMB_TYPE_COLORS: Record<'HC' | '4' | '3' | '2' | '1', 'error' | 'warning' | 'primary' | 'success'> = {
   HC: 'error',
   1: 'error',
@@ -300,15 +292,4 @@ export const POWERUP_LABELS: Record<Powerup, string> = {
   anvil: 'Anvil',
   steamroller: 'Steamroller',
   burrito: 'Burrito'
-}
-
-/** Icons referenced only via this lookup - they're added to `icon.clientBundle` in `nuxt.config.ts` by hand, since the scanner can't see them here. */
-export const POWERUP_ICONS: Record<Powerup, string> = {
-  feather: 'i-lucide-feather',
-  aero: 'i-lucide-wind',
-  draft: 'i-lucide-truck',
-  ghost: 'i-lucide-ghost',
-  anvil: 'i-lucide-anvil',
-  steamroller: 'i-lucide-tractor',
-  burrito: 'i-lucide-sandwich'
 }

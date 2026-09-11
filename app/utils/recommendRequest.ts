@@ -201,7 +201,7 @@ export function buildRecommendQuery(inputs: RiderInputs, ride: Ride): RecommendQ
     // One page, exactly as deep as the endpoint will serve - see `RECOMMEND_MAX_LIMIT`.
     limit: RECOMMEND_MAX_LIMIT,
     // One row per bike: a frame's other wheels live behind the result row's
-    // own disclosure (`ComboWheelAlternatives`, `ComboResultCard`), not as repeat rows that spend
+    // own disclosure (`ComboWheelAlternatives` in `RideAlternativeRow`), not as repeat rows that spend
     // the page's nine slots - and the simulated-ordering window with them -
     // on the same bike two or three times.
     maxWheelsetsPerFrame: 1,
