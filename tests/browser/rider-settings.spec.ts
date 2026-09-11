@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
-import { isListingResponse, isListingUrl, ready, rerank, seedRiderProfile, visit } from './support'
+import { expect, test, type Page } from '@playwright/test'
+import { dragThumb, isListingResponse, isListingUrl, ready, rerank, seedRiderProfile, visit } from './support'
 
 /**
  * Rider settings and Shared views (issue #209): a slider commits on release
@@ -246,28 +246,6 @@ test.describe('rider settings', () => {
     await expect(finishTime(page)).toHaveText(formatDuration(data.combos[0]!.finishTimeSec!))
   })
 })
-
-/**
- * A real pointer drag on a slider thumb: press, move across steps, release.
- * Reka's slider moves the value on every pointer move and commits (`change`)
- * on the release, which is the contract these journeys check - so no
- * keyboard shortcuts and no `fill`. `during` runs after each move, while the
- * pointer is still down.
- */
-async function dragThumb(page: Page, thumb: Locator, dx: number, during?: () => Promise<void>) {
-  const box = await thumb.boundingBox()
-  expect(box).toBeTruthy()
-  const x = box!.x + box!.width / 2
-  const y = box!.y + box!.height / 2
-  await page.mouse.move(x, y)
-  await page.mouse.down()
-  const steps = 4
-  for (let step = 1; step <= steps; step++) {
-    await page.mouse.move(x + (dx * step) / steps, y)
-    await during?.()
-  }
-  await page.mouse.up()
-}
 
 /** Counts recommend listing requests from now on - the way to assert that nothing was requested. */
 function countListingRequests(page: Page) {

@@ -91,6 +91,29 @@ watch(climbSliderWkg, (value) => {
 // Derived from the committed value, not the pending one - the readout is a
 // profile fact and should match what route pages will actually rank with.
 const powerWkg = computed(() => powerW.value / weightKg.value)
+
+// Every control here is named by its own `aria-label` - the names the browser
+// journeys resolve it by - and every visible label is tied to the control it
+// sits above, which it was not before. How depends on the control:
+//
+// - A `USelectMenu` puts its `id` on the trigger button, so `for`/`id` is a
+//   real label association and clicking the label focuses the control.
+// - A `USlider` puts its `id` on the track, not on the thumb that carries
+//   `role="slider"`, so `for` would point at nothing labelable. Its label is
+//   the live readout ("Rider weight: 82 kg"), which it forwards to the thumb
+//   as `aria-describedby` - one of the few attributes it does forward. The
+//   value is then announced with the control instead of being stranded text
+//   beside it, and `aria-label` stays the name (passing `aria-labelledby`
+//   would replace it with the readout, value and all).
+const weightLabelId = useId()
+const heightLabelId = useId()
+const powerLabelId = useId()
+const sprintPowerLabelId = useId()
+const unownedStageId = useId()
+const bikeCategoryId = useId()
+const draftModeId = useId()
+const tttRidersLabelId = useId()
+const tttClimbLabelId = useId()
 </script>
 
 <template>
@@ -109,13 +132,17 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
 
     <div class="rounded-lg border border-default p-4 space-y-6">
       <div class="max-w-md">
-        <label class="block text-xs font-medium text-muted mb-1">Rider weight: {{ pendingWeightKg }} kg</label>
+        <label
+          :id="weightLabelId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Rider weight: {{ pendingWeightKg }} kg</label>
         <USlider
           :model-value="pendingWeightKg"
           :min="40"
           :max="130"
           :step="1"
           aria-label="Rider weight in kilograms"
+          :aria-describedby="weightLabelId"
           @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = sliderValue(value, pendingWeightKg) }"
           @change="commitWeight"
         />
@@ -128,13 +155,17 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-md">
-        <label class="block text-xs font-medium text-muted mb-1">Rider height: {{ pendingHeightCm }} cm</label>
+        <label
+          :id="heightLabelId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Rider height: {{ pendingHeightCm }} cm</label>
         <USlider
           :model-value="pendingHeightCm"
           :min="100"
           :max="220"
           :step="1"
           aria-label="Rider height in centimetres"
+          :aria-describedby="heightLabelId"
           @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = sliderValue(value, pendingHeightCm) }"
           @change="commitHeight"
         />
@@ -147,13 +178,17 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-md">
-        <label class="block text-xs font-medium text-muted mb-1">Race power (FTP): {{ pendingPowerW }} W</label>
+        <label
+          :id="powerLabelId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Race power (FTP): {{ pendingPowerW }} W</label>
         <USlider
           :model-value="pendingPowerW"
           :min="POWER_W_RANGE.min"
           :max="POWER_W_RANGE.max"
           :step="POWER_W_RANGE.step"
           aria-label="Race power in watts"
+          :aria-describedby="powerLabelId"
           @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = sliderValue(value, pendingPowerW) }"
           @change="commitPower"
         />
@@ -166,13 +201,17 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-md">
-        <label class="block text-xs font-medium text-muted mb-1">Sprint power: {{ pendingSprintPowerW }} W</label>
+        <label
+          :id="sprintPowerLabelId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Sprint power: {{ pendingSprintPowerW }} W</label>
         <USlider
           :model-value="pendingSprintPowerW"
           :min="SPRINT_POWER_W_RANGE.min"
           :max="SPRINT_POWER_W_RANGE.max"
           :step="SPRINT_POWER_W_RANGE.step"
           aria-label="Sprint power in watts"
+          :aria-describedby="sprintPowerLabelId"
           @update:model-value="(value: number | number[] | undefined) => { pendingSprintPowerW = sliderValue(value, pendingSprintPowerW) }"
           @change="commitSprintPower"
         />
@@ -197,12 +236,17 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-xs">
-        <label class="block text-xs font-medium text-muted mb-1">Assumed upgrade stage for bikes you don't own</label>
+        <label
+          :for="unownedStageId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Assumed upgrade stage for bikes you don't own</label>
         <USelectMenu
+          :id="unownedStageId"
           :model-value="defaultUnownedLevel"
           value-key="value"
           :items="defaultUnownedLevelOptions"
           :search-input="false"
+          aria-label="Assumed upgrade stage for bikes you don't own"
           @update:model-value="(level: number) => setDefaultUnownedLevel(level)"
         />
         <p class="text-sm text-muted mt-1">
@@ -211,8 +255,12 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-xs">
-        <label class="block text-xs font-medium text-muted mb-1">Default bike category</label>
+        <label
+          :for="bikeCategoryId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Default bike category</label>
         <USelectMenu
+          :id="bikeCategoryId"
           :model-value="savedBikeCategory"
           value-key="value"
           :items="bikeCategoryOptions"
@@ -240,8 +288,12 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
       </div>
 
       <div class="max-w-xs">
-        <label class="block text-xs font-medium text-muted mb-1">Default draft mode</label>
+        <label
+          :for="draftModeId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Default draft mode</label>
         <USelectMenu
+          :id="draftModeId"
           :model-value="savedDraftMode"
           value-key="value"
           :items="DRAFT_MODE_OPTIONS"
@@ -261,13 +313,17 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
         v-if="draftMode === 'ttt'"
         class="max-w-md"
       >
-        <label class="block text-xs font-medium text-muted mb-1">TTT riders: {{ pendingRiders }}</label>
+        <label
+          :id="tttRidersLabelId"
+          class="block text-xs font-medium text-muted mb-1"
+        >TTT riders: {{ pendingRiders }}</label>
         <USlider
           :model-value="pendingRiders"
           :min="TTT_MIN_RIDERS"
           :max="TTT_MAX_RIDERS"
           :step="1"
           aria-label="Riders in the paceline"
+          :aria-describedby="tttRidersLabelId"
           @update:model-value="(value: number | number[] | undefined) => { pendingRiders = sliderValue(value, pendingRiders) }"
           @change="commitRiders"
         />
@@ -283,13 +339,17 @@ const powerWkg = computed(() => powerW.value / weightKg.value)
         v-if="draftMode === 'ttt'"
         class="max-w-md"
       >
-        <label class="block text-xs font-medium text-muted mb-1">Team climb pace: {{ pendingClimbWkg.toFixed(1) }} W/kg{{ tttClimbWkg === undefined ? ' (not set - your normal power)' : '' }}</label>
+        <label
+          :id="tttClimbLabelId"
+          class="block text-xs font-medium text-muted mb-1"
+        >Team climb pace: {{ pendingClimbWkg.toFixed(1) }} W/kg{{ tttClimbWkg === undefined ? ' (not set - your normal power)' : '' }}</label>
         <USlider
           :model-value="pendingClimbWkg"
           :min="TTT_MIN_CLIMB_WKG"
           :max="TTT_MAX_CLIMB_WKG"
           :step="0.1"
           aria-label="Team climb pace in watts per kilogram"
+          :aria-describedby="tttClimbLabelId"
           @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = sliderValue(value, pendingClimbWkg) }"
           @change="commitClimbWkg"
         />

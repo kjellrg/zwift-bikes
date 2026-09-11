@@ -105,6 +105,28 @@ export async function tabTo(page: Page, target: Locator, limit = 25) {
   throw new Error(`focus never reached ${target} within ${limit} tabs`)
 }
 
+/**
+ * A real pointer drag on a slider thumb: press, move across steps, release.
+ * Reka's slider moves the value on every pointer move and commits (`change`)
+ * on the release, which is the contract the rider-settings and profile
+ * journeys check - so no keyboard shortcuts and no `fill`. `during` runs
+ * after each move, while the pointer is still down.
+ */
+export async function dragThumb(page: Page, thumb: Locator, dx: number, during?: () => Promise<void>) {
+  const box = await thumb.boundingBox()
+  expect(box).toBeTruthy()
+  const x = box!.x + box!.width / 2
+  const y = box!.y + box!.height / 2
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  const steps = 4
+  for (let step = 1; step <= steps; step++) {
+    await page.mouse.move(x + (dx * step) / steps, y)
+    await during?.()
+  }
+  await page.mouse.up()
+}
+
 export async function expectNoHorizontalOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
 }
