@@ -6,8 +6,8 @@ profile and report. Home, about, route, segment and event pages define
 generated nuxt-og-image cards instead (issue #59).
 
 1200x630 (the standard `summary_large_image` ratio), styled after the app:
-slate-900 background, the lucide `bike` header icon, and the Nuxt UI green
-(`#C6F135`) from `app/assets/css/main.css`.
+slate-900 background, the lucide `bike` header icon, and the raspberry primary
+(`#FF6AA8`) from `app/assets/css/main.css`.
 
 ## Regenerating
 
@@ -26,7 +26,7 @@ magick scripts/og-image/og-image.svg -depth 8 \
   -draw "circle -40,640 -40,380" \
   -draw "circle 1240,-10 1240,320" \
   -draw "circle 1240,-10 1240,250" \
-  -fill none -stroke '#C6F135' -strokewidth 16 \
+  -fill none -stroke '#FF6AA8' -strokewidth 16 \
   -draw "stroke-linecap round stroke-linejoin round circle 652,212 652,184" \
   -draw "stroke-linecap round stroke-linejoin round circle 548,212 548,184" \
   -draw "stroke-linecap round stroke-linejoin round circle 624,112 624,104" \

@@ -14,7 +14,7 @@
       class="flex items-center"
       style="gap: 16px;"
     >
-      <div style="width: 14px; height: 34px; background: #C6F135; border-radius: 4px;" />
+      <div style="width: 14px; height: 34px; background: #FF6AA8; border-radius: 4px;" />
       <span style="font-size: 34px; font-weight: 700; color: #ffffff;">ZwiftBikes</span>
     </div>
 
@@ -26,6 +26,6 @@
       <span style="font-size: 30px; color: #8FA79F; line-height: 1.4;">Every frame and wheel combo in the game, ranked by predicted finish time for your weight, height and power.</span>
     </div>
 
-    <span style="font-size: 26px; font-weight: 700; color: #C6F135;">zwiftbikes.com</span>
+    <span style="font-size: 26px; font-weight: 700; color: #FF6AA8;">zwiftbikes.com</span>
   </div>
 </template>
