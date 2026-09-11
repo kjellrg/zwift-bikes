@@ -57,3 +57,11 @@ _Avoid_: owned bikes, my bikes, inventory, collection
 **Upgrade stage**:
 Where a frame stands on Zwift's five-step upgrade ladder. Stage 0 is the frame as bought, stage 5 is fully upgraded, and each stage is earned by riding it. A frame in the garage is ranked at the stage the rider set; a frame outside it at the stage the profile assumes for unowned frames, which is 5 unless changed and flatters a bike the rider might buy. Wheels have no stages. A frame nobody has bot-tested has no per-stage numbers, so its stage cannot be set.
 _Avoid_: level, upgrade level, tier (a frame's price class, a different axis)
+
+**Ranking**:
+Every eligible setup for a Ride, ordered by the finish time the Applied rider gets on it, fastest first. It is one list: the Recommendation is its rank 1 shown large, and the rows beneath it continue from rank 2, so no setup appears twice. A Directed search, a filter change or a Garage change produces a new ranking rather than narrowing this one, and a ranking of a single setup is a recommendation with nothing beneath it. The comparison picks from anywhere in the ranking, rank 1 included.
+_Avoid_: results list, alternatives list, the field, matches
+
+**Recommendation**:
+Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, and the paths deeper into it. It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. It carries everything a lower rank carries, the comparison pick included.
+_Avoid_: top combo, hero card, winner, best bike

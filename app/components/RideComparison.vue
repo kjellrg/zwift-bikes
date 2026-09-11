@@ -5,7 +5,9 @@ import type { ComboScore } from '../../shared/types/catalog'
  * Up to three picked setups side by side: time, gap to the fastest on the
  * page, and the per-setup statistics. Renders nothing until something is
  * picked, and lives in the page's flow (not a floating panel) so it reads
- * with the list it was picked from and never covers it on a phone.
+ * with the ranking it was picked from and never covers it on a phone - the
+ * "Show comparison" buttons jump here instead (`showComparison`), which is
+ * why the section takes focus.
  */
 defineProps<{
   /** The picked combos, in pick order. */
@@ -19,10 +21,11 @@ defineEmits<{ clear: [], remove: [key: string] }>()
 <template>
   <section
     v-if="combos.length"
-    id="ride-comparison"
+    :id="COMPARISON_ID"
     aria-labelledby="ride-comparison-heading"
     aria-live="polite"
-    class="scroll-mt-24 border-t-2 border-primary pt-6"
+    tabindex="-1"
+    class="scroll-mt-24 border-t-2 border-primary pt-6 outline-none"
   >
     <div class="flex items-center justify-between gap-4">
       <h2

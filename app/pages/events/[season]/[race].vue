@@ -392,7 +392,11 @@ const tttPlan = useTttPlan({
   loading: () => isFirstLoad.value
 })
 
-const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
+const {
+  keys: comparisonKeys, picked: comparedCombos, full: comparisonFull,
+  includes: isCompared, toggle: toggleCompared,
+  clear: clearComparison, remove: removeFromComparison
+} = useComparison(() => combos.value)
 
 // Tells the open bike drawer whether its bike is still on a loaded page, and
 // whether this Ride bars it outright - see `noteRankedFrames`. A TT frame
@@ -916,6 +920,10 @@ useHead(() => {
                 :request-key="serializedQuery"
                 :limited-data-note="limitedDataNote"
                 :notes="recommendationNotes"
+                :compared="isCompared(topCombo)"
+                :compare-disabled="comparisonFull && !isCompared(topCombo)"
+                :compare-count="comparisonKeys.length"
+                @toggle-compare="toggleCompared(topCombo)"
               >
                 <template #fastest-overall>
                   <!-- `pointer-events-auto`: the wrapper blocks clicks on stale
@@ -1023,6 +1031,27 @@ useHead(() => {
         </p>
       </section>
 
+      <div
+        v-if="!isFirstLoad"
+        class="transition-opacity"
+        :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+      >
+        <RideAlternatives
+          v-model:search="bikeSearch"
+          v-model:selected="comparisonKeys"
+          :combos="combos"
+          :route="appliedRoute"
+          :laps="resultsLaps"
+          :fastest-time-sec="fastestTimeSec"
+          :load-wheel-options="loadWheelOptions"
+          :request-key="serializedQuery"
+          :has-more="hasMore"
+          :loading-more="loadingMore"
+          @show-more="showMore"
+        />
+        <ReportDataLink :item="`${raceTitle}${routeInfo ? ` (${routeInfo.name})` : ''}`" />
+      </div>
+
       <!-- Ride-only tabs follow the selector, like the briefing; the
            equipment tabs follow the applied results, like the
            recommendation - and on this page those can be different courses. -->
@@ -1051,27 +1080,6 @@ useHead(() => {
           />
         </template>
       </RideCourseAnalysis>
-
-      <div
-        v-if="!isFirstLoad"
-        class="transition-opacity"
-        :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
-      >
-        <RideAlternatives
-          v-model:search="bikeSearch"
-          v-model:selected="comparisonKeys"
-          :combos="combos"
-          :route="appliedRoute"
-          :laps="resultsLaps"
-          :fastest-time-sec="fastestTimeSec"
-          :load-wheel-options="loadWheelOptions"
-          :request-key="serializedQuery"
-          :has-more="hasMore"
-          :loading-more="loadingMore"
-          @show-more="showMore"
-        />
-        <ReportDataLink :item="`${raceTitle}${routeInfo ? ` (${routeInfo.name})` : ''}`" />
-      </div>
 
       <RideComparison
         :combos="comparedCombos"

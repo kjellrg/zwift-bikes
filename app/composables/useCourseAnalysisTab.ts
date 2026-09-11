@@ -15,13 +15,10 @@ export const COURSE_ANALYSIS_ID = 'course-analysis'
 export function useCourseAnalysisTab() {
   const selected = useState<CourseAnalysisTab>('course-analysis-tab', () => 'elevation')
 
-  /** Selects a tab and brings the section into view, focused, so a keyboard user lands on it too. */
+  /** Selects a tab and goes to the section showing it. */
   async function show(tab: CourseAnalysisTab) {
     selected.value = tab
-    await nextTick()
-    const section = document.getElementById(COURSE_ANALYSIS_ID)
-    section?.scrollIntoView({ block: 'start' })
-    section?.focus({ preventScroll: true })
+    await scrollToSection(COURSE_ANALYSIS_ID)
   }
 
   return { selected, show }

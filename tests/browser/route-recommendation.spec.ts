@@ -21,9 +21,17 @@ const answer = (page: Page) => page.locator('section:has(#ride-answer-heading)')
 const finishTime = (page: Page) => recommendation(page).locator('p.tabular-nums').first()
 const rankedList = (page: Page) => page.getByRole('list', { name: 'Ranked setups' })
 const rows = (page: Page) => rankedList(page).getByRole('listitem')
+const courseAnalysis = (page: Page) => page.locator('#course-analysis')
 const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search all frames and wheels' })
-/** The frame name of every loaded row, in rank order - the row's own details button carries it. */
-const frameNames = (page: Page) => rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
+/**
+ * The frame name of every loaded setup, in rank order: the recommendation is
+ * rank 1 (issue #227) and the rows continue from rank 2, so a journey asking
+ * what the ranking holds has to read both.
+ */
+const frameNames = async (page: Page) => [
+  ...await recommendation(page).getByRole('button', { name: /^Details for / }).allInnerTexts(),
+  ...await rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
+]
 
 const normalise = (text: string) => text.replace(/\s+/g, ' ').trim()
 
@@ -64,7 +72,31 @@ test.describe('route recommendation', () => {
       expect(Math.max(pick!.height, brief!.height)).toBeLessThan(700)
     }
     expect(answerBox!.y).toBeGreaterThanOrEqual(Math.max(pick!.y + pick!.height, brief!.y + brief!.height) - 1)
+    // The ranking follows the answer and precedes the course analysis, on
+    // every viewport: it is the rest of what the recommendation is rank 1 of,
+    // and the course is a different question (issue #227).
+    expect(await page.evaluate(() => {
+      const ranking = document.querySelector('#ride-ranking')!
+      const analysis = document.querySelector('#course-analysis')!
+      return Boolean(ranking.compareDocumentPosition(analysis) & Node.DOCUMENT_POSITION_FOLLOWING)
+    })).toBe(true)
+    expect((await courseAnalysis(page).boundingBox())!.y).toBeGreaterThan((await rankedList(page).boundingBox())!.y)
     await expectNoHorizontalOverflow(page)
+  })
+
+  test('starts the ranking at rank 2 under the recommendation, and reaches it from there', async ({ page }) => {
+    await visit(page, ROUTE)
+    // One ranking, in two places: rank 1 is the recommendation, the rows
+    // continue from 02, and no setup is listed twice.
+    await expect(recommendation(page)).toContainText('01 · Fastest in current results')
+    const [rank1, ...rest] = await frameNames(page)
+    expect(rank1).toBeTruthy()
+    expect(rest).not.toContain(rank1)
+    expect(await rows(page).first().innerText()).toMatch(/^02\b/)
+
+    await recommendation(page).getByRole('link', { name: 'See the full ranking' }).click()
+    expect(new URL(page.url()).hash).toBe('#ride-ranking')
+    await expect(page.getByRole('heading', { name: 'Every setup behind the fastest' })).toBeInViewport()
   })
 
   test('renders the same answer for riders and crawlers, from the server', async ({ page, request }) => {
@@ -117,20 +149,31 @@ test.describe('route recommendation', () => {
     await expect(briefing(page)).toContainText('2 laps')
   })
 
-  test('compares up to three setups side by side', async ({ page }) => {
+  test('compares up to three setups side by side, rank 1 among them', async ({ page }) => {
     await visit(page, ROUTE)
-    expect(await rows(page).count()).toBeGreaterThanOrEqual(4)
-    for (const index of [0, 1, 2]) await rows(page).nth(index).getByRole('checkbox').check()
-    await expect(rows(page).nth(3).getByRole('checkbox')).toBeDisabled()
+    expect(await rows(page).count()).toBeGreaterThanOrEqual(3)
+    // Rank 1 is picked where it is shown - the recommendation's own checkbox -
+    // and fills the comparison along with the two rows beneath it.
+    await recommendation(page).getByRole('checkbox', { name: /^Compare / }).check()
+    for (const index of [0, 1]) await rows(page).nth(index).getByRole('checkbox').check()
+    await expect(rows(page).nth(2).getByRole('checkbox')).toBeDisabled()
 
     const comparison = page.getByRole('region', { name: /Selected setups/ })
     await expect(comparison.getByRole('article')).toHaveCount(3)
     await expect(comparison.getByRole('article').first()).toContainText('Fastest in results')
     await expect(comparison.getByRole('article').nth(1)).toContainText(/\+\d+\.\d\ds|\+\d+:\d\d/)
 
+    // The jump replaces the old text link, and lands focus on the comparison
+    // so a keyboard user arrives there too.
+    await page.mouse.wheel(0, -4000)
+    await recommendation(page).getByRole('button', { name: /^Show comparison/ }).click()
+    await expect(comparison).toBeInViewport()
+    expect(await comparison.evaluate(section => section === document.activeElement)).toBe(true)
+
     await comparison.getByRole('button', { name: /Remove .* from comparison/ }).first().click()
     await expect(comparison.getByRole('article')).toHaveCount(2)
-    await expect(rows(page).nth(3).getByRole('checkbox')).toBeEnabled()
+    await expect(recommendation(page).getByRole('checkbox', { name: /^Compare / })).not.toBeChecked()
+    await expect(rows(page).nth(2).getByRole('checkbox')).toBeEnabled()
     await comparison.getByRole('button', { name: 'Clear comparison' }).click()
     await expect(comparison).toHaveCount(0)
   })
@@ -180,15 +223,16 @@ test.describe('route recommendation', () => {
   test('search reaches a Halo bike the default filter hides, and clearing it restores the ranking', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the desktop journey covers search')
     await visit(page, ROUTE)
-    await expect(rows(page).first()).not.toContainText('PROJECT 74')
+    await expect(recommendation(page)).not.toContainText('PROJECT 74')
     const { data: found } = await rerank(page, () => searchBox(page).fill('PROJECT 74'))
     expect(found.combos[0]?.frame.name).toContain('PROJECT 74')
-    await expect(rows(page).first()).toContainText('PROJECT 74')
+    // Rank 1 of the new ranking, so it arrives in the recommendation.
+    await expect(recommendation(page)).toContainText('PROJECT 74')
     await expect(answer(page)).toContainText('Halo bikes included; search: PROJECT 74')
     expect(new URL(page.url()).searchParams.get('bike')).toBe('PROJECT 74')
 
     await rerank(page, () => page.getByRole('button', { name: 'Clear search' }).click())
-    await expect(rows(page).first()).not.toContainText('PROJECT 74')
+    await expect(recommendation(page)).not.toContainText('PROJECT 74')
     await expect(answer(page)).toContainText('unowned Halo bikes excluded')
   })
 
@@ -223,7 +267,7 @@ test.describe('route recommendation', () => {
     expect(wheels.combos.length).toBeGreaterThan(1)
     expect(wheels.combos.every(combo => combo.wheelset?.name.toLowerCase().includes('zipp'))).toBe(true)
     expect(wheels.combos.every(combo => !combo.frame.name.toLowerCase().includes('zipp'))).toBe(true)
-    await expect(rows(page).first()).toContainText('Zipp')
+    await expect(recommendation(page)).toContainText('Zipp')
   })
 
   test('keeps a long route name and the dark theme within the viewport', async ({ page }) => {

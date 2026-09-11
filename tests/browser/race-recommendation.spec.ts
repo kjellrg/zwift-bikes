@@ -82,6 +82,16 @@ test.describe('race recommendation', () => {
       expect(pick!.width).toBeGreaterThan(brief!.width)
     }
     expect(answerBox!.y).toBeGreaterThanOrEqual(Math.max(pick!.y + pick!.height, brief!.y + brief!.height) - 1)
+    // The ranking follows the answer and precedes the course analysis: it is
+    // the rest of what the recommendation is rank 1 of (issue #227).
+    expect(await page.evaluate(() => {
+      const ranking = document.querySelector('#ride-ranking')!
+      const analysis = document.querySelector('#course-analysis')!
+      return Boolean(ranking.compareDocumentPosition(analysis) & Node.DOCUMENT_POSITION_FOLLOWING)
+    })).toBe(true)
+    // Rank 1 is the recommendation on this page too, so the rows pick the
+    // ranking up at 02.
+    expect(await page.getByRole('list', { name: 'Ranked setups' }).getByRole('listitem').first().innerText()).toMatch(/^02\b/)
     await expectNoHorizontalOverflow(page)
   })
 

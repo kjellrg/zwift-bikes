@@ -21,6 +21,8 @@ const FIXED_WHEEL_FRAME = 'Zwift Concept Z1'
 
 const rows = (page: Page) => page.getByRole('list', { name: 'Ranked setups' }).getByRole('listitem')
 const recommendation = (page: Page) => page.locator('section:has(#ride-recommendation-heading)')
+/** Every setup on the page: the recommendation is rank 1 of the ranking and the rows are the rest of it (issue #227). */
+const setups = (page: Page) => page.locator('section:has(#ride-recommendation-heading), ol[aria-label="Ranked setups"] > li')
 const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search all frames and wheels' })
 const drawer = (page: Page) => page.getByRole('dialog')
 /** The drawer's own finish estimate, which is the card's number - the drawer never computes one. */
@@ -219,11 +221,13 @@ test.describe('equipment drawer', () => {
     test.skip(isMobile, 'the desktop journey covers the integrated-wheel frame')
     await visit(page, ROUTE)
     await rerank(page, () => searchBox(page).fill('Concept'))
-    const tron = rows(page).filter({ has: page.getByRole('button', { name: `Details for ${FIXED_WHEEL_FRAME}` }) })
+    // Found wherever the search ranks it - the Tron is quick enough here to be
+    // rank 1, which is the recommendation rather than a row.
+    const tron = setups(page).filter({ has: page.getByRole('button', { name: `Details for ${FIXED_WHEEL_FRAME}` }) })
     await expect(tron).toHaveCount(1)
 
-    // The row names the wheels it cannot swap rather than inventing a
-    // wheelset, and offers no disclosure to open.
+    // It names the wheels it cannot swap rather than inventing a wheelset,
+    // and offers no disclosure to open.
     await expect(tron).toContainText('Fixed disc wheels (not swappable)')
     await expect(tron).toContainText('Fixed disc wheels - no wheel swaps on this frame.')
     await expect(tron.getByRole('button', { name: /^Wheel alternatives/ })).toHaveCount(0)

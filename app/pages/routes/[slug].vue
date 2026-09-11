@@ -152,7 +152,11 @@ const tttPlan = useTttPlan({
   loading: () => isFirstLoad.value
 })
 
-const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
+const {
+  keys: comparisonKeys, picked: comparedCombos, full: comparisonFull,
+  includes: isCompared, toggle: toggleCompared,
+  clear: clearComparison, remove: removeFromComparison
+} = useComparison(() => combos.value)
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined)
 // The visible answer under the recommendation and the FAQ structured data
@@ -388,6 +392,10 @@ useHead(() => {
               :request-key="serializedQuery"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
+              :compared="isCompared(topCombo)"
+              :compare-disabled="comparisonFull && !isCompared(topCombo)"
+              :compare-count="comparisonKeys.length"
+              @toggle-compare="toggleCompared(topCombo)"
             >
               <template #fastest-overall>
                 <!-- `pointer-events-auto`: the wrapper blocks clicks on stale
@@ -490,20 +498,6 @@ useHead(() => {
       </p>
     </section>
 
-    <!-- Ride-only tabs follow the picker `laps` like the briefing; the
-         equipment tabs follow the applied results, like the recommendation. -->
-    <RideCourseAnalysis
-      :route="routeData"
-      kind="route"
-      :laps="laps"
-      :results-laps="resultsLaps"
-      :combo="topCombo"
-      :rider="appliedInputs"
-      :refreshing="isRefreshing"
-      :loading="isFirstLoad"
-      :plan="tttPlan"
-    />
-
     <div
       v-if="!isFirstLoad"
       class="transition-opacity"
@@ -524,6 +518,20 @@ useHead(() => {
       />
       <ReportDataLink :item="routeData?.name" />
     </div>
+
+    <!-- Ride-only tabs follow the picker `laps` like the briefing; the
+         equipment tabs follow the applied results, like the recommendation. -->
+    <RideCourseAnalysis
+      :route="routeData"
+      kind="route"
+      :laps="laps"
+      :results-laps="resultsLaps"
+      :combo="topCombo"
+      :rider="appliedInputs"
+      :refreshing="isRefreshing"
+      :loading="isFirstLoad"
+      :plan="tttPlan"
+    />
 
     <RideComparison
       :combos="comparedCombos"

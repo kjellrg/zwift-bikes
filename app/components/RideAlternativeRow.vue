@@ -2,12 +2,12 @@
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
 /**
- * One ranked setup in the alternatives list: rank, names, the gap to the
- * fastest (or the absolute time for the fastest itself), where its numbers
- * come from, and the same three paths the recommendation offers - the
- * drawer, the garage, the frame's other wheels - plus the comparison
- * checkbox. Its own component so each row owns its drawer sync and its
- * wheel-list state, the way `ComboResultCard` did.
+ * One ranked setup in the Ranking, from rank 2 down (rank 1 is the
+ * Recommendation, which carries the same parts): rank, names, the gap to the
+ * fastest, where its numbers come from, and the same three paths the
+ * recommendation offers - the drawer, the garage, the frame's other wheels -
+ * plus the comparison checkbox. Its own component so each row owns its drawer
+ * sync and its wheel-list state, the way `ComboResultCard` did.
  */
 const props = defineProps<{
   combo: ComboScore
@@ -55,7 +55,7 @@ const botTested = computed(() => isBotTested(props.combo))
 
 <template>
   <li class="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 gap-y-3 border-t border-default py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto]">
-    <span class="pt-1 text-xs tabular-nums text-muted">{{ String(rank).padStart(2, '0') }}</span>
+    <span class="pt-1 text-xs tabular-nums text-muted">{{ rankMarker(rank) }}</span>
     <div class="min-w-0">
       <h3 class="text-base font-semibold text-highlighted break-words">
         <button

@@ -104,7 +104,10 @@ test.describe('garage', () => {
     await expect(garageScope(page)).toContainText('Your frames / your wheels')
 
     await rerank(page, () => searchBox(page).fill(FRAME))
-    await rows(page).first().getByRole('button', { name: /^Details for / }).click()
+    // Wherever the search leaves it in the ranking: with both halves of the
+    // garage owned this is often a ranking of one, and rank 1 is the
+    // recommendation, not a row (issue #227).
+    await page.getByRole('button', { name: `Details for ${FRAME}` }).first().click()
     const drawer = page.getByRole('dialog')
     await expect(drawer.getByRole('button', { name: `Set upgrade stage 2 for ${FRAME}`, pressed: true })).toBeVisible()
   })

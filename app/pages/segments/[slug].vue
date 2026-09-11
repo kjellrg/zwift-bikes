@@ -143,7 +143,11 @@ const tttPlan = useTttPlan({
   loading: () => isFirstLoad.value
 })
 
-const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
+const {
+  keys: comparisonKeys, picked: comparedCombos, full: comparisonFull,
+  includes: isCompared, toggle: toggleCompared,
+  clear: clearComparison, remove: removeFromComparison
+} = useComparison(() => combos.value)
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
 // The visible answer under the recommendation and the FAQ structured data
@@ -340,6 +344,10 @@ useHead(() => {
               :request-key="serializedQuery"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
+              :compared="isCompared(topCombo)"
+              :compare-disabled="comparisonFull && !isCompared(topCombo)"
+              :compare-count="comparisonKeys.length"
+              @toggle-compare="toggleCompared(topCombo)"
             >
               <template #fastest-overall>
                 <!-- `pointer-events-auto`: the wrapper blocks clicks on stale
@@ -447,21 +455,6 @@ useHead(() => {
       </p>
     </section>
 
-    <!-- A segment is ridden once, so both lap counts are 1 and there is no
-         Segments tab. The speed chart and TTT plan simulate the segment
-         route-style, from a standing start, and their scope lines say so. -->
-    <RideCourseAnalysis
-      :route="segmentRoute"
-      :kind="segmentData.type"
-      :laps="1"
-      :results-laps="1"
-      :combo="topCombo"
-      :rider="appliedInputs"
-      :refreshing="isRefreshing"
-      :loading="isFirstLoad"
-      :plan="tttPlan"
-    />
-
     <div
       v-if="!isFirstLoad"
       class="transition-opacity"
@@ -482,6 +475,21 @@ useHead(() => {
       />
       <ReportDataLink :item="segmentData?.name" />
     </div>
+
+    <!-- A segment is ridden once, so both lap counts are 1 and there is no
+         Segments tab. The speed chart and TTT plan simulate the segment
+         route-style, from a standing start, and their scope lines say so. -->
+    <RideCourseAnalysis
+      :route="segmentRoute"
+      :kind="segmentData.type"
+      :laps="1"
+      :results-laps="1"
+      :combo="topCombo"
+      :rider="appliedInputs"
+      :refreshing="isRefreshing"
+      :loading="isFirstLoad"
+      :plan="tttPlan"
+    />
 
     <RideComparison
       :combos="comparedCombos"

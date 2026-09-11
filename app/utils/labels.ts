@@ -3,6 +3,13 @@ import type { Powerup, RaceFormat } from '../../shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
 
+/**
+ * A rank as the Ranking prints it: `01`, `02`, ... The Recommendation is rank
+ * 1 and the rows are the rest, so the two render their markers through one
+ * function and cannot drift in format.
+ */
+export const rankMarker = (rank: number) => String(rank).padStart(2, '0')
+
 /** The draft mode as the rider strip, the draft selects and the course-analysis scope lines name it - one list, so none of them can disagree. */
 export const DRAFT_MODE_LABELS: Record<DraftMode, string> = { solo: 'Solo', race: 'Race draft', ttt: 'TTT paceline' }
 

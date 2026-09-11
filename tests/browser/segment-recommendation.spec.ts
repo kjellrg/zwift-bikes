@@ -29,6 +29,15 @@ const finishTime = (page: Page) => recommendation(page).locator('p.tabular-nums'
 const riderStrip = (page: Page) => page.getByRole('group', { name: 'Rider' })
 const rankedList = (page: Page) => page.getByRole('list', { name: 'Ranked setups' })
 const rows = (page: Page) => rankedList(page).getByRole('listitem')
+/**
+ * The frame name of every loaded setup, in rank order: the recommendation is
+ * rank 1 (issue #227) and the rows continue from rank 2, so asking whether a
+ * bike is in the ranking means asking both.
+ */
+const frameNames = async (page: Page) => [
+  ...await recommendation(page).getByRole('button', { name: /^Details for / }).allInnerTexts(),
+  ...await rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
+].map(normalise)
 const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search all frames and wheels' })
 
 const normalise = (text: string) => text.replace(/\s+/g, ' ').trim()
@@ -69,6 +78,16 @@ test.describe('segment recommendation', () => {
       expect(pick!.width).toBeGreaterThan(brief!.width)
     }
     expect(answerBox!.y).toBeGreaterThanOrEqual(Math.max(pick!.y + pick!.height, brief!.y + brief!.height) - 1)
+    // The ranking follows the answer and precedes the course analysis: it is
+    // the rest of what the recommendation is rank 1 of (issue #227).
+    expect(await page.evaluate(() => {
+      const ranking = document.querySelector('#ride-ranking')!
+      const analysis = document.querySelector('#course-analysis')!
+      return Boolean(ranking.compareDocumentPosition(analysis) & Node.DOCUMENT_POSITION_FOLLOWING)
+    })).toBe(true)
+    // Rank 1 is the recommendation on this page too, so the rows pick the
+    // ranking up at 02.
+    expect(await page.getByRole('list', { name: 'Ranked setups' }).getByRole('listitem').first().innerText()).toMatch(/^02\b/)
 
     // A segment is ridden once: nothing on the page picks laps, and the
     // route-only occurrence lists have no place on it.
@@ -152,16 +171,18 @@ test.describe('segment recommendation', () => {
     // The Golden Concept Z1 is the plain one in a gold light scheme - one bike,
     // one measurement - so a ranking only ever lists the other half of the
     // pair. Typing its name is the one way to ask for it.
-    await expect(rankedList(page)).not.toContainText('Golden')
+    expect(await frameNames(page)).not.toContainEqual(expect.stringContaining('Golden'))
     const { query, data } = await rerank(page, () => searchBox(page).fill('golden'))
     expect(data.combos.map(combo => combo.frame.name)).toContain('Zwift Golden Concept Z1')
     expect(query.get('search')).toBe('golden')
-    await expect(rankedList(page)).toContainText('Zwift Golden Concept Z1')
+    // Somewhere in the ranking, which is the recommendation and the rows
+    // together - a term this narrow can leave it a ranking of one.
+    expect(await frameNames(page)).toContain('Zwift Golden Concept Z1')
     // The term travels as a shared view, so the link shows what the rider sees.
     expect(new URL(page.url()).searchParams.get('bike')).toBe('golden')
 
     await rerank(page, () => page.getByRole('button', { name: 'Clear search' }).click())
-    await expect(rankedList(page)).not.toContainText('Golden')
+    expect(await frameNames(page)).not.toContainEqual(expect.stringContaining('Golden'))
     expect(new URL(page.url()).searchParams.has('bike')).toBe(false)
     expect(await rows(page).count()).toBeGreaterThan(1)
   })

@@ -77,8 +77,11 @@ test.describe('equipment eligibility', () => {
     // page asks for one row per frame (`maxWheelsetsPerFrame: 1`), so the
     // every-compatible-wheel half shows up inside the row's own wheel
     // disclosure - it is pinned in the unit mirror of this case instead.
-    expect(new Set(await frameNames(page))).toEqual(new Set([TARMAC.name]))
-    await expect(rows(page)).toHaveCount(1)
+    expect(await frameNames(page)).toEqual([TARMAC.name])
+    // A ranking of one: the recommendation is the whole of it, and the
+    // section beneath says so rather than vanishing (issue #227).
+    await expect(rows(page)).toHaveCount(0)
+    await expect(page.getByText('Nothing else matches under the current filters.')).toBeVisible()
 
     await seed(page, { myBikesOnly: true }, { wheels: [ROAD_WHEEL] })
     await visit(page, ROUTE)
@@ -92,10 +95,10 @@ test.describe('equipment eligibility', () => {
     await seed(page, { myBikesOnly: true }, { frames: { [TARMAC.id]: 3 }, wheels: [ROAD_WHEEL] })
     await visit(page, ROUTE)
     await expect(garageScope(page)).toContainText('Your frames / your wheels')
-    expect(new Set(await frameNames(page))).toEqual(new Set([TARMAC.name]))
-    await expect(rows(page)).toHaveCount(1)
+    expect(await frameNames(page)).toEqual([TARMAC.name])
+    await expect(rows(page)).toHaveCount(0)
     // The only pairing this garage can make.
-    await expect(rows(page).first()).toContainText(ROAD_WHEEL)
+    await expect(recommendation(page)).toContainText(ROAD_WHEEL)
 
     // The switch off says nothing at all - there is no restriction to explain.
     await rerank(page, () => garageSwitch(page).click())
@@ -212,8 +215,15 @@ async function storedPreferences(page: Page): Promise<Record<string, unknown>> {
   return page.evaluate(() => JSON.parse(localStorage.getItem('zwift-bikes:preferences') ?? '{}'))
 }
 
-/** The frame name of every loaded row, in rank order - the row's own details button carries it. */
+/**
+ * The frame name of every loaded setup, in rank order: the recommendation is
+ * rank 1 (issue #227) and the rows continue from rank 2, so the pool a filter
+ * left behind is only visible in the two of them together.
+ */
 async function frameNames(page: Page) {
-  const names = await rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
+  const names = [
+    ...await recommendation(page).getByRole('button', { name: /^Details for / }).allInnerTexts(),
+    ...await rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
+  ]
   return names.map(name => name.replace(/\s+/g, ' ').trim())
 }
