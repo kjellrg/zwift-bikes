@@ -377,8 +377,6 @@ const tttPlan = useTttPlan({
 
 const { keys: comparisonKeys, picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = useComparison(() => combos.value)
 
-const groupSelectId = useId()
-
 // Tells the open bike drawer whether its bike is still on a loaded page, and
 // whether this Ride bars it outright - see `noteRankedFrames`. A TT frame
 // whose drawer was opened on a route page is not slow here; it is illegal.
@@ -653,11 +651,7 @@ useHead(() => {
         class="flex flex-wrap items-end gap-4"
       >
         <div class="w-64 max-w-full">
-          <label
-            :for="groupSelectId"
-            class="mb-1 block text-xs font-medium text-muted"
-          >Your race group</label><USelectMenu
-            :id="groupSelectId"
+          <label class="mb-1 block text-xs font-medium text-muted">Your race group</label><USelectMenu
             v-model="categoryGroupIndex"
             value-key="value"
             :items="categoryGroupOptions"
