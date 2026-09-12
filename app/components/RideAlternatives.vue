@@ -29,6 +29,8 @@ const props = defineProps<{
   canShowMore: boolean
   appliedSearch: string
   loadingMore: boolean
+  /** The last Show more failed; the ranking itself is untouched and the button is live again. */
+  expansionFailed: boolean
 }>()
 
 defineEmits<{ showMore: [] }>()
@@ -163,6 +165,16 @@ const listId = useId()
       >
         Show more matches
       </UButton>
+      <!-- Beside the button rather than up with the refresh notice: this
+           failure took nothing away, and pressing again is the whole of the
+           recovery. -->
+      <p
+        v-if="expansionFailed"
+        class="mt-2 text-sm text-warning"
+        role="alert"
+      >
+        Couldn't load more matches - the ranking above is unchanged.
+      </p>
     </div>
   </section>
 </template>

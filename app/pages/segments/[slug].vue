@@ -35,7 +35,8 @@ const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
   appliedInputs, appliedRide, appliedRestrictions, canShowMore,
-  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
+  hasRanking, isFirstLoad, isRefreshing, refreshFailed, expansionFailed, retry,
+  resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
 
@@ -311,6 +312,12 @@ useHead(() => {
       {{ resultsAnnouncement }}
     </p>
 
+    <RideRefreshNotice
+      :failed="refreshFailed"
+      :has-results="hasRanking"
+      @retry="retry"
+    />
+
     <!-- The recommendation is first in source order and first on a phone;
          on a desktop the briefing takes the left column and the
          recommendation the wider right one. The briefing reads only the
@@ -339,7 +346,7 @@ useHead(() => {
           </p>
           <div
             class="transition-opacity"
-            :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+            :class="{ 'opacity-60': isRefreshing }"
           >
             <!-- `laps` is 1 on purpose: the synthetic segment-as-route has no
                  lead-in, so the km/h beside the time divides the segment's own
@@ -468,7 +475,7 @@ useHead(() => {
     <div
       v-if="!isFirstLoad"
       class="transition-opacity"
-      :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+      :class="{ 'opacity-60': isRefreshing }"
     >
       <RideAlternatives
         v-model:search="bikeSearch"
@@ -483,6 +490,7 @@ useHead(() => {
         :can-show-more="canShowMore"
         :applied-search="appliedRestrictions.search"
         :loading-more="loadingMore"
+        :expansion-failed="expansionFailed"
         @show-more="showMore"
       />
       <ReportDataLink

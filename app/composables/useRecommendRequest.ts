@@ -158,11 +158,46 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   }
   const initialRequest = captureRequest()
   const accepted = ref<Ranking | null>(null)
+  /**
+   * Spoken to assistive tech when a ranking is accepted, which is the only
+   * event worth hearing: the visual cue is a spinner and some opacity, a
+   * refresh that failed or was superseded leaves the screen as it was, and
+   * loading stopping is not by itself an update. Silent on the ranking a
+   * page arrives with - nothing changed for the rider to be told about, and
+   * every visit would speak - but not on one they had to ask for again,
+   * where a failure notice is what disappears.
+   */
+  const resultsAnnouncement = ref('')
+  let failedSinceAcceptance = false
   let generation = 0
   let requested = false
   let observed: Ranking | null = null
   const loadingMore = ref(false)
+  /**
+   * Whether the last attempt to add a page to the accepted ranking failed.
+   * The rows and the position it failed from are untouched, so the attempt
+   * can simply be made again - but nothing else on the page would show that
+   * the press did anything at all, and a silently ignored button reads as a
+   * ranking with no more to give. Cleared by the next attempt and by any
+   * ranking that replaces this one, neither of which it describes.
+   */
+  const expansionFailed = ref(false)
   let expansion = 0
+
+  /**
+   * The one place a ranking becomes the one on screen. Everything that
+   * explains a row is read from here, so accepting is also the only moment
+   * worth announcing - see `resultsAnnouncement`. Adding rows to the
+   * ranking already accepted does not come through here (see `showMore`):
+   * same provenance, same explanations, more of the same list.
+   */
+  function acceptRanking(candidate: Ranking) {
+    const replaces = accepted.value !== null || failedSinceAcceptance
+    failedSinceAcceptance = false
+    expansionFailed.value = false
+    accepted.value = candidate
+    if (replaces) resultsAnnouncement.value = 'Results updated'
+  }
 
   const appliedRanking = computed(() => {
     const candidate = envelope.value
@@ -170,7 +205,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
       observed = candidate
       if (!requested || (candidate.generation === generation
         && candidate.endpoint === endpoint.value && candidate.forQuery === serializedQuery.value)) {
-        accepted.value = candidate
+        acceptRanking(candidate)
       }
     }
     return accepted.value
@@ -240,6 +275,13 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     }
   )
   const { data: envelope, status, error, refresh } = asyncData
+  // `appliedRanking` decides acceptance where it is read, which is what
+  // keeps it right under SSR: a watcher never flushes there, but the first
+  // render reads the ranking. On the client a landed response must not wait
+  // for a reader - acceptance announces itself, and the live region is
+  // rendered above the results, so it would otherwise hear about a ranking
+  // a render after the rows did.
+  watch(envelope, () => void appliedRanking.value)
   const recommendData = computed(() => appliedRanking.value?.result ?? null)
   useRefetchNotice(error, status, refresh)
 
@@ -266,6 +308,14 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   })
   const appliedRestrictions = computed(() => (appliedRanking.value?.provenance ?? initialRequest).rider)
   const combos = computed(() => recommendData.value?.combos ?? [])
+  /**
+   * Whether there is a ranking on screen to keep. Not "are there rows": a
+   * ranking that legitimately matched nothing is still the answer on
+   * screen and still worth keeping through a failed refresh. A first load
+   * that failed has nothing behind its empty state, and neither has a Ride
+   * with no endpoint to rank.
+   */
+  const hasRanking = computed(() => !!recommendData.value)
   const hasMore = computed(() => recommendData.value?.pagination?.hasMore ?? false)
   const isOutdated = computed(() => appliedRanking.value?.endpoint !== endpoint.value
     || appliedRanking.value?.forQuery !== serializedQuery.value)
@@ -276,18 +326,22 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     if (!canShowMore.value || !ranking?.endpoint || !ranking.result) return
     const token = ++expansion
     loadingMore.value = true
+    expansionFailed.value = false
     try {
       const page = await $fetch<RecommendResponse>(ranking.endpoint, {
         query: { ...ranking.provenance.query, offset: ranking.result.combos.length, limit: RECOMMEND_MAX_LIMIT }
       })
       if (token !== expansion || appliedRanking.value !== ranking || isOutdated.value) return
+      // More of the ranking already accepted, not a new one: it keeps its
+      // provenance and its explanations, so it does not go through
+      // `acceptRanking` and nothing is announced.
       accepted.value = {
         ...ranking,
         result: { ...ranking.result, combos: [...ranking.result.combos, ...page.combos], pagination: page.pagination },
         pages: ranking.pages + 1
       }
     } catch {
-      return
+      if (token === expansion) expansionFailed.value = true
     } finally {
       if (token === expansion) loadingMore.value = false
     }
@@ -344,20 +398,46 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   // `status === 'pending'` alone can't tell a genuine first load (nothing to
   // show yet) apart from a refresh of already-visible results (show stale
   // cards plus a subtle "updating" hint).
+  //
+  // The pages dim the results on this and nothing more. They used to make
+  // them inert as well, which took away the three things a rider can do
+  // with rows that are still perfectly good - compare them, open one, look
+  // at a frame's other wheels - for as long as a request they did not ask
+  // to wait for. Everything those controls reach now belongs to the
+  // accepted ranking (the drawer follows its combo, the wheel list is
+  // fetched under its request), so there is nothing left for inertness to
+  // protect. Show more is the exception and gates itself on `canShowMore`:
+  // a page appended to a ranking that is being replaced would not belong
+  // to either.
   const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
   const isRefreshing = computed(() => status.value === 'pending' && !!recommendData.value)
-  // Announced to assistive tech when a refetch lands: the visual cue is
-  // opacity and a spinner only. Cleared first so consecutive refreshes
-  // re-announce (a live region only speaks on change).
-  const resultsAnnouncement = ref('')
-  watch(isRefreshing, async (refreshing, wasRefreshing) => {
-    resultsAnnouncement.value = ''
-    if (!wasRefreshing || refreshing || isOutdated.value || status.value !== 'success') return
-    const token = generation
-    await nextTick()
-    if (token !== generation || isOutdated.value || status.value !== 'success') return
-    resultsAnnouncement.value = 'Results updated'
+  /**
+   * Whether the last required refresh failed, and so whether what is on
+   * screen still answers the controls. It covers the whole operation - an
+   * expanded Garage refresh fails as one, however many of its pages
+   * succeeded - and it stands until the next attempt begins, which is when
+   * the updating indicator takes the notice's place; if that attempt fails
+   * too, it is raised again. A superseded attempt cannot raise or clear it:
+   * `useAsyncData` reports only the latest execution.
+   */
+  const refreshFailed = computed(() => status.value === 'error')
+  // Every refresh silences the region on its way out, so an acceptance can
+  // set the same words again and still be heard: a live region only speaks
+  // on change, and there is no refresh that does not pass through pending.
+  watch(status, (value) => {
+    if (value === 'error') failedSinceAcceptance = true
+    if (value === 'pending' || value === 'error') resultsAnnouncement.value = ''
   })
+
+  /**
+   * Ask for the ranking again after a failure, from the rider's choices as
+   * they stand now rather than the ones the failed attempt carried. It is
+   * the same operation the controls trigger, so it requires the same pages:
+   * every expanded page when only the Garage has moved since the accepted
+   * ranking, the first page alone otherwise. Nothing is accepted unless all
+   * of them arrive, so a second failure leaves the previous ranking whole.
+   */
+  const retry = () => refresh()
 
   return {
     /** Awaited by the page alongside its own route/segment lookup, so both requests are in flight together. */
@@ -373,12 +453,16 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     hasMore,
     canShowMore,
     loadingMore,
+    expansionFailed,
     showMore,
     appliedRide,
     appliedInputs,
     appliedRestrictions,
+    hasRanking,
     isFirstLoad,
     isRefreshing,
+    refreshFailed,
+    retry,
     resultsAnnouncement,
     /** `v-model:search` for `RideAlternatives`; the composable debounces it into the query. */
     bikeSearch,

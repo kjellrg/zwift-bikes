@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import { computed, effectScope, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useRecommendRequest, type RecommendResponse } from './useRecommendRequest'
 import { useRecommendationAnswer } from './useRecommendationAnswer'
@@ -32,7 +33,7 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   const scope = effectScope()
   let readEnvelope: () => RecommendEnvelope<RecommendResponse> | undefined = () => undefined
   const pending: ReturnType<typeof deferred<RecommendResponse>>[] = []
-  const fetch = vi.fn((_endpoint: string, _options: { query: { offset: number } }) => {
+  const fetch = vi.fn((_endpoint: string, _options: { query: Record<string, unknown> & { offset: number } }) => {
     const request = deferred<RecommendResponse>()
     pending.push(request)
     return request.promise
@@ -287,6 +288,9 @@ describe('useRecommendRequest applied ranking', () => {
     expect(test.request.physics.value?.note).toBe('Original physics')
     expect(test.request.canShowMore.value).toBe(false)
     expect(test.request.resultsAnnouncement.value).toBe('')
+    // The failure the rider is being shown is the latest request's; the
+    // superseded one has no say either way.
+    expect(test.request.refreshFailed.value).toBe(true)
   })
 
   it('resets only on acceptance and ignores late expansion under the old inputs', async () => {
@@ -338,6 +342,112 @@ describe('useRecommendRequest applied ranking', () => {
     expect(test.request.recommendData.value).toBeNull()
     expect(test.request.appliedRide.value.endpoint).toBeUndefined()
     expect(test.fetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('reports a failed required refresh until a later one is accepted', async () => {
+    const test = await expanded()
+    expect(test.request.refreshFailed.value).toBe(false)
+    test.owned.value = { 12: 3 }
+    await nextTick()
+    test.pending[2]!.resolve(page(90, 'New physics'))
+    test.pending[3]!.reject(new Error('Deeper page failed'))
+    await settle()
+    expect(test.request.refreshFailed.value).toBe(true)
+    expect(test.request.isRefreshing.value).toBe(false)
+    expect(times(test)).toEqual([100, 110])
+    test.owned.value = { 12: 4 }
+    await nextTick()
+    expect(test.request.refreshFailed.value).toBe(false)
+    test.pending[4]!.resolve(page(80, 'Complete physics'))
+    test.pending[5]!.resolve(page(85, 'Complete physics'))
+    await settle()
+    expect(test.request.refreshFailed.value).toBe(false)
+    expect(times(test)).toEqual([80, 85])
+  })
+
+  it('retries every page the refresh requires, under the latest choices, and keeps the ranking when it fails again', async () => {
+    const test = await expanded()
+    test.owned.value = { 12: 3 }
+    await nextTick()
+    test.pending[2]!.resolve(page(90, 'New physics'))
+    test.pending[3]!.reject(new Error('Deeper page failed'))
+    await settle()
+    expect(times(test)).toEqual([100, 110])
+
+    const failedRetry = test.request.retry()
+    await settle()
+    expect(test.fetch.mock.calls.slice(4).map(call => call[1].query.offset)).toEqual([0, RECOMMEND_MAX_LIMIT])
+    expect(JSON.parse(String(test.fetch.mock.calls[4]![1].query.owned))).toEqual({ 12: 3 })
+    test.pending[4]!.resolve(page(70, 'Retry physics'))
+    test.pending[5]!.reject(new Error('Deeper page failed again'))
+    await failedRetry
+    await settle()
+    expect(times(test)).toEqual([100, 110])
+    expect(test.request.physics.value?.note).toBe('Original physics')
+    expect(test.request.refreshFailed.value).toBe(true)
+
+    const retry = test.request.retry()
+    test.pending[6]!.resolve(page(70, 'Retry physics'))
+    test.pending[7]!.resolve(page(75, 'Retry physics'))
+    await retry
+    await settle()
+    expect(times(test)).toEqual([70, 75])
+    expect(test.request.refreshFailed.value).toBe(false)
+  })
+
+  it('announces the ranking a rider had to ask for again, and stays silent on a first load nobody asked twice for', async () => {
+    const quiet = setup()
+    quiet.pending[0]!.resolve(page(100, 'First physics'))
+    await quiet.request.ready
+    await settle()
+    expect(times(quiet)).toEqual([100])
+    expect(quiet.request.resultsAnnouncement.value).toBe('')
+
+    const test = setup()
+    test.pending[0]!.reject(new Error('First load failed'))
+    await settle()
+    expect(test.request.refreshFailed.value).toBe(true)
+    expect(test.request.resultsAnnouncement.value).toBe('')
+    const retry = test.request.retry()
+    test.pending[1]!.resolve(page(100, 'Recovered physics'))
+    await retry
+    await settle()
+    expect(times(test)).toEqual([100])
+    expect(test.request.resultsAnnouncement.value).toBe('Results updated')
+  })
+
+  it('reports a failed expansion, keeps the rows and the position, and clears it on the next attempt', async () => {
+    const test = await expanded()
+    expect(test.request.expansionFailed.value).toBe(false)
+    const more = test.request.showMore()
+    test.pending[2]!.reject(new Error('Expansion failed'))
+    await more
+    expect(test.request.expansionFailed.value).toBe(true)
+    expect(test.request.refreshFailed.value).toBe(false)
+    expect(times(test)).toEqual([100, 110])
+    expect(test.request.canShowMore.value).toBe(true)
+
+    const retry = test.request.showMore()
+    expect(test.request.expansionFailed.value).toBe(false)
+    expect(test.fetch.mock.calls[3]?.[1]).toEqual(test.fetch.mock.calls[2]?.[1])
+    test.pending[3]!.resolve(page(120, 'Original physics'))
+    await retry
+    expect(times(test)).toEqual([100, 110, 120])
+    expect(test.request.expansionFailed.value).toBe(false)
+  })
+
+  it('drops a failed expansion when a new ranking is accepted', async () => {
+    const test = await expanded()
+    const more = test.request.showMore()
+    test.pending[2]!.reject(new Error('Expansion failed'))
+    await more
+    expect(test.request.expansionFailed.value).toBe(true)
+    test.powerW.value = 250
+    await nextTick()
+    test.pending[3]!.resolve(page(80, 'New physics'))
+    await settle()
+    expect(times(test)).toEqual([80])
+    expect(test.request.expansionFailed.value).toBe(false)
   })
 
   it('captures legal rider substitutions and detaches Garage input before fetching', async () => {

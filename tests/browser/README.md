@@ -25,9 +25,11 @@ response, the results region leaving `aria-busy`), never sleeps: every spec
 imports them from `support.ts`, which owns the waits and the one helper that
 seeds a rider profile before a page reads it - locators stay in the spec that
 uses them. A response is stubbed only where the failure itself is what is
-under test - one recommend journey, the aborted refetch in each of
-`route-discovery.spec.ts` and `segment-discovery.spec.ts`, and the failed
-season calendar in `event-discovery.spec.ts` (which closes two doors: the API
+under test - one recommend journey, the failed refresh in
+`applied-ranking.spec.ts` (a ranking that cannot be brought up to date is
+the whole subject of it), the aborted
+refetch in each of `route-discovery.spec.ts` and `segment-discovery.spec.ts`,
+and the failed season calendar in `event-discovery.spec.ts` (which closes two doors: the API
 and the route's extracted payload, which Nuxt would otherwise answer that
 navigation from); a stub is never used to make a real journey faster. The one other stub is `site-flags.spec.ts`, which answers
 `/api/site-flags` by hand: the flags live in Workers KV and the dev server
