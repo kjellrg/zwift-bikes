@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { expectNoHorizontalOverflow, isListingResponse, isListingUrl, ready, rerank, visit } from './support'
+import { expectNoHorizontalOverflow, isListingResponse, isListingUrl, navigateUnderOverlay, ready, rerank, visit } from './support'
 
 /**
  * The race recommendation journey (issue #217): a race page built from the
@@ -422,11 +422,16 @@ test.describe('race recommendation', () => {
 
   test('tells a bike barred by the race that it is illegal, not slow', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the desktop journey covers the drawer carried across a navigation')
-    // A TT frame's drawer, opened where TT frames are legal, carried back onto
-    // a race that bars them. The drawer outlives a client-side navigation by
-    // design - whether it should is #218's call - so what it says there has to
-    // be true: the bike is missing from that ranking because it is illegal,
-    // not because it was beaten.
+    // A TT frame's drawer, opened where TT frames are legal, carried onto a
+    // race that bars them. The drawer outlives a client-side navigation by
+    // design, so what it says there has to be true: the bike is missing from
+    // that ranking because it is illegal, not because it was beaten.
+    //
+    // The carry is forward, and driven by the router rather than a gesture:
+    // since #239 the back press that used to produce this state closes the
+    // drawer instead, and an open Overlay covers every link on the page - so
+    // `navigateUnderOverlay` is the only way left to reach the state this
+    // attribution was written for.
     await page.addInitScript(() => localStorage.setItem('zwift-bikes:preferences', JSON.stringify({ bikeCategory: 'tt' })))
     await visit(page, SPLIT_BY_COURSE)
     await expect(filterSummary(page), 'the race substitutes the stored TT category').toHaveText('All categories / Verified only')
@@ -444,8 +449,8 @@ test.describe('race recommendation', () => {
     await expect(dialog).toContainText(frameName)
     const finishOnTheRoute = await dialog.getByText(/^\d+:\d\d(:\d\d)? ·/).innerText()
 
-    // Back to the race, without a reload - the drawer is still open.
-    await page.goBack()
+    // On to the race, without a reload - the drawer is still open.
+    await navigateUnderOverlay(page, SPLIT_BY_COURSE)
     await ready(page)
     await expect(dialog).toBeVisible()
     await expect(dialog).toContainText('This bike is barred from the ride you are looking at')
