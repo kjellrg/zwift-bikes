@@ -1,5 +1,5 @@
 import type { ComboScore } from '../../shared/types/catalog'
-import type { AppliedRiderInputs } from '../utils/recommendRequest'
+import type { AppliedRiderInputs, RiderInputs } from '../utils/recommendRequest'
 import { buildRecommendationAnswer, type RecommendationAnswer } from '../utils/recommendationAnswer'
 
 export interface RecommendationAnswerOptions {
@@ -13,8 +13,7 @@ export interface RecommendationAnswerOptions {
   rider: () => AppliedRiderInputs
   /** The applied lap count on a route page; omit on a segment page. */
   laps?: () => number
-  /** The settled search term the ranking was fetched for (`bikeSearchDebounced`). */
-  search: () => string
+  restrictions: () => RiderInputs
   /** The Ride's own equipment and drafting rules, ahead of the answer - a race has them, a route does not. */
   rideRules?: () => string | undefined
 }
@@ -22,19 +21,17 @@ export interface RecommendationAnswerOptions {
 /**
  * The visible best-bike answer under the recommendation, and the FAQ
  * structured data's text, as one computed. The rider side is the applied
- * snapshot the page hands over, the pool restrictions are the stored
- * preferences the request itself reads, and everything ride-side comes from
+ * snapshot the page hands over, the pool restrictions are captured by the
+ * accepted request, and everything ride-side comes from
  * the page through the getters - so the answer describes the ranking on
  * screen, not the one the controls are about to ask for. The wording lives
  * in `buildRecommendationAnswer`, which is where it is tested.
  */
 export function useRecommendationAnswer(options: RecommendationAnswerOptions) {
-  const { myBikesOnly, verifiedOnly, includeHaloBikes } = usePreferences()
-  const { owned, ownedWheels } = useGarage()
-
   return computed<RecommendationAnswer | undefined>(() => {
     const combo = options.combo()
     const rideName = options.rideName()
+    const restrictions = options.restrictions()
     if (!combo || !rideName || combo.finishTimeSec === undefined) return undefined
     return buildRecommendationAnswer({
       frameName: combo.frame.name,
@@ -45,12 +42,12 @@ export function useRecommendationAnswer(options: RecommendationAnswerOptions) {
       rider: options.rider(),
       laps: options.laps?.(),
       rideRules: options.rideRules?.(),
-      verifiedOnly: verifiedOnly.value,
-      includeHaloBikes: includeHaloBikes.value,
-      myBikesOnly: myBikesOnly.value,
-      ownsFrames: Object.keys(owned.value).length > 0,
-      ownsWheels: Object.keys(ownedWheels.value).length > 0,
-      search: options.search()
+      verifiedOnly: restrictions.verifiedOnly,
+      includeHaloBikes: restrictions.includeHaloBikes,
+      myBikesOnly: restrictions.myBikesOnly,
+      ownsFrames: Object.keys(restrictions.owned).length > 0,
+      ownsWheels: Object.keys(restrictions.ownedWheels).length > 0,
+      search: restrictions.search
     })
   })
 }

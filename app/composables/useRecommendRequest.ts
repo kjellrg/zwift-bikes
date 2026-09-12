@@ -141,6 +141,41 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   const query = computed(() => buildRecommendQuery(inputs.value, currentRide.value))
   const serializedQuery = computed(() => serializeRecommendQuery(query.value))
 
+  function captureRequest() {
+    const rider = Object.freeze({
+      ...inputs.value,
+      owned: Object.freeze({ ...inputs.value.owned }),
+      ownedWheels: Object.freeze({ ...inputs.value.ownedWheels })
+    })
+    const ride = Object.freeze({ ...currentRide.value })
+    return Object.freeze({ rider, ride, query: Object.freeze(buildRecommendQuery(rider, ride)) })
+  }
+  type Provenance = ReturnType<typeof captureRequest>
+  type Ranking = RecommendEnvelope<RecommendResponse> & {
+    provenance: Provenance
+    pages: number
+    generation?: number
+  }
+  const initialRequest = captureRequest()
+  const accepted = ref<Ranking | null>(null)
+  let generation = 0
+  let requested = false
+  let observed: Ranking | null = null
+  const loadingMore = ref(false)
+  let expansion = 0
+
+  const appliedRanking = computed(() => {
+    const candidate = envelope.value
+    if (candidate && candidate !== observed) {
+      observed = candidate
+      if (!requested || (candidate.generation === generation
+        && candidate.endpoint === endpoint.value && candidate.forQuery === serializedQuery.value)) {
+        accepted.value = candidate
+      }
+    }
+    return accepted.value
+  })
+
   /**
    * One `useAsyncData` under a key that never changes (see
    * `RecommendRequestOptions.key`), with the watcher below as its only
@@ -156,15 +191,41 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * the whole #118/#121 contract, and it is tested in
    * `app/utils/recommendRequest.test.ts`.
    */
-  const asyncData = useAsyncData<RecommendEnvelope<RecommendResponse>>(
+  const asyncData = useAsyncData<Ranking>(
     options.key,
     async () => {
-      // Read before the await: the envelope must record the request this
-      // result was fetched WITH, not whatever the refs hold when it lands.
-      const target = endpoint.value
-      const forQuery = serializedQuery.value
-      const result = target ? await $fetch<RecommendResponse>(target, { query: query.value }) : null
-      return { endpoint: target, forQuery, result }
+      const previous = accepted.value
+      const provenance = captureRequest()
+      const target = provenance.ride.endpoint
+      const forQuery = serializeRecommendQuery(provenance.query)
+      const token = ++generation
+      requested = true
+      expansion += 1
+      loadingMore.value = false
+      const pageCount = previous && recommendChangeKind(
+        { endpoint: previous.endpoint, query: previous.provenance.query },
+        { endpoint: target, query: provenance.query }
+      ) !== 'refresh'
+        ? previous.pages
+        : 1
+      const responses = target
+        ? await Promise.all(Array.from({ length: pageCount }, (_, index) =>
+            $fetch<RecommendResponse>(target, { query: { ...provenance.query, offset: index * RECOMMEND_MAX_LIMIT } })
+          ))
+        : []
+      const first = responses[0]
+      const result = first
+        ? {
+            ...first,
+            combos: responses.flatMap(page => page.combos),
+            pagination: responses.at(-1)?.pagination
+          }
+        : null
+      return {
+        endpoint: target, forQuery, result, provenance,
+        pages: Math.max(1, Math.ceil((result?.combos.length ?? 0) / RECOMMEND_MAX_LIMIT)),
+        generation: token
+      }
     },
     {
       watch: [],
@@ -179,18 +240,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     }
   )
   const { data: envelope, status, error, refresh } = asyncData
-  // Nuxt resets `data` to its default when a refresh throws, which would
-  // empty the list under the very toast that says the previous results are
-  // still shown (`useRefetchNotice`). So the envelope last served stays the
-  // one on screen until a response replaces it. A computed rather than a
-  // watcher because no watcher runs after setup on the server, where the
-  // page reads this straight after awaiting the fetch. A no-endpoint ride
-  // still clears the list: its envelope is a real one with a null result.
-  let servedEnvelope: RecommendEnvelope<RecommendResponse> | null = null
-  const recommendData = computed(() => {
-    if (envelope.value) servedEnvelope = envelope.value
-    return servedEnvelope?.result ?? null
-  })
+  const recommendData = computed(() => appliedRanking.value?.result ?? null)
   useRefetchNotice(error, status, refresh)
 
   /**
@@ -201,7 +251,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * refetch lands. The cards and FAQ read this lagged Ride instead, which
    * catches up exactly when the recomputed times do.
    */
-  const appliedRide = ref<Ride>(currentRide.value)
+  const appliedRide = computed(() => (appliedRanking.value?.provenance ?? initialRequest).ride)
   /**
    * The rider the combos on screen were computed for - see **Applied** in
    * `CONTEXT.md`. Same rule and same lifecycle as `appliedRide`: the
@@ -210,31 +260,38 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * rather than the stored profile, and a failed refresh leaves it where it
    * was, beside the results it still describes.
    */
-  const appliedInputs = ref<AppliedRiderInputs>(riderInputsForRide(inputs.value, currentRide.value))
-  const results = useRecommendResults<ComboScore>({
-    recommendData,
-    refresh,
-    fetchPage: (offset, limit) => endpoint.value
-      ? $fetch<RecommendResponse>(endpoint.value, { query: { ...query.value, offset, limit } })
-      : Promise.resolve({ combos: [] }),
-    pageSize: RECOMMEND_MAX_LIMIT,
-    onResultsApplied: () => {
-      appliedRide.value = currentRide.value
-      appliedInputs.value = riderInputsForRide(inputs.value, currentRide.value)
-    }
+  const appliedInputs = computed<AppliedRiderInputs>(() => {
+    const provenance = appliedRanking.value?.provenance ?? initialRequest
+    return riderInputsForRide(provenance.rider, provenance.ride)
   })
-  const { loadedCombos, loadingMore, reloadingPages, showMore, refreshFirstPage, reloadLoadedPages } = results
+  const appliedRestrictions = computed(() => (appliedRanking.value?.provenance ?? initialRequest).rider)
+  const combos = computed(() => recommendData.value?.combos ?? [])
+  const hasMore = computed(() => recommendData.value?.pagination?.hasMore ?? false)
+  const isOutdated = computed(() => appliedRanking.value?.endpoint !== endpoint.value
+    || appliedRanking.value?.forQuery !== serializedQuery.value)
+  const canShowMore = computed(() => hasMore.value && status.value !== 'pending' && !isOutdated.value && !loadingMore.value)
 
-  /**
-   * The list plumbing above applies a response through a watcher, and Vue
-   * runs no watcher after setup on the server - so on a server render, where
-   * this composable is created before its own fetch resolves, the response is
-   * read straight off `recommendData` instead. In the browser the watcher is
-   * the source of truth: it is what "show more" appends to and what a garage
-   * reload swaps out.
-   */
-  const combos = computed(() => import.meta.server ? (recommendData.value?.combos ?? []) : loadedCombos.value)
-  const hasMore = computed(() => import.meta.server ? (recommendData.value?.pagination?.hasMore ?? false) : results.hasMore.value)
+  async function showMore() {
+    const ranking = appliedRanking.value
+    if (!canShowMore.value || !ranking?.endpoint || !ranking.result) return
+    const token = ++expansion
+    loadingMore.value = true
+    try {
+      const page = await $fetch<RecommendResponse>(ranking.endpoint, {
+        query: { ...ranking.provenance.query, offset: ranking.result.combos.length, limit: RECOMMEND_MAX_LIMIT }
+      })
+      if (token !== expansion || appliedRanking.value !== ranking || isOutdated.value) return
+      accepted.value = {
+        ...ranking,
+        result: { ...ranking.result, combos: [...ranking.result.combos, ...page.combos], pagination: page.pagination },
+        pages: ranking.pages + 1
+      }
+    } catch {
+      return
+    } finally {
+      if (token === expansion) loadingMore.value = false
+    }
+  }
 
   // The one refetch trigger. `recommendChangeKind` reads which keys moved:
   // the garage toggles live on the result cards themselves, so one can be
@@ -245,8 +302,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     const next: RecommendRequest = { endpoint: endpoint.value, query: query.value }
     const kind = recommendChangeKind(lastRequest, next)
     lastRequest = next
-    if (kind === 'refresh') refreshFirstPage()
-    else if (kind === 'reload') reloadLoadedPages()
+    if (kind !== 'none') refresh()
   })
 
   onMounted(() => {
@@ -289,15 +345,17 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   // show yet) apart from a refresh of already-visible results (show stale
   // cards plus a subtle "updating" hint).
   const isFirstLoad = computed(() => status.value === 'pending' && !recommendData.value)
-  const isRefreshing = computed(() => (status.value === 'pending' || reloadingPages.value) && !!recommendData.value)
+  const isRefreshing = computed(() => status.value === 'pending' && !!recommendData.value)
   // Announced to assistive tech when a refetch lands: the visual cue is
   // opacity and a spinner only. Cleared first so consecutive refreshes
   // re-announce (a live region only speaks on change).
   const resultsAnnouncement = ref('')
   watch(isRefreshing, async (refreshing, wasRefreshing) => {
-    if (!wasRefreshing || refreshing) return
     resultsAnnouncement.value = ''
+    if (!wasRefreshing || refreshing || isOutdated.value || status.value !== 'success') return
+    const token = generation
     await nextTick()
+    if (token !== generation || isOutdated.value || status.value !== 'success') return
     resultsAnnouncement.value = 'Results updated'
   })
 
@@ -313,10 +371,12 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     topCombo,
     fastestTimeSec,
     hasMore,
+    canShowMore,
     loadingMore,
     showMore,
     appliedRide,
     appliedInputs,
+    appliedRestrictions,
     isFirstLoad,
     isRefreshing,
     resultsAnnouncement,

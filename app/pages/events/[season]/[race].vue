@@ -91,7 +91,7 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement,
+  appliedInputs, appliedRide, appliedRestrictions, canShowMore, isFirstLoad, isRefreshing, resultsAnnouncement,
   bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 
@@ -457,7 +457,7 @@ const answer = useRecommendationAnswer({
   distanceKm: () => resultsTotals.value?.distanceKm ?? appliedRoute.value?.distance,
   rider: () => appliedInputs.value,
   laps: () => resultsLaps.value,
-  search: () => bikeSearchDebounced.value,
+  restrictions: () => appliedRestrictions.value,
   rideRules: () => rideRules.value
 })
 const faqAnswer = computed(() => answer.value?.text)
@@ -817,7 +817,10 @@ useHead(() => {
         :has-long-climb="hasLongClimb"
         :draft-locked="!draftAllowed"
       />
-      <RideEquipmentFilters :hide-tt-category="!ttAllowed" />
+      <RideEquipmentFilters
+        :hide-tt-category="!ttAllowed"
+        :applied-restrictions="appliedRestrictions"
+      />
     </div>
 
     <RecommendDataNotice />
@@ -963,7 +966,7 @@ useHead(() => {
               >
                 <p class="text-muted">
                   No bikes match your filters.
-                  <template v-if="bikeSearchDebounced">
+                  <template v-if="appliedRestrictions.search">
                     Clear the search below or widen the filters above to see the ranking again.
                   </template>
                   <template v-else>
@@ -1064,6 +1067,8 @@ useHead(() => {
           :load-wheel-options="loadWheelOptions"
           :request-key="serializedQuery"
           :has-more="hasMore"
+          :can-show-more="canShowMore"
+          :applied-search="appliedRestrictions.search"
           :loading-more="loadingMore"
           @show-more="showMore"
         />

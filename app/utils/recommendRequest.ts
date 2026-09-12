@@ -143,8 +143,8 @@ export function ridePowerW(inputs: Pick<RiderInputs, 'powerW' | 'sprintPowerW'>,
 
 /**
  * The rider values a ranking is computed from, once made legal for the ride
- * - see **Applied** in `CONTEXT.md`. `useRecommendRequest` snapshots one of
- * these when a response lands, and everything that explains a finish time
+ * - see **Applied** in `CONTEXT.md`. `useRecommendRequest` captures these
+ * before fetching and applies them with the ranking. Everything that explains a finish time
  * (the rider strip, the answer, the equipment-dependent analysis) reads that
  * snapshot rather than the stored profile, so a time is never explained by
  * inputs it was not computed from.

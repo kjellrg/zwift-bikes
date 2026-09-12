@@ -20,7 +20,7 @@ const ride = computed<Ride>(() => ({ endpoint: `/api/recommend/${slug.value}`, l
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs,
+  appliedInputs, appliedRestrictions, canShowMore,
   appliedRide, isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 
@@ -174,7 +174,7 @@ const answer = useRecommendationAnswer({
   distanceKm: () => resultsTotals.value?.distanceKm ?? routeData.value?.distance,
   rider: () => appliedInputs.value,
   laps: () => resultsLaps.value,
-  search: () => bikeSearchDebounced.value
+  restrictions: () => appliedRestrictions.value
 })
 const faqAnswer = computed(() => answer.value?.text)
 
@@ -184,8 +184,7 @@ useHead(() => {
   if (!routeData.value) return {}
   // Keyed, so unhead updates the server-rendered tag in place. Without a
   // key it matches by content hash, and a patch that lands while the page
-  // is still hydrating - the answer's Halo clause reads the stored
-  // preference the moment `load()` runs - inserts a second FAQ script and
+  // is still hydrating - the stored profile's ranking is accepted - inserts a second FAQ script and
   // leaves the crawler-facing default-rider one in the document.
   const scripts = [{
     key: 'breadcrumbs',
@@ -322,7 +321,7 @@ useHead(() => {
         :refreshing="isRefreshing"
         :has-long-climb="hasLongClimb"
       />
-      <RideEquipmentFilters />
+      <RideEquipmentFilters :applied-restrictions="appliedRestrictions" />
     </div>
 
     <RecommendDataNotice />
@@ -420,7 +419,7 @@ useHead(() => {
             >
               <p class="text-muted">
                 No bikes match your filters.
-                <template v-if="bikeSearchDebounced">
+                <template v-if="appliedRestrictions.search">
                   Clear the search below or widen the filters above to see the ranking again.
                 </template>
                 <template v-else>
@@ -516,6 +515,8 @@ useHead(() => {
         :load-wheel-options="loadWheelOptions"
         :request-key="serializedQuery"
         :has-more="hasMore"
+        :can-show-more="canShowMore"
+        :applied-search="appliedRestrictions.search"
         :loading-more="loadingMore"
         @show-more="showMore"
       />

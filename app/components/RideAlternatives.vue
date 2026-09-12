@@ -26,6 +26,8 @@ const props = defineProps<{
   /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
   requestKey?: string
   hasMore: boolean
+  canShowMore: boolean
+  appliedSearch: string
   loadingMore: boolean
 }>()
 
@@ -132,16 +134,16 @@ const listId = useId()
            recommendation above is also reporting, and a ranking of one, where
            the answer is up there and only the field behind it is missing. -->
       <template v-if="!combos.length">
-        <template v-if="search">
-          Nothing in the catalog matches "{{ search }}" under the current filters.
+        <template v-if="appliedSearch">
+          Nothing in the catalog matches "{{ appliedSearch }}" under the current filters.
         </template>
         <template v-else>
           Nothing to rank under the current filters.
         </template>
       </template>
       <template v-else>
-        <template v-if="search">
-          Nothing else matches "{{ search }}" under the current filters.
+        <template v-if="appliedSearch">
+          Nothing else matches "{{ appliedSearch }}" under the current filters.
         </template>
         <template v-else>
           Nothing else matches under the current filters.
@@ -156,6 +158,7 @@ const listId = useId()
         color="neutral"
         variant="subtle"
         :loading="loadingMore"
+        :disabled="!canShowMore"
         @click="$emit('showMore')"
       >
         Show more matches
