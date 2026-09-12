@@ -73,6 +73,41 @@ test.describe('garage', () => {
     await expect(garageScope(page)).toContainText('Your frames / all wheels')
   })
 
+  test('sets a bike\'s stage from its ranked setup, and the garage keeps it', async ({ page }) => {
+    await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
+    await ready(page)
+    // The recommendation is rank 1 of the ranking, so the frame may sit
+    // there rather than in a row; both carry the same stage control.
+    const setup = page.locator('section:has(#ride-recommendation-heading), ol[aria-label="Ranked setups"] > li').filter({ hasText: FRAME }).first()
+    await expect(setup).toBeVisible()
+    // Not owned: the stage is the profile's default for unowned bikes, as
+    // text - there is nothing to edit here until the bike is in the garage.
+    await expect(setup.getByText(/^Stage \d, assumed$/)).toBeVisible()
+    await expect(stageSelect(setup, FRAME)).toHaveCount(0)
+
+    await rerank(page, () => setup.getByRole('button', { name: `Quick-add ${FRAME} to garage` }).click())
+    await expect(setup.getByText(/, assumed$/)).toHaveCount(0)
+    // One stage down, not more: unowned bikes are ranked at stage 5, so a
+    // bigger drop can push this frame off the first page and take its
+    // select with it. The select shows the new stage as soon as it is
+    // picked, ahead of the reload, which is when the row is still where the
+    // pick was made.
+    const reranked = page.waitForResponse(isListingResponse)
+    await stageSelect(setup, FRAME).click()
+    await page.getByRole('option', { name: 'Stage 4', exact: true }).click()
+    await expect(stageSelect(setup, FRAME)).toHaveText('Stage 4')
+    const response = await reranked
+    expect(response.ok()).toBe(true)
+    await ready(page)
+    // The stage went into the request the ranking was refetched with.
+    expect(Object.values(JSON.parse(new URL(response.url()).searchParams.get('owned') ?? '{}'))).toContain(4)
+
+    await visitPage(page, '/garage')
+    await bikeSearch(page).fill(FRAME)
+    await expect(ownSwitch(page, FRAME)).toBeChecked()
+    await expect(stageSelect(page, FRAME)).toHaveText('Stage 4')
+  })
+
   test('keeps what the page edits, and ranks the frame at the stage it was given', async ({ page }) => {
     await visitPage(page, '/garage')
     await bikeSearch(page).fill(FRAME)

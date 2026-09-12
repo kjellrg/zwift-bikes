@@ -283,6 +283,18 @@ export function formatSeasonSpan(summary: Pick<SeasonSummary, 'startDate' | 'end
   return `${formatRaceDateShort(summary.startDate)} - ${formatRaceDateShort(summary.endDate)}`
 }
 
+/**
+ * The six upgrade stages as every stage select lists them - the garage's,
+ * and the one on each ranked setup. One list so the two cannot disagree
+ * about what stage 0 is called. The profile's default-stage select spells
+ * stage 0 out longer on purpose: it is explaining the default, not editing
+ * a bike.
+ */
+export const UPGRADE_STAGE_OPTIONS = [0, 1, 2, 3, 4, 5].map(level => ({
+  label: level === 0 ? 'Stage 0 (stock)' : `Stage ${level}`,
+  value: level
+}))
+
 /** Zwift's race powerups, as spelled in event listings. */
 export const POWERUP_LABELS: Record<Powerup, string> = {
   feather: 'Feather',

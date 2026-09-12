@@ -51,11 +51,6 @@ const frames = computed<ClassifiedBikeFrame[]>(() => {
   return ownedFramesOnly.value ? all.filter(f => isOwned(f.id)) : all
 })
 
-const levelOptions = [0, 1, 2, 3, 4, 5].map(level => ({
-  label: level === 0 ? 'Stage 0 (stock)' : `Stage ${level}`,
-  value: level
-}))
-
 // Added at the rider's default stage for unowned bikes - the same stage the
 // result cards' quick-add uses and the stage unowned bikes are scored at, so
 // ticking a bike here never moves it in the ranking. This used to add at
@@ -322,7 +317,7 @@ const activeTab = ref('bikes')
                   :model-value="owned[frame.id]"
                   :disabled="frame.confidence === 'estimated'"
                   value-key="value"
-                  :items="levelOptions"
+                  :items="UPGRADE_STAGE_OPTIONS"
                   :search-input="false"
                   class="w-32"
                   :aria-label="`Upgrade stage for ${frame.name}`"

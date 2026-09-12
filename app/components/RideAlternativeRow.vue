@@ -97,6 +97,7 @@ const botTested = computed(() => isBotTested(props.combo))
           :class="botTested ? 'text-success' : ''"
         />{{ botTested ? 'Bot-tested' : 'Includes estimates' }}
       </span>
+      <RideStageControl :combo="combo" />
       <UButton
         icon="i-lucide-chart-no-axes-combined"
         size="xs"

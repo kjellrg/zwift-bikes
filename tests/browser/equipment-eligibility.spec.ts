@@ -118,9 +118,9 @@ test.describe('equipment eligibility', () => {
     const recommended = (await frameNames(page))[0]
     expect(recommended).toBeTruthy()
 
-    await rerank(page, () => recommendation(page).getByRole('button', { name: 'Add to garage' }).click())
+    await rerank(page, () => recommendation(page).getByRole('button', { name: /^Quick-add .* to garage$/ }).click())
     await expect(garageScope(page)).toContainText('Your frames / all wheels')
-    await expect(recommendation(page).getByRole('button', { name: 'In your garage' })).toBeVisible()
+    await expect(recommendation(page).getByRole('button', { name: /^Remove .* from garage$/ })).toBeVisible()
     expect(new Set(await frameNames(page))).toEqual(new Set([recommended]))
   })
 

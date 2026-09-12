@@ -125,12 +125,10 @@ const botTested = computed(() => isBotTested(props.combo))
           class="size-4 shrink-0"
           :class="botTested ? 'text-success' : ''"
         />{{ botTested ? 'Bot-tested equipment' : 'Includes estimated data' }}
-        <!-- Only a measured frame has per-stage data, so only there does the
-             stage mean anything - same gate as the card and the drawer. -->
-        <span
-          v-if="combo.frame.confidence === 'measured'"
+        <RideStageControl
+          :combo="combo"
           class="border-l border-default pl-2"
-        >Stage {{ combo.frame.level }}{{ isOwned ? ', your bike' : ', assumed' }}</span>
+        />
       </li>
       <li
         v-for="note in notes"
@@ -156,6 +154,7 @@ const botTested = computed(() => isBotTested(props.combo))
         :color="isOwned ? 'success' : 'neutral'"
         variant="link"
         class="px-0"
+        :aria-label="`${isOwned ? 'Remove' : 'Quick-add'} ${combo.frame.name} ${isOwned ? 'from' : 'to'} garage`"
         @click="toggleOwned"
       >
         {{ isOwned ? 'In your garage' : 'Add to garage' }}
