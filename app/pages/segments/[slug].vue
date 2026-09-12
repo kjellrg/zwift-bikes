@@ -34,7 +34,7 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRide,
+  appliedInputs, appliedRide, appliedRestrictions, canShowMore,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
@@ -173,7 +173,7 @@ const answer = useRecommendationAnswer({
   rideName: () => segmentData.value ? `the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}` : undefined,
   distanceKm: () => segmentData.value?.lengthKm,
   rider: () => appliedInputs.value,
-  search: () => bikeSearchDebounced.value
+  restrictions: () => appliedRestrictions.value
 })
 const faqAnswer = computed(() => answer.value?.text)
 
@@ -183,8 +183,7 @@ useHead(() => {
   if (!segmentData.value) return {}
   // Keyed, so unhead updates the server-rendered tag in place. Without a
   // key it matches by content hash, and a patch that lands while the page
-  // is still hydrating - the answer's Halo clause reads the stored
-  // preference the moment `load()` runs - inserts a second FAQ script and
+  // is still hydrating - the stored profile's ranking is accepted - inserts a second FAQ script and
   // leaves the crawler-facing default-rider one in the document.
   const scripts = [{
     key: 'breadcrumbs',
@@ -300,7 +299,7 @@ useHead(() => {
         :has-long-climb="hasLongClimb"
         :sprint-power="isSprint"
       />
-      <RideEquipmentFilters />
+      <RideEquipmentFilters :applied-restrictions="appliedRestrictions" />
     </div>
 
     <RecommendDataNotice />
@@ -380,7 +379,7 @@ useHead(() => {
             >
               <p class="text-muted">
                 No bikes match your filters.
-                <template v-if="bikeSearchDebounced">
+                <template v-if="appliedRestrictions.search">
                   Clear the search below or widen the filters above to see the ranking again.
                 </template>
                 <template v-else>
@@ -481,6 +480,8 @@ useHead(() => {
         :load-wheel-options="loadWheelOptions"
         :request-key="serializedQuery"
         :has-more="hasMore"
+        :can-show-more="canShowMore"
+        :applied-search="appliedRestrictions.search"
         :loading-more="loadingMore"
         @show-more="showMore"
       />

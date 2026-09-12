@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { BikeCategory } from '../../shared/types/catalog'
 import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
+import type { RiderInputs } from '../utils/recommendRequest'
 
 /**
  * The equipment eligibility controls for a ranking page, in two tiers: the
@@ -19,6 +20,7 @@ import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
  * page reads them - the same reason `RiderProfileControls` loads its own.
  */
 const props = defineProps<{
+  appliedRestrictions: RiderInputs
   /**
    * Whether this ride outlaws TT frames - a points or scratch race, or a
    * Race of Truth. The TT option is dropped rather than disabled, because
@@ -33,7 +35,7 @@ const props = defineProps<{
 }>()
 
 const { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, includeHaloBikes, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setIncludeHaloBikes } = usePreferences()
-const { owned, ownedWheels, load: loadGarage } = useGarage()
+const { load: loadGarage } = useGarage()
 // The profile and garage links keep a real `href` for deep links and
 // modifier-clicks, and are plain `<a>`s rather than ULinks: vue-router's own
 // click handler would run before `preventDefault` - see `useOverlays`.
@@ -60,10 +62,10 @@ const categoryLabel = computed(() => displayCategory.value === 'all' ? 'All cate
 // The four cases themselves are `garageFallback`, shared with the garage,
 // which explains an empty tab with the same rule (see `CONTEXT.md`).
 const garageScope = computed(() => {
-  if (!myBikesOnly.value) return undefined
+  if (!props.appliedRestrictions.myBikesOnly) return undefined
   return GARAGE_FALLBACK_SCOPES[garageFallback({
-    frames: Object.keys(owned.value).length > 0,
-    wheels: Object.keys(ownedWheels.value).length > 0
+    frames: Object.keys(props.appliedRestrictions.owned).length > 0,
+    wheels: Object.keys(props.appliedRestrictions.ownedWheels).length > 0
   })]
 })
 

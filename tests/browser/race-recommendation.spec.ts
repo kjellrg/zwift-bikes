@@ -207,6 +207,49 @@ test.describe('race recommendation', () => {
     await expect(answer(page)).toContainText('of Urumaze in Makuri Islands')
   })
 
+  test('does not explain a new ranking with an older course while its route lookup is held', async ({ page }) => {
+    await visit(page, SPLIT_BY_COURSE)
+    let release = () => {}
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await page.route('**/api/routes/4092230492', async (route) => {
+      await held
+      await route.continue()
+    })
+    try {
+      const ranking = page.waitForResponse(response => isListingResponse(response) && response.url().includes('/4092230492?'))
+      await groupPicker(page).click()
+      await page.getByRole('option', { name: 'C/D - 1 lap' }).click()
+      expect((await ranking).ok()).toBe(true)
+      await ready(page)
+      await expect(recommendation(page)).toBeVisible()
+      await expect(recommendation(page)).not.toContainText('km/h')
+      await expect(answer(page)).toHaveCount(0)
+      release()
+      await expect(answer(page)).toContainText('of Urumaze in Makuri Islands')
+    } finally {
+      release()
+      await page.unrouteAll({ behavior: 'wait' })
+    }
+  })
+
+  test('keeps its draft explanation on the Applied rider when a new mode fails', async ({ page }) => {
+    await visit(page, `${SCRATCH}?draft=race`)
+    await expect(answer(page)).toContainText('/ race drafting;')
+    await page.route(url => isListingUrl(url.toString()), route => route.fulfill({
+      status: 400, json: { statusCode: 400, message: 'Refresh failed' }
+    }))
+    await page.getByRole('button', { name: 'Adjust effort' }).click()
+    await page.getByRole('button', { name: 'Draft mode', exact: true }).click()
+    const response = page.waitForResponse(isListingResponse)
+    await page.getByRole('option', { name: 'Solo', exact: true }).click()
+    expect((await response).status()).toBe(400)
+    await ready(page)
+    await expect(answer(page)).toContainText('/ race drafting;')
+    await expect(page.getByText(/ranking below is computed for a lone rider/)).toHaveCount(0)
+  })
+
   test('shows where the points are as a tab beside the profile they are starred on', async ({ page }) => {
     await visit(page, RACE_OF_TRUTH)
     await tab(page, 'Scoring').click()
