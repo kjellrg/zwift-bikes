@@ -1,6 +1,9 @@
 /**
  * Open/closed state for the about, garage, profile and report Overlays
- * (see `CONTEXT.md`), plus the click handlers that open them.
+ * (see `CONTEXT.md`), plus the click handlers that open them - and, since
+ * #239, the mobile menu's state and the one close path that dismisses
+ * whichever of them is up, which is what the back gesture and a dismissing
+ * swipe both call.
  *
  * `useState` rather than Nuxt UI's `useOverlay()`: the openers live in
  * deeply nested components (the header, `RideEquipmentFilters`,
@@ -97,6 +100,49 @@ export function useOverlays() {
   // cleared here too by every opener that is not the menu, because those
   // openers are still on the page and Reka's own return is right.
   const returnsFocusToMenuToggle = useState<boolean>('overlay-returns-to-menu-toggle', () => false)
+  // The mobile menu. Not an Overlay - it is navigation, not content - but it
+  // follows the same dismissal rule (#239), so its state lives here beside
+  // the Overlays' rather than in `app.vue`, where the history mechanism
+  // could not see it. `UHeader`'s toggle still owns flipping it.
+  const isMenuOpen = useState<boolean>('overlay-menu-open', () => false)
+  // True for the one tick a chain spends with nothing mounted, while an
+  // Overlay hands over to another (`openReportFromAbout`). The gap is a swap,
+  // not a close: without this the history mechanism would read it as the
+  // chain ending, drop the chain's entry and push a second one for the
+  // Overlay arriving, leaving the rider two back presses from the page.
+  const isSwappingOverlays = useState<boolean>('overlay-swapping', () => false)
+
+  /**
+   * Whether anything a back gesture should dismiss is on screen: any of the
+   * five Overlays, the mobile menu, or a hand-over between two of them
+   * mid-flight. One value, deliberately - the history entry (#239) belongs to
+   * the chain rather than to whichever Overlay is mounted right now, so a menu
+   * that opens an Overlay, or an About that becomes a Report, is one entry and
+   * one back press.
+   */
+  const isOverlayVisible = computed(() => isAboutOpen.value
+    || isGarageOpen.value
+    || isProfileOpen.value
+    || isReportOpen.value
+    || isBikeDetailOpen.value
+    || isMenuOpen.value
+    || isSwappingOverlays.value)
+
+  /**
+   * Closes the whole chain - what the back gesture and a dismissing swipe
+   * both do (#239). It closes everything rather than the one Overlay that is
+   * up because neither gesture knows which one that is, and only one is ever
+   * open anyway (see `CONTEXT.md`); calling it with nothing open is a no-op.
+   */
+  function closeOverlays() {
+    isAboutOpen.value = false
+    isGarageOpen.value = false
+    isProfileOpen.value = false
+    isReportOpen.value = false
+    isBikeDetailOpen.value = false
+    isMenuOpen.value = false
+    isSwappingOverlays.value = false
+  }
 
   function openBikeDetail(detail: BikeDetail) {
     bikeDetail.value = detail
@@ -192,14 +238,23 @@ export function useOverlays() {
    * tick, so only one overlay is ever mounted at a time - two overlapping
    * ones fight over focus trapping and the body scroll lock, and whichever
    * unmounts second can leave the page unscrollable.
+   *
+   * `isSwappingOverlays` holds the chain open across that tick, so the swap
+   * keeps the one history entry About pushed instead of closing it and
+   * pushing a second (#239).
    */
   function openReportFromAbout(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    isSwappingOverlays.value = true
     isAboutOpen.value = false
     nextTick(() => {
+      // Unless the chain was dismissed while the swap was in the air, in
+      // which case there is nothing left to hand over to.
+      if (!isSwappingOverlays.value) return
       reportSeed.value = undefined
       isReportOpen.value = true
+      isSwappingOverlays.value = false
     })
   }
 
@@ -222,6 +277,9 @@ export function useOverlays() {
     openProfile,
     openReport,
     openReportFromAbout,
-    returnsFocusToMenuToggle
+    returnsFocusToMenuToggle,
+    isMenuOpen,
+    isOverlayVisible,
+    closeOverlays
   }
 }

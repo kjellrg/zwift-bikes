@@ -63,6 +63,25 @@ export async function visitPage(page: Page, path: string) {
   await hydrated(page)
 }
 
+/**
+ * A client-side navigation with an Overlay open - the page changing under an
+ * Overlay that stays up. No rider gesture reaches this since #239: an open
+ * Overlay covers every link on the page, and the back gesture now closes the
+ * Overlay rather than navigating. So the two journeys that need the ordering
+ * (the back stack in `overlay-dismissal.spec.ts`, the barred-frame
+ * attribution in `race-recommendation.spec.ts`) ask the app's own router for
+ * what a link would have done. Shared for the same reason the waits are: a
+ * second hand-rolled reach into the router would be a second chance to get it
+ * subtly wrong.
+ */
+export async function navigateUnderOverlay(page: Page, to: string) {
+  await page.evaluate(async (to) => {
+    const app = (document.querySelector('#__nuxt') as unknown as { __vue_app__: { $nuxt: { $router: { push: (to: string) => Promise<unknown> } } } }).__vue_app__
+    await app.$nuxt.$router.push(to)
+  }, to)
+  await expect(page).toHaveURL(new RegExp(`${to}$`))
+}
+
 /** Runs `action`, waits for the listing response it triggers and for the page to apply it, and hands back the request and the body. */
 export async function rerank(page: Page, action: () => Promise<void>) {
   const responsePromise = page.waitForResponse(isListingResponse)

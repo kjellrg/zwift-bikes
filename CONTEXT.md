@@ -39,7 +39,7 @@ The Ride's sectors in ride order for the recommended setup, with the coverage th
 _Avoid_: race plan, sector list, paceline analysis
 
 **Overlay**:
-Content shown over the page the rider is on, without leaving it. When that content also exists as a page of its own (about, profile, garage, report), the overlay is only the plain-click convenience: its opener keeps the page as a real destination, so a modifier-click, a middle-click, a crawler or a bookmark reaches the page, and the page, not the overlay, is what is server-rendered. The equipment drawer is an overlay with no page behind it, so its opener is a button. Only one overlay is open at a time; an overlay that opens another closes first.
+Content shown over the page the rider is on, without leaving it. When that content also exists as a page of its own (about, profile, garage, report), the overlay is only the plain-click convenience: its opener keeps the page as a real destination, so a modifier-click, a middle-click, a crawler or a bookmark reaches the page, and the page, not the overlay, is what is server-rendered. The equipment drawer is an overlay with no page behind it, so its opener is a button. Only one overlay is open at a time; an overlay that opens another closes first. An overlay is dismissed the way a rider leaves a page - the browser's back gesture and a swipe in the direction that reverses its entrance, as well as Esc, the close control and the backdrop - and dismissing it leaves the rider on the page it was opened over, at every viewport.
 _Avoid_: modal, dialog, slideover, popup
 
 **Applied**:

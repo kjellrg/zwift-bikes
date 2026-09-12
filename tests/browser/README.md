@@ -38,6 +38,16 @@ cannot be seen any other way. `visit` waits for a ranking page's results;
 `visitPage` is for the pages without one (the discovery pages, events,
 profile).
 
+Two journeys need a page to change under an open Overlay, which no rider
+gesture reaches since #239 - an open Overlay covers every link, and back now
+closes the Overlay instead of navigating. `navigateUnderOverlay` in
+`support.ts` asks the app's own router for what a link would have done, and is
+the only place any spec reaches past the page into the app. The touch drag
+that dismisses an Overlay is dispatched as real `Touch` objects in
+`overlay-dismissal.spec.ts`: Playwright's touchscreen can tap and nothing
+else, and the gesture on a real phone is a by-hand check the suite cannot
+discharge.
+
 The events pages resolve next/upcoming/past post-mount from the browser's own
 clock, because they are prerendered and a build-time answer would ship frozen.
 So `event-discovery.spec.ts` pins the clock with `page.clock.setFixedTime`

@@ -11,7 +11,7 @@
 // are shared with links buried elsewhere - "(edit profile)" / "(edit garage)"
 // on the route, segment and event pages, and the report link inside the About
 // overlay itself.
-const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport, isBikeDetailOpen, returnsFocusToMenuToggle } = useOverlays()
+const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport, isBikeDetailOpen, returnsFocusToMenuToggle, isMenuOpen, closeOverlays } = useOverlays()
 
 // Where focus goes when the about, garage, profile or report overlay
 // closes. Reka returns it to the element that had it when the dialog
@@ -31,14 +31,23 @@ const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, open
 // Forwarded to the overlays as UModal's `content.onCloseAutoFocus`: a
 // `watch` on the open state could not do this, because Reka moves focus in
 // a timeout after unmount and would win.
+//
+// The swipe handlers ride along in the same object: `content` is what Nuxt
+// UI binds to the dialog element, so it is where a gesture on the panel is
+// heard (#239). The centred overlays go down, the drawer back out of the
+// edge it came from, and both dismiss through `closeOverlays` - only one
+// overlay is ever open, so no gesture has to say which one it means.
 const overlayContent = {
   onCloseAutoFocus(event) {
     if (!returnsFocusToMenuToggle.value) return
     event.preventDefault()
     document.querySelector('header [data-slot="toggle"]')?.focus()
     returnsFocusToMenuToggle.value = isAboutOpen.value || isGarageOpen.value || isProfileOpen.value || isReportOpen.value
-  }
+  },
+  ...useSwipeDismiss('down', closeOverlays)
 }
+
+const drawerContent = useSwipeDismiss('right', closeOverlays)
 
 // The section a page belongs to, by path prefix, for the mark on the nav
 // entry. Computed by hand because the Routes entry links to `/`, which
@@ -67,10 +76,11 @@ onMounted(loadSiteFlags)
 // only when an overlay actually opened: a modifier-click falls through to
 // the real href, and the menu going away under a new tab is just noise.
 // The menu is not an Overlay (navigation, not content) but follows the same
-// rule: it closes as the overlay opens, so only one of them is up at a time.
-// Its entry unmounts with it, which is why the overlay's closing focus is
-// sent to the menu toggle instead (`overlayContent`).
-const isMenuOpen = ref(false)
+// rule: it closes as the overlay opens, so only one of them is up at a time,
+// and one back press covers the pair (#239) - which is why its open state
+// lives in `useOverlays` with the overlays' own. Its entry unmounts with it,
+// which is why the overlay's closing focus is sent to the menu toggle
+// instead (`overlayContent`).
 
 function openProfileFromMenu(event) {
   openProfile(event)
@@ -367,7 +377,10 @@ useHead({
       v-model:open="isProfileOpen"
       :content="overlayContent"
     />
-    <BikeDetailSlideover v-model:open="isBikeDetailOpen" />
+    <BikeDetailSlideover
+      v-model:open="isBikeDetailOpen"
+      :content="drawerContent"
+    />
     <ReportModal
       v-model:open="isReportOpen"
       :content="overlayContent"
