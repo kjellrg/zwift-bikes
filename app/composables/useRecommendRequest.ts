@@ -307,6 +307,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     return riderInputsForRide(provenance.rider, provenance.ride)
   })
   const appliedRestrictions = computed(() => (appliedRanking.value?.provenance ?? initialRequest).rider)
+  const appliedRequestKey = computed(() => appliedRanking.value?.forQuery ?? serializeRecommendQuery(initialRequest.query))
   const combos = computed(() => recommendData.value?.combos ?? [])
   /**
    * Whether there is a ranking on screen to keep. Not "are there rows": a
@@ -375,16 +376,32 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
 
   /**
    * The wheel list behind a result card's disclosure. Fetched on click
-   * through the endpoint's `wheelsForFrame` drill-down with the live query,
-   * so the times in the list come out of the same pipeline - same rider,
-   * same laps, same draft mode, same garage, and the ride's own equipment
-   * rules - as the time on the card that opened it.
+   * through the endpoint's `wheelsForFrame` drill-down under the Applied
+   * Ranking's own request - not the live controls - so the times in the
+   * list come out of the same pipeline, with the same rider, laps, draft
+   * mode, garage and ride rules, as the time on the card that opened it.
+   * A rider who moves a slider and opens a disclosure before the refresh
+   * lands is comparing wheels against the ranking in front of them, and a
+   * refresh that fails leaves both the card and its list where they were.
+   *
+   * `null` rather than an empty list when there is no ranking to answer
+   * for, or when the one asked about has been replaced since: nothing the
+   * answer says is about the ranking a caller would put it under, and no
+   * wheels is a different answer from no ranking.
+   *
+   * Replacement is read from the provenance rather than the accepted
+   * object, because the two are not the same event: `showMore` publishes a
+   * new object for the same ranking - same request, same explanations,
+   * more rows - and a list fetched before it is still exactly about the
+   * rows it describes.
    */
-  async function loadWheelOptions(frameId: number): Promise<ComboScore[]> {
-    if (!endpoint.value) return []
-    const data = await $fetch<RecommendResponse>(endpoint.value, {
-      query: { ...query.value, wheelsForFrame: frameId, offset: 0, limit: WHEEL_OPTIONS_LIMIT }
+  async function loadWheelOptions(frameId: number): Promise<ComboScore[] | null> {
+    const ranking = appliedRanking.value
+    if (!ranking?.endpoint) return null
+    const data = await $fetch<RecommendResponse>(ranking.endpoint, {
+      query: { ...ranking.provenance.query, wheelsForFrame: frameId, offset: 0, limit: WHEEL_OPTIONS_LIMIT }
     })
+    if (appliedRanking.value?.provenance !== ranking.provenance) return null
     return data.combos ?? []
   }
 
@@ -469,12 +486,16 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     /** The settled search term - what the query was actually built from, and what a page writes to the URL. */
     bikeSearchDebounced,
     /**
-     * The serialised query the results on screen belong to, for anything that
-     * has to notice when the ride being ranked changes underneath it. The bike
-     * drawer keys its route upgrade curve on this (`upgradeCurveKey`); nothing
+     * The serialised query the ranking on screen was fetched for, for
+     * anything that has to notice when the ride being ranked changes
+     * underneath it. The Applied Ranking's own, not the live controls':
+     * the bike drawer keys its route upgrade curve on this
+     * (`upgradeCurveKey`) and fills that curve from the same drill-down
+     * `loadWheelOptions` uses, so a key that moved with the controls would
+     * label a curve with a request it was not computed under. Nothing
      * parses it back out.
      */
-    serializedQuery,
+    appliedRequestKey,
     loadWheelOptions
   }
 }

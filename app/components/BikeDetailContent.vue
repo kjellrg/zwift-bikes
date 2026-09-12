@@ -20,7 +20,8 @@ onMounted(() => load())
  * A bike that a level change pushed off every loaded page has no card to
  * sync the drawer from (`syncBikeDetail`), so the drawer fetches it itself
  * through the page's per-frame drill-down, which ranks this frame's wheels
- * under the live query regardless of where the frame sits overall. The
+ * under the accepted ranking's own request regardless of where the frame
+ * sits overall. The
  * fastest of those is the combo the card would have shown. Held apart from
  * the snapshot in `detail` and cleared whenever a card syncs a fresh one.
  */
@@ -114,7 +115,10 @@ watch(() => upgradeCurveKey(combo.value, props.detail.requestKey), async (key) =
   routeUpgradeLoading.value = true
   try {
     const combos = await props.detail.loadFrameCombos(frameId)
-    if (token !== curveToken) return
+    // No curve for a ranking that has been replaced: the key below would
+    // label it with a request it was not computed under. The replacement
+    // moves this watcher's key again, which fetches the curve that fits.
+    if (token !== curveToken || !combos) return
     takeUpgradeCurve(combos, bikeKey, key)
   } catch {
     // The two bot-test curves below still answer the question in the
@@ -172,15 +176,15 @@ watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
     const combos = await props.detail.loadFrameCombos(props.detail.combo.frame.id)
     // Superseded by a newer refetch, or by the bike ranking again (a card
     // has synced a fresh combo since): this answer is for a state that is gone.
-    if (token !== refetchToken || !bikeDetailDropped.value) return
+    if (token !== refetchToken || !combos || !bikeDetailDropped.value) return
     if (combos[0]) {
       refetched.value = combos[0]
       // Same frame, same query, same response the curve watcher would have
       // asked for - claim it here so a level change that drops the bike does
       // not fetch this twice. The request half can be behind while the bike
       // is dropped: no card exists to sync a fresh `requestKey` from, so this
-      // labels a curve that WAS fetched under the live query with the last
-      // key the drawer was told about. The curve is right either way; the
+      // labels a curve that WAS fetched under the accepted ranking's request
+      // with the last key the drawer was told about. The curve is right either way; the
       // cost of the lag is one redundant refetch when the bike ranks again.
       takeUpgradeCurve(combos, comboKey(combos[0]), upgradeCurveKey(combos[0], props.detail.requestKey))
     }

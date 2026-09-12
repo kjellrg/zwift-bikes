@@ -21,6 +21,8 @@ export interface ListingBody {
 /** A recommend listing request's URL - the drill-down behind the wheel list is a different question. */
 export const isListingUrl = (url: string) => url.includes('/api/recommend/') && !url.includes('wheelsForFrame')
 export const isListingResponse = (response: Response) => isListingUrl(response.url())
+/** That other question: one frame's wheels, which the disclosure and the drawer both ask. */
+export const isDrillDownUrl = (url: string) => url.includes('/api/recommend/') && url.includes('wheelsForFrame')
 
 /**
  * Seeds the rider profile (`useRiderProfile`'s `zwift-bikes:rider-profile`)

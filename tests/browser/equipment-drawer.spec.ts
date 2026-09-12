@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { isListingResponse, ready, rerank, visit } from './support'
+import { isDrillDownUrl, isListingResponse, ready, rerank, visit } from './support'
 
 /**
  * The equipment drawer and the wheel drill-down beside it (issue #206): what
@@ -34,7 +34,6 @@ const routeCurveCaption = (page: Page) => drawer(page).getByText(/^Seconds off /
 const routeCurveMarker = (page: Page) => drawer(page).locator('div:has(> svg[aria-label^="On this route:"]) span.tabular-nums').first()
 const wheelDisclosure = (page: Page) => recommendation(page).getByRole('button', { name: /^Wheel alternatives/ })
 
-const isWheelDrillDown = (url: string) => url.includes('/api/recommend/') && url.includes('wheelsForFrame')
 const normalise = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 test.describe('equipment drawer', () => {
@@ -47,7 +46,7 @@ test.describe('equipment drawer', () => {
     const drillDown = new Promise<void>((resolve) => {
       drillDownStarted = resolve
     })
-    await page.route(url => isWheelDrillDown(url.href), async (route) => {
+    await page.route(url => isDrillDownUrl(url.href), async (route) => {
       if (!slowDrillDown) return route.continue()
       slowDrillDown = false
       drillDownStarted()
@@ -171,7 +170,7 @@ test.describe('equipment drawer', () => {
       staleFulfilled = resolve
     })
 
-    await page.route(url => isWheelDrillDown(url.href), async (route) => {
+    await page.route(url => isDrillDownUrl(url.href), async (route) => {
       if (phase === 'fail') return route.abort('failed')
       if (phase === 'stale') {
         // Flipped here rather than in the test, so the next drill-down is

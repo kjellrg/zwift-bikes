@@ -93,7 +93,7 @@ const {
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
   appliedInputs, appliedRide, appliedRestrictions, canShowMore, hasRanking, isFirstLoad, isRefreshing,
   refreshFailed, expansionFailed, retry, resultsAnnouncement,
-  bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
+  bikeSearch, bikeSearchDebounced, loadWheelOptions, appliedRequestKey
 } = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 
 // `useAsyncData` rather than `useFetch` for the route lookup: the selected
@@ -951,7 +951,7 @@ useHead(() => {
                 :laps="resultsLaps"
                 :fastest-time-sec="fastestTimeSec"
                 :load-wheel-options="loadWheelOptions"
-                :request-key="serializedQuery"
+                :request-key="appliedRequestKey"
                 :limited-data-note="limitedDataNote"
                 :notes="recommendationNotes"
                 :compared="isCompared(topCombo)"
@@ -1078,7 +1078,7 @@ useHead(() => {
           :laps="resultsLaps"
           :fastest-time-sec="fastestTimeSec"
           :load-wheel-options="loadWheelOptions"
-          :request-key="serializedQuery"
+          :request-key="appliedRequestKey"
           :has-more="hasMore"
           :can-show-more="canShowMore"
           :applied-search="appliedRestrictions.search"

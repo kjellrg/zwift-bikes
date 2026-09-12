@@ -450,6 +450,53 @@ describe('useRecommendRequest applied ranking', () => {
     expect(test.request.expansionFailed.value).toBe(false)
   })
 
+  it('asks for wheel alternatives under the Applied Ranking while the controls run ahead of it', async () => {
+    const test = await expanded()
+    test.powerW.value = 250
+    await nextTick()
+    const held = test.request.loadWheelOptions(12)
+    const heldCall = test.fetch.mock.calls.at(-1)!
+    expect(heldCall[1].query).toMatchObject({ powerW: 200, wheelsForFrame: 12, offset: 0 })
+    test.pending.at(-1)!.resolve(page(105, 'Applied wheels'))
+    expect((await held)?.map(combo => combo.finishTimeSec)).toEqual([105])
+
+    // The refresh the slider fired is the earlier request; the drill-down
+    // above is the later one.
+    test.pending[2]!.reject(new Error('Refresh failed'))
+    await settle()
+    expect(test.request.refreshFailed.value).toBe(true)
+    const afterFailure = test.request.loadWheelOptions(12)
+    expect(test.fetch.mock.calls.at(-1)![1].query).toMatchObject({ powerW: 200, wheelsForFrame: 12 })
+    test.pending.at(-1)!.resolve(page(105, 'Applied wheels'))
+    expect((await afterFailure)?.map(combo => combo.finishTimeSec)).toEqual([105])
+  })
+
+  it('keeps wheel alternatives through a Show more, which grows the ranking rather than replacing it', async () => {
+    const test = setup()
+    test.pending[0]!.resolve(page(100, 'Original physics'))
+    await test.request.ready
+    await settle()
+    const options = test.request.loadWheelOptions(12)
+    const more = test.request.showMore()
+    test.pending[2]!.resolve(page(110, 'Original physics'))
+    await more
+    expect(times(test)).toEqual([100, 110])
+    test.pending[1]!.resolve(page(105, 'Applied wheels'))
+    expect((await options)?.map(combo => combo.finishTimeSec)).toEqual([105])
+  })
+
+  it('discards wheel alternatives that arrive under a ranking no longer on screen', async () => {
+    const test = await expanded()
+    const late = test.request.loadWheelOptions(12)
+    test.powerW.value = 250
+    await nextTick()
+    test.pending[3]!.resolve(page(80, 'New physics'))
+    await settle()
+    expect(times(test)).toEqual([80])
+    test.pending[2]!.resolve(page(105, 'Superseded wheels'))
+    expect(await late).toBeNull()
+  })
+
   it('captures legal rider substitutions and detaches Garage input before fetching', async () => {
     const test = await expanded()
     test.bikeCategory.value = 'tt'

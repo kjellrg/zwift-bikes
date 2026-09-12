@@ -46,15 +46,17 @@ export interface BikeDetail {
   laps?: number
   /**
    * The page's per-frame drill-down (the same one behind a card's wheel
-   * list), which returns this frame's combos under the live query whether
-   * or not the frame ranks on a loaded page. The drawer uses it to refetch
-   * its bike after a level change that dropped the bike off every loaded
-   * page, where no card exists to sync from.
+   * list), which returns this frame's combos under the Applied Ranking's
+   * own request whether or not the frame ranks on a loaded page. The
+   * drawer uses it to refetch its bike after a level change that dropped
+   * the bike off every loaded page, where no card exists to sync from.
+   * `null` means the ranking it was asked for is no longer the one on
+   * screen, so the answer describes nothing the drawer is showing.
    */
-  loadFrameCombos?: (frameId: number) => Promise<ComboScore[]>
+  loadFrameCombos?: (frameId: number) => Promise<ComboScore[] | null>
   /**
    * The serialised query the page's results belong to
-   * (`useRecommendRequest().serializedQuery`). The drawer's route upgrade
+   * (`useRecommendRequest().appliedRequestKey`). The drawer's route upgrade
    * curve is keyed on it, so a lap, power or filter change can never leave a
    * curve up under a caption that describes the new ride - see
    * `upgradeCurveKey`.

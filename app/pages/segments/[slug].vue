@@ -36,7 +36,7 @@ const {
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
   appliedInputs, appliedRide, appliedRestrictions, canShowMore,
   hasRanking, isFirstLoad, isRefreshing, refreshFailed, expansionFailed, retry,
-  resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
+  resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, appliedRequestKey
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
 
@@ -358,7 +358,7 @@ useHead(() => {
               :laps="1"
               :fastest-time-sec="fastestTimeSec"
               :load-wheel-options="loadWheelOptions"
-              :request-key="serializedQuery"
+              :request-key="appliedRequestKey"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
               :compared="isCompared(topCombo)"
@@ -485,7 +485,7 @@ useHead(() => {
         :laps="1"
         :fastest-time-sec="fastestTimeSec"
         :load-wheel-options="loadWheelOptions"
-        :request-key="serializedQuery"
+        :request-key="appliedRequestKey"
         :has-more="hasMore"
         :can-show-more="canShowMore"
         :applied-search="appliedRestrictions.search"
