@@ -7,8 +7,9 @@ import { comboKey } from './comparison'
  * The bike half is `comboKey` - a level change can hand a frame different
  * wheels, and the curve is the fastest wheelset's. The request half is the
  * drawer's whole reason for existing: the curve comes out of the page's
- * per-frame drill-down under the live query, so laps, power, weight, draft
- * mode, the garage and the filters all move it, while the caption beside it
+ * per-frame drill-down under the Applied Ranking's request, so laps, power,
+ * weight, draft mode, the garage and the filters all move it as soon as a
+ * ranking computed from them is accepted, while the caption beside it
  * renders from live state. Keyed on the frame and wheels alone, a lap or
  * power change left a caption reading "2 laps ... at 320 W" over a curve
  * simulated for one lap at 225.

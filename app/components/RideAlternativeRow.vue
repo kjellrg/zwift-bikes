@@ -15,7 +15,7 @@ const props = defineProps<{
   route?: RouteWithMeta
   laps?: number
   fastestTimeSec?: number
-  loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
+  loadWheelOptions?: (frameId: number) => Promise<ComboScore[] | null>
   /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
   requestKey?: string
   compared: boolean

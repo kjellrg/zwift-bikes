@@ -91,8 +91,9 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRide, appliedRestrictions, canShowMore, isFirstLoad, isRefreshing, resultsAnnouncement,
-  bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
+  appliedInputs, appliedRide, appliedRestrictions, canShowMore, hasRanking, isFirstLoad, isRefreshing,
+  refreshFailed, expansionFailed, retry, resultsAnnouncement,
+  bikeSearch, bikeSearchDebounced, loadWheelOptions, appliedRequestKey
 } = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 
 // `useAsyncData` rather than `useFetch` for the route lookup: the selected
@@ -904,6 +905,12 @@ useHead(() => {
         />
       </div>
 
+      <RideRefreshNotice
+        :failed="refreshFailed"
+        :has-results="hasRanking"
+        @retry="retry"
+      />
+
       <!-- The recommendation is first in source order and first on a phone;
            on a desktop the briefing takes the left column and the
            recommendation the wider right one. The briefing reads only the
@@ -932,7 +939,7 @@ useHead(() => {
             </p>
             <div
               class="transition-opacity"
-              :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+              :class="{ 'opacity-60': isRefreshing }"
             >
               <!-- The APPLIED course and lap count, not the selector's: the
                    km/h beside the time divides a distance by a time, and the
@@ -944,7 +951,7 @@ useHead(() => {
                 :laps="resultsLaps"
                 :fastest-time-sec="fastestTimeSec"
                 :load-wheel-options="loadWheelOptions"
-                :request-key="serializedQuery"
+                :request-key="appliedRequestKey"
                 :limited-data-note="limitedDataNote"
                 :notes="recommendationNotes"
                 :compared="isCompared(topCombo)"
@@ -1061,7 +1068,7 @@ useHead(() => {
       <div
         v-if="!isFirstLoad"
         class="transition-opacity"
-        :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+        :class="{ 'opacity-60': isRefreshing }"
       >
         <RideAlternatives
           v-model:search="bikeSearch"
@@ -1071,11 +1078,12 @@ useHead(() => {
           :laps="resultsLaps"
           :fastest-time-sec="fastestTimeSec"
           :load-wheel-options="loadWheelOptions"
-          :request-key="serializedQuery"
+          :request-key="appliedRequestKey"
           :has-more="hasMore"
           :can-show-more="canShowMore"
           :applied-search="appliedRestrictions.search"
           :loading-more="loadingMore"
+          :expansion-failed="expansionFailed"
           @show-more="showMore"
         />
         <ReportDataLink

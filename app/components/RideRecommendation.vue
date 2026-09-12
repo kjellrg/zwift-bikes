@@ -21,7 +21,7 @@ const props = defineProps<{
   /** Lap count the shown time was computed for. */
   laps?: number
   fastestTimeSec?: number
-  loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
+  loadWheelOptions?: (frameId: number) => Promise<ComboScore[] | null>
   /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
   requestKey?: string
   /** The one-line "limited route data" warning, when the course inputs are partial - see `limitedCourseDataNote`. */

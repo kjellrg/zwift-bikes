@@ -15,7 +15,7 @@ import type { ComboScore } from '../../shared/types/catalog'
  */
 const props = defineProps<{
   combo: ComboScore
-  loadWheelOptions?: (frameId: number) => Promise<ComboScore[]>
+  loadWheelOptions?: (frameId: number) => Promise<ComboScore[] | null>
 }>()
 
 const { setWheelOwned, isWheelOwned } = useGarage()
@@ -38,7 +38,12 @@ async function load() {
   status.value = 'loading'
   try {
     const result = await props.loadWheelOptions(props.combo.frame.id)
-    if (token !== version) return
+    // `null` is the page saying this answer was computed for a ranking
+    // that has since been replaced - or for a ride that no longer ranks
+    // anything. A replacement re-renders every row from its own combos, so
+    // the watcher below has already cleared this list and, if it is open,
+    // asked for the one that belongs to the new ranking.
+    if (token !== version || result === null) return
     options.value = result
     status.value = 'idle'
   } catch {
