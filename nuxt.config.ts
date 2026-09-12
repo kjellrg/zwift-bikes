@@ -24,6 +24,15 @@ export default defineNuxtConfig({
     url: 'https://zwiftbikes.com'
   },
 
+  // Dark is the Colour mode a first visit gets, whatever the device
+  // prefers; the header toggle stores the rider's own choice. Without this
+  // the module falls back to `system` and then to light, so the
+  // server-rendered shell, every prerendered page and every crawler saw a
+  // light ground while the site is designed on the dark one.
+  colorMode: {
+    preference: 'dark'
+  },
+
   runtimeConfig: {
     public: {
       /**
@@ -154,16 +163,7 @@ export default defineNuxtConfig({
         'lucide:sprout',
         'lucide:waves',
         'lucide:stone',
-        'lucide:mountain-snow',
-        // `POWERUP_ICONS` in app/utils/labels.ts - object lookup, invisible
-        // to `scan`, rendered by the event race pages' powerup badges.
-        'lucide:feather',
-        'lucide:wind',
-        'lucide:truck',
-        'lucide:ghost',
-        'lucide:anvil',
-        'lucide:tractor',
-        'lucide:sandwich'
+        'lucide:mountain-snow'
       ]
     }
   },

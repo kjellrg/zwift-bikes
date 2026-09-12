@@ -4,10 +4,11 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
 
 /**
  * The rider box: weight/height/power sliders plus the draft disclosure and
- * its TTT controls, shared verbatim by the route, segment and event race
- * pages. Everything reads `useRiderProfile()` directly, whose state is
- * `useState`-backed, so the host page's own `watch([weightKg, ...])` refetch
- * wiring keeps firing exactly as it did when this markup lived inline.
+ * its TTT controls, folded behind "Adjust effort" in `RideRiderSummary` on
+ * every ranking page. Everything reads `useRiderProfile()` directly, whose state is
+ * `useState`-backed: each setter persists, and `useRecommendRequest`
+ * refetches from its one watcher on the serialised query, so this box needs
+ * no wiring to the host page at all.
  *
  * The exceptions to "no props" are properties of the PAGE, not the rider -
  * this component deliberately knows nothing about the route. `hasLongClimb`:
@@ -19,7 +20,10 @@ import { POWER_W_RANGE, SPRINT_POWER_W_RANGE } from '#shared/utils/riderBounds'
  * the load-then-seed order the pages used - it matters for the one value the
  * watches below don't cover: a stored profile with a different power but no
  * committed team climb pace still seeds `pendingClimbWkg` from the loaded
- * power, not the default.
+ * power, not the default. On a later mount - this box only mounts when the
+ * rider opens "Adjust effort" - the load is a no-op (storage is read once
+ * per app lifetime) and the seeding reads the state as it stands,
+ * including a draft mode a link supplied for the visit.
  */
 const props = withDefaults(defineProps<{
   /**
@@ -56,7 +60,7 @@ const props = withDefaults(defineProps<{
   sprintPower?: boolean
 }>(), { hasLongClimb: true, draftLocked: false, sprintPower: false })
 
-const { weightKg, heightCm, powerW, sprintPowerW, draftMode, tttRiders, tttClimbWkg, hasStoredProfile, load: loadRiderProfile, setWeightKg, setPowerW, setSprintPowerW, setHeightCm, setDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
+const { weightKg, heightCm, powerW, sprintPowerW, draftMode, draftModeFromLink, tttRiders, tttClimbWkg, hasStoredProfile, load: loadRiderProfile, setWeightKg, setPowerW, setSprintPowerW, setHeightCm, setDraftMode, restoreDraftMode, setTttRiders, setTttClimbWkg } = useRiderProfile()
 
 // The persisted power this page's slider edits (see the `sprintPower` prop).
 const activePowerW = computed(() => props.sprintPower ? sprintPowerW.value : powerW.value)
@@ -111,7 +115,6 @@ watch(tttRiders, (value) => {
   pendingRiders.value = value
 })
 
-const draftModeOptions = [{ label: 'Solo (no draft)', value: 'solo' }, { label: 'TTT (paceline)', value: 'ttt' }, { label: 'Race (pack draft)', value: 'race' }]
 // The draft controls sit behind a disclosure. Solo is the default and covers
 // almost every visit (a road race is not ridden as a paceline), so the
 // paceline inputs stay folded away until someone asks for them - but ANY
@@ -173,7 +176,7 @@ const { openProfile } = useOverlays()
           :max="130"
           :step="1"
           aria-label="Rider weight in kilograms"
-          @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = (Array.isArray(value) ? value[0] : value) ?? pendingWeightKg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = sliderValue(value, pendingWeightKg) }"
           @change="commitWeight"
         />
       </div>
@@ -185,7 +188,7 @@ const { openProfile } = useOverlays()
           :max="220"
           :step="1"
           aria-label="Rider height"
-          @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = (Array.isArray(value) ? value[0] : value) ?? pendingHeightCm }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = sliderValue(value, pendingHeightCm) }"
           @change="commitHeight"
         />
       </div>
@@ -197,7 +200,7 @@ const { openProfile } = useOverlays()
           :max="powerRange.max"
           :step="powerRange.step"
           aria-label="Rider power in watts"
-          @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = (Array.isArray(value) ? value[0] : value) ?? pendingPowerW }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = sliderValue(value, pendingPowerW) }"
           @change="commitPower"
         />
       </div>
@@ -217,15 +220,27 @@ const { openProfile } = useOverlays()
         v-if="draftControlsOpen"
         class="w-44"
       >
-        <label class="block text-xs font-medium text-muted mb-1">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces. Race is a mass-start bunch: one draft benefit measured from real race fields, with your power still your own race average."><UIcon
-          name="i-lucide-info"
-          class="size-3 text-muted align-text-bottom"
-        /></UTooltip></label>
+        <!-- The marker sits by the select as well as on the rider strip
+             that folds this box away: whichever of the two the rider has in
+             front of them, a link's mode is never ranked by without a way
+             back to the saved one. -->
+        <div class="mb-1 flex items-center gap-1.5">
+          <label class="text-xs font-medium text-muted">Draft <UTooltip text="Solo is a lone rider, no draft (how ZwiftInsider's bot tests ride). TTT is a rotating paceline: your power stays YOUR average over a full rotation - you push well above it while pulling and sit below it in the wheels - and the group moves at the speed that combined effort produces. Race is a mass-start bunch: one draft benefit measured from real race fields, with your power still your own race average."><UIcon
+            name="i-lucide-info"
+            class="size-3 text-muted align-text-bottom"
+          /></UTooltip></label>
+          <FromLinkMarker
+            v-if="draftModeFromLink"
+            restore-label="Restore my saved draft mode"
+            @restore="restoreDraftMode"
+          />
+        </div>
         <USelectMenu
           :model-value="draftMode"
           value-key="value"
-          :items="draftModeOptions"
+          :items="DRAFT_MODE_OPTIONS"
           :search-input="false"
+          aria-label="Draft mode"
           @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')"
         />
       </div>
@@ -255,7 +270,7 @@ const { openProfile } = useOverlays()
           :max="TTT_MAX_RIDERS"
           :step="1"
           aria-label="Number of riders in the paceline"
-          @update:model-value="(value: number | number[] | undefined) => { pendingRiders = (Array.isArray(value) ? value[0] : value) ?? pendingRiders }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingRiders = sliderValue(value, pendingRiders) }"
           @change="commitRiders"
         />
       </div>
@@ -273,7 +288,7 @@ const { openProfile } = useOverlays()
           :max="TTT_MAX_CLIMB_WKG"
           :step="0.1"
           aria-label="Team average power on long climbs in watts per kilogram"
-          @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = (Array.isArray(value) ? value[0] : value) ?? pendingClimbWkg }"
+          @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = sliderValue(value, pendingClimbWkg) }"
           @change="commitClimbWkg"
         />
       </div>

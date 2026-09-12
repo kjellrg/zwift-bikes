@@ -18,22 +18,25 @@
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
 
-  /* The primary: a power-meter lime built around #C6F135, the 400 and
-     dark-mode primary (14.3:1 on the 950 ground below, the highest of any
-     palette tried). Lime has no legible shade on white, so the light-mode
-     primary at 600 is an olive green (4.7:1); the two modes deliberately
-     share a family rather than a colour. */
-  --color-lime-50: #F8FDE6;
-  --color-lime-100: #EFFBC4;
-  --color-lime-200: #E1F78E;
-  --color-lime-300: #D4F45C;
-  --color-lime-400: #C6F135;
-  --color-lime-500: #A6D414;
-  --color-lime-600: #557F00;
-  --color-lime-700: #446500;
-  --color-lime-800: #375003;
-  --color-lime-900: #2F4307;
-  --color-lime-950: #172503;
+  /* The primary: a raspberry built around #FF6AA8, the 400 and dark-mode
+     primary (7.1:1 on the 950 ground below). Light mode takes the 600
+     (#BE185D, 6.0:1 on white); the two modes share a family rather than a
+     colour, as the lime before it did. Raspberry sits well away from the
+     green, amber and blue the badge rows also draw in - the lime shared a
+     hue neighbourhood with the success green - but next to the error red
+     it is a neighbour, which the terrain and climb badges put side by
+     side; that pairing was checked on the real pages before the switch. */
+  --color-pink-50: #FFF0F6;
+  --color-pink-100: #FFE0EC;
+  --color-pink-200: #FFC2DA;
+  --color-pink-300: #FF97C2;
+  --color-pink-400: #FF6AA8;
+  --color-pink-500: #E63C86;
+  --color-pink-600: #BE185D;
+  --color-pink-700: #9D1450;
+  --color-pink-800: #7E1243;
+  --color-pink-900: #67123A;
+  --color-pink-950: #3F0520;
 
   /* The neutral scale behind Nuxt UI's semantic tokens (text-muted,
      bg-elevated, border-default, ...). Tailwind's slate is replaced by a
@@ -57,19 +60,45 @@
 /* Nuxt UI defines these inside @layer theme, so unlayered rules here win
    whatever order the stylesheets load in. */
 
-/* Light mode: the olive 600 on white. Lime itself is a dark-ground
-   colour and is unreadable on white at any size. */
+/* Light mode: the primary is the 600 on white. The 400 is a dark-ground
+   colour and falls short of 4.5:1 on white.
+
+   The four status colours take their 800. Nuxt UI's 500s are dark-ground
+   colours too (amber 500 is 1.9:1 on white, red and blue 3.8:1, the green
+   2.4:1), and the badges draw them on their own 10% tint, which is harder
+   still. The 700s clear white but not the hardest pairing on the site, an
+   alert's description at 90% opacity on that tint (amber 700: 3.7:1, green
+   700: 3.8:1); the 800s clear it at 4.8:1 and up. Measured with axe on the
+   real pages (`tests/browser/accessibility.spec.ts`), where the amber draws
+   the estimated finish times and "Est." marks on every ranking row, the
+   green the "Bot-tested" ticks.
+
+   Muted text moves from the neutral 500 to the 600 for the same reason:
+   the 500 reads 4.65:1 on white but 4.05:1 on the elevated ground the
+   tabs list and the organiser chips sit on. The 600 is also the toned
+   text; the two collapse together in light mode, deliberately. */
 :root, .light {
   --ui-primary: var(--ui-color-primary-600);
+  --ui-success: var(--ui-color-success-800);
+  --ui-info: var(--ui-color-info-800);
+  --ui-warning: var(--ui-color-warning-800);
+  --ui-error: var(--ui-color-error-800);
+  --ui-text-muted: var(--ui-color-neutral-600);
 }
 
 /* Dark mode: Nuxt UI puts the page on 900 and cards on 800. Push the page
    down to 950 and cards to 900 so surfaces step ground -> card -> nested
    (950 -> 900 -> 800) and the 800 border still shows against a card.
-   The primary line restates Nuxt UI's own dark default of 400: without
-   it the unlayered light rule above would carry 600 into dark mode. */
+   The status-colour and muted-text lines restate Nuxt UI's own dark
+   defaults (the 400s): without them the unlayered light rule above would
+   carry the light shades into dark mode. */
 .dark {
   --ui-primary: var(--ui-color-primary-400);
+  --ui-success: var(--ui-color-success-400);
+  --ui-info: var(--ui-color-info-400);
+  --ui-warning: var(--ui-color-warning-400);
+  --ui-error: var(--ui-color-error-400);
+  --ui-text-muted: var(--ui-color-neutral-400);
   --ui-bg: var(--ui-color-neutral-950);
   --ui-bg-muted: var(--ui-color-neutral-900);
   --ui-bg-elevated: var(--ui-color-neutral-900);

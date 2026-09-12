@@ -487,6 +487,80 @@ export function sortRacesByDate(races: EventRace[]): EventRace[] {
 }
 
 /**
+ * The day a Season's calendar opens - its earliest round's first day. Rounds
+ * are curated in the order the organiser publishes them, which is *usually*
+ * chronological and is not guaranteed to be, so this asks the dates rather
+ * than the array.
+ */
+function seasonStartDate(season: EventSeason): string {
+  return season.rounds.map(round => round.startDate).sort()[0] ?? ''
+}
+
+/**
+ * Where a Round stands: still to come, on now, or run. `today` is an ISO date
+ * and must come from the client, like every other past/upcoming question here
+ * - these pages are prerendered, so a build-time answer would ship frozen.
+ *
+ * Read off the Races, never the round's published window, so both ends of the
+ * state come from one source: a window a curator opened early would otherwise
+ * have a round reading as on now with its first race still days away.
+ *
+ * A round with no races at all is `upcoming` however long ago it was
+ * announced. It is a window the organiser hasn't filled in - there is nothing
+ * on it to be running or to have been run - and its dates are the only thing a
+ * rider planning a season has to go on, so the season page keeps listing it.
+ * Retired races count for neither end: a hidden race is not on the calendar,
+ * so it can't start a round or hold one open.
+ *
+ * Both events pages ask this - which rounds a season page lists, and what a
+ * round tile on the hub says and whether it leads anywhere - so neither can
+ * drift into its own idea of when a round is on.
+ */
+export type RoundState = 'upcoming' | 'ongoing' | 'past'
+
+export function roundState(round: Pick<EventRound, 'races'>, today: string): RoundState {
+  const races = round.races.filter(race => !race.hidden)
+  if (!races.length) return 'upcoming'
+  if (races.every(race => raceEndDate(race) < today)) return 'past'
+  return races.some(race => race.date <= today) ? 'ongoing' : 'upcoming'
+}
+
+/**
+ * What a Season's calendar adds up to: the days it spans and how much is on
+ * it. The events hub prints this on a season card and the season page prints
+ * it in its header, so one helper is what keeps the two from counting
+ * differently - a retired race is on neither, and a round is counted whether
+ * or not the organiser has filled it in yet.
+ */
+export interface SeasonSummary {
+  /** First and last day the rounds cover. Both absent for a season with no rounds announced yet. */
+  startDate?: string
+  endDate?: string
+  rounds: number
+  races: number
+}
+
+export function summariseSeason(season: EventSeason): SeasonSummary {
+  return {
+    startDate: seasonStartDate(season) || undefined,
+    endDate: season.rounds.map(round => round.endDate).sort().at(-1),
+    rounds: season.rounds.length,
+    races: getVisibleSeasonRaces(season).length
+  }
+}
+
+/**
+ * Seasons newest first, which is the order the events hub lists a series in:
+ * the season a rider is racing now leads, and finished ones follow it. The
+ * files themselves are written oldest first (a new season is appended), and
+ * `label` is the organiser's own string - "2026/27", "2026" - so it sorts
+ * seasons no better than the file order does. Returns a new array.
+ */
+export function sortSeasonsNewestFirst(seasons: EventSeason[]): EventSeason[] {
+  return [...seasons].sort((a, b) => seasonStartDate(b).localeCompare(seasonStartDate(a)))
+}
+
+/**
  * Upcoming publishable races that run on the given route, soonest first -
  * the route page's "Featured in" cross-link. `today` is an ISO date and must
  * come from the client (the route pages are prerendered; resolving "today"

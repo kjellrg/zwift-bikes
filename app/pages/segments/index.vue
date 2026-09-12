@@ -22,12 +22,25 @@ const segmentQuery = computed(() => ({
   search: searchDebounced.value || undefined,
   world: worldFilter.value !== 'all' ? worldFilter.value : undefined
 }))
-const { data, status } = await useFetch('/api/segments', { query: segmentQuery })
-const segments = computed<SegmentSummary[]>(() => data.value?.segments ?? [])
+const { data, status, refresh } = await useFetch('/api/segments', { query: segmentQuery })
+
+// Nuxt resets `data` to its default when a fetch throws, which would empty
+// the world groups under the very notice that says the previous segments are
+// still shown (`DiscoveryStatus`). So the last catalog served stays the one
+// on screen - and the world options with it - until a response replaces it,
+// the same bargain the homepage and `useRecommendRequest` strike. A computed
+// rather than a watcher because no watcher runs after setup on the server,
+// where this page reads the list straight after awaiting the fetch.
+let lastServed: typeof data.value
+const served = computed(() => {
+  if (data.value) lastServed = data.value
+  return lastServed
+})
+const segments = computed<SegmentSummary[]>(() => served.value?.segments ?? [])
 
 const worldOptions = computed(() => [
   { label: 'All worlds', value: 'all' },
-  ...(data.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
+  ...(served.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
 ])
 
 const typeFilter = ref<'all' | 'climb' | 'sprint'>('all')
@@ -43,8 +56,38 @@ function resetFilters() {
   typeFilter.value = 'all'
 }
 
+// The filters live in the URL too - `?q=temple&world=makuri-islands&kind=climb`
+// - read once after mount and written from the committed values, exactly as
+// the homepage does; see `useUrlState` for why the read never runs during
+// render. `kind` is the URL's name for the "Show" filter, which the rest of
+// this page calls the segment's type.
+const { enumParam, searchParam, slugParam, replaceQuery } = useUrlState(useRoute(), useRouter())
+onMounted(() => {
+  const q = searchParam('q')
+  if (q) search.value = q
+  const world = slugParam('world')
+  if (world) worldFilter.value = world
+  const kind = enumParam('kind', ['climb', 'sprint'] as const)
+  if (kind) typeFilter.value = kind
+})
+watch([searchDebounced, worldFilter, typeFilter], () => {
+  replaceQuery({
+    q: searchDebounced.value || undefined,
+    world: worldFilter.value !== 'all' ? worldFilter.value : undefined,
+    kind: typeFilter.value !== 'all' ? typeFilter.value : undefined
+  })
+})
+
 const climbCount = computed(() => segments.value.filter(s => s.type === 'climb').length)
 const sprintCount = computed(() => segments.value.filter(s => s.type === 'sprint').length)
+
+// "12 climbs and 4 sprints found", narrowing to one noun when the Show
+// filter does. A zero is still reported: that a search matched climbs but no
+// sprints is what a rider is asking when they search both.
+const shownCounts = computed(() => [
+  ...(typeFilter.value === 'sprint' ? [] : [{ value: climbCount.value, noun: 'climb' }]),
+  ...(typeFilter.value === 'climb' ? [] : [{ value: sprintCount.value, noun: 'sprint' }])
+])
 
 // Whole-catalog counts, snapshotted at setup: on the prerender pass the
 // query above is the empty default, so these are the full 43/61 - and they
@@ -107,7 +150,7 @@ useHead({
         icon="i-lucide-arrow-left"
         class="mb-4 px-0"
       >
-        Back to all routes
+        Browse all routes
       </UButton>
       <h1 class="text-3xl font-bold text-highlighted">
         Zwift climbs &amp; sprints
@@ -125,6 +168,7 @@ useHead({
         <UInput
           v-model="search"
           icon="i-lucide-search"
+          aria-label="Search segments"
           placeholder="e.g. Alpe du Zwift, Fuego Flats..."
           class="w-full"
         />
@@ -136,6 +180,7 @@ useHead({
           value-key="value"
           :items="worldOptions"
           :search-input="false"
+          aria-label="World"
           class="w-44"
         />
       </div>
@@ -146,6 +191,7 @@ useHead({
           value-key="value"
           :items="typeOptions"
           :search-input="false"
+          aria-label="Show"
           class="w-48"
         />
       </div>
@@ -159,34 +205,46 @@ useHead({
       </UButton>
     </div>
 
-    <p
-      v-if="status === 'pending' && !worldGroups.length"
-      class="text-muted"
+    <!-- The count line, the empty message and a failed fetch's notice are
+         `DiscoveryStatus`, shared with the homepage; the world groups it
+         fills are this page's. Skeletons load into a flat grid rather than
+         under headings: which worlds have anything in them is exactly what
+         the pending response is about to say. -->
+    <DiscoveryStatus
+      subject="segments"
+      :counts="shownCounts"
+      :status="status"
+      @retry="refresh"
     >
-      Loading...
-    </p>
-    <p
-      v-else-if="!worldGroups.length"
-      class="text-muted"
-    >
-      No segments match your filters.
-    </p>
+      <template #skeleton>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <SegmentCardSkeleton
+            v-for="n in 6"
+            :key="n"
+          />
+        </div>
+      </template>
 
-    <div
-      v-for="group in worldGroups"
-      :key="group.world"
-      class="space-y-4"
-    >
-      <h2 class="text-xl font-semibold text-highlighted">
-        {{ group.worldName }}
-      </h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <SegmentCard
-          v-for="segment in group.segments"
-          :key="segment.slug"
-          :segment="segment"
-        />
+      <!-- One child of the slot, so the worlds keep the page's own rhythm
+           apart from each other rather than the status block's tighter one. -->
+      <div class="space-y-10">
+        <div
+          v-for="group in worldGroups"
+          :key="group.world"
+          class="space-y-4"
+        >
+          <h2 class="text-xl font-semibold text-highlighted">
+            {{ group.worldName }}
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SegmentCard
+              v-for="segment in group.segments"
+              :key="segment.slug"
+              :segment="segment"
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </DiscoveryStatus>
   </UContainer>
 </template>

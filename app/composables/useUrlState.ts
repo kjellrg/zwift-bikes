@@ -1,13 +1,23 @@
 import type { LocationQueryRaw, RouteLocationNormalizedLoaded, Router } from 'vue-router'
 
 /**
+ * How much of a `?q=` reaches a discovery page's search box. Well inside the
+ * endpoints' own 200-character `search` bound (`qSearch` in
+ * `server/utils/apiQuerySchemas.ts`), so a link can never build a request the
+ * API refuses, and far past any route or segment name - beyond this the value
+ * is junk someone pasted, not a search.
+ */
+export const URL_SEARCH_MAX_LENGTH = 100
+
+/**
  * A ranking page's shared view (see `CONTEXT.md`: the search, category, draft
- * mode, and a route's laps or a race's category group - carried by
- * `useSharedView` on the route and segment pages, by hand on the race page)
- * lives in the URL as well as in state, so a results view can be shared and
- * the back button restores it. The homepage filters ride on the same
- * helpers without being one. Two rules every page follows, and the reason
- * this is shared rather than three copies:
+ * mode, and a route's laps or a race's Category group - carried by
+ * `useSharedView` on all three ranking pages) lives in the URL as well as in
+ * state, so a results view can be shared and the back button restores it.
+ * A discovery page's filters (see `CONTEXT.md`)
+ * ride on the same helpers without being one - they are the page's own view,
+ * never a link's. Two rules every page follows, and the reason this is
+ * shared rather than three copies:
  *
  * - **Read once, after mount.** Every page here is prerendered or SSR'd from
  *   the defaults; reading the query during render would put the shared HTML
@@ -30,13 +40,19 @@ export function useUrlState(route: RouteLocationNormalizedLoaded, router: Router
     return typeof first === 'string' && first !== '' ? first : undefined
   }
 
-  /** Integer param clamped to `[min, max]`, or undefined when absent/not a number. */
-  function intParam(key: string, min: number, max: number): number | undefined {
+  /** A search term, capped at `URL_SEARCH_MAX_LENGTH`. Both discovery pages read `?q=` this way. */
+  function searchParam(key: string): string | undefined {
+    return param(key)?.slice(0, URL_SEARCH_MAX_LENGTH)
+  }
+
+  /**
+   * A param that has to look like one of our own slugs - a world, a route -
+   * else undefined. Anything else in the query was not written by a page of
+   * ours, so it selects nothing rather than being passed to an endpoint.
+   */
+  function slugParam(key: string): string | undefined {
     const raw = param(key)
-    if (raw === undefined) return undefined
-    const value = Number.parseInt(raw, 10)
-    if (!Number.isFinite(value)) return undefined
-    return Math.min(max, Math.max(min, value))
+    return raw !== undefined && /^[a-z0-9-]+$/.test(raw) ? raw : undefined
   }
 
   /** Param that must be one of `allowed`, else undefined. */
@@ -64,5 +80,5 @@ export function useUrlState(route: RouteLocationNormalizedLoaded, router: Router
     if (changed) router.replace({ query: next })
   }
 
-  return { param, intParam, enumParam, replaceQuery }
+  return { param, enumParam, searchParam, slugParam, replaceQuery }
 }

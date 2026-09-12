@@ -25,6 +25,8 @@
     "prepare": "husky",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:browser": "playwright test",
+    "smoke": "node scripts/site-smoke/smoke.mjs",
     "spellcheck": "cspell --no-progress",
     "typecheck": "nuxt typecheck",
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
@@ -44,7 +46,9 @@
     "zwift-data": "^1.50.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@nuxt/eslint": "^1.17.0",
+    "@playwright/test": "1.63.0",
     "@types/node": "^22.20.1",
     "cspell": "^10.1.0",
     "esbuild": "^0.27.7",

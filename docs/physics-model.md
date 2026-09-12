@@ -154,7 +154,7 @@ In both cases, the design goal is the same: **new content should never be blocke
 
 By default every prediction models a **lone rider** — no draft, which is also
 exactly how ZwiftInsider's bot tests (the source of all equipment data) are
-ridden. Switching the draft mode to **TTT (paceline)** models a rotating team:
+ridden. Switching the draft mode to **TTT paceline** models a rotating team:
 
 - **Your power still means your own average.** In a rotation you push well
   above it while pulling on the front and sit well below it in the wheels; it
@@ -179,9 +179,15 @@ ridden. Switching the draft mode to **TTT (paceline)** models a rotating team:
 - **The "saves X vs riding alone" line** simulates the identical rider, power
   and pacing with the draft switched off, so the gap is purely what the
   paceline buys.
-- **The race plan panel** lists where the paceline is in danger: long climbs
-  and sustained rough-surface sectors (extra rolling resistance and reduced
-  draft), ignoring stretches too short to matter.
+- **The TTT plan** (every ranking page's plan tab and briefing line, from the
+  one `useTttPlan` result) lists the sectors where the paceline may
+  split or slow: long climbs and sustained rough-surface sectors (extra
+  rolling resistance and reduced draft), ignoring stretches too short to
+  matter. It
+  discloses what it could not analyse: with no elevation profile it is
+  withheld, without positioned surfaces only climbs are flagged, and a lead-in
+  modelled from totals rather than a measured trace has nothing flagged inside
+  it (`app/utils/tttPlan.ts`).
 
 Full writeup — the data, the maths, the validation and the limits — is in
 [ttt-drafting.md](ttt-drafting.md).
@@ -193,7 +199,7 @@ plateau) and their draft-savings-by-speed measurements. See
 
 ## Race draft mode
 
-**Race (pack draft)** is for anything ridden in a bunch — a points or
+**Race draft** is for anything ridden in a bunch — a points or
 scratch race, a crit, a group ride. Unlike TTT it asks for nothing extra:
 
 - **One number, measured from real races.** Sitting in a typical mass-start bunch

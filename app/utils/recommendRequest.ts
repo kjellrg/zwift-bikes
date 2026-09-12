@@ -142,6 +142,39 @@ export function ridePowerW(inputs: Pick<RiderInputs, 'powerW' | 'sprintPowerW'>,
 }
 
 /**
+ * The rider values a ranking is computed from, once made legal for the ride
+ * - see **Applied** in `CONTEXT.md`. `useRecommendRequest` snapshots one of
+ * these when a response lands, and everything that explains a finish time
+ * (the rider strip, the answer, the equipment-dependent analysis) reads that
+ * snapshot rather than the stored profile, so a time is never explained by
+ * inputs it was not computed from.
+ */
+export interface AppliedRiderInputs {
+  weightKg: number
+  heightCm: number
+  /** The power the ride was ridden at - sprint power on a sprint segment. */
+  powerW: number
+  draftMode: DraftMode
+  tttRiders: number
+  tttClimbWkg: number | undefined
+  /** `all` where the query would omit the key - the display spelling of every category. */
+  category: BikeCategory | 'all'
+}
+
+/** The rider values a request for `ride` is built from - the ones that become applied when its response lands. */
+export function riderInputsForRide(inputs: RiderInputs, ride: Ride): AppliedRiderInputs {
+  return {
+    weightKg: inputs.weightKg,
+    heightCm: inputs.heightCm,
+    powerW: ridePowerW(inputs, ride),
+    draftMode: rideDraftMode(inputs.draftMode, ride),
+    tttRiders: inputs.tttRiders,
+    tttClimbWkg: inputs.tttClimbWkg,
+    category: rideCategory(inputs.bikeCategory, ride) ?? 'all'
+  }
+}
+
+/**
  * The recommend query for a ride and a rider.
  *
  * Two encodings are load-bearing and easy to get wrong, which is why this is
@@ -167,8 +200,8 @@ export function buildRecommendQuery(inputs: RiderInputs, ride: Ride): RecommendQ
     category: rideCategory(inputs.bikeCategory, ride),
     // One page, exactly as deep as the endpoint will serve - see `RECOMMEND_MAX_LIMIT`.
     limit: RECOMMEND_MAX_LIMIT,
-    // One row per bike: a frame's other wheels live behind the result card's
-    // own disclosure (see `ComboResultCard`), not as repeat rows that spend
+    // One row per bike: a frame's other wheels live behind the result row's
+    // own disclosure (`ComboWheelAlternatives` in `RideAlternativeRow`), not as repeat rows that spend
     // the page's nine slots - and the simulated-ordering window with them -
     // on the same bike two or three times.
     maxWheelsetsPerFrame: 1,

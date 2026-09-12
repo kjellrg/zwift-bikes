@@ -15,6 +15,11 @@ section of the README.
   `npm run validate` (the data/physics validators) and `npm test`. CI runs
   the same set on every push ([checks.yml](.github/workflows/checks.yml)),
   and the deploy workflow runs the full production build.
+- **Browser journeys** (`npm run test:browser`) drive the dev server in
+  Chromium through every page kind and Overlay, and scan each of them with
+  axe-core in both Colour modes - see
+  [tests/browser/](tests/browser/README.md). Run them by hand for a change
+  to a page or the palette; they are not part of `npm test` or CI yet.
 - **The pre-commit hook** runs those checks plus secret scanning
   ([trufflehog](https://github.com/trufflesecurity/trufflehog)) and workflow
   auditing ([zizmor](https://github.com/zizmorcore/zizmor)) — roughly half a

@@ -15,10 +15,14 @@ const props = defineProps<{
   /** Seeds the form when opened from a contextual "something look wrong?" link. */
   seedKind?: ReportKind
   seedItem?: string
+  /** The Ride the ranking the link sat under was computed for - see `ReportSeed`. */
+  seedRide?: string
 }>()
 
 const toast = useToast()
-const { includeProfile, contextText } = useReportContext()
+// The Ride line is the seed's, not the form's: a report opened from `/report`
+// itself sits under no ranking and has no Ride to describe.
+const { includeProfile, contextText } = useReportContext(() => props.seedRide)
 
 const kind = ref<ReportKind>(props.seedKind ?? 'bug')
 const title = ref('')

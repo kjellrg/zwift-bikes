@@ -55,6 +55,29 @@ export function useRiderProfile() {
   // reads them as the rider's own race average in a typical mass-start bunch
   // and needs no sub-state of its own (one field-calibrated constant).
   const draftMode = useState<DraftMode>('rider-draft-mode', () => 'solo')
+  /**
+   * The draft mode `persist()` writes: the rider's own, as last loaded or
+   * set through `setDraftMode`. `draftMode` itself can hold a value a link
+   * supplied for the visit (`useSharedView` assigns the ref directly, on
+   * purpose), and serialising the ref stored that value on the next
+   * unrelated setter call - a weight change after opening a `?draft=ttt`
+   * link saved TTT as the rider's mode (issue #198). So every setter
+   * persists this copy, and only `setDraftMode` moves it. Seeded from the
+   * ref for the same reason as in `usePreferences`.
+   */
+  const storedDraftMode = useState<DraftMode>('rider-draft-mode-stored', () => draftMode.value)
+  /** Whether the page ranks under a draft mode a link supplied rather than the rider's own. */
+  const draftModeFromLink = computed(() => draftMode.value !== storedDraftMode.value)
+  /** The rider's own draft mode, for a control that edits the default rather than the visit - the profile page's select. */
+  const savedDraftMode = computed(() => storedDraftMode.value)
+  /**
+   * Storage is read once per app lifetime, for the same reason as in
+   * `usePreferences`: `load()` is called from every control's `onMounted`,
+   * and `RiderProfileControls` mounts lazily behind "Adjust effort" on the
+   * route and segment pages - a repeat read there reassigned `draftMode`
+   * from storage and undid the link's mode. The first caller wins.
+   */
+  const loaded = useState<boolean>('rider-profile-loaded', () => false)
   const tttRiders = useState<number>('rider-ttt-riders', () => TTT_DEFAULT_RIDERS)
   // Optional "avg W/kg on climbs over 3-4 min" (TTT only) - undefined means
   // the rider's normal power applies everywhere, climbs included.
@@ -69,14 +92,15 @@ export function useRiderProfile() {
       powerW: powerW.value,
       sprintPowerW: sprintPowerW.value,
       defaultUnownedLevel: defaultUnownedLevel.value,
-      draftMode: draftMode.value,
+      draftMode: storedDraftMode.value,
       tttRiders: tttRiders.value,
       tttClimbWkg: tttClimbWkg.value
     }))
   }
 
   function load() {
-    if (!import.meta.client) return
+    if (!import.meta.client || loaded.value) return
+    loaded.value = true
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return
@@ -93,7 +117,10 @@ export function useRiderProfile() {
       if (migratedPowerW !== undefined) powerW.value = migratedPowerW
       if (typeof parsed.sprintPowerW === 'number') sprintPowerW.value = clampSprintPowerW(parsed.sprintPowerW)
       if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = clampUnownedLevel(parsed.defaultUnownedLevel)
-      if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') draftMode.value = parsed.draftMode
+      if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') {
+        draftMode.value = parsed.draftMode
+        storedDraftMode.value = parsed.draftMode
+      }
       if (typeof parsed.tttRiders === 'number') tttRiders.value = clampTttRiders(parsed.tttRiders)
       if (typeof parsed.tttClimbWkg === 'number') tttClimbWkg.value = clampTttClimbWkg(parsed.tttClimbWkg)
     } catch {
@@ -131,7 +158,17 @@ export function useRiderProfile() {
 
   function setDraftMode(value: DraftMode) {
     draftMode.value = value === 'ttt' || value === 'race' ? value : 'solo'
+    storedDraftMode.value = draftMode.value
     persist()
+  }
+
+  /**
+   * Drops a link's draft mode in favour of the rider's own. Nothing to
+   * persist: storage already holds the stored copy. The ref moves only when
+   * a link changed it, and a moved ref is what refetches the ranking.
+   */
+  function restoreDraftMode() {
+    draftMode.value = storedDraftMode.value
   }
 
   function setTttRiders(value: number) {
@@ -155,6 +192,8 @@ export function useRiderProfile() {
     defaultUnownedLevel,
     hasStoredProfile,
     draftMode,
+    draftModeFromLink,
+    savedDraftMode,
     tttRiders,
     tttClimbWkg,
     load,
@@ -164,6 +203,7 @@ export function useRiderProfile() {
     setSprintPowerW,
     setDefaultUnownedLevel,
     setDraftMode,
+    restoreDraftMode,
     setTttRiders,
     setTttClimbWkg
   }

@@ -1,5 +1,20 @@
-import type { BikeCategory, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
-import type { Powerup, RaceFormat } from '../../shared/utils/events'
+import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
+import type { DraftMode } from '../../shared/utils/physics/draft'
+import { DRAFT_MODES } from '#shared/utils/physics/draft'
+
+/**
+ * A rank as the Ranking prints it: `01`, `02`, ... The Recommendation is rank
+ * 1 and the rows are the rest, so the two render their markers through one
+ * function and cannot drift in format.
+ */
+export const rankMarker = (rank: number) => String(rank).padStart(2, '0')
+
+/** The draft mode as the rider strip, the draft selects and the course-analysis scope lines name it - one list, so none of them can disagree. */
+export const DRAFT_MODE_LABELS: Record<DraftMode, string> = { solo: 'Solo', race: 'Race draft', ttt: 'TTT paceline' }
+
+/** The draft selects' items (`RiderProfileControls`, `ProfileContent`), in the order `DRAFT_MODES` lists the modes. */
+export const DRAFT_MODE_OPTIONS = DRAFT_MODES.map(value => ({ label: DRAFT_MODE_LABELS[value], value }))
 
 export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
   standard: 'Standard (Road)',
@@ -40,14 +55,6 @@ export const TERRAIN_COLORS: Record<TerrainCategory, 'success' | 'primary' | 'wa
 }
 
 /** Strava-style climb categories, steepest/hardest (HC) to gentlest (4). Not every mapped climb has one. */
-export const CLIMB_TYPE_LABELS: Record<'HC' | '4' | '3' | '2' | '1', string> = {
-  HC: 'Hors Catégorie',
-  1: 'Category 1',
-  2: 'Category 2',
-  3: 'Category 3',
-  4: 'Category 4'
-}
-
 export const CLIMB_TYPE_COLORS: Record<'HC' | '4' | '3' | '2' | '1', 'error' | 'warning' | 'primary' | 'success'> = {
   HC: 'error',
   1: 'error',
@@ -103,6 +110,17 @@ export const SURFACE_TYPE_ICONS: Record<ZwiftSurfaceType, string> = {
   grass: 'i-lucide-sprout',
   sand: 'i-lucide-waves',
   gravel: 'i-lucide-stone'
+}
+
+/**
+ * Whether every number behind a combo traces to ZwiftInsider bot tests - the
+ * `confidence` contract (see `.claude/skills/zwift-recommendation-accuracy`)
+ * reduced to one yes/no for a headline. A fixed-wheel frame has no wheel to
+ * ask. The recommendation and every ranked row must agree on this rule, which
+ * is why it is not spelled out in each of them.
+ */
+export function isBotTested(combo: { frame: { confidence: ScoreConfidence }, wheelset?: { confidence: ScoreConfidence } }): boolean {
+  return combo.frame.confidence === 'measured' && (!combo.wheelset || combo.wheelset.confidence === 'measured')
 }
 
 export function formatGrade(percent: number): string {
@@ -254,6 +272,29 @@ export function formatRaceDateRange(isoDate: string, isoEndDate?: string): strin
   return sameMonth ? `${day(from)}-${dayMonth(to)}` : `${dayMonth(from)} - ${dayMonth(to)}`
 }
 
+/**
+ * A Season's date span, as the hub's card and the season page's header both
+ * print it - one format, since they are the same fact in two places. Absent
+ * when the season has no rounds to span; each caller words that in its own
+ * voice, because a stat tile has less room than a card's stat row.
+ */
+export function formatSeasonSpan(summary: Pick<SeasonSummary, 'startDate' | 'endDate'>): string | undefined {
+  if (!summary.startDate || !summary.endDate) return undefined
+  return `${formatRaceDateShort(summary.startDate)} - ${formatRaceDateShort(summary.endDate)}`
+}
+
+/**
+ * The six upgrade stages as every stage select lists them - the garage's,
+ * and the one on each ranked setup. One list so the two cannot disagree
+ * about what stage 0 is called. The profile's default-stage select spells
+ * stage 0 out longer on purpose: it is explaining the default, not editing
+ * a bike.
+ */
+export const UPGRADE_STAGE_OPTIONS = [0, 1, 2, 3, 4, 5].map(level => ({
+  label: level === 0 ? 'Stage 0 (stock)' : `Stage ${level}`,
+  value: level
+}))
+
 /** Zwift's race powerups, as spelled in event listings. */
 export const POWERUP_LABELS: Record<Powerup, string> = {
   feather: 'Feather',
@@ -263,15 +304,4 @@ export const POWERUP_LABELS: Record<Powerup, string> = {
   anvil: 'Anvil',
   steamroller: 'Steamroller',
   burrito: 'Burrito'
-}
-
-/** Icons referenced only via this lookup - they're added to `icon.clientBundle` in `nuxt.config.ts` by hand, since the scanner can't see them here. */
-export const POWERUP_ICONS: Record<Powerup, string> = {
-  feather: 'i-lucide-feather',
-  aero: 'i-lucide-wind',
-  draft: 'i-lucide-truck',
-  ghost: 'i-lucide-ghost',
-  anvil: 'i-lucide-anvil',
-  steamroller: 'i-lucide-tractor',
-  burrito: 'i-lucide-sandwich'
 }

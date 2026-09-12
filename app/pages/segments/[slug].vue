@@ -33,18 +33,30 @@ const ride = computed<Ride>(() => ({
 }))
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
-  combos, topCombo, restCombos, fastestTimeSec, hasMore, loadingMore, showMore,
-  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, owned
+  combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
+  appliedInputs, appliedRide,
+  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, serializedQuery
 } = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 await recommendReady
+
+/**
+ * What a report filed from this page says the ranking was ridden as - see
+ * `formatRideLine`. The kind comes off the applied Ride rather than
+ * `isSprint`, so the power and the word for it can never disagree.
+ */
+const reportRideLine = computed(() => formatRideLine({
+  subject: appliedRide.value.power === 'sprint' ? 'Sprint segment' : 'Climbing segment',
+  ride: appliedRide.value,
+  rider: appliedInputs.value
+}))
 
 // `?bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No `laps`:
 // there is no lap count here (see the Ride above).
 useSharedView({ bikeSearch, bikeSearchDebounced })
 
 // Read-only here: the controls that write them live in
-// `RiderProfileControls` / `BikeFilterControls` - see the equivalent comment
-// in `routes/[slug].vue`.
+// `RiderProfileControls` / `RideEquipmentFilters` - see the equivalent
+// comment in `routes/[slug].vue`.
 const { weightKg, powerW } = useRiderProfile()
 const { setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
@@ -109,10 +121,6 @@ if (segmentData.value) {
 const { noteRankedFrames } = useOverlays()
 watch(combos, list => noteRankedFrames(list), { immediate: true })
 
-const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
-const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
-const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
-
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
 // power, never on `tttClimbWkg`, so the climb pace can't decide its own
@@ -121,18 +129,65 @@ const hasLongClimb = computed(() => resolvedRide.value
   ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
   : true)
 
-const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
-const faqAnswer = computed(() => {
-  if (!segmentData.value || !topCombo.value || typeof topCombo.value.finishTimeSec !== 'number') return undefined
-  const equipment = topCombo.value.wheelset ? `${topCombo.value.frame.name} with ${topCombo.value.wheelset.name}` : topCombo.value.frame.name
-  return `Based on our physics model, the ${equipment} is currently the fastest verified combo for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}, finishing in ${formatDuration(topCombo.value.finishTimeSec)} (~${formatSpeedKmh(segmentData.value.lengthKm, topCombo.value.finishTimeSec)}).`
+const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
+const surfaceTimePenaltyText = computed(() => segmentRoute.value ? formatSurfaceTimePenalty(segmentRoute.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined)
+const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
+const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
+// The evidence lines under the recommended time - each is about the fastest
+// combo, so they sit with it rather than under the segment header.
+const recommendationNotes = computed(() => [surfaceTimePenaltyText.value, tttSavingText.value, raceSavingText.value]
+  .filter((note): note is string => Boolean(note)))
+const hasElevationProfile = computed(() => (segmentRoute.value?.terrain.elevationProfile?.length ?? 0) > 1)
+const limitedDataNote = computed(() => segmentRoute.value
+  ? limitedCourseDataNote({
+      hasElevationProfile: hasElevationProfile.value,
+      hasSurfaceLocations: (segmentRoute.value.surface.segments?.length ?? 0) > 0
+    })
+  : undefined)
+// One plan for the briefing's TTT line and the TTT plan tab - see
+// `useTttPlan`. One lap: the timed segment, with no lead-in.
+const tttPlan = useTttPlan({
+  route: () => segmentRoute.value,
+  combo: () => topCombo.value,
+  rider: () => appliedInputs.value,
+  laps: () => 1,
+  loading: () => isFirstLoad.value
 })
+
+const {
+  keys: comparisonKeys, picked: comparedCombos, full: comparisonFull,
+  includes: isCompared, toggle: toggleCompared,
+  clear: clearComparison, remove: removeFromComparison
+} = useComparison(() => combos.value)
+
+const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
+// The visible answer under the recommendation and the FAQ structured data
+// are one text (`answer.text`), built from the APPLIED ranking - the rider
+// the request was actually answered for, sprint power included - so what a
+// crawler reads is what a rider sees. No `laps`: the answer then
+// names the timed-segment scope instead. Renders from the prerendered
+// results on first paint; during a refetch it keeps describing the results
+// still on screen, the same way the dimmed results do.
+const answer = useRecommendationAnswer({
+  combo: () => topCombo.value,
+  rideName: () => segmentData.value ? `the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}` : undefined,
+  distanceKm: () => segmentData.value?.lengthKm,
+  rider: () => appliedInputs.value,
+  search: () => bikeSearchDebounced.value
+})
+const faqAnswer = computed(() => answer.value?.text)
 
 const siteConfig = useSiteConfig()
 const canonicalUrl = useCanonicalUrl()
 useHead(() => {
   if (!segmentData.value) return {}
+  // Keyed, so unhead updates the server-rendered tag in place. Without a
+  // key it matches by content hash, and a patch that lands while the page
+  // is still hydrating - the answer's Halo clause reads the stored
+  // preference the moment `load()` runs - inserts a second FAQ script and
+  // leaves the crawler-facing default-rider one in the document.
   const scripts = [{
+    key: 'breadcrumbs',
     type: 'application/ld+json' as const,
     innerHTML: JSON.stringify({
       '@context': 'https://schema.org',
@@ -146,6 +201,7 @@ useHead(() => {
   }]
   if (faqAnswer.value) {
     scripts.push({
+      key: 'faq',
       type: 'application/ld+json' as const,
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -164,29 +220,31 @@ useHead(() => {
 
 <template>
   <UContainer
-    v-if="segmentData"
-    class="py-10 space-y-10"
+    v-if="segmentData && segmentRoute"
+    class="py-8 space-y-8"
   >
-    <div>
-      <UButton
-        to="/segments"
-        variant="link"
-        color="neutral"
-        icon="i-lucide-arrow-left"
-        class="mb-4 px-0"
-      >
-        Back to all segments
-      </UButton>
-      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-highlighted">
-            {{ segmentData.name }}
-          </h1><p class="text-muted">
-            {{ segmentData.worldName }}
+    <div class="space-y-6">
+      <div class="flex flex-wrap items-center gap-3 text-sm text-muted">
+        <UButton
+          to="/segments"
+          variant="link"
+          color="neutral"
+          icon="i-lucide-arrow-left"
+          class="px-0"
+        >
+          All segments
+        </UButton>
+        <span class="border-l border-default pl-3">{{ segmentData.worldName }} / {{ segmentData.type }}</span>
+      </div>
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <p class="text-xs font-semibold uppercase tracking-wide text-muted">
+            Your next ride
           </p>
-        </div>
-        <div class="flex flex-col items-start sm:items-end gap-1.5">
-          <div class="flex flex-wrap sm:justify-end gap-2">
+          <h1 class="mt-1 text-3xl font-bold text-highlighted break-words sm:text-4xl">
+            {{ segmentData.name }}
+          </h1>
+          <div class="mt-3 flex flex-wrap gap-2">
             <UBadge
               :color="segmentData.type === 'climb' ? 'success' : 'warning'"
               variant="subtle"
@@ -201,10 +259,7 @@ useHead(() => {
             >
               {{ segmentData.climbType === "HC" ? "HC" : `Cat ${segmentData.climbType}` }}
             </UBadge>
-            <SurfaceBadges
-              v-if="segmentRoute"
-              :surface="segmentRoute.surface"
-            />
+            <SurfaceBadges :surface="segmentRoute.surface" />
             <UBadge
               v-if="physicsIsDynamic"
               color="primary"
@@ -214,215 +269,254 @@ useHead(() => {
               Dynamic physics
             </UBadge>
           </div>
-          <p
-            v-if="tttSavingText"
-            class="text-xs text-muted sm:text-right"
-          >
-            {{ tttSavingText }}
-          </p>
-          <p
-            v-if="raceSavingText"
-            class="text-xs text-muted sm:text-right"
-          >
-            {{ raceSavingText }}
-          </p>
         </div>
+        <dl class="grid shrink-0 grid-cols-3 gap-4 sm:gap-8">
+          <div>
+            <dt class="text-xs text-muted">
+              Length
+            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
+              {{ formatDistance(segmentData.lengthKm) }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted">
+              Elevation
+            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
+              {{ formatElevation(displayElevationM) }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted">
+              Avg grade
+            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
+              {{ displayGradePercent ? formatGrade(displayGradePercent) : "Flat" }}
+            </dd>
+          </div>
+        </dl>
       </div>
-      <div class="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <UCard :ui="{ body: 'text-center py-4' }">
-          <p class="text-xs text-muted uppercase tracking-wide">
-            Length
-          </p><p class="text-xl font-bold">
-            {{ formatDistance(segmentData.lengthKm) }}
-          </p>
-        </UCard>
-        <UCard :ui="{ body: 'text-center py-4' }">
-          <p class="text-xs text-muted uppercase tracking-wide">
-            Elevation
-          </p><p class="text-xl font-bold">
-            {{ formatElevation(displayElevationM) }}
-          </p>
-        </UCard>
-        <UCard :ui="{ body: 'text-center py-4' }">
-          <p class="text-xs text-muted uppercase tracking-wide">
-            Avg grade
-          </p><p class="text-xl font-bold">
-            {{ displayGradePercent ? formatGrade(displayGradePercent) : "Flat" }}
-          </p>
-        </UCard>
-      </div>
-      <div
-        v-if="segmentRoute?.terrain.elevationProfile && segmentRoute.terrain.elevationProfile.length > 1"
-        class="mt-6"
-      >
-        <RouteElevationProfile
-          :route="segmentRoute"
-          :laps="1"
-        />
-      </div>
-      <div
-        v-if="segmentRoute?.surface.composition"
-        class="mt-6"
-      >
-        <h2 class="text-lg font-semibold text-highlighted mb-3">
-          Surface
-        </h2>
-        <RouteSurfaceComposition :surface="segmentRoute.surface" />
-      </div>
-      <p
-        v-if="segmentData.hostRoutes.length"
-        class="mt-4 text-sm text-muted"
-      >
-        <span class="font-medium text-highlighted">Also appears on:</span>
-        <template
-          v-for="(host, index) in segmentData.hostRoutes"
-          :key="host.slug"
-        >
-          <ULink
-            :to="`/routes/${host.slug}`"
-            class="text-primary underline"
-          >{{ host.name }}</ULink><span v-if="index < segmentData.hostRoutes.length - 1">, </span>
-        </template>
-      </p>
-      <p
-        v-if="segmentData.placement === 'membership'"
-        class="mt-2 text-xs text-muted"
-      >
-        The exact position of this segment along its host routes isn't in our route data, so length and grade come from the segment's own record, and the surface estimate is borrowed from the host route's overall mix.
-      </p>
-    </div>
-
-    <!-- Directly under the segment summary, above the results: this is the
-         question the page's title asks, so it reads as the answer to the
-         stats just above rather than as a footnote after the grid. It needs
-         `topCombo`, so it renders from the prerendered results on first paint
-         and only pops in on a client-side navigation. -->
-    <div v-if="faqAnswer">
-      <h2 class="text-lg font-semibold text-highlighted mb-2">
-        {{ faqQuestion }}
-      </h2>
-      <p class="text-muted">
-        {{ faqAnswer }}
-      </p>
-    </div>
-
-    <div>
-      <h2 class="text-xl font-semibold text-highlighted mb-4">
-        Best bike &amp; wheel combo for this segment
-      </h2>
-      <RecommendDataNotice />
-      <p
-        class="sr-only"
-        role="status"
-        aria-live="polite"
-      >
-        {{ resultsAnnouncement }}
-      </p>
-      <BikeFilterControls
-        v-model:search="bikeSearch"
-        class="mb-6"
-      />
-
-      <RiderProfileControls
+      <RideRiderSummary
+        :rider="appliedInputs"
+        :refreshing="isRefreshing"
         :has-long-climb="hasLongClimb"
         :sprint-power="isSprint"
-        class="mb-6"
       />
+      <RideEquipmentFilters />
+    </div>
 
-      <div
-        v-if="isFirstLoad"
-        class="space-y-4"
-      >
-        <ComboResultCardSkeleton class="mb-6" />
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ComboResultCardSkeleton />
-          <ComboResultCardSkeleton />
-        </div>
-      </div>
-      <template v-else>
-        <p
-          v-if="isRefreshing"
-          class="flex items-center gap-1.5 text-sm text-muted mb-3"
-        >
-          <UIcon
-            name="i-lucide-loader-circle"
-            class="size-4 animate-spin"
-          />Updating results…
-        </p>
-        <FastestOverallNote
-          v-if="fastestOverall"
-          :fastest-overall="fastestOverall"
-          @show-all="setBikeCategory('all')"
-          @include-halo="setIncludeHaloBikes(true)"
-        />
+    <RecommendDataNotice />
+    <p
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+    >
+      {{ resultsAnnouncement }}
+    </p>
+
+    <!-- The recommendation is first in source order and first on a phone;
+         on a desktop the briefing takes the left column and the
+         recommendation the wider right one. The briefing reads only the
+         Ride, so it renders through a refetch and with no matches. -->
+    <div
+      id="ride-results"
+      class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12"
+      :aria-busy="isFirstLoad || isRefreshing"
+    >
+      <div class="lg:col-start-2 lg:row-start-1 lg:border-l lg:border-default lg:pl-12">
         <div
-          class="transition-opacity"
-          :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+          v-if="isFirstLoad"
+          class="space-y-4"
         >
-          <ComboResultCard
-            v-if="topCombo"
-            :load-wheel-options="loadWheelOptions"
-            :combo="topCombo"
-            :rank="1"
-            :route="segmentRoute"
-            :laps="1"
-            :fastest-time-sec="fastestTimeSec"
-            :owned="owned"
-            class="mb-6"
-          />
-          <div
-            v-if="restCombos.length"
-            class="grid grid-cols-1 md:grid-cols-2 gap-4"
+          <RideRecommendationSkeleton />
+        </div>
+        <template v-else>
+          <p
+            v-if="isRefreshing"
+            class="mb-3 flex items-center gap-1.5 text-sm text-muted"
           >
-            <ComboResultCard
-              v-for="(combo, index) in restCombos"
-              :key="`${combo.frame.id}-${combo.wheelset?.key ?? 'fixed'}`"
-              :load-wheel-options="loadWheelOptions"
-              :combo="combo"
-              :rank="index + 2"
+            <UIcon
+              name="i-lucide-loader-circle"
+              class="size-4 animate-spin"
+            />Updating results…
+          </p>
+          <div
+            class="transition-opacity"
+            :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+          >
+            <!-- `laps` is 1 on purpose: the synthetic segment-as-route has no
+                 lead-in, so the km/h beside the time divides the segment's own
+                 length by a time that starts at its timed start. -->
+            <RideRecommendation
+              v-if="topCombo"
+              :combo="topCombo"
               :route="segmentRoute"
               :laps="1"
               :fastest-time-sec="fastestTimeSec"
-              :owned="owned"
-            />
+              :load-wheel-options="loadWheelOptions"
+              :request-key="serializedQuery"
+              :limited-data-note="limitedDataNote"
+              :notes="recommendationNotes"
+              :compared="isCompared(topCombo)"
+              :compare-disabled="comparisonFull && !isCompared(topCombo)"
+              :compare-count="comparisonKeys.length"
+              @toggle-compare="toggleCompared(topCombo)"
+            >
+              <template #fastest-overall>
+                <!-- `pointer-events-auto`: the wrapper blocks clicks on stale
+                     results while a refetch runs, but the reveal is a filter
+                     change, not a stale result, and stays usable as before. -->
+                <FastestOverallNote
+                  v-if="fastestOverall"
+                  :fastest-overall="fastestOverall"
+                  class="mb-0 pointer-events-auto"
+                  @show-all="setBikeCategory('all')"
+                  @include-halo="setIncludeHaloBikes(true)"
+                />
+              </template>
+            </RideRecommendation>
+            <section
+              v-else
+              aria-label="Recommended setup"
+              class="space-y-4"
+            >
+              <p class="text-muted">
+                No bikes match your filters.
+                <template v-if="bikeSearchDebounced">
+                  Clear the search below or widen the filters above to see the ranking again.
+                </template>
+                <template v-else>
+                  Widen the filters above to see the ranking again.
+                </template>
+              </p>
+              <FastestOverallNote
+                v-if="fastestOverall"
+                :fastest-overall="fastestOverall"
+                class="mb-0 pointer-events-auto"
+                @show-all="setBikeCategory('all')"
+                @include-halo="setIncludeHaloBikes(true)"
+              />
+              <ul
+                v-if="recommendationNotes.length"
+                class="space-y-1 text-sm text-muted"
+              >
+                <li
+                  v-for="note in recommendationNotes"
+                  :key="note"
+                >
+                  {{ note }}
+                </li>
+              </ul>
+            </section>
           </div>
-          <p
-            v-else-if="!topCombo"
-            class="text-muted text-center py-10"
+        </template>
+      </div>
+      <!-- The host-route links live here rather than under the header: they
+           are how a rider moves on to a whole ride, and the briefing is the
+           part of the page that describes the ride they are on. -->
+      <RideBriefing
+        :route="segmentRoute"
+        :kind="isSprint ? 'Sprint segment' : 'Climbing segment'"
+        class="lg:col-start-1 lg:row-start-1"
+      >
+        <li>
+          Timed from the segment's start, ridden once; the flying-start warm-up is not counted.
+        </li>
+        <li v-if="segmentData.hostRoutes.length">
+          <span class="font-medium text-highlighted">Also appears on:</span>
+          <template
+            v-for="(host, index) in segmentData.hostRoutes"
+            :key="host.slug"
           >
-            No bikes match your filters.
-          </p>
-        </div>
-        <div
-          v-if="hasMore"
-          class="text-center mt-6"
+            <ULink
+              :to="`/routes/${host.slug}`"
+              class="text-primary underline"
+            >{{ host.name }}</ULink><span v-if="index < segmentData.hostRoutes.length - 1">, </span>
+          </template>
+        </li>
+        <TttBriefingLine
+          v-if="tttPlan"
+          :plan="tttPlan"
+        />
+        <li
+          v-if="segmentData.placement === 'membership'"
+          class="text-xs"
         >
-          <UButton
-            color="neutral"
-            variant="subtle"
-            :loading="loadingMore"
-            @click="showMore"
-          >
-            Show more matches
-          </UButton>
-        </div>
-        <ReportDataLink :item="segmentData?.name" />
-      </template>
+          The exact position of this segment along its host routes isn't in our route data, so length and grade come from the segment's own record, and the surface estimate is borrowed from the host route's overall mix.
+        </li>
+      </RideBriefing>
     </div>
+
+    <!-- Full width beneath both columns: the answer the page's title asks
+         for, with its assumptions on a smaller line - see the route page. -->
+    <section
+      v-if="answer"
+      aria-labelledby="ride-answer-heading"
+      class="border-y border-default py-5"
+    >
+      <h2
+        id="ride-answer-heading"
+        class="text-lg font-semibold text-highlighted"
+      >
+        {{ faqQuestion }}
+      </h2>
+      <p class="mt-2 text-muted">
+        {{ answer.summary }}
+      </p>
+      <p class="mt-1 text-xs text-muted">
+        {{ answer.assumptions }}
+      </p>
+    </section>
+
+    <div
+      v-if="!isFirstLoad"
+      class="transition-opacity"
+      :class="{ 'opacity-60 pointer-events-none': isRefreshing }"
+    >
+      <RideAlternatives
+        v-model:search="bikeSearch"
+        v-model:selected="comparisonKeys"
+        :combos="combos"
+        :route="segmentRoute"
+        :laps="1"
+        :fastest-time-sec="fastestTimeSec"
+        :load-wheel-options="loadWheelOptions"
+        :request-key="serializedQuery"
+        :has-more="hasMore"
+        :loading-more="loadingMore"
+        @show-more="showMore"
+      />
+      <ReportDataLink
+        :item="segmentData?.name"
+        :ride="reportRideLine"
+      />
+    </div>
+
+    <!-- A segment is ridden once, so both lap counts are 1 and there is no
+         Segments tab. The speed chart and TTT plan simulate the segment
+         route-style, from a standing start, and their scope lines say so. -->
+    <RideCourseAnalysis
+      :route="segmentRoute"
+      :kind="segmentData.type"
+      :laps="1"
+      :results-laps="1"
+      :combo="topCombo"
+      :rider="appliedInputs"
+      :refreshing="isRefreshing"
+      :loading="isFirstLoad"
+      :plan="tttPlan"
+    />
+
+    <RideComparison
+      :combos="comparedCombos"
+      :fastest-time-sec="fastestTimeSec"
+      @clear="clearComparison"
+      @remove="removeFromComparison"
+    />
 
     <PhysicsNote
       v-if="physicsInfo"
       :mode="physicsInfo.mode"
       :summary="physicsInfo.summary"
       :note="physicsInfo.note"
-    />
-
-    <UAlert
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-info"
-      title="How this recommendation works"
-      description="Combos are ranked by an estimated time for this segment alone, computed from a simplified physics model (your weight, height &amp; power, the segment's real length/gradient, and each combo's aerodynamic drag and weight) rather than the match score alone. The segment is simulated after a flat warmup so it starts at realistic speed, matching how a real Zwift/Strava segment is entered. Bike frame and wheelset aero/climb ratings come from real ZwiftInsider bot speed-test data where available (look for the 'verified' badge) - otherwise they're a name-based heuristic estimate. None of this is official Zwift telemetry, so treat results as directionally useful, not exact."
     />
   </UContainer>
 </template>

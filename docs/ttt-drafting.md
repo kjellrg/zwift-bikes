@@ -153,7 +153,7 @@ Each of these was measured, not assumed:
 - **No route-specific blowups.** The speed/surface chart was run solo vs TTT on
   all 335 routes: no exceptions, no route where one mode produced data and the
   other didn't, no non-finite samples.
-- **Panel agreement.** The race plan's surface cost is computed the same way
+- **TTT plan agreement.** The TTT plan's surface cost is computed the same way
   the speed/surface chart computes its own, and the two agree on shared
   stretches (Road to Sky's dirt sector: +139 W in both).
 
@@ -200,4 +200,4 @@ Stated plainly, because these are the limits of the claim:
 | Ranking-key equivalent | `estimateFinishTimeSec` in `shared/utils/finishTime.ts` |
 | Request wiring, "saves vs solo" comparison | `server/utils/recommendPipeline.ts`, with the geometry wiring in `server/api/recommend/[slug].get.ts` and `.../segments/[slug].get.ts` |
 | Speed chart + solo overlay | `shared/utils/physics/routeSurfaceSpeedProfile.ts` |
-| Race plan | `shared/utils/physics/racePlan.ts` |
+| TTT plan | `shared/utils/physics/racePlan.ts` |

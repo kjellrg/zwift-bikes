@@ -6,7 +6,7 @@ import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { powerForSpeed, speedForPower } from './forces'
 
 /**
- * A race-impacting feature of the route, for the TTT "race plan" panel:
+ * A race-impacting feature of the route, for the TTT plan tab:
  * where the paceline is in danger. `type` is a deliberately open union -
  * future dangers (long supertuck descents, sprint segments) slot in as new
  * types without changing consumers that just render rows.
@@ -30,15 +30,20 @@ export interface RacePlanOptions {
   climbWkg?: number
   /** TTT rotation size, when in TTT mode: the group crosses a rough sector faster than a lone rider would, and the Crr penalty scales with speed. */
   riders?: number
-  /** The combo the surface cost is quoted for - the same one the speed/surface chart uses, so the two panels' watt figures are computed the same way. */
+  /** The combo the surface cost is quoted for - the same one the speed/surface chart uses, so the two tabs' watt figures are computed the same way. */
   frame: ClassifiedBikeFrame
   wheelset?: Wheelset
 }
 
-/** No plan for very short events - nothing on a <5 km blast is "long" enough to plan around (user request: ignore short distances). */
-const MIN_ROUTE_KM = 5
-/** Non-tarmac sectors shorter than this are ignored - a few metres of dirt where a path crosses the road isn't a race danger. */
-const MIN_SURFACE_SECTOR_M = 300
+/** No plan for very short events - nothing on a <5 km blast is "long" enough to plan around (user request: ignore short distances). Exported so the plan tab's empty state quotes the same number. */
+export const MIN_ROUTE_KM = 5
+/**
+ * Non-tarmac sectors shorter than this are ignored - a few metres of dirt
+ * where a path crosses the road isn't a race danger. Exported for the plan's
+ * coverage rule (`app/utils/tttPlan.ts`): a lead-in shorter than this could
+ * not hold a sector, so its missing measurements are nothing to disclose.
+ */
+export const MIN_SURFACE_SECTOR_M = 300
 
 /**
  * A rough sector's cost is reported the same way the speed/surface chart
@@ -100,7 +105,7 @@ export function buildRacePlan(geometry: RouteGeometry, options: RacePlanOptions)
 
   // Blocks are always DETECTED at the rider's normal power - never at the
   // team climb pace, which must not gate its own applicability (the same
-  // rule as `tttPowerPlan`; detecting at the climb power made this panel's
+  // rule as `tttPowerPlan`; detecting at the climb power made this plan's
   // climb row vanish when the pace was raised past the block's speed
   // cutoff). With a climb pace set, `tttPowerPlan` re-times the blocks at
   // that pace so the estimated duration matches how the climb is actually

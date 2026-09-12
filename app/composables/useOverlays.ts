@@ -1,10 +1,10 @@
 /**
- * Open/closed state for the about, garage, profile and report modals, plus
- * the click handlers that open them.
+ * Open/closed state for the about, garage, profile and report Overlays
+ * (see `CONTEXT.md`), plus the click handlers that open them.
  *
  * `useState` rather than Nuxt UI's `useOverlay()`: the openers live in
- * deeply nested components (the header, `BikeFilterControls`,
- * `RiderProfileControls`) while the modals themselves are mounted once in
+ * deeply nested components (the header, `RideEquipmentFilters`,
+ * `RideRiderSummary`) while the overlays themselves are mounted once in
  * `app.vue` with `v-model:open`, exactly like `AboutModal`. A shared piece
  * of global state is what lets those two ends meet without prop drilling,
  * and it matches the idiom the rest of the app's composables already use.
@@ -12,7 +12,7 @@
  * The handlers carry the same modifier-key guard as `app.vue`'s About
  * opener: every call site keeps a real `href="/garage"` / `href="/profile"`
  * (both are still real routes), so cmd/ctrl/shift/alt-click and middle-click
- * open the page for real, while a plain left click shows the modal instead
+ * open the page for real, while a plain left click shows the overlay instead
  * of navigating away. Plain `<a>` elements rather than `ULink`/`NuxtLink` at
  * those call sites: vue-router's own click handler would run before this
  * one, so `.prevent` on a NuxtLink wouldn't reliably stop the navigation.
@@ -25,6 +25,13 @@ export interface ReportSeed {
   kind: ReportKind
   /** Which frame, wheelset or route the link was next to. */
   item?: string
+  /**
+   * The APPLIED Ride the ranking above the link was computed for, already
+   * worded by `formatRideLine`. The report's auto-context can read the page
+   * URL and the stored filters on its own, but not the laps, power, draft
+   * rule or TT rule a page fixed for one ranking - only the page knows those.
+   */
+  ride?: string
 }
 
 /**
@@ -45,12 +52,20 @@ export interface BikeDetail {
    * page, where no card exists to sync from.
    */
   loadFrameCombos?: (frameId: number) => Promise<ComboScore[]>
+  /**
+   * The serialised query the page's results belong to
+   * (`useRecommendRequest().serializedQuery`). The drawer's route upgrade
+   * curve is keyed on it, so a lap, power or filter change can never leave a
+   * curve up under a caption that describes the new ride - see
+   * `upgradeCurveKey`.
+   */
+  requestKey?: string
 }
 
 export function useOverlays() {
   // About started out as a plain `ref` in `app.vue`, which was fine while the
   // header was its only opener. `AboutContent` now links to the report form,
-  // and a link inside a modal has to be able to close the modal it's in - the
+  // and a link inside an overlay has to be able to close the overlay it's in - the
   // same reason Garage and Profile live here rather than in `app.vue`.
   const isAboutOpen = useState<boolean>('overlay-about-open', () => false)
   const isGarageOpen = useState<boolean>('overlay-garage-open', () => false)
@@ -67,6 +82,19 @@ export function useOverlays() {
   // The fastest time on the loaded list, kept current for a dropped bike's
   // "behind the fastest" figure - its own snapshot of it predates the change.
   const rankedFastestTimeSec = useState<number | undefined>('overlay-ranked-fastest', () => undefined)
+  // Whether the Ride those results were ranked for bars TT frames. A barred
+  // frame is absent from every list the page can produce (the server drops it
+  // before the ranked pool, the drill-down pool and the hidden-frames list
+  // alike), so it reads as "dropped" without having been beaten by anything -
+  // see the attribution branch in `BikeDetailContent`.
+  const rankedRideBarsTtFrames = useState<boolean>('overlay-ranked-bars-tt', () => false)
+  // True while the open overlay was opened from the mobile menu, which is
+  // gone by the time the overlay closes - `app.vue` then sends focus to the
+  // menu toggle instead of letting Reka return it to a detached entry. Set
+  // by `app.vue`'s menu openers and reset when the overlay chain closes;
+  // cleared here too by every opener that is not the menu, because those
+  // openers are still on the page and Reka's own return is right.
+  const returnsFocusToMenuToggle = useState<boolean>('overlay-returns-to-menu-toggle', () => false)
 
   function openBikeDetail(detail: BikeDetail) {
     bikeDetail.value = detail
@@ -77,11 +105,11 @@ export function useOverlays() {
   /**
    * Replaces what the open drawer shows when the card it was opened from
    * re-renders with a fresh combo for the same frame and wheels - after a
-   * garage change (an upgrade level set in the drawer itself, or on the
+   * garage change (an upgrade stage set in the drawer itself, or on the
    * card) refetches the results. The drawer holds a snapshot of the combo,
    * not a live reference, so without this its finish time, gap, scores and
-   * "scored at level N" line kept the old level's numbers until it was
-   * closed and reopened. Matched on the frame alone: a level change can
+   * "scored at upgrade stage N" line kept the old stage's numbers until it
+   * was closed and reopened. Matched on the frame alone: a stage change can
    * also change which wheelset is the frame's fastest, and the drawer should
    * then show the wheels the card now shows, title and all. A combo for a
    * different frame is ignored: that is another card's business.
@@ -99,9 +127,19 @@ export function useOverlays() {
    * would silently keep showing the old level's numbers. Marking it lets the
    * drawer say so instead, and say that the bike will not be listed once the
    * drawer closes. Cleared as soon as the bike is ranked again.
+   *
+   * `ride` is what the list was ranked for, so the drawer can tell a bike
+   * that lost on pace from one that was never allowed to start: an open
+   * drawer survives a client-side navigation, and a TT frame carried onto a
+   * points race is absent from the ranking for a reason that has nothing to
+   * do with how fast it is.
    */
-  function noteRankedFrames(combos: readonly { frame: { id: number }, finishTimeSec?: number }[]) {
+  function noteRankedFrames(
+    combos: readonly { frame: { id: number }, finishTimeSec?: number }[],
+    ride?: { ttFramesAllowed?: boolean }
+  ) {
     rankedFastestTimeSec.value = combos[0]?.finishTimeSec
+    rankedRideBarsTtFrames.value = ride?.ttFramesAllowed === false
     const current = bikeDetail.value
     if (!current || !isBikeDetailOpen.value) return
     bikeDetailDropped.value = !combos.some(combo => combo.frame.id === current.combo.frame.id)
@@ -110,18 +148,21 @@ export function useOverlays() {
   function openAbout(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     isAboutOpen.value = true
   }
 
   function openGarage(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     isGarageOpen.value = true
   }
 
   function openProfile(event: MouseEvent) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     isProfileOpen.value = true
   }
 
@@ -134,19 +175,20 @@ export function useOverlays() {
   function openReport(event: MouseEvent, seed?: ReportSeed) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
+    returnsFocusToMenuToggle.value = false
     reportSeed.value = seed
     isReportOpen.value = true
   }
 
   /**
-   * Swaps the About modal for the Report modal, for the report link inside
-   * `AboutContent`. Without this the link just navigated: `/report` is a real
-   * route, so the rider was dropped on the page with the About dialog still
+   * Swaps the About overlay for the Report overlay, for the report link
+   * inside `AboutContent`. Without this the link just navigated: `/report`
+   * is a real route, so the rider was dropped on the page with About still
    * sitting over it.
    *
    * Closing About is deferred to `nextTick` rather than done in the same
-   * tick, so only one dialog is ever mounted at a time - two overlapping
-   * dialogs fight over focus trapping and the body scroll lock, and whichever
+   * tick, so only one overlay is ever mounted at a time - two overlapping
+   * ones fight over focus trapping and the body scroll lock, and whichever
    * unmounts second can leave the page unscrollable.
    */
   function openReportFromAbout(event: MouseEvent) {
@@ -169,6 +211,7 @@ export function useOverlays() {
     bikeDetail,
     bikeDetailDropped,
     rankedFastestTimeSec,
+    rankedRideBarsTtFrames,
     openBikeDetail,
     syncBikeDetail,
     noteRankedFrames,
@@ -176,6 +219,7 @@ export function useOverlays() {
     openGarage,
     openProfile,
     openReport,
-    openReportFromAbout
+    openReportFromAbout,
+    returnsFocusToMenuToggle
   }
 }

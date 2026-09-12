@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { EventRace } from './events'
 import {
   categoryGroup,
+  eventSeasonSchema,
   draftingAllowed,
   eventRaceSchema,
   formatCategoryGroup,
@@ -19,6 +20,9 @@ import {
   raceEndDate,
   racePowerupsSchema,
   sortRacesByDate,
+  roundState,
+  sortSeasonsNewestFirst,
+  summariseSeason,
   ttBikesAllowed, raceContextLabel } from './events'
 import { MAX_LAPS } from './routeLaps'
 
@@ -172,6 +176,86 @@ describe('derivations the pages are built from', () => {
     const sorted = sortRacesByDate(input)
     expect(sorted.map(r => r.slug)).toEqual(['round-1-week-1', 'round-1-week-2'])
     expect(input[0]).toBe(later)
+  })
+})
+
+describe('what the events hub and a season page read off a Season', () => {
+  // A minimal valid season, round-tripped through the schema for the same
+  // reason `testRace` is.
+  function testSeason(slug: string, rounds: { number: number, startDate: string, endDate: string, races?: unknown[] }[]) {
+    return eventSeasonSchema.parse({
+      slug,
+      label: slug,
+      seriesSlug: 'zrl',
+      seriesName: 'ZRL',
+      organizer: 'WTRL',
+      description: 'A season',
+      rounds: rounds.map(round => ({ ...round, races: round.races ?? [] }))
+    })
+  }
+
+  it('orders seasons newest first, by the day their calendar opens', () => {
+    const older = testSeason('zrl-2025-26', [{ number: 1, startDate: '2025-09-30', endDate: '2025-11-04' }])
+    const newer = testSeason('zrl-2026-27', [{ number: 1, startDate: '2026-09-29', endDate: '2026-11-03' }])
+    // Written newest-last in the file, which is the order the hub used to show.
+    const seasons = [older, newer]
+    expect(sortSeasonsNewestFirst(seasons).map(season => season.slug)).toEqual(['zrl-2026-27', 'zrl-2025-26'])
+    // Ordered on the earliest round, not the file's first one.
+    const outOfOrder = testSeason('zrl-2024-25', [
+      { number: 2, startDate: '2025-01-06', endDate: '2025-02-10' },
+      { number: 1, startDate: '2024-09-30', endDate: '2024-11-04' }
+    ])
+    expect(sortSeasonsNewestFirst([newer, outOfOrder, older]).map(season => season.slug))
+      .toEqual(['zrl-2026-27', 'zrl-2025-26', 'zrl-2024-25'])
+    expect(seasons.map(season => season.slug)).toEqual(['zrl-2025-26', 'zrl-2026-27'])
+  })
+
+  it('reads a round as to come, on now, or run, off its races', () => {
+    const round = (races: EventRace[]) => ({ number: 1, startDate: '2026-09-22', endDate: '2026-10-27', races })
+    const first = testRace({ slug: 'round-1-week-1', date: '2026-09-22' })
+    const second = testRace({ slug: 'round-1-week-2', week: 2, date: '2026-09-29' })
+
+    expect(roundState(round([first, second]), '2026-09-01')).toBe('upcoming')
+    // One race run, one to go - the round a rider is in the middle of.
+    expect(roundState(round([first, second]), '2026-09-25')).toBe('ongoing')
+    expect(roundState(round([first, second]), '2026-09-30')).toBe('past')
+    // A week-long stage is on from its first day and not run until its window closes.
+    const stage = round([testRace({ date: '2026-09-22', endDate: '2026-09-28' })])
+    expect(roundState(stage, '2026-09-25')).toBe('ongoing')
+    expect(roundState(stage, '2026-09-29')).toBe('past')
+    // A retired race is not on the calendar, so it neither starts a round nor holds one open.
+    const retired = testRace({ slug: 'round-1-week-9', week: 9, date: '2027-01-01', hidden: true })
+    expect(roundState(round([first, retired]), '2026-09-30')).toBe('past')
+    // A round with no races at all is a window the organiser hasn't filled
+    // in: still to come however long ago it was announced, never on and
+    // never over, since there is nothing to run.
+    expect(roundState(round([]), '2027-12-31')).toBe('upcoming')
+  })
+
+  it('adds a season up to what the hub and the season header both report', () => {
+    const season = eventSeasonSchema.parse({
+      slug: 'zrl-2026-27',
+      label: '2026/27',
+      seriesSlug: 'zrl',
+      seriesName: 'ZRL',
+      organizer: 'WTRL',
+      description: 'A season',
+      rounds: [
+        { number: 1, startDate: '2026-09-29', endDate: '2026-11-03', races: [testRace(), testRace({ slug: 'round-1-week-2', week: 2, date: '2026-09-08' })] },
+        // A retired race is not on the calendar, so it is not counted on it.
+        { number: 2, startDate: '2027-01-05', endDate: '2027-02-09', races: [testRace({ slug: 'round-2-week-1', round: 2, date: '2027-01-05' }), testRace({ slug: 'round-2-week-2', round: 2, week: 2, date: '2027-01-12', hidden: true })] }
+      ]
+    })
+    expect(summariseSeason(season)).toEqual({
+      startDate: '2026-09-29',
+      endDate: '2027-02-09',
+      rounds: 2,
+      races: 3
+    })
+  })
+
+  it('reports an announced-but-empty season without inventing a date span', () => {
+    expect(summariseSeason(testSeason('zrl-2027-28', []))).toEqual({ startDate: undefined, endDate: undefined, rounds: 0, races: 0 })
   })
 })
 

@@ -2,14 +2,22 @@
 import type { EventSeason } from '../../../shared/utils/events'
 
 /**
- * Hub for the racing calendars this site covers, grouped by series. Imports
- * the calendar module directly rather than fetching it -
+ * The Discovery page for Seasons (see `CONTEXT.md`): every racing calendar
+ * this site covers, grouped by series and newest first. It ranks nothing and
+ * has no filters - what it shows about a season is its identity and the
+ * numbers a rider scans to pick one.
+ *
+ * Imports the calendar module directly rather than fetching it -
  * `shared/utils/events` is a leaf (plain dates and strings, no route surface
  * data), so there's nothing here worth an API round trip.
  */
 const seasons = getSeasons()
 
-/** Season order within a series: newest label first, so the current season leads. */
+/**
+ * Seasons within a series, newest first - `sortSeasonsNewestFirst` asks the
+ * round dates, since the files are written oldest first and `label` is the
+ * organiser's own string ("2026/27", "2026"), which sorts nothing.
+ */
 const seriesGroups = computed(() => {
   const bySeries = new Map<string, { seriesSlug: string, seriesName: string, organizer: string, organizerUrl?: string, seasons: EventSeason[] }>()
   for (const season of seasons) {
@@ -23,7 +31,7 @@ const seriesGroups = computed(() => {
     group.seasons.push(season)
     bySeries.set(season.seriesSlug, group)
   }
-  return [...bySeries.values()]
+  return [...bySeries.values()].map(group => ({ ...group, seasons: sortSeasonsNewestFirst(group.seasons) }))
 })
 
 /**
@@ -41,15 +49,40 @@ const seriesGroups = computed(() => {
 const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
 
 const pastSeasonSlugs = ref(new Set<string>())
+/**
+ * Today, once the page is on a rider's screen. Handed to the season cards so
+ * a round tile knows whether the round it points at is still on the season
+ * page - the cards must not ask the clock themselves, for the same reason
+ * this page resolves it here: it is prerendered, and a build-time answer
+ * would ship frozen.
+ */
+const today = ref<string>()
 onMounted(() => {
   loadSiteFlags()
-  const today = new Date().toISOString().slice(0, 10)
+  today.value = new Date().toISOString().slice(0, 10)
   pastSeasonSlugs.value = new Set(seasons
-    .filter(season => getVisibleSeasonRaces(season).every(race => raceEndDate(race) < today))
+    .filter(season => getVisibleSeasonRaces(season).every(race => raceEndDate(race) < today.value!))
     .map(season => season.slug))
 })
 const isPastSeason = (season: EventSeason) => pastSeasonSlugs.value.has(season.slug)
-const pastSeasons = computed(() => seasons.filter(isPastSeason))
+/**
+ * A series is listed while any of its seasons is still running. One whose
+ * every season has finished goes, seasons and all, into the collapsible
+ * below - a heading with nothing under it reads as broken, the same rule the
+ * segments page applies to a world its filters empty.
+ */
+const activeSeriesGroups = computed(() => seriesGroups.value.filter(group => group.seasons.some(season => !isPastSeason(season))))
+/**
+ * Finished seasons keep their series grouping inside the disclosure, rather
+ * than becoming a flat list: the organiser badge hangs off the series
+ * heading, and a series whose every season has finished is listed nowhere
+ * else - so flattening this would take the only link to that organiser off
+ * the page with it.
+ */
+const pastSeriesGroups = computed(() => seriesGroups.value
+  .map(group => ({ ...group, seasons: sortSeasonsNewestFirst(group.seasons.filter(isPastSeason)) }))
+  .filter(group => group.seasons.length))
+const pastSeasonCount = computed(() => pastSeriesGroups.value.reduce((total, group) => total + group.seasons.length, 0))
 
 const siteConfig = useSiteConfig()
 
@@ -59,6 +92,8 @@ useSeoMeta({
   ogTitle: 'Zwift race calendars',
   ogDescription: 'Race dates, routes and the fastest bike and wheel combo for every round of Zwift Racing League and every ZRacing stage.'
 })
+
+defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - the fastest bike and wheelset for every race on the Zwift calendar' })
 
 useHead({
   script: [{
@@ -103,6 +138,12 @@ useHead({
       </p>
     </div>
 
+    <!-- The same teaser the homepage carries, and for the same reason: the
+         one race a rider is most likely here for is the next one, and it is
+         otherwise several rounds down a season page. It resolves and hides
+         itself (teasers off, section gated, calendars run dry). -->
+    <NextRaceCard />
+
     <!-- Reachable by hiding every season - rare, but an empty page with a
          heading and nothing under it reads as broken rather than deliberate. -->
     <p
@@ -113,115 +154,55 @@ useHead({
     </p>
 
     <div
-      v-for="series in seriesGroups"
+      v-for="series in activeSeriesGroups"
       :key="series.seriesSlug"
       class="space-y-4"
     >
-      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 class="text-2xl font-semibold text-highlighted">
-          {{ series.seriesName }}
-        </h2>
-        <!-- Linked when the organiser's page is known: we complement the
-             original sources, so send riders back to them for signup and
-             rules. Omitted entirely otherwise. -->
-        <UBadge
-          v-if="series.organizerUrl"
-          color="neutral"
-          variant="subtle"
-        >
-          <ULink
-            :to="series.organizerUrl"
-            target="_blank"
-            rel="noopener"
-            class="hover:text-primary"
-          >{{ series.organizer }}</ULink>
-        </UBadge>
-        <UBadge
-          v-else
-          color="neutral"
-          variant="subtle"
-        >
-          {{ series.organizer }}
-        </UBadge>
+      <SeriesHeading
+        :series-name="series.seriesName"
+        :organizer="series.organizer"
+        :organizer-url="series.organizerUrl"
+      />
+
+      <div class="grid grid-cols-1 gap-4">
+        <SeasonCard
+          v-for="season in series.seasons.filter(s => !isPastSeason(s))"
+          :key="season.slug"
+          :season="season"
+          :today="today"
+        />
       </div>
-
-      <UCard
-        v-for="season in series.seasons.filter(s => !isPastSeason(s))"
-        :key="season.slug"
-      >
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <h3 class="text-xl font-semibold text-highlighted">
-              <ULink
-                :to="`/events/${season.slug}`"
-                class="hover:text-primary"
-              >
-                {{ season.seriesName }} {{ season.label }}
-              </ULink>
-            </h3>
-            <p class="text-muted mt-1 max-w-2xl">
-              {{ season.description }}
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div
-            v-for="round in season.rounds"
-            :key="round.number"
-            class="rounded-lg border border-default p-3"
-          >
-            <p class="text-xs text-muted uppercase tracking-wide">
-              Round {{ round.number }}
-            </p>
-            <p class="font-medium text-highlighted">
-              {{ round.name ?? `Round ${round.number}` }}
-            </p>
-            <p class="text-sm text-muted">
-              {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-4">
-          <UButton
-            :to="`/events/${season.slug}`"
-            color="primary"
-            variant="subtle"
-            trailing-icon="i-lucide-arrow-right"
-          >
-            See the {{ season.label }} calendar
-          </UButton>
-        </div>
-      </UCard>
     </div>
 
-    <UCollapsible v-if="pastSeasons.length">
+    <UCollapsible v-if="pastSeasonCount">
       <UButton
         color="neutral"
         variant="subtle"
         trailing-icon="i-lucide-chevron-down"
       >
-        Past seasons ({{ pastSeasons.length }})
+        Past seasons ({{ pastSeasonCount }})
       </UButton>
       <template #content>
-        <div class="mt-4 space-y-4">
-          <UCard
-            v-for="season in pastSeasons"
-            :key="season.slug"
+        <div class="mt-4 space-y-8">
+          <div
+            v-for="series in pastSeriesGroups"
+            :key="series.seriesSlug"
+            class="space-y-4"
           >
-            <h3 class="text-lg font-semibold text-highlighted">
-              <ULink
-                :to="`/events/${season.slug}`"
-                class="hover:text-primary"
-              >
-                {{ season.seriesName }} {{ season.label }}
-              </ULink>
-            </h3>
-            <p class="text-muted mt-1">
-              {{ season.description }}
-            </p>
-          </UCard>
+            <SeriesHeading
+              :series-name="series.seriesName"
+              :organizer="series.organizer"
+              :organizer-url="series.organizerUrl"
+            />
+            <div class="grid grid-cols-1 gap-4">
+              <SeasonCard
+                v-for="season in series.seasons"
+                :key="season.slug"
+                :season="season"
+                :today="today"
+              />
+            </div>
+          </div>
         </div>
       </template>
     </UCollapsible>

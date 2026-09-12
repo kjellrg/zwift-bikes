@@ -4,8 +4,8 @@
  * shared component so the wording can't drift between the route and segment
  * pages, same reasoning as `EventsDisclaimer`.
  *
- * Deliberately one link per *list* rather than one per `ComboResultCard`: a
- * per-card link would be several hundred of them on a route page, all
+ * Deliberately one link per *list* rather than one per `RideAlternativeRow`: a
+ * per-row link would be several hundred of them on a route page, all
  * competing with the quick-add-to-garage controls, for something a rider does
  * once in a blue moon.
  *
@@ -15,12 +15,14 @@
 const props = defineProps<{
   /** What the rider is looking at, used to seed the report's subject. */
   item?: string
+  /** The Ride the list above was ranked for, from `formatRideLine` - see `ReportSeed`. */
+  ride?: string
 }>()
 
 const { openReport } = useOverlays()
 
 function open(event: MouseEvent) {
-  openReport(event, { kind: 'data', item: props.item })
+  openReport(event, { kind: 'data', item: props.item, ride: props.ride })
 }
 </script>
 

@@ -14,11 +14,19 @@ useRobotsRule('noindex, follow')
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-8">
+  <UContainer class="py-10 space-y-8 sm:max-w-2xl">
+    <!-- Capped at the overlay's own width (`sm:max-w-2xl`, see
+         `ProfileModal`): the page and the overlay show the same controls, and
+         a form that stretched to a desktop container's full width here and
+         sat in a narrow dialog there would read as two different pages. -->
     <div>
       <h1 class="text-3xl font-bold text-highlighted">
         My Profile
       </h1>
+      <p class="text-muted mt-2">
+        Your weight, height and power set every finish time on the site; the
+        defaults below apply wherever a link hasn't chosen otherwise.
+      </p>
     </div>
 
     <ProfileContent />

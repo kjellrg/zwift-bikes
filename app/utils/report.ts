@@ -13,6 +13,9 @@
  * about, rather than smeared across a Vue component.
  */
 
+import { DRAFT_MODE_LABELS } from './labels'
+import type { AppliedRiderInputs, Ride } from './recommendRequest'
+
 const REPO = 'kjellrg/zwift-bikes'
 
 /**
@@ -259,4 +262,38 @@ export function buildReport(draft: ReportDraft): BuiltReport {
     mailtoUrl: mail.url,
     truncated: github.truncated || mail.truncated
   }
+}
+
+/**
+ * The Ride line in the auto-captured context block: what the ranking the
+ * rider was looking at was actually computed for, which the page URL alone
+ * does not say. A sprint segment ranks at a different power from every other
+ * page, a race fixes its own laps and can bar TT frames or drafting
+ * outright, and none of that reaches a report through `?group=1`.
+ *
+ * Every value is an APPLIED one (see `CONTEXT.md`) - `appliedRide` and
+ * `appliedInputs`, never the live controls - so a report describes the
+ * ranking on screen rather than a request still in flight. It is one helper
+ * rather than a line each on the route, segment and race pages because all
+ * three describe the same things, and three copies would drift.
+ */
+export interface RideLineInputs {
+  /** What was ranked, where the URL doesn't say it: 'Sprint segment', 'Category B'. */
+  subject?: string
+  /** The Ride the results on screen were ranked for - `useRecommendRequest().appliedRide`. */
+  ride: Pick<Ride, 'laps' | 'ttFramesAllowed' | 'draftingAllowed' | 'power'>
+  /** The rider those results were computed for - `useRecommendRequest().appliedInputs`. */
+  rider: Pick<AppliedRiderInputs, 'powerW' | 'draftMode' | 'tttRiders'>
+}
+
+export function formatRideLine({ subject, ride, rider }: RideLineInputs): string {
+  const laps = ride.laps === undefined ? undefined : `${ride.laps} lap${ride.laps === 1 ? '' : 's'}`
+  const power = `${rider.powerW} W${ride.power === 'sprint' ? ' sprint power' : ''}`
+  // The applied draft mode is already solo where the ride bars drafting
+  // (`rideDraftMode`), which on its own reads as the rider's own choice.
+  const draft = DRAFT_MODE_LABELS[rider.draftMode]
+    + (rider.draftMode === 'ttt' ? ` (${rider.tttRiders} riders)` : '')
+    + (ride.draftingAllowed === false ? ' (this race bars drafting)' : '')
+  const frames = ride.ttFramesAllowed === false ? 'TT frames barred' : undefined
+  return [subject, laps, power, draft, frames].filter(Boolean).join(', ')
 }

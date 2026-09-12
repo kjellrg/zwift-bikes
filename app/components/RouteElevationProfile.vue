@@ -6,8 +6,8 @@ import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 const props = defineProps<{
   route: RouteWithMeta
   laps?: number
-  /** Already lap-expanded occurrences, as used by the sibling `RouteClimbs`/`RouteSprints` cards - reused here so a
-   * climb/sprint's position lines up with those cards without re-deriving lap expansion a second way. */
+  /** Already lap-expanded occurrences, as the Segments tab (`RideCourseAnalysis`) lists them - reused here so a
+   * climb/sprint's position lines up with that list without re-deriving lap expansion a second way. */
   climbs?: RouteClimbOccurrence[]
   sprints?: (RouteSegmentPlacement & SegmentOccurrence)[]
   /**
@@ -19,7 +19,16 @@ const props = defineProps<{
    * an empty or absent list renders exactly as before.
    */
   scoringSlugs?: string[]
+  /**
+   * Render the chart alone, without the card, the collapsible header or its
+   * info tooltip - for a tab panel that already names and scopes the chart
+   * (`RideCourseAnalysis`). Every ranking page
+   * shows it this way; the card is what a caller outside the tabs would get.
+   */
+  flat?: boolean
 }>()
+
+const UCard = resolveComponent('UCard')
 
 const VIEW_WIDTH = 800
 const VIEW_HEIGHT = 260
@@ -284,9 +293,20 @@ const stats = computed(() => {
 </script>
 
 <template>
-  <UCard v-if="points.length > 1">
-    <UCollapsible :ui="{ content: 'mt-3' }">
-      <template #default="{ open }">
+  <!-- `flat`: a plain wrapper and the collapsible held open with no trigger,
+       so the one chart template serves both the card and a tab panel. -->
+  <component
+    :is="flat ? 'div' : UCard"
+    v-if="points.length > 1"
+  >
+    <UCollapsible
+      :open="flat || undefined"
+      :ui="{ content: flat ? '' : 'mt-3' }"
+    >
+      <template
+        v-if="!flat"
+        #default="{ open }"
+      >
         <button
           type="button"
           class="flex w-full items-center justify-between gap-2 text-left"
@@ -482,5 +502,5 @@ const stats = computed(() => {
         </div>
       </template>
     </UCollapsible>
-  </UCard>
+  </component>
 </template>

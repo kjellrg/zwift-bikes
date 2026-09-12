@@ -4,7 +4,7 @@
  *
  * Building it from the path collapses every query-string variant of a page
  * onto the one URL we want indexed. This mattered most for /segments/[slug]
- * historically: RouteClimbs/RouteSprints used to link each segment as
+ * historically: the route page's climb and sprint tables used to link each segment as
  * `?route=<slug>` once per route it appeared on (removed since - hosts never
  * meaningfully disagreed about a segment's surface), so a segment like Alpe
  * du Zwift was reachable at dozens of near-identical URLs that would

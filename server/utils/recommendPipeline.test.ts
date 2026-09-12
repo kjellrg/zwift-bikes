@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest'
 import type { RouteWithMeta, SegmentSummary } from '../../shared/types/catalog'
 import type { RecommendBaseQuery } from './apiQuerySchemas'
 import { recommendRouteQuerySchema } from './apiQuerySchemas'
-import type { RecommendRide, SimulateComboOptions } from './recommendPipeline'
+import type { RecommendPipelineResult, RecommendRide, SimulateComboOptions } from './recommendPipeline'
 import { runRecommendPipeline } from './recommendPipeline'
+import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../shared/utils/recommendLimits'
 import { getRequestTiming, startRequestTiming } from './timing'
-import { getRouteBySlug } from '../../shared/utils/catalog'
+import { getFrames, getRouteBySlug } from '../../shared/utils/catalog'
+import { getWheelsets } from '../../shared/utils/wheelsets'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../shared/utils/routeSegments'
 import { rideForRoute, rideForSegment } from '../../shared/utils/recommendRide'
 
@@ -45,6 +47,26 @@ const route = fixtureRoute(ROUTE_SLUG)
 const climbRoute = fixtureRoute(CLIMB_ROUTE_SLUG)
 const segmentSummary = fixtureSegment(SEGMENT_SLUG)
 const segmentRoute = routeWithMetaForSegment(segmentSummary)
+
+/**
+ * The equipment the garage tests own. Read out of the real catalog rather
+ * than pinned to an id and a key: what they assert is the fallback rule and
+ * the compatibility rule, not which bike a rider happens to have added, and
+ * the catalog drifts with every Zwift release.
+ */
+function fixtureEquipment() {
+  // Measured, because the requests below keep the API's own `verifiedOnly`
+  // default - an estimated frame or wheel would be filtered out before
+  // ownership ever spoke. No off-road wheel is measured (that is what makes
+  // verified+gravel the known-empty case), so only its class matters.
+  const frame = getFrames().find(f => f.category === 'standard' && !f.hasFixedWheels && f.confidence === 'measured')
+  const roadWheel = getWheelsets().find(w => w.crrClass === 'road' && w.confidence === 'measured')
+  const offRoadWheel = getWheelsets().find(w => w.crrClass !== 'road')
+  if (!frame || !roadWheel || !offRoadWheel) {
+    throw new Error('the catalog no longer offers a standard frame plus a road and an off-road wheel to own')
+  }
+  return { frame, roadWheel, offRoadWheel }
+}
 
 const fakeEvent = (): H3Event => ({ path: '/api/recommend/test', context: {} } as unknown as H3Event)
 
@@ -128,6 +150,30 @@ describe('runRecommendPipeline', () => {
     expect(excluded.fastestOverall?.category).not.toBe('tt')
   })
 
+  it('discloses the hidden fastest bike to a ranking with nothing in it, with no gap to measure', async () => {
+    // Verified gravel is the known-empty case - no gravel wheel is bot-tested -
+    // and it is exactly where a rider most needs to be told which filter is
+    // holding the answer back (issue #221). The disclosure used to be gated on
+    // the page having a rank 1, so the emptiest page never got it.
+    const empty = await runRecommendPipeline(fakeEvent(), query({ category: 'gravel', includeHalo: 'false' }), routeRide([]))
+    expect(empty.combos).toHaveLength(0)
+    expect(empty.fastestOverall?.reason).toBe('category')
+    expect(empty.fastestOverall?.frameName).toBeTruthy()
+    expect(empty.fastestOverall?.finishTimeSec).toBeGreaterThan(0)
+    // Nothing on the page to measure against, so the line carries no gap.
+    expect(empty.fastestOverall?.deltaSec).toBeUndefined()
+
+    // A directed search that matches nothing keeps its own message: the rider
+    // asked for one bike, not for the filters to be explained.
+    const searched = await runRecommendPipeline(fakeEvent(), query({ category: 'gravel', includeHalo: 'false', search: 'unobtainium' }), routeRide([]))
+    expect(searched.combos).toHaveLength(0)
+    expect(searched.fastestOverall).toBeUndefined()
+
+    // A ranking that does have a rank 1 still measures the gap against it.
+    const ranked = await runRecommendPipeline(fakeEvent(), query({ category: 'standard', includeHalo: 'false', maxWheelsetsPerFrame: '1' }), routeRide([]))
+    expect(ranked.fastestOverall?.deltaSec).toBeGreaterThan(0)
+  })
+
   it('lets a search reach combos the per-frame cap would have hidden', async () => {
     const capped = await runRecommendPipeline(fakeEvent(), query({ maxWheelsetsPerFrame: '1' }), routeRide([]))
     expect(new Set(capped.combos.map(combo => combo.frame.id)).size).toBe(capped.combos.length)
@@ -137,6 +183,14 @@ describe('runRecommendPipeline', () => {
     // The cap is skipped entirely while searching, so one frame may hold
     // several rows - the wheels it would otherwise have deleted from the page.
     expect(new Set(searched.combos.map(combo => combo.frame.id)).size).toBeLessThan(searched.combos.length)
+  })
+
+  it('lets a search reach the cosmetic re-skin the ranked pool leaves out', async () => {
+    // With an empty garage the re-skin is the half of the pair that drops out
+    // of a ranking (`isRedundantCosmeticVariant`, covered at the classifier),
+    // so a rider who types its name is the only one who can ask for it.
+    const searched = await runRecommendPipeline(fakeEvent(), query({ search: 'golden' }), routeRide([]))
+    expect(searched.combos.map(combo => combo.frame.name)).toContain('Zwift Golden Concept Z1')
   })
 
   it('answers a drill-down with one frame, no wheel-options count, and an upgrade curve', async () => {
@@ -192,5 +246,92 @@ describe('runRecommendPipeline', () => {
     const raceSolo = raceLog.filter(call => call.powerScaleAtSpeed === undefined)
     expect(raceSolo).toHaveLength(1)
     expect(raceSolo[0]!.powerSegmentsW).toBeUndefined()
+  })
+
+  it('ranks the garage alone when it holds both frames and wheels', async () => {
+    const { frame, roadWheel } = fixtureEquipment()
+    const page = await runRecommendPipeline(fakeEvent(), query({
+      ownedOnly: 'true',
+      owned: JSON.stringify({ [frame.id]: 3 }),
+      ownedWheels: JSON.stringify([roadWheel.key])
+    }), routeRide([]))
+
+    expect(page.combos.length).toBeGreaterThan(0)
+    expect(page.combos.every(combo => combo.frame.id === frame.id)).toBe(true)
+    expect(page.combos.every(combo => combo.wheelset?.key === roadWheel.key)).toBe(true)
+  })
+
+  it('falls back per collection when only one half of the garage is filled', async () => {
+    const { frame, roadWheel } = fixtureEquipment()
+
+    // Owned frames, no owned wheels: the rider's frames against every
+    // compatible wheel, so one frame holds several rows.
+    const framesOnly = await runRecommendPipeline(fakeEvent(), query({
+      ownedOnly: 'true',
+      owned: JSON.stringify({ [frame.id]: 3 })
+    }), routeRide([]))
+    expect(framesOnly.combos.every(combo => combo.frame.id === frame.id)).toBe(true)
+    expect(new Set(framesOnly.combos.map(combo => combo.wheelset?.key)).size).toBeGreaterThan(1)
+
+    // The mirror case: every frame, on the one owned wheel. A fixed-wheel
+    // frame has no wheelset to match - its wheels aren't a choice the garage
+    // can restrict (`rankCombos`), so it stays eligible on its own.
+    const wheelsOnly = await runRecommendPipeline(fakeEvent(), query({
+      ownedOnly: 'true',
+      ownedWheels: JSON.stringify([roadWheel.key])
+    }), routeRide([]))
+    expect(new Set(wheelsOnly.combos.map(combo => combo.frame.id)).size).toBeGreaterThan(1)
+    expect(wheelsOnly.combos.every(combo => combo.wheelset === undefined || combo.wheelset.key === roadWheel.key)).toBe(true)
+  })
+
+  it('ranks everything when "my garage only" is on and the garage is empty', async () => {
+    const shown = (result: RecommendPipelineResult) => result.combos.map(combo => [combo.frame.name, combo.wheelset?.name])
+
+    const emptyGarage = await runRecommendPipeline(fakeEvent(), query({ ownedOnly: 'true' }), routeRide([]))
+    const unrestricted = await runRecommendPipeline(fakeEvent(), query(), routeRide([]))
+    expect(shown(emptyGarage)).toEqual(shown(unrestricted))
+    expect(emptyGarage.combos.length).toBeGreaterThan(0)
+  })
+
+  it('ranks a Halo bike the rider owns even while Halo bikes are hidden', async () => {
+    // The three purchasable Halo bikes are heavy old frames that win nothing,
+    // so no page of nine holds one: walk the whole TT ranking instead of
+    // asserting a position, which is the only structural way to ask what the
+    // pool contains. One wheel per frame keeps that walk to three pages.
+    const espada = getFrames().find(f => f.name === 'Pinarello Espada')
+    if (!espada) throw new Error('the catalog no longer has the Pinarello Espada to hide')
+    const wholeRanking = async (params: Record<string, string>) => {
+      const names: string[] = []
+      for (let offset = 0; offset <= RECOMMEND_MAX_OFFSET; offset += RECOMMEND_MAX_LIMIT) {
+        const page = await runRecommendPipeline(fakeEvent(), query({ category: 'tt', maxWheelsetsPerFrame: '1', offset: String(offset), ...params }), routeRide([]))
+        names.push(...page.combos.map(combo => combo.frame.name))
+        // Running out of offsets instead of pages would turn "not in the
+        // ranking" into "not in the part of it we read", which passes silently.
+        if (!page.pagination.hasMore) return names
+      }
+      throw new Error('the TT ranking no longer ends within the endpoints\' own offset bound')
+    }
+
+    expect(await wholeRanking({ includeHalo: 'true' })).toContain(espada.name)
+    expect(await wholeRanking({ includeHalo: 'false' })).not.toContain(espada.name)
+    // Ownership is the exception: a rider who has one in the garage is asking
+    // to be ranked on the bikes they can actually select.
+    expect(await wholeRanking({ includeHalo: 'false', owned: JSON.stringify({ [espada.id]: 3 }) })).toContain(espada.name)
+  })
+
+  it('leaves the page empty when the owned wheels cannot fit the owned frame', async () => {
+    const { frame, offRoadWheel } = fixtureEquipment()
+    // A standard frame takes road-class wheels only (`isWheelsetCompatible`),
+    // so this garage is a real dead end rather than a filter to widen - the
+    // page has to say so, and turning the garage restriction off is the way
+    // back. `verifiedOnly=false` on purpose: no off-road wheel is measured, so
+    // the default would empty the page through the verified filter instead and
+    // the compatibility rule would go untested.
+    const garage = { verifiedOnly: 'false', owned: JSON.stringify({ [frame.id]: 3 }), ownedWheels: JSON.stringify([offRoadWheel.key]) }
+    const restricted = await runRecommendPipeline(fakeEvent(), query({ ownedOnly: 'true', ...garage }), routeRide([]))
+    expect(restricted.combos).toHaveLength(0)
+
+    const recovered = await runRecommendPipeline(fakeEvent(), query(garage), routeRide([]))
+    expect(recovered.combos.length).toBeGreaterThan(0)
   })
 })

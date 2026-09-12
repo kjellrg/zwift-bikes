@@ -2,9 +2,10 @@
 import type { BikeCategory } from '../../shared/types/catalog'
 
 /**
- * "A bike your filters are hiding is faster" - shown above the ranked
- * results whenever the category filter or the Halo filter is hiding the
- * genuinely quickest combo.
+ * "A bike your filters are hiding is faster" - shown with the recommendation
+ * whenever the category filter or the Halo filter is hiding the genuinely
+ * quickest combo, and in place of it when those filters have left nothing to
+ * rank at all (issue #221), which is where the reveal matters most.
  *
  * The pages default to the `standard` category (TT frames are restricted in
  * a lot of organised events) and to hiding the three purchasable Halo bikes
@@ -18,7 +19,9 @@ import type { BikeCategory } from '../../shared/types/catalog'
  * It renders from the recommend endpoints' `fastestOverall` field, which is
  * part of the server-rendered response - so this text is in the prerendered
  * HTML rather than appearing after hydration, and a crawler sees the frame
- * name and the gap too.
+ * name and the gap too. On an empty ranking there is no rank 1 to measure
+ * against, so `deltaSec` is absent and the line says the bike is out of view
+ * instead of how much quicker it is.
  */
 const props = defineProps<{
   fastestOverall: {
@@ -26,7 +29,7 @@ const props = defineProps<{
     category: BikeCategory
     reason: 'category' | 'halo'
     wheelsetName?: string
-    deltaSec: number
+    deltaSec?: number
   }
 }>()
 
@@ -40,6 +43,7 @@ const equipment = computed(() => props.fastestOverall.wheelsetName
 // seconds under a minute, `m:ss` above it. Hundredths are noise at the scale
 // this gap lives at, and it's a headline, not a ranking key.
 const gapText = computed(() => {
+  if (props.fastestOverall.deltaSec === undefined) return undefined
   const magnitude = Math.abs(props.fastestOverall.deltaSec)
   return magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
 })
@@ -58,7 +62,12 @@ const gapText = computed(() => {
         :category="fastestOverall.category"
         class="align-middle"
       />
-      &mdash; {{ gapText }} quicker.
+      <template v-if="gapText">
+        &mdash; {{ gapText }} quicker.
+      </template>
+      <template v-else>
+        &mdash; not shown under your current filters.
+      </template>
       <template v-if="fastestOverall.reason === 'halo'">A Halo bike - unlocking it takes three fully upgraded frames of one brand plus ~20 million Drops.</template>
       <template v-else-if="fastestOverall.category === 'tt'">TT bikes are restricted in many events.</template>
     </span>

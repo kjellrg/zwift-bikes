@@ -37,7 +37,7 @@ describe('race plan climb rows are independent of the climb pace', () => {
   it('the climb row survives every climb pace the slider allows', () => {
     // Regression: the row used to be detected at the CLIMB power, so raising
     // the team climb pace past the block's speed cutoff silently deleted it
-    // from the panel (Greater London 8, >= ~4.0 W/kg).
+    // from the plan (Greater London 8, >= ~4.0 W/kg).
     const reference = buildRacePlan(CLIMB_GEOMETRY, OPTIONS).find(item => item.type === 'climb')
     expect(reference).toBeDefined()
     for (let climbWkg = TTT_MIN_CLIMB_WKG; climbWkg <= TTT_MAX_CLIMB_WKG; climbWkg += 0.5) {
@@ -56,12 +56,12 @@ describe('race plan climb rows are independent of the climb pace', () => {
   })
 })
 
-describe('race plan panel and TTT pacing plan agree', () => {
-  // Anti-drift guard: the panel's climb rows and the endpoints' pacing plan
+describe('TTT plan tab and TTT pacing plan agree', () => {
+  // Anti-drift guard: the plan's climb rows and the endpoints' pacing plan
   // are the same concept computed on two surfaces. The original climb-pace
   // bug got fixed in `tttPowerPlan` but survived in `buildRacePlan` because
   // nothing tied the two together - this does.
-  it('the panel shows exactly the blocks the pacing plan rides', () => {
+  it('the plan shows exactly the blocks the pacing plan rides', () => {
     for (const climbWkg of [2.5, 4.0, 7.5]) {
       const plan = tttPowerPlan(CLIMB_GEOMETRY, climbWkg, OPTIONS.weightKg, OPTIONS.riderPowerW)!
       const rows = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, climbWkg }).filter(item => item.type === 'climb')

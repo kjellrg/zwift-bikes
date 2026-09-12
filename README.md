@@ -13,13 +13,13 @@ This is a hobby project, built and run in spare time by fellow cyclists and
 Zwifters, for the fun of it. Bug reports, data corrections and pull requests
 are all very welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-![Sliders for rider weight, height and power above a route's top bike recommendations, ranked with match scores, estimated finish times and verified badges](docs/assets/screenshots/bikes-light.png#gh-light-mode-only)
-![Sliders for rider weight, height and power above a route's top bike recommendations, ranked with match scores, estimated finish times and verified badges](docs/assets/screenshots/bikes-dark.png#gh-dark-mode-only)
+![A route page: the recommended frame and wheels with their estimated finish time beside a short ride briefing, and the ranked alternatives beneath](docs/assets/screenshots/bikes-light.png#gh-light-mode-only)
+![A route page: the recommended frame and wheels with their estimated finish time beside a short ride briefing, and the ranked alternatives beneath](docs/assets/screenshots/bikes-dark.png#gh-dark-mode-only)
 
 *The heart of the site: set your weight, height and power, and any route
-gives you its top frame + wheelset combos — with estimated finish times,
-match scores and badges showing which numbers are backed by verified test
-data.*
+tells you its fastest frame + wheelset with an estimated finish time, the
+alternatives and how far behind they are, and whether each number is backed
+by verified test data or an estimate.*
 
 ## What it does
 
@@ -28,9 +28,9 @@ data.*
   power. The rankings aim to reflect how equipment actually behaves in-game —
   which often differs from real-world cycling.
 - **Explore routes and segments.** See each route's surface breakdown
-  (road / gravel / cobbles), climb profile and lap info, plus its named
-  climbs and sprints — and get recommendations scoped to a single climb or
-  sprint, not just the whole route.
+  (road / gravel / cobbles), climb profile and lap info — and get
+  recommendations scoped to a single climb or sprint, not just the whole
+  route.
 - **Ride what you own.** Keep a Garage of your bikes, wheels and frame
   upgrade levels, and filter recommendations down to it — or to "verified
   only" results backed by real test data rather than estimates.
@@ -73,6 +73,8 @@ npm install        # install dependencies
 npm run dev        # dev server on http://localhost:3000
 npm run typecheck  # TypeScript checks
 npm run lint       # add -- --fix to auto-fix
+npm test           # vitest unit suite
+npm run test:browser  # Playwright journeys through the dev server, see tests/browser/README.md
 npm run build      # production build; npm run preview to serve it locally
 ```
 

@@ -5,9 +5,9 @@ import {
   buildRecommendQuery,
   cachedRecommendToServe,
   recommendChangeKind,
-  rideDraftMode,
-  ridePowerW,
+  riderInputsForRide,
   serializeRecommendQuery,
+  type AppliedRiderInputs,
   type RecommendEnvelope,
   type RecommendRequest,
   type Ride,
@@ -30,7 +30,8 @@ export interface RecommendResponse {
     category: ComboScore['frame']['category']
     reason: 'category' | 'halo'
     wheelsetName?: string
-    deltaSec: number
+    /** Absent when the filters left no rank 1 to measure the gap against - see `FastestOverall`. */
+    deltaSec?: number
   }
   physics?: {
     mode: string
@@ -99,9 +100,10 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
 
   const { owned, ownedWheels, load: loadGarage } = useGarage()
   // Read-only here: the controls that write these (sliders, draft
-  // disclosure, category/search/switches) live in `RiderProfileControls` and
-  // `BikeFilterControls`, which bind and persist the same `useState`-backed
-  // state this reads.
+  // disclosure, category and switches) live in `RideRiderSummary` -
+  // `RiderProfileControls` folded behind it - and `RideEquipmentFilters`,
+  // which every ranking page mounts and which bind and persist the same
+  // `useState`-backed state this reads.
   const {
     weightKg, heightCm, powerW, sprintPowerW, defaultUnownedLevel, draftMode, tttRiders, tttClimbWkg,
     load: loadRiderProfile
@@ -177,7 +179,18 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     }
   )
   const { data: envelope, status, error, refresh } = asyncData
-  const recommendData = computed(() => envelope.value?.result ?? null)
+  // Nuxt resets `data` to its default when a refresh throws, which would
+  // empty the list under the very toast that says the previous results are
+  // still shown (`useRefetchNotice`). So the envelope last served stays the
+  // one on screen until a response replaces it. A computed rather than a
+  // watcher because no watcher runs after setup on the server, where the
+  // page reads this straight after awaiting the fetch. A no-endpoint ride
+  // still clears the list: its envelope is a real one with a null result.
+  let servedEnvelope: RecommendEnvelope<RecommendResponse> | null = null
+  const recommendData = computed(() => {
+    if (envelope.value) servedEnvelope = envelope.value
+    return servedEnvelope?.result ?? null
+  })
   useRefetchNotice(error, status, refresh)
 
   /**
@@ -189,6 +202,15 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * catches up exactly when the recomputed times do.
    */
   const appliedRide = ref<Ride>(currentRide.value)
+  /**
+   * The rider the combos on screen were computed for - see **Applied** in
+   * `CONTEXT.md`. Same rule and same lifecycle as `appliedRide`: the
+   * controls run ahead of it between a slider's release and the response,
+   * so the strip, the answer and the equipment-dependent analysis read this
+   * rather than the stored profile, and a failed refresh leaves it where it
+   * was, beside the results it still describes.
+   */
+  const appliedInputs = ref<AppliedRiderInputs>(riderInputsForRide(inputs.value, currentRide.value))
   const results = useRecommendResults<ComboScore>({
     recommendData,
     refresh,
@@ -198,6 +220,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     pageSize: RECOMMEND_MAX_LIMIT,
     onResultsApplied: () => {
       appliedRide.value = currentRide.value
+      appliedInputs.value = riderInputsForRide(inputs.value, currentRide.value)
     }
   })
   const { loadedCombos, loadingMore, reloadingPages, showMore, refreshFirstPage, reloadLoadedPages } = results
@@ -229,10 +252,12 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   onMounted(() => {
     // The two control components load these themselves, but they aren't
     // always mounted - a race group with no catalog route renders neither -
-    // and the query wants the rider's stored state regardless. Every `load()`
-    // here is an idempotent localStorage read that assigns nothing when the
-    // stored values match what state already holds, so running them twice
-    // costs nothing and fires no refetch.
+    // and the query wants the rider's stored state regardless. The profile
+    // and preferences read storage once per app lifetime and return on
+    // every later call; the garage re-reads but guards with a JSON-equality
+    // check. Either way a repeat call assigns nothing, so running them from
+    // every mount costs nothing, fires no refetch, and cannot undo a value
+    // `useSharedView` assigned for the visit.
     loadGarage()
     loadRiderProfile()
     loadPreferences()
@@ -254,7 +279,6 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   }
 
   const topCombo = computed(() => combos.value[0])
-  const restCombos = computed(() => combos.value.slice(1))
   const fastestTimeSec = computed(() => {
     const times = combos.value.map(combo => combo.finishTimeSec).filter((time): time is number => typeof time === 'number')
     return times.length ? Math.min(...times) : undefined
@@ -287,26 +311,26 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     /** What is on screen: the loaded pages in the browser, the fetched page on the server. */
     combos,
     topCombo,
-    restCombos,
     fastestTimeSec,
     hasMore,
     loadingMore,
     showMore,
-    /** The category the ranking actually used - the stored preference, made legal for this ride. */
-    category: computed(() => query.value.category),
-    /** The draft mode the ranking actually used, likewise. */
-    draftMode: computed(() => rideDraftMode(draftMode.value, currentRide.value)),
-    /** The power the ranking actually used - sprint power on a sprint ride. */
-    activePowerW: computed(() => ridePowerW(inputs.value, currentRide.value)),
     appliedRide,
+    appliedInputs,
     isFirstLoad,
     isRefreshing,
     resultsAnnouncement,
-    /** `v-model:search` for `BikeFilterControls`; the composable debounces it into the query. */
+    /** `v-model:search` for `RideAlternatives`; the composable debounces it into the query. */
     bikeSearch,
     /** The settled search term - what the query was actually built from, and what a page writes to the URL. */
     bikeSearchDebounced,
-    loadWheelOptions,
-    owned
+    /**
+     * The serialised query the results on screen belong to, for anything that
+     * has to notice when the ride being ranked changes underneath it. The bike
+     * drawer keys its route upgrade curve on this (`upgradeCurveKey`); nothing
+     * parses it back out.
+     */
+    serializedQuery,
+    loadWheelOptions
   }
 }

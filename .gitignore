@@ -72,3 +72,11 @@ CLAUDE.md
 
 # Wrangler local dev state
 .wrangler
+
+# Playwright output (`npm run test:browser`): traces and failure screenshots
+# stay local - see tests/browser/README.md.
+test-results
+playwright-report
+
+# vue-tsc -b project-reference build state (tests/browser is composite)
+*.tsbuildinfo

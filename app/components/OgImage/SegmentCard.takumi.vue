@@ -67,7 +67,7 @@ const profileImage = computed(() => {
       class="flex items-center"
       style="gap: 16px;"
     >
-      <div style="width: 14px; height: 34px; background: #C6F135; border-radius: 4px;" />
+      <div style="width: 14px; height: 34px; background: #FF6AA8; border-radius: 4px;" />
       <span style="font-size: 34px; font-weight: 700; color: #ffffff;">ZwiftBikes</span>
     </div>
 
@@ -75,7 +75,7 @@ const profileImage = computed(() => {
       class="flex flex-col"
       style="gap: 12px;"
     >
-      <span style="font-size: 26px; font-weight: 700; color: #C6F135; letter-spacing: 4px;">BEST BIKE FOR THE {{ kind }}</span>
+      <span style="font-size: 26px; font-weight: 700; color: #FF6AA8; letter-spacing: 4px;">BEST BIKE FOR THE {{ kind }}</span>
       <span :style="{ fontSize: titleSize, fontWeight: 700, color: '#ffffff', lineHeight: 1.05 }">{{ title }}</span>
       <span style="font-size: 30px; color: #8FA79F;">{{ world }} · {{ length }} · {{ elevation }} · {{ grade }}</span>
     </div>
