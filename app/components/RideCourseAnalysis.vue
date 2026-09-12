@@ -32,8 +32,8 @@ import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOc
 const props = defineProps<{
   /** The route the rider has selected, or the synthetic segment-as-route the segment page ranks against. The Ride-only tabs describe this one. */
   route: RouteWithMeta
-  /** The route the applied results were ranked on, where a page can move the course under them. Defaults to `route`. */
-  resultsRoute?: RouteWithMeta
+  /** The applied course; omitted defaults to `route`, null means its geometry has not arrived. */
+  resultsRoute?: RouteWithMeta | null
   /** What the page ranks: a route gets the Segments tab; a sprint has no speed chart (a standing-start simulation says nothing about a flying sprint). */
   kind: 'route' | 'climb' | 'sprint'
   /** The picker's lap count, which the Ride-only tabs follow. 1 on a segment. */
@@ -68,7 +68,7 @@ const equipmentRoute = computed(() => props.resultsRoute ?? props.route)
 // window between a race's group moving and its ranking landing. The scope
 // lines name the course then, so a curve under a freshly changed selector is
 // never read as the course now selected.
-const equipmentCourseDiffers = computed(() => props.resultsRoute !== undefined && props.resultsRoute.slug !== props.route.slug)
+const equipmentCourseDiffers = computed(() => props.resultsRoute != null && props.resultsRoute.slug !== props.route.slug)
 const equipmentLeadInKm = computed(() => equipmentRoute.value.leadInDistance ?? 0)
 const equipmentHasElevation = computed(() => (equipmentRoute.value.terrain.elevationProfile?.length ?? 0) > 1)
 const equipmentHasSurfaceLocations = computed(() => (equipmentRoute.value.surface.segments?.length ?? 0) > 0)
@@ -121,6 +121,7 @@ const speedScope = computed(() => {
   return `${setupLabel.value}${courseNote.value} · ${props.rider.powerW} W · ${DRAFT_MODE_LABELS[props.rider.draftMode]} · ${ride}.`
 })
 const speedUnavailable = computed(() => {
+  if (props.resultsRoute === null) return 'Course data for the ranked setup is not available yet.'
   if (equipmentHasElevation.value && equipmentHasSurfaceLocations.value) return undefined
   const missing = !equipmentHasElevation.value && !equipmentHasSurfaceLocations.value
     ? 'elevation and surface locations are missing'

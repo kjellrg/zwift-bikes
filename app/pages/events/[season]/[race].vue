@@ -29,7 +29,7 @@ const round = getRoundForRace(season, race)
 // Read-only plus `setDraftMode` (for the format hint below): the controls
 // themselves live in `RiderProfileControls` / `RideEquipmentFilters`, and
 // `useRecommendRequest` reads the rest of this state itself.
-const { weightKg, powerW, draftMode, setDraftMode } = useRiderProfile()
+const { weightKg, powerW, setDraftMode } = useRiderProfile()
 const { setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 // A/B and C/D routinely race the same route over a different number of laps,
@@ -292,11 +292,12 @@ const isPointsRaceWithoutSegments = computed(() => (race!.format === 'points' ||
 const hasScoring = computed(() => scoringSegments.value.length > 0 || isPointsRaceWithoutSegments.value || scoringSegmentsTbd.value)
 
 /**
- * The race format contradicting the rider's persisted draft mode genuinely
+ * The race format contradicting the applied ranking's draft mode genuinely
  * reorders the fastest-bike list (a points race ranked at TTT paceline
  * speeds, or a TTT ranked solo), so it's worth a nudge - but never a silent
  * mutation: `draftMode` is a persisted preference, and the switch happens
- * only through the button's explicit `setDraftMode`.
+ * only through the button's explicit `setDraftMode`. The explanation stays
+ * with the applied ranking while that preference is being recomputed.
  */
 const draftHintDismissed = ref(false)
 const draftHint = computed(() => {
@@ -304,9 +305,10 @@ const draftHint = computed(() => {
   // already forced solo, and the banner that says so replaces this entirely.
   if (!draftAllowed) return undefined
   if (draftHintDismissed.value) return undefined
-  if (race!.format === 'ttt' && draftMode.value !== 'ttt') {
+  const appliedDraftMode = appliedInputs.value.draftMode
+  if (race!.format === 'ttt' && appliedDraftMode !== 'ttt') {
     return {
-      text: 'This is a team time trial, but the ranking below is computed for ' + (draftMode.value === 'race' ? 'a mass-start bunch' : 'a solo rider') + '. TTT draft mode ranks bikes at your team\'s paceline speeds instead - and it can genuinely reorder the list.',
+      text: 'This is a team time trial, but the ranking below is computed for ' + (appliedDraftMode === 'race' ? 'a mass-start bunch' : 'a solo rider') + '. TTT draft mode ranks bikes at your team\'s paceline speeds instead - and it can genuinely reorder the list.',
       action: 'Use TTT draft mode',
       mode: 'ttt' as const
     }
@@ -314,10 +316,10 @@ const draftHint = computed(() => {
   // A points or scratch race IS a mass start, so race draft mode is the honest
   // default here - both for a rider who left TTT on and for one still on solo,
   // whose predicted time is then minutes off what a bunch actually does.
-  if (race!.format !== 'ttt' && draftMode.value !== 'race') {
+  if (race!.format !== 'ttt' && appliedDraftMode !== 'race') {
     return {
-      text: draftMode.value === 'ttt'
-        ? `Your profile has TTT draft mode on, but this is a ${formatPhrase.value} - the ranking below assumes paceline speeds this race won't be ridden at. Race draft mode models the mass-start bunch this actually is.`
+      text: appliedDraftMode === 'ttt'
+        ? `The ranking uses TTT draft mode, but this is a ${formatPhrase.value} - the ranking below assumes paceline speeds this race won't be ridden at. Race draft mode models the mass-start bunch this actually is.`
         : `This is a ${formatPhrase.value}, but the ranking below is computed for a lone rider with no draft at all. Race draft mode adds the draft a typical mid-pack racer measurably gets, calibrated on thirteen real race fields.`,
       action: 'Use race draft mode',
       mode: 'race' as const
@@ -341,7 +343,10 @@ const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
  * response. Handing the new group's geometry to a chart drawn for the
  * previous group's top combo shows a speed curve for a bike that was never
  * ranked on that course. So this only advances when the route lookup and the
- * ranking agree on one slug, and everything equipment-dependent reads it;
+ * ranking agree on one slug, and everything equipment-dependent reads it.
+ * If the ranking arrives first, its geometry is unavailable until that lookup
+ * answers; the previous course cannot explain the newly accepted times.
+ * Meanwhile,
  * the briefing, the header stats and the Ride-only tabs follow the selector,
  * which is what the rider just moved.
  */
@@ -350,6 +355,7 @@ watchEffect(() => {
   const endpoint = appliedRide.value.endpoint
   if (!endpoint) appliedRoute.value = undefined
   else if (routeData.value && recommendEndpoint(routeData.value.slug) === endpoint) appliedRoute.value = routeData.value
+  else if (appliedRoute.value && recommendEndpoint(appliedRoute.value.slug) !== endpoint) appliedRoute.value = undefined
 })
 /**
  * What a report filed from this page says the ranking was ridden as - see
@@ -1084,7 +1090,7 @@ useHead(() => {
       <RideCourseAnalysis
         v-if="routeInfo"
         :route="routeInfo"
-        :results-route="appliedRoute"
+        :results-route="appliedRoute ?? null"
         kind="route"
         :laps="laps"
         :results-laps="resultsLaps"
