@@ -98,11 +98,21 @@ function report(ok, label, detail) {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail && !ok ? ` - ${detail}` : ''}`)
 }
 
+/** Whether a redirect lands on the Access login: the host itself, not a substring of the URL. */
+function isAccessLogin(location, from) {
+  if (!location) return false
+  try {
+    const { hostname } = new URL(location, from)
+    return hostname === 'cloudflareaccess.com' || hostname.endsWith('.cloudflareaccess.com')
+  } catch {
+    return false
+  }
+}
+
 async function get(path, options = {}) {
   const url = path.startsWith('http') ? path : `${BASE}${path}`
   const response = await fetch(url, { headers, redirect: 'manual', ...options })
-  const location = response.headers.get('location') ?? ''
-  if (response.status >= 300 && response.status < 400 && location.includes('cloudflareaccess.com')) {
+  if (response.status >= 300 && response.status < 400 && isAccessLogin(response.headers.get('location'), url)) {
     throw new Error(`${url} redirected to the Cloudflare Access login - pass CF_ACCESS_JWT or a service token (see the header of this script)`)
   }
   return response
