@@ -568,3 +568,13 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     bikeSearchDebounced
   }
 }
+
+/**
+ * Everything a ranking page's recommend request hands it, as one object -
+ * what `RideResults` is given whole rather than by the name.
+ *
+ * The composable's own return type, so it cannot drift from it: a page that
+ * destructures the names it needs and passes the object on is handing over
+ * exactly what it holds.
+ */
+export type RecommendRequestState = ReturnType<typeof useRecommendRequest>

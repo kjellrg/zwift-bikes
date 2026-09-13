@@ -94,8 +94,12 @@ export function rankingEvidence(ranking: {
  * page is still hydrating - the stored profile's ranking is accepted -
  * inserts a second script and leaves the crawler-facing default-rider one in
  * the document.
+ *
+ * A type alias rather than an interface: `useHead`'s script entry carries a
+ * `data-*` index signature, and only an alias gets the implicit index
+ * signature that makes it assignable to one.
  */
-export interface StructuredDataScript {
+export type StructuredDataScript = {
   key: string
   type: 'application/ld+json'
   innerHTML: string
