@@ -11,31 +11,38 @@ import { DRAFT_MODES } from '#shared/utils/physics/draft'
  * and writing themselves happen in `useSharedView`.
  */
 export interface SharedView {
-  /** Only the keys the link carried are present. */
-  selection?: number
+  /** Only the keys the link carried are present. Typed as its key's shape - see `SharedViewSelectionBounds`. */
+  selection?: number | string
   bike?: string
   category?: BikeCategory | 'all'
   draft?: DraftMode
 }
 
 /**
- * The query key a page's own selection rides under. A route ranks by lap
- * count, a race by which category group the rider is in; both are one bounded
- * integer, and neither belongs to the Ride's identity (see **Shared view** in
- * `CONTEXT.md`), which is what makes them the page's to carry.
+ * The query key a page's own selection rides under, and one page has at most
+ * one. A route ranks by lap count, a race by which category group the rider is
+ * in, a segment by the Race format it is ridden under (see **Race format** in
+ * `CONTEXT.md`). None of the three belongs to the Ride's identity, which is
+ * what makes them the page's to carry rather than the URL's path.
  */
-export type SharedViewSelectionKey = 'laps' | 'group'
+export type SharedViewSelectionKey = 'laps' | 'group' | 'rules'
 
 /**
- * What a page's selection may be, for reading one out of a link. `min` is
- * load-bearing rather than always 1: laps are counted from one, while a
- * category group is an index into the race's groups and counts from zero.
+ * What a page's selection may be, for reading one out of a link: a bounded
+ * integer, or one of a fixed set of words.
+ *
+ * For the integers, `min` is load-bearing rather than always 1 - laps are
+ * counted from one, while a category group is an index into the race's groups
+ * and counts from zero - and it doubles as the hard default, the value a
+ * clean link omits.
+ *
+ * For `rules` there is no such floor: "not a race" is the absence of the key,
+ * not one of its values, which is why `values` lists only the four real
+ * formats and the hard default is simply `undefined`.
  */
-export interface SharedViewSelectionBounds {
-  key: SharedViewSelectionKey
-  min: number
-  max: number
-}
+export type SharedViewSelectionBounds
+  = | { key: 'laps' | 'group', min: number, max: number }
+    | { key: 'rules', values: readonly string[] }
 
 /** First value of a query key as a string, or undefined when absent - `useUrlState.param`'s shape. */
 export type QueryReader = (key: string) => string | undefined
@@ -53,17 +60,23 @@ export const SHARED_VIEW_SEARCH_MAX_LENGTH = 100
  * The overrides a link's query applies for this visit. `selection` is the
  * bounds of the page's own selection where it has one (a route's lap picker,
  * whose ceiling is known only once the route has loaded; a race's category
- * groups); a page without one ignores both selection keys entirely. Unknown
- * enum values are dropped rather than mapped to a neighbour: a link carries
- * what someone saw, and a value nobody could have selected is a typo or a
- * probe, not a view.
+ * groups; a segment's race format); a page without one, or with a different
+ * one, ignores every selection key entirely. Unknown enum values are dropped
+ * rather than mapped to a neighbour: a link carries what someone saw, and a
+ * value nobody could have selected is a typo or a probe, not a view.
  */
 export function sharedViewFromQuery(param: QueryReader, selection?: SharedViewSelectionBounds): SharedView {
   const view: SharedView = {}
-  // Clamped rather than dropped, unlike the enums below: a lap count past the
-  // picker's ceiling is still a ride on this route, just a shorter one, and a
-  // group index past the last group still means "the last group".
-  if (selection) {
+  if (selection && 'values' in selection) {
+    // Dropped when unknown, like `category` and `draft` below and unlike the
+    // integers in the other branch: a ranking under a format nobody could
+    // have selected is not a view anybody saw.
+    const raw = param(selection.key)
+    if (raw !== undefined && selection.values.includes(raw)) view.selection = raw
+  } else if (selection) {
+    // Clamped rather than dropped, unlike every enum here: a lap count past
+    // the picker's ceiling is still a ride on this route, just a shorter one,
+    // and a group index past the last group still means "the last group".
     const parsed = Number.parseInt(param(selection.key) ?? '', 10)
     if (Number.isFinite(parsed)) view.selection = Math.min(selection.max, Math.max(selection.min, parsed))
   }
@@ -78,9 +91,16 @@ export function sharedViewFromQuery(param: QueryReader, selection?: SharedViewSe
   return view
 }
 
-/** The committed state a page's shared view is written from. `selection` is absent on a page that ranks by nothing of its own. */
+/**
+ * The committed state a page's shared view is written from. `selection` is
+ * absent on a page that ranks by nothing of its own; on a `rules` page it is
+ * present with a `value` of `undefined` while the page is ridden as no race,
+ * which is what takes the key back out of the URL.
+ */
 export interface SharedViewState {
-  selection?: { key: SharedViewSelectionKey, value: number, min: number }
+  selection?:
+    | { key: 'laps' | 'group', value: number, min: number }
+    | { key: 'rules', value: string | undefined }
   bike: string
   category: BikeCategory | 'all'
   draft: DraftMode
@@ -93,9 +113,10 @@ export interface SharedViewState {
  * `standard`, `solo`), not the rider's stored preference: a rider with a
  * saved `tt` category sees
  * `?category=tt`, which is exactly what makes their link reproduce their view
- * for someone whose stored category is something else. A page without
- * a selection never touches `laps` or `group` at all, so an unrelated param
- * of either name is left alone.
+ * for someone whose stored category is something else - and for `rules`,
+ * whose hard default is having no format at all, `undefined` is both "not a
+ * race" and "take the key out". A page without a selection never touches any
+ * selection key, so an unrelated param of one of those names is left alone.
  */
 export function sharedViewQueryPatch(state: SharedViewState): Record<string, string | number | undefined> {
   const patch: Record<string, string | number | undefined> = {
@@ -104,8 +125,10 @@ export function sharedViewQueryPatch(state: SharedViewState): Record<string, str
     draft: state.draft !== 'solo' ? state.draft : undefined
   }
   if (state.selection) {
-    const { key, value, min } = state.selection
-    patch[key] = value > min ? value : undefined
+    const selection = state.selection
+    patch[selection.key] = selection.key === 'rules'
+      ? selection.value
+      : (selection.value > selection.min ? selection.value : undefined)
   }
   return patch
 }

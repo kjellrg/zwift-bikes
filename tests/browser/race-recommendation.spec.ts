@@ -260,9 +260,11 @@ test.describe('race recommendation', () => {
     // Twice round the Montmartre climb in one lap, in the order they come.
     // In the order they are ridden, which is not the order WTRL publishes them.
     await expect(scoring.getByRole('row')).toContainText([/Segment/, /Lutece/, /Monceau/, /Église/, /Montmartre/, /Tchou Tchou/])
-    await expect(scoring.getByRole('link', { name: 'Montmartre FWD Climb' })).toHaveAttribute('href', '/segments/montmartre-kom')
-    // A segment page cannot express this race's TT rule (#224), so the link says so.
-    await expect(scoring).toContainText('This race\'s TT-frame rule is not applied there')
+    // The link carries this race's FORMAT, not its identity (#224): a Race of
+    // Truth bars TT frames and has no draft, and the segment page honours both
+    // off `?rules=` alone, with no idea which race sent the rider.
+    await expect(scoring.getByRole('link', { name: 'Montmartre FWD Climb' })).toHaveAttribute('href', '/segments/montmartre-kom?rules=rot')
+    await expect(scoring).toContainText('ridden as a Race of Truth too, with TT frames left out of it and no draft')
 
     await tab(page, 'Elevation').click()
     await expect(panel(page, 'Elevation').getByLabel('Elevation profile chart')).toBeVisible()

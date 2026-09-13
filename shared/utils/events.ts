@@ -49,6 +49,14 @@ const isoDate = z.string()
 export const raceFormatSchema = z.enum(['ttt', 'points', 'scratch', 'rot'])
 
 /**
+ * Every format, for the surfaces that have to enumerate them: the segment
+ * page's "Ridden as" control and the `?rules=` values a link may carry. In the
+ * schema's own order, which is not a display order - a control that wants one
+ * says so where it builds its options.
+ */
+export const RACE_FORMATS = raceFormatSchema.options
+
+/**
  * Zwift's lettered racing pens (E is ZRacing legacy / women's E). Not every
  * series uses them - ZRacing 2026 entries are racing-score ranges (Women-Only,
  * Range 1, Range 2, Advanced), which a group models with `label` instead.

@@ -13,7 +13,7 @@
  * about, rather than smeared across a Vue component.
  */
 
-import { DRAFT_MODE_LABELS } from './labels'
+import { DRAFT_MODE_LABELS, raceFormatPhrase } from './labels'
 import type { AppliedRiderInputs, Ride } from './recommendRequest'
 
 const REPO = 'kjellrg/zwift-bikes'
@@ -281,12 +281,17 @@ export interface RideLineInputs {
   /** What was ranked, where the URL doesn't say it: 'Sprint segment', 'Category B'. */
   subject?: string
   /** The Ride the results on screen were ranked for - `useRecommendRequest().appliedRide`. */
-  ride: Pick<Ride, 'laps' | 'ttFramesAllowed' | 'draftingAllowed' | 'power'>
+  ride: Pick<Ride, 'laps' | 'raceFormat' | 'ttFramesAllowed' | 'draftingAllowed' | 'power'>
   /** The rider those results were computed for - `useRecommendRequest().appliedInputs`. */
   rider: Pick<AppliedRiderInputs, 'powerW' | 'draftMode' | 'tttRiders'>
 }
 
 export function formatRideLine({ subject, ride, rider }: RideLineInputs): string {
+  // Named rather than left to be inferred from the two rules below it: a
+  // segment page can be ranked under a format without being a race page
+  // (issue #224), so "TT frames barred" on its own leaves the reader of a
+  // report guessing which rule produced the ranking being reported.
+  const format = ride.raceFormat ? `ridden as a ${raceFormatPhrase(ride.raceFormat)}` : undefined
   const laps = ride.laps === undefined ? undefined : `${ride.laps} lap${ride.laps === 1 ? '' : 's'}`
   const power = `${rider.powerW} W${ride.power === 'sprint' ? ' sprint power' : ''}`
   // The applied draft mode is already solo where the ride bars drafting
@@ -295,5 +300,5 @@ export function formatRideLine({ subject, ride, rider }: RideLineInputs): string
     + (rider.draftMode === 'ttt' ? ` (${rider.tttRiders} riders)` : '')
     + (ride.draftingAllowed === false ? ' (this race bars drafting)' : '')
   const frames = ride.ttFramesAllowed === false ? 'TT frames barred' : undefined
-  return [subject, laps, power, draft, frames].filter(Boolean).join(', ')
+  return [subject, format, laps, power, draft, frames].filter(Boolean).join(', ')
 }

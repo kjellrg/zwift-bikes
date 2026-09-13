@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { RaceFormat } from '#shared/utils/events'
+import { draftingAllowed, ttBikesAllowed } from '#shared/utils/events'
+
 /**
  * Where a race's points are scored, in the order they are ridden. Three
  * published states, because an empty list is a real one and not a loading
@@ -25,9 +28,24 @@ const props = defineProps<{
   organizer: string
   /** The group these rows belong to, for the table's caption. */
   groupLabel: string
-  /** Whether TT frames are legal in this race - a segment page cannot express the bar, so the link out says so (#224). */
-  ttAllowed: boolean
+  /** This race's format, which travels out on every segment link as `?rules=` so the ranking there is ridden under these rules (#224). */
+  format: RaceFormat
 }>()
+
+/**
+ * What following one of these links gets you, said where the reader is
+ * deciding whether to follow it. Before #224 this paragraph had to admit the
+ * opposite - that a segment page knew nothing of the race and could not be
+ * told - and warn the rider to check a bike's legality themselves.
+ */
+const linkedRulesNote = computed(() => {
+  const tail = ttBikesAllowed(props.format)
+    ? ''
+    : draftingAllowed(props.format)
+      ? ', with TT frames left out of it'
+      : ', with TT frames left out of it and no draft'
+  return `The link carries this race's format, so that ranking is ridden as a ${raceFormatPhrase(props.format)} too${tail}.`
+})
 
 /** Only when the route publishes where its segments sit; otherwise the column would be a row of blanks. */
 const hasPositions = computed(() => props.rows.some(row => row.positionsKm.length))
@@ -107,9 +125,12 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
             >
               <td class="px-4 py-2">
                 <!-- Linked only when the segment has a page here. -->
+                <!-- `?rules=` carries the race's FORMAT, not its identity:
+                     the segment page needs no events data to honour it, and
+                     the link doesn't decay when this race retires (#224). -->
                 <ULink
                   v-if="segment.slug"
-                  :to="`/segments/${segment.slug}`"
+                  :to="`/segments/${segment.slug}?rules=${format}`"
                   class="text-primary underline"
                 >{{ segment.name }}</ULink>
                 <template v-else>
@@ -144,17 +165,9 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
           </tbody>
         </table>
       </div>
-      <!-- The segment pages rank the whole catalog: they know nothing of this
-           race, and cannot be told (#224). Saying so is the only honest thing
-           to do while that is true. -->
       <p class="text-xs text-muted">
         Tap a segment for the fastest bikes over that sprint alone - the fastest bike for a sprint
-        isn't always the fastest over a whole race. A segment page ranks every bike in the game,
-        unrestricted.
-        <template v-if="!ttAllowed">
-          This race's TT-frame rule is not applied there, so check that a bike is legal here
-          before you start on it.
-        </template>
+        isn't always the fastest over a whole race. {{ linkedRulesNote }}
       </p>
       <p
         v-if="hasUnlinked"

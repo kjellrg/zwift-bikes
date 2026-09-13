@@ -1,23 +1,51 @@
 import type { Ref } from 'vue'
-import { sharedViewFromQuery, sharedViewQueryPatch, type SharedViewSelectionKey } from '../utils/sharedView'
+import { sharedViewFromQuery, sharedViewQueryPatch, type SharedViewSelectionBounds, type SharedViewState } from '../utils/sharedView'
 
 /**
  * What a page ranks by beyond the Ride's identity, where it has such a thing:
- * the lap count on a route, the category group on a race. A segment page
- * passes none - it is ridden exactly once, by everybody.
+ * the lap count on a route, the Category group on a race, the Race format a
+ * segment is ridden under. One page has at most one.
  */
-export interface SharedViewSelection {
-  /** The query key it rides under: `?laps=3`, `?group=1`. */
-  key: SharedViewSelectionKey
-  value: Ref<number>
-  /** The lowest selectable value: one lap, or the first category group. */
-  min: number
-  /**
-   * The ceiling, read when the link is applied (at mount) rather than
-   * snapshotted at setup, so the page can call this anywhere in its setup -
-   * before or after the fetch the ceiling comes from.
-   */
-  max: () => number
+export type SharedViewSelection<Value extends string = string>
+  = | {
+    /** The query key it rides under: `?laps=3`, `?group=1`. */
+    key: 'laps' | 'group'
+    value: Ref<number>
+    /** The lowest selectable value, and the hard default: one lap, or the first category group. */
+    min: number
+    /**
+     * The ceiling, read when the link is applied (at mount) rather than
+     * snapshotted at setup, so the page can call this anywhere in its setup -
+     * before or after the fetch the ceiling comes from.
+     */
+    max: () => number
+  }
+  | {
+    /** `?rules=points` - see **Race format** in `CONTEXT.md`. */
+    key: 'rules'
+    /** `undefined` is the hard default here: the page is ridden as no race at all. */
+    value: Ref<Value | undefined>
+    /** Every format the control offers, so a link carrying anything else is dropped. */
+    values: readonly Value[]
+  }
+
+/** How a selection reads out of a link: its ceiling is asked for here, at mount, not at setup. */
+function selectionBounds<Value extends string>(selection: SharedViewSelection<Value>): SharedViewSelectionBounds {
+  return selection.key === 'rules'
+    ? { key: selection.key, values: selection.values }
+    : { key: selection.key, min: selection.min, max: selection.max() }
+}
+
+/**
+ * How a selection writes back into one. Read off the ref rather than taken
+ * from the watcher's tuple, which flattens both shapes into one type and
+ * would need a cast back out of it; the watcher still names the ref as a
+ * source, so this runs on exactly the changes it used to.
+ */
+function selectionState<Value extends string>(selection: SharedViewSelection<Value>): SharedViewState['selection'] {
+  return selection.key === 'rules'
+    ? { key: selection.key, value: selection.value.value }
+    : { key: selection.key, value: selection.value.value, min: selection.min }
 }
 
 /**
@@ -52,17 +80,21 @@ export interface SharedViewSelection {
  * Called after `useRecommendRequest`, so its `onMounted` runs after the
  * request's own `load()` calls.
  */
-export function useSharedView(
+export function useSharedView<Value extends string = string>(
   request: Pick<ReturnType<typeof useRecommendRequest>, 'bikeSearch' | 'bikeSearchDebounced'>,
-  selection?: SharedViewSelection
+  selection?: SharedViewSelection<Value>
 ) {
   const { param, replaceQuery } = useUrlState(useRoute(), useRouter())
   const { bikeCategory, categoryFromLink } = usePreferences()
   const { draftMode, draftModeFromLink } = useRiderProfile()
 
   onMounted(() => {
-    const view = sharedViewFromQuery(param, selection && { key: selection.key, min: selection.min, max: selection.max() })
-    if (view.selection !== undefined && selection) selection.value.value = view.selection
+    const view = sharedViewFromQuery(param, selection && selectionBounds(selection))
+    // `sharedViewFromQuery` returns the shape the bounds it was handed ask
+    // for - a number for `laps`/`group`, one of `values` for `rules` - which
+    // is a guarantee the single `SharedView` shape cannot express, hence the
+    // one cast rather than a runtime check of something already checked.
+    if (view.selection !== undefined && selection) (selection.value as Ref<number | Value>).value = view.selection as number & Value
     if (view.bike !== undefined) {
       // Both refs, not just the box: the debounce exists to hold keystrokes
       // back, and a link's term is already settled. Seeding only `bikeSearch`
@@ -94,9 +126,9 @@ export function useSharedView(
 
   watch(
     [() => selection?.value.value, request.bikeSearchDebounced, bikeCategory, draftMode],
-    ([value, bike, category, draft]) => {
+    ([, bike, category, draft]) => {
       replaceQuery(sharedViewQueryPatch({
-        selection: selection && value !== undefined ? { key: selection.key, value, min: selection.min } : undefined,
+        selection: selection && selectionState(selection),
         bike,
         category,
         draft

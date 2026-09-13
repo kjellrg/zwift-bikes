@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { RaceFormat } from '#shared/utils/events'
 import type { Ride } from '../../utils/recommendRequest'
+import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/events'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForSegment } from '#shared/utils/recommendRide'
+import { rideRulesForFormat } from '../../utils/recommendRequest'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -21,15 +24,60 @@ const resolvedRide = computed(() => segmentRoute.value ? rideForSegment(segmentR
 // below knows which one it is before the first ranking is asked for - which
 // is why the segment lookup is awaited first rather than fired alongside it.
 const isSprint = computed(() => segmentData.value?.type === 'sprint')
+
+/**
+ * The Race format this segment is being ridden under, if any - the page's own
+ * selection, the way a route page's is its lap count (see **Race format** and
+ * **Shared view** in `CONTEXT.md`). `undefined` is "not a race": the ordinary
+ * catalog-wide ranking this page has always shown, and the value a clean link
+ * omits.
+ *
+ * Deliberately NOT the race it came from. A scoring sprint is reached from a
+ * race page carrying `?rules=points`, which is the rule and not the identity:
+ * the page needs no events data to honour it, and the link doesn't decay when
+ * the race retires. It is page-local for the same reason the lap count is -
+ * never stored, never carried to the next ranking page.
+ */
+const raceFormat = ref<RaceFormat>()
+/**
+ * `ttt` earns its place even though it changes no ranking: it answers "what am
+ * I riding this in", and it keeps the race page from having to branch on its
+ * own format when it builds the link. Most-common first rather than in the
+ * schema's order - a rider reaching this control has usually come from a
+ * points or scratch race.
+ */
+const RIDE_RULES_NONE = 'none'
+const rideRulesOptions = [
+  { label: 'Not a race', value: RIDE_RULES_NONE },
+  ...(['points', 'scratch', 'ttt', 'rot'] as const).map(value => ({ label: RACE_FORMAT_LABELS[value], value }))
+]
+// "Not a race" is the absence of a format, but a select needs a value for it.
+const rideRulesSelection = computed({
+  get: () => raceFormat.value ?? RIDE_RULES_NONE,
+  set: value => raceFormat.value = value === RIDE_RULES_NONE ? undefined : value
+})
+// LIVE, not applied: these two decide what the rider may PICK, and a control
+// offering a value the pending request will discard is the bug they exist to
+// prevent. What the results on screen were ranked under is `appliedRide`.
+const ttAllowed = computed(() => !raceFormat.value || ttBikesAllowed(raceFormat.value))
+const draftAllowed = computed(() => !raceFormat.value || draftingAllowed(raceFormat.value))
+
 /**
  * No lap count: a segment is ridden exactly once and its endpoint has no lap
  * parameter. With no fatigue model, which lap of a host route a `perLap`
  * segment falls on doesn't change its physics - unlike a whole route, where
  * lap count changes the total distance.
+ *
+ * The format's rules ride along when there is one. `useRecommendRequest` then
+ * makes the rider's stored settings legal for it exactly as it does on a race
+ * page - a stored `tt` category ranks across all legal categories where TT
+ * frames are outlawed, a Race of Truth ranks solo - without either stored
+ * preference being touched.
  */
 const ride = computed<Ride>(() => ({
   endpoint: `/api/recommend/segments/${slug.value}`,
-  power: isSprint.value ? 'sprint' : 'race'
+  power: isSprint.value ? 'sprint' : 'race',
+  ...rideRulesForFormat(raceFormat.value)
 }))
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
@@ -51,9 +99,10 @@ const reportRideLine = computed(() => formatRideLine({
   rider: appliedInputs.value
 }))
 
-// `?bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No `laps`:
-// there is no lap count here (see the Ride above).
-useSharedView({ bikeSearch, bikeSearchDebounced })
+// `?rules=points&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No
+// `laps`: there is no lap count here (see the Ride above). `rules` is this
+// page's one selection, and "not a race" is the clean URL its link keeps.
+useSharedView({ bikeSearch, bikeSearchDebounced }, { key: 'rules', value: raceFormat, values: RACE_FORMATS })
 
 // Read-only here: the controls that write them live in
 // `RiderProfileControls` / `RideEquipmentFilters` - see the equivalent
@@ -174,7 +223,11 @@ const answer = useRecommendationAnswer({
   rideName: () => segmentData.value ? `the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}` : undefined,
   distanceKm: () => segmentData.value?.lengthKm,
   rider: () => appliedInputs.value,
-  restrictions: () => appliedRestrictions.value
+  restrictions: () => appliedRestrictions.value,
+  // APPLIED, unlike the two control props above: this explains the times on
+  // screen, so it must name the format they were ranked under. Same wording
+  // as the race page's, from `rideRulesLine`.
+  rideRules: () => appliedRide.value.raceFormat ? rideRulesLine(appliedRide.value.raceFormat) : undefined
 })
 const faqAnswer = computed(() => answer.value?.text)
 
@@ -294,13 +347,34 @@ useHead(() => {
           </div>
         </dl>
       </div>
+      <!-- The page's own selection, with the Ride and above the results the
+           way a route page's lap picker is - and deliberately NOT in
+           `RideEquipmentFilters`, whose contract is stored rider preferences.
+           No alert banner goes with it: a control naming the format sits
+           directly over the ranking it changes, which is exactly what a race
+           page hasn't got. -->
+      <div class="flex flex-wrap items-end gap-4">
+        <div class="w-56">
+          <label class="block text-xs font-medium text-muted mb-1">Ridden as</label><USelectMenu
+            v-model="rideRulesSelection"
+            value-key="value"
+            :items="rideRulesOptions"
+            :search-input="false"
+            aria-label="Ridden as"
+          />
+        </div>
+      </div>
       <RideRiderSummary
         :rider="appliedInputs"
         :refreshing="isRefreshing"
         :has-long-climb="hasLongClimb"
         :sprint-power="isSprint"
+        :draft-locked="!draftAllowed"
       />
-      <RideEquipmentFilters :applied-restrictions="appliedRestrictions" />
+      <RideEquipmentFilters
+        :hide-tt-category="!ttAllowed"
+        :applied-restrictions="appliedRestrictions"
+      />
     </div>
 
     <RecommendDataNotice />

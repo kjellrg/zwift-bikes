@@ -4,9 +4,11 @@ import { SHARED_VIEW_SEARCH_MAX_LENGTH, sharedViewFromQuery, sharedViewQueryPatc
 /** A query reader over a plain object - what `useUrlState.param` is over a route. */
 const query = (params: Record<string, string>) => (key: string) => params[key]
 
-/** The two pages' selections: a route's lap picker counts from one, a race's category groups from zero. */
+/** The two numeric selections: a route's lap picker counts from one, a race's category groups from zero. */
 const LAPS = { key: 'laps', min: 1, max: 5 } as const
 const GROUP = { key: 'group', min: 0, max: 1 } as const
+/** The enum one: the Race format a segment page is ridden under, where absent means "not a race". */
+const RULES = { key: 'rules', values: ['ttt', 'points', 'scratch', 'rot'] } as const
 
 describe('sharedViewFromQuery', () => {
   it('applies a category the filter offers and drops one it does not', () => {
@@ -32,6 +34,20 @@ describe('sharedViewFromQuery', () => {
     expect(sharedViewFromQuery(query({ laps: 'two' }), LAPS)).toEqual({})
     // A segment is ridden exactly once: its page has no lap picker to apply to.
     expect(sharedViewFromQuery(query({ laps: '3' }))).toEqual({})
+  })
+
+  it('applies a race format the enum knows and drops one it does not', () => {
+    expect(sharedViewFromQuery(query({ rules: 'points' }), RULES)).toEqual({ selection: 'points' })
+    expect(sharedViewFromQuery(query({ rules: 'ttt' }), RULES)).toEqual({ selection: 'ttt' })
+    // Dropped rather than mapped to a neighbour, like the other enums: a link
+    // carries what someone saw, and a format nobody could select is a typo.
+    expect(sharedViewFromQuery(query({ rules: 'handicap' }), RULES)).toEqual({})
+    expect(sharedViewFromQuery(query({ rules: '' }), RULES)).toEqual({})
+    // Absent is "not a race", which is the value a clean link omits.
+    expect(sharedViewFromQuery(query({}), RULES)).toEqual({})
+    // A page with a numeric selection ignores the key entirely, and vice versa.
+    expect(sharedViewFromQuery(query({ rules: 'points' }), LAPS)).toEqual({})
+    expect(sharedViewFromQuery(query({ laps: '3' }), RULES)).toEqual({})
   })
 
   it('applies a category group from zero, and reads neither key on the other page', () => {
@@ -61,6 +77,19 @@ describe('sharedViewQueryPatch', () => {
       .toEqual({ group: undefined, bike: undefined, category: undefined, draft: undefined })
     expect(sharedViewQueryPatch({ selection: { key: 'group', value: 1, min: 0 }, bike: '', category: 'standard', draft: 'solo' }))
       .toEqual({ group: 1, bike: undefined, category: undefined, draft: undefined })
+  })
+
+  it('writes a race format, and nothing at all for "not a race"', () => {
+    expect(sharedViewQueryPatch({ selection: { key: 'rules', value: 'points' }, bike: '', category: 'standard', draft: 'solo' }))
+      .toEqual({ rules: 'points', bike: undefined, category: undefined, draft: undefined })
+    expect(sharedViewQueryPatch({ selection: { key: 'rules', value: undefined }, bike: '', category: 'standard', draft: 'solo' }))
+      .toEqual({ rules: undefined, bike: undefined, category: undefined, draft: undefined })
+  })
+
+  it('round-trips a race format through a link', () => {
+    const patch = sharedViewQueryPatch({ selection: { key: 'rules', value: 'rot' }, bike: 'tarmac', category: 'tt', draft: 'solo' })
+    expect(sharedViewFromQuery(key => patch[key] as string | undefined, RULES))
+      .toEqual({ selection: 'rot', bike: 'tarmac', category: 'tt' })
   })
 
   it('leaves both selection keys alone on a page that carries neither', () => {

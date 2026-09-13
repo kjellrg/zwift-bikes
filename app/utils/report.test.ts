@@ -28,6 +28,21 @@ describe('formatRideLine', () => {
     })).toBe('Category B, 1 lap, 300 W, Solo (this race bars drafting), TT frames barred')
   })
 
+  it('names the race format a ranking was ridden under, which nothing else on the line says', () => {
+    // A page can be told a format without being a race page (issue #224), so
+    // "TT frames barred" on its own would leave a reader guessing which rule
+    // produced the ranking they are reporting.
+    expect(formatRideLine({
+      subject: 'Sprint segment',
+      ride: { power: 'sprint', raceFormat: 'points', ttFramesAllowed: false, draftingAllowed: true },
+      rider: { powerW: 900, draftMode: 'solo', tttRiders: 4 }
+    })).toBe('Sprint segment, ridden as a points race, 900 W sprint power, Solo, TT frames barred')
+    expect(formatRideLine({
+      ride: { laps: 1, raceFormat: 'rot', ttFramesAllowed: false, draftingAllowed: false },
+      rider: { powerW: 300, draftMode: 'solo', tttRiders: 4 }
+    })).toBe('ridden as a Race of Truth, 1 lap, 300 W, Solo (this race bars drafting), TT frames barred')
+  })
+
   it('spells out the team size a TTT ranking was paced by', () => {
     expect(formatRideLine({
       ride: { laps: 2 },

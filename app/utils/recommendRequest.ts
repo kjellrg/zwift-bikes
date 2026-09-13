@@ -1,5 +1,7 @@
 import type { BikeCategory } from '../../shared/types/catalog'
+import type { RaceFormat } from '../../shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
+import { draftingAllowed, ttBikesAllowed } from '#shared/utils/events'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 
 /**
@@ -36,6 +38,17 @@ export interface Ride {
    * it doesn't matter which lap of a host route it falls on.
    */
   laps?: number
+  /**
+   * The Race format this ride is ridden under, where the page has been told
+   * one: a race page from its own race, a segment page from `?rules=`. Absent
+   * means the page is not riding a race at all.
+   *
+   * It is what the two rules below are derived from, and it exists on the
+   * Ride so that a ranking can be *described* by the format it was ranked
+   * under - "TT frames barred" alone does not say which rule produced it.
+   * Set all three through `rideRulesForFormat`, never one at a time.
+   */
+  raceFormat?: RaceFormat
   /**
    * Whether TT frames may be started on. Zwift disables them for points and
    * scratch races; WTRL bans them from a Race of Truth by regulation.
@@ -103,6 +116,22 @@ export interface RecommendQuery {
 
 /** The query keys that describe the garage, and nothing else - see `recommendChangeKind`. */
 const GARAGE_QUERY_KEYS: readonly (keyof RecommendQuery)[] = ['owned', 'ownedWheels']
+
+/**
+ * The Ride fields a Race format fixes, as one object, so a page cannot record
+ * a format and then disagree with itself about what that format allows. Both
+ * pages that can be told one spread this into their Ride.
+ *
+ * `undefined` here means the page is not riding a race - every frame is legal
+ * and the draft is the rider's own business. That is the opposite of what
+ * `undefined` means to `ttBikesAllowed`, where it is a race whose format the
+ * organiser hasn't published and TT frames are assumed barred; this gate is
+ * the one place the two meanings are told apart.
+ */
+export function rideRulesForFormat(format: RaceFormat | undefined): Pick<Ride, 'raceFormat' | 'ttFramesAllowed' | 'draftingAllowed'> {
+  if (!format) return {}
+  return { raceFormat: format, ttFramesAllowed: ttBikesAllowed(format), draftingAllowed: draftingAllowed(format) }
+}
 
 /**
  * The rider's persisted bike category, made legal for this ride: a rider
