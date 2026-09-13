@@ -1,7 +1,7 @@
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
 import { clampPowerW, clampSprintPowerW, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, storedPowerW } from '#shared/utils/riderBounds'
-import { clampUpgradeStage, DEFAULT_UNOWNED_LEVEL } from '#shared/utils/upgradeStage'
+import { DEFAULT_UNOWNED_LEVEL, toUpgradeStage } from '#shared/utils/upgradeStage'
 
 const STORAGE_KEY = 'zwift-bikes:rider-profile'
 
@@ -115,7 +115,11 @@ export function useRiderProfile() {
       const migratedPowerW = storedPowerW(parsed, weightKg.value)
       if (migratedPowerW !== undefined) powerW.value = migratedPowerW
       if (typeof parsed.sprintPowerW === 'number') sprintPowerW.value = clampSprintPowerW(parsed.sprintPowerW)
-      if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = clampUpgradeStage(parsed.defaultUnownedLevel)
+      // Rounded as well as clamped: only hand-edited storage can get here
+      // (the profile's control is a six-option select), but a tampered `3.5`
+      // used to persist forever while every page ranked it at 4. The stored
+      // value should be the value that ranks.
+      if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = toUpgradeStage(parsed.defaultUnownedLevel)
       if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') {
         draftMode.value = parsed.draftMode
         storedDraftMode.value = parsed.draftMode
@@ -151,7 +155,7 @@ export function useRiderProfile() {
   }
 
   function setDefaultUnownedLevel(value: number) {
-    defaultUnownedLevel.value = clampUpgradeStage(value)
+    defaultUnownedLevel.value = toUpgradeStage(value)
     persist()
   }
 
