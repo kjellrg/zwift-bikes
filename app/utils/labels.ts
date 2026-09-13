@@ -2,7 +2,6 @@ import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, W
 import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
-import { draftingAllowed, ttBikesAllowed } from '#shared/utils/events'
 
 /**
  * A rank as the Ranking prints it: `01`, `02`, ... The Recommendation is rank
@@ -237,32 +236,6 @@ export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warnin
  */
 export function raceFormatPhrase(format: RaceFormat): string {
   return format === 'rot' ? 'Race of Truth' : RACE_FORMAT_LABELS[format].toLowerCase()
-}
-
-/**
- * What a Race format means for the bike, ahead of the recommendation and
- * inside the one string the FAQ structured data carries - see `rideRules` on
- * `buildRecommendationAnswer`.
- *
- * Who does the disabling differs and it matters to a rider reading the rules:
- * Zwift itself blocks TT frames in points and scratch races, whereas WTRL bans
- * them by regulation in a Race of Truth - where drafting being off would
- * otherwise be the TT bike's whole argument, so a rider is owed the reason
- * rather than just the verdict.
- *
- * One wording for every page that can be told a format (issue #224): a race
- * page reads it off its own race, a segment page off `?rules=`, and a rider
- * following the link from one to the other must not be given two accounts of
- * the same rule. The rules themselves come from `ttBikesAllowed` /
- * `draftingAllowed`, never from a second reading of the format here.
- */
-export function rideRulesLine(format: RaceFormat): string {
-  const tt = ttBikesAllowed(format)
-    ? 'TT bikes are allowed in this team time trial'
-    : format === 'rot'
-      ? 'WTRL bans TT bikes from its Race of Truth'
-      : `TT bikes are disabled for this ${raceFormatPhrase(format)}`
-  return `${tt}${draftingAllowed(format) ? '' : ', and WTRL turns drafting off, so the time below is ridden solo'}.`
 }
 
 /**

@@ -90,11 +90,14 @@ export function useSharedView<Value extends string = string>(
 
   onMounted(() => {
     const view = sharedViewFromQuery(param, selection && selectionBounds(selection))
-    // `sharedViewFromQuery` returns the shape the bounds it was handed ask
-    // for - a number for `laps`/`group`, one of `values` for `rules` - which
-    // is a guarantee the single `SharedView` shape cannot express, hence the
-    // one cast rather than a runtime check of something already checked.
-    if (view.selection !== undefined && selection) (selection.value as Ref<number | Value>).value = view.selection as number & Value
+    // `sharedViewFromQuery` returns the shape the bounds it was handed ask for
+    // - a clamped number for `laps`/`group`, one of `values` for `rules` -
+    // which the single `SharedView` type cannot express, so each branch says
+    // which it got rather than re-checking what is already checked.
+    if (view.selection !== undefined && selection) {
+      if (selection.key === 'rules') selection.value.value = view.selection as Value
+      else selection.value.value = view.selection as number
+    }
     if (view.bike !== undefined) {
       // Both refs, not just the box: the debounce exists to hold keystrokes
       // back, and a link's term is already settled. Seeding only `bikeSearch`

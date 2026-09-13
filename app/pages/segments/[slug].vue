@@ -353,16 +353,14 @@ useHead(() => {
            No alert banner goes with it: a control naming the format sits
            directly over the ranking it changes, which is exactly what a race
            page hasn't got. -->
-      <div class="flex flex-wrap items-end gap-4">
-        <div class="w-56">
-          <label class="block text-xs font-medium text-muted mb-1">Ridden as</label><USelectMenu
-            v-model="rideRulesSelection"
-            value-key="value"
-            :items="rideRulesOptions"
-            :search-input="false"
-            aria-label="Ridden as"
-          />
-        </div>
+      <div class="w-56">
+        <label class="block text-xs font-medium text-muted mb-1">Ridden as</label><USelectMenu
+          v-model="rideRulesSelection"
+          value-key="value"
+          :items="rideRulesOptions"
+          :search-input="false"
+          aria-label="Ridden as"
+        />
       </div>
       <RideRiderSummary
         :rider="appliedInputs"

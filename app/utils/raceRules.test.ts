@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { RACE_FORMAT_LABELS, raceFormatPhrase, rideRulesLine } from './labels'
+import { RACE_FORMAT_LABELS, raceFormatPhrase } from './labels'
+import { rideRulesLine } from './raceRules'
 
 /**
  * The one wording every page that can be told a Race format reads its rules
