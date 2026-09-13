@@ -39,17 +39,25 @@ const isSprint = computed(() => segmentData.value?.type === 'sprint')
  * never stored, never carried to the next ranking page.
  */
 const raceFormat = ref<RaceFormat>()
+const RIDE_RULES_NONE = 'none'
 /**
+ * Every format, in display order - most-common first rather than the schema's
+ * order, since a rider reaching this control has usually come from a points or
+ * scratch race. Built from `RACE_FORMATS` through a `Record` the compiler
+ * checks is exhaustive, because the link accepts exactly that list: a format
+ * accepted from a link but missing here is one a rider cannot reproduce
+ * through the control.
+ *
  * `ttt` earns its place even though it changes no ranking: it answers "what am
  * I riding this in", and it keeps the race page from having to branch on its
- * own format when it builds the link. Most-common first rather than in the
- * schema's order - a rider reaching this control has usually come from a
- * points or scratch race.
+ * own format when it builds the link.
  */
-const RIDE_RULES_NONE = 'none'
+const RIDE_RULES_ORDER: Record<RaceFormat, number> = { points: 0, scratch: 1, ttt: 2, rot: 3 }
 const rideRulesOptions = [
   { label: 'Not a race', value: RIDE_RULES_NONE },
-  ...(['points', 'scratch', 'ttt', 'rot'] as const).map(value => ({ label: RACE_FORMAT_LABELS[value], value }))
+  ...[...RACE_FORMATS]
+    .sort((a, b) => RIDE_RULES_ORDER[a] - RIDE_RULES_ORDER[b])
+    .map(value => ({ label: RACE_FORMAT_LABELS[value], value }))
 ]
 // "Not a race" is the absence of a format, but a select needs a value for it.
 const rideRulesSelection = computed({

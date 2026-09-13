@@ -231,9 +231,18 @@ test.describe('segment recommendation', () => {
     await visit(page, SPRINT)
     await expect(filterSummary(page)).toHaveText('Time Trial / Verified only')
 
-    const { query } = await pickRules(page, 'Points race')
+    // The TT frames on screen right now, so the absence below is the format's
+    // doing and not a catalog that never offered them.
+    const ttFrames = await frameNames(page)
+    expect(ttFrames.length).toBeGreaterThan(0)
+
+    const { query, data } = await pickRules(page, 'Points race')
     expect(query.get('excludeTT')).toBe('true')
     expect(query.get('category'), 'a stored TT category cannot narrow a ride that bars TT frames').toBeNull()
+    // The endpoint honours it, not just the page: this is the round trip the
+    // segment schema had no parameter for before #224.
+    expect(data.combos.length).toBeGreaterThan(0)
+    expect(data.combos.map(combo => combo.frame.name).filter(name => ttFrames.includes(name))).toEqual([])
     // The wording is `rideRulesLine`'s, shared with the race page.
     await expect(answer(page)).toContainText('TT bikes are disabled for this points race.')
     await expect(filterSummary(page)).toHaveText('All categories / Verified only')

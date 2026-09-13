@@ -80,7 +80,12 @@ const recommendEndpoint = (slug: string) => `/api/recommend/${slug}`
 const ride = computed<Ride>(() => ({
   endpoint: selectedRouteSlug.value ? recommendEndpoint(selectedRouteSlug.value) : undefined,
   laps: laps.value,
-  ...rideRulesForFormat(race!.format)
+  // Non-null like every other read of the format on this page: a race with
+  // no published format has no page (`isRacePublishable`). Passing the
+  // optional straight through would give one page two readings of an absent
+  // format - "not a race, everything legal" here and "rules unknown, TT
+  // barred" in `ttAllowed` below.
+  ...rideRulesForFormat(race!.format!)
 }))
 const {
   ready: recommendReady, physics: physicsInfo, fastestOverall,

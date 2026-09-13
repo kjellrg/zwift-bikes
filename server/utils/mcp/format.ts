@@ -189,17 +189,18 @@ export function formatRaceAssumption(physics: RecommendPhysics | undefined): str
  * for a model deciding what to say next, not a sentence under a ranking. The
  * rules themselves still come from `ttBikesAllowed` / `draftingAllowed`.
  */
+const RACE_FORMAT_NOTES: Record<RaceFormat, string> = {
+  ttt: '- Race format: team time trial - Zwift enables TT frames and gives them draft here, so they are ranked below. Drafting is whatever was asked for; a TTT format does NOT imply ttt draft mode, and a rider asking about TTT equipment may want the solo baseline.',
+  points: '- Race format: points race - Zwift disables TT frames for points and scratch races, so none are ranked below. Everything listed is a bike the rider can actually start on.',
+  scratch: '- Race format: scratch race - Zwift disables TT frames for points and scratch races, so none are ranked below. Everything listed is a bike the rider can actually start on.',
+  rot: '- Race format: WTRL Race of Truth - WTRL bans TT frames outright, so none are ranked below, and the format has no draft at all, so every time below is ridden solo.'
+}
+
 export function formatRaceFormatAssumption(format: RaceFormat | undefined, requestedDraftMode: unknown): string | undefined {
   if (!format) return undefined
-  if (format === 'ttt') {
-    return '- Race format: team time trial - Zwift enables TT frames and gives them draft here, so they are ranked below. Drafting is whatever was asked for; a TTT format does NOT imply ttt draft mode, and a rider asking about TTT equipment may want the solo baseline.'
-  }
-  if (format === 'rot') {
-    const taken = requestedDraftMode === 'ttt' || requestedDraftMode === 'race'
-      ? ` The requested "${String(requestedDraftMode)}" draft mode was overridden by the format.`
-      : ''
-    return `- Race format: WTRL Race of Truth - WTRL bans TT frames outright, so none are ranked below, and the format has no draft at all, so every time below is ridden solo.${taken}`
-  }
-  const label = format === 'points' ? 'points race' : 'scratch race'
-  return `- Race format: ${label} - Zwift disables TT frames for points and scratch races, so none are ranked below. Everything listed is a bike the rider can actually start on.`
+  // Only the Race of Truth can take something away, so only it has a tail.
+  const overridden = format === 'rot' && (requestedDraftMode === 'ttt' || requestedDraftMode === 'race')
+    ? ` The requested "${String(requestedDraftMode)}" draft mode was overridden by the format.`
+    : ''
+  return `${RACE_FORMAT_NOTES[format]}${overridden}`
 }

@@ -22,10 +22,13 @@ import { raceFormatPhrase } from './labels'
  * Its own module rather than a few more lines in `labels.ts`, for one reason:
  * it is the only piece of wording that needs the rules and not just the
  * vocabulary, so it is the only one that imports `shared/utils/events` as a
- * value - and that module validates the whole season calendar at import. In
- * `labels.ts`, which practically every page reaches, that would put the
- * calendar in every bundle. `RACE_FORMAT_LABELS` and `raceFormatPhrase` stay
- * there, where their events dependency is types only.
+ * value - and that module validates the whole season calendar at import, which
+ * is a side effect, so nothing tree-shakes it away. `labels.ts` is reached by
+ * the shell and by both Discovery pages, which rank nothing and have no
+ * business carrying a race calendar. Here, the only importers are the two
+ * ranking pages that can be told a format, and both already load the events
+ * module for their own reasons. `RACE_FORMAT_LABELS` and `raceFormatPhrase`
+ * stay in `labels.ts`, where the events dependency is types only.
  */
 export function rideRulesLine(format: RaceFormat): string {
   const tt = ttBikesAllowed(format)
