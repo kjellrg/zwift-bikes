@@ -38,7 +38,16 @@ export const WARMUP_DISTANCE_M = 2000
 
 const WARMUP_STEADY_STATE_TOLERANCE_MPS2 = 0.000001
 
-export function rideForSegment(segmentRoute: RouteWithMeta, warmupDistanceM = WARMUP_DISTANCE_M): RecommendRide {
+/**
+ * `excludeTT` is the segment's own copy of the route builder's, and for the
+ * same reason: a segment can be ridden under a race format (a scoring sprint
+ * inside a points race, or a page told one through `?rules=`), and the format
+ * bars TT frames from the segment exactly as it bars them from the race - see
+ * `ttBikesAllowed` in `./events.ts`. It was hardcoded `false` here while only
+ * the race page could express a format, which silently ranked bikes a rider
+ * could not start on (issue #224).
+ */
+export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, warmupDistanceM = WARMUP_DISTANCE_M): RecommendRide {
   const surfaceSegments = sliceSurfaceSegments(segmentRoute.surface.segments, 0, segmentRoute.distance, 'tarmac')
   let geometry: RouteGeometry | undefined
   const planGeometry = () => geometry ??= geometryForSegment(
@@ -51,7 +60,7 @@ export function rideForSegment(segmentRoute: RouteWithMeta, warmupDistanceM = WA
   return {
     route: segmentRoute,
     laps: 1,
-    excludeTT: false,
+    excludeTT,
     timingMeta: { segment: segmentRoute.slug, route: segmentRoute.slug, distanceKm: Math.round(segmentRoute.distance * 10) / 10 },
     planGeometry,
     prepare: (simulate, rider) => {

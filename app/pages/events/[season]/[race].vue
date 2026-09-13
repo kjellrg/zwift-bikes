@@ -49,8 +49,8 @@ const laps = computed(() => lapsForCategoryGroup(race!, categoryGroupIndex.value
  * that group's published figures; it just can't rank bikes for it.
  */
 const selectedRouteSlug = computed(() => selectedGroup.value?.routeSlug)
-const ttAllowed = ttBikesAllowed(race)
-const draftAllowed = draftingAllowed(race)
+const ttAllowed = ttBikesAllowed(race.format)
+const draftAllowed = draftingAllowed(race.format)
 const formatLabel = computed(() => RACE_FORMAT_LABELS[race!.format!])
 /**
  * The format for use mid-sentence. Every other format's label lowercases into

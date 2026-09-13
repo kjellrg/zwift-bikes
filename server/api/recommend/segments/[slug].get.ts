@@ -19,7 +19,7 @@ export default defineCachedRecommendHandler(async (event) => {
   const q = parseQuery(event, recommendSegmentQuerySchema)
   const segmentRoute = routeWithMetaForSegment(summary)
 
-  const result = await runRecommendPipeline(event, q, rideForSegment(segmentRoute))
+  const result = await runRecommendPipeline(event, q, rideForSegment(segmentRoute, q.excludeTT))
 
   const { physics } = result
   const { tttNote, raceNote, draftSummary } = draftNotes(physics, 'the effort')

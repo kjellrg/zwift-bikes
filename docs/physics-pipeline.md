@@ -87,6 +87,13 @@ also means it shrinks the pool before `rankCombos` sees it, which is safe in a
 way that trimming later would not be — an excluded frame is ineligible, not
 merely uninteresting.
 
+Both recommend endpoints take it. A segment is ridden under a race format as
+readily as a whole route is — a scoring sprint opened from a race page carries
+that race's format in `?rules=` — and the bar is the same bar (see **Race
+format** in `CONTEXT.md`). The format → rules derivation itself lives only in
+`ttBikesAllowed` / `draftingAllowed`; `excludeTT` is just its result on the
+wire.
+
 Three ordering rules are load-bearing in that diagram, and each one exists
 because breaking it shipped a real bug:
 

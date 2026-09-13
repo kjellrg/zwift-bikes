@@ -22,9 +22,15 @@ describe('rideForRoute', () => {
 })
 
 describe('rideForSegment', () => {
+  it('carries the TT-frame bar, so a segment ridden under a race format is ranked under it', () => {
+    const route = routeWithMetaForSegment(getSegmentSummary('alpe-du-zwift')!)
+    expect(rideForSegment(route).excludeTT).toBe(false)
+    expect(rideForSegment(route, true).excludeTT).toBe(true)
+  })
+
   it('times the exposed geometry and plan from the warm-up exit speed', () => {
     const route = routeWithMetaForSegment(getSegmentSummary('alpe-du-zwift')!)
-    const ride = rideForSegment(route, 3000)
+    const ride = rideForSegment(route, false, 3000)
     const rider = { weightKg: 75, heightCm: 175, powerW: 225 }
     const geometry = ride.planGeometry()
     const plan = tttPowerPlan(geometry, 3.5, rider.weightKg, rider.powerW)!
@@ -63,7 +69,7 @@ describe('rideForSegment', () => {
     expect(wheelset).toBeDefined()
     for (const drafted of [false, true]) {
       const times = [2000, 3000, 4000].map((warmup) => {
-        const ride = rideForSegment(route, warmup)
+        const ride = rideForSegment(route, false, warmup)
         return ride.prepare(simulateRoute, rider).simulateSec!({
           frame,
           wheelset,

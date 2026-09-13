@@ -101,8 +101,8 @@ function routeRide(log: SimulateLog, overrides: Partial<RecommendRide> = {}): Re
 }
 
 /** The segment endpoint's own ride: warm-up then flying start, so two integrations per combo. */
-function segmentRide(log: SimulateLog): RecommendRide {
-  return loggedRide(rideForSegment(segmentRoute), log)
+function segmentRide(log: SimulateLog, excludeTT = false): RecommendRide {
+  return loggedRide(rideForSegment(segmentRoute, excludeTT), log)
 }
 
 describe('runRecommendPipeline', () => {
@@ -146,6 +146,23 @@ describe('runRecommendPipeline', () => {
     expect(included.fastestOverall?.category).toBe('tt')
 
     const excluded = await runRecommendPipeline(fakeEvent(), query(params), routeRide([], { excludeTT: true }))
+    expect(excluded.combos.some(combo => combo.frame.category === 'tt')).toBe(false)
+    expect(excluded.fastestOverall?.category).not.toBe('tt')
+  })
+
+  // The same bar on the segment endpoint (issue #224): a scoring sprint opened
+  // from a race page is ridden under that race's format, and a ranking that
+  // still offered a TT frame there would be recommending a bike the rider
+  // cannot start on. The ride carries the rule; the pipeline enforces it once.
+  it('drops TT frames from a segment ranking too when its ride bars them', async () => {
+    // No `category`, so TT frames are in the pool on their own merits - the
+    // bar has to be what removes them, not a filter standing in for it.
+    const params = { includeHalo: 'false', maxWheelsetsPerFrame: '1', limit: '9' }
+    const included = await runRecommendPipeline(fakeEvent(), query(params), segmentRide([]))
+    expect(included.combos.some(combo => combo.frame.category === 'tt')).toBe(true)
+
+    const excluded = await runRecommendPipeline(fakeEvent(), query(params), segmentRide([], true))
+    expect(excluded.combos.length).toBeGreaterThan(0)
     expect(excluded.combos.some(combo => combo.frame.category === 'tt')).toBe(false)
     expect(excluded.fastestOverall?.category).not.toBe('tt')
   })

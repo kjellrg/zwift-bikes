@@ -84,18 +84,20 @@ describe('schema rules contributors run into', () => {
 
 describe('equipment rules derived from the format', () => {
   it('TT frames are only legal in a team time trial - an unknown format means not allowed', () => {
-    expect(ttBikesAllowed(testRace({ format: 'ttt' }))).toBe(true)
-    for (const format of ['points', 'scratch', 'rot', undefined]) {
-      expect(ttBikesAllowed(testRace({ format })), String(format)).toBe(false)
+    expect(ttBikesAllowed('ttt')).toBe(true)
+    for (const format of ['points', 'scratch', 'rot', undefined] as const) {
+      expect(ttBikesAllowed(format), String(format)).toBe(false)
     }
+    // The rules come off the format alone, so a curated race and a format a
+    // page was told through `?rules=` can never be answered differently.
+    expect(ttBikesAllowed(testRace({ format: 'ttt' }).format)).toBe(true)
   })
 
   it('drafting is off only in a Race of Truth - which still bans TT frames', () => {
-    const rot = testRace({ format: 'rot' })
-    expect(draftingAllowed(rot)).toBe(false)
-    expect(ttBikesAllowed(rot)).toBe(false)
-    for (const format of ['ttt', 'points', 'scratch', undefined]) {
-      expect(draftingAllowed(testRace({ format })), String(format)).toBe(true)
+    expect(draftingAllowed('rot')).toBe(false)
+    expect(ttBikesAllowed('rot')).toBe(false)
+    for (const format of ['ttt', 'points', 'scratch', undefined] as const) {
+      expect(draftingAllowed(format), String(format)).toBe(true)
     }
   })
 })
