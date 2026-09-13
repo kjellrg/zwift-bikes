@@ -167,9 +167,12 @@ if (segmentData.value) {
   })
 }
 
-// Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
+// Tells the open bike drawer whether its bike is still on a loaded page - see
+// `noteRankedFrames`. The applied Ride goes with it now that this page can bar
+// TT frames: a bike missing because the format outlaws it has not been beaten
+// by anything, and the drawer must say so rather than call it slow.
 const { noteRankedFrames } = useOverlays()
-watch(combos, list => noteRankedFrames(list), { immediate: true })
+watch(combos, list => noteRankedFrames(list, appliedRide.value), { immediate: true })
 
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL

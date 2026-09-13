@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { expectNoHorizontalOverflow, isListingResponse, rerank, ready, visit } from './support'
+import { expectNoHorizontalOverflow, isListingResponse, navigateUnderOverlay, ready, rerank, visit } from './support'
 
 /**
  * The segment recommendation journey (issue #203): the same
@@ -281,6 +281,34 @@ test.describe('segment recommendation', () => {
     await ready(page)
     await expect(rulesPicker(page)).toContainText('Not a race')
     await expect(answer(page)).not.toContainText('TT bikes')
+  })
+
+  test('tells a bike a format bars that it is illegal, not slow', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers the drawer carried across a navigation')
+    // The race page's attribution, now that a segment page can bar frames too
+    // (#224). A TT frame's drawer, opened on a segment ridden as no race,
+    // carried onto one ridden as a points race: it is missing from that
+    // ranking because it is illegal, not because it was beaten.
+    //
+    // Driven by the router for the same reason the race journey is - an open
+    // Overlay covers every control on the page, so no gesture reaches this
+    // state, and since #239 the back press that used to closes the drawer.
+    await page.addInitScript(() => localStorage.setItem('zwift-bikes:preferences', JSON.stringify({ bikeCategory: 'tt' })))
+    await visit(page, SPRINT)
+    await expect(filterSummary(page)).toHaveText('Time Trial / Verified only')
+    const name = recommendation(page).getByRole('button', { name: /^Details for / }).first()
+    const frameName = await name.innerText()
+    await name.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText(frameName)
+
+    await navigateUnderOverlay(page, `${CLIMB}?rules=points`)
+    await ready(page)
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText('This bike is barred from the ride you are looking at')
+    await expect(dialog).not.toContainText('slow enough to rank below every bike shown')
+    await expect(dialog).toContainText(frameName)
   })
 
   test('answers an unknown segment with a 404, not an empty page', async ({ page, request, isMobile }) => {
