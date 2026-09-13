@@ -80,3 +80,4 @@ playwright-report
 
 # vue-tsc -b project-reference build state (tests/browser is composite)
 *.tsbuildinfo
+.out-of-scope/
