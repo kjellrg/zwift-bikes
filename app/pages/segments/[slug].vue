@@ -90,10 +90,15 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRide, appliedRestrictions, canShowMore,
+  appliedInputs, appliedRide, appliedRestrictions, canShowMore, appliedRanking,
   hasRanking, isFirstLoad, isRefreshing, refreshFailed, expansionFailed, retry,
-  resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, appliedRequestKey
-} = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
+  resultsAnnouncement, bikeSearch, bikeSearchDebounced
+} = useRecommendRequest(() => ride.value, {
+  key: `recommend-segment-${slug.value}`,
+  // The segment is ridden on its host route, which is what a km/h or a
+  // "seconds off" caption is measured over.
+  course: () => segmentRoute.value
+})
 await recommendReady
 
 /**
@@ -174,13 +179,6 @@ if (segmentData.value) {
     alt: `Best bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
   })
 }
-
-// Tells the open bike drawer whether its bike is still on a loaded page - see
-// `noteRankedFrames`. The applied Ride goes with it now that this page can bar
-// TT frames: a bike missing because the format outlaws it has not been beaten
-// by anything, and the drawer must say so rather than call it slow.
-const { noteRankedFrames } = useOverlays()
-watch(combos, list => noteRankedFrames(list, appliedRide.value), { immediate: true })
 
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
@@ -431,17 +429,15 @@ useHead(() => {
             class="transition-opacity"
             :class="{ 'opacity-60': isRefreshing }"
           >
-            <!-- `laps` is 1 on purpose: the synthetic segment-as-route has no
-                 lead-in, so the km/h beside the time divides the segment's own
-                 length by a time that starts at its timed start. -->
+            <!-- A segment Ride carries no lap count (see `Ride.laps`), which
+                 the card reads as the one lap it is: the synthetic
+                 segment-as-route has no lead-in, so the km/h beside the time
+                 divides the segment's own length by a time that starts at its
+                 timed start. -->
             <RideRecommendation
               v-if="topCombo"
               :combo="topCombo"
-              :route="segmentRoute"
-              :laps="1"
-              :fastest-time-sec="fastestTimeSec"
-              :load-wheel-options="loadWheelOptions"
-              :request-key="appliedRequestKey"
+              :ranking="appliedRanking"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
               :compared="isCompared(topCombo)"
@@ -563,12 +559,7 @@ useHead(() => {
       <RideAlternatives
         v-model:search="bikeSearch"
         v-model:selected="comparisonKeys"
-        :combos="combos"
-        :route="segmentRoute"
-        :laps="1"
-        :fastest-time-sec="fastestTimeSec"
-        :load-wheel-options="loadWheelOptions"
-        :request-key="appliedRequestKey"
+        :ranking="appliedRanking"
         :has-more="hasMore"
         :can-show-more="canShowMore"
         :applied-search="appliedRestrictions.search"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { ComboScore } from '../../shared/types/catalog'
+import type { AppliedRanking } from '../utils/recommendRequest'
 
 /**
  * The Recommendation: rank 1 of the Ranking, shown large. The setup, its
@@ -16,14 +17,13 @@ import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
  */
 const props = defineProps<{
   combo: ComboScore
-  /** Only read for the km/h next to the time and for the drawer's route context. */
-  route?: RouteWithMeta
-  /** Lap count the shown time was computed for. */
-  laps?: number
-  fastestTimeSec?: number
-  loadWheelOptions?: (frameId: number) => Promise<ComboScore[] | null>
-  /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
-  requestKey?: string
+  /**
+   * The Applied Ranking this setup is rank 1 of - the course and laps behind
+   * the km/h, the drill-down its wheel alternatives come from, and what the
+   * Equipment drawer is opened under. One name rather than five, so a new
+   * fact about the Ranking reaches this card without a new prop.
+   */
+  ranking: AppliedRanking
   /** The one-line "limited route data" warning, when the course inputs are partial - see `limitedCourseDataNote`. */
   limitedDataNote?: string
   /** Small evidence lines that qualify this time: the rough-surface cost, the paceline or bunch saving. */
@@ -38,14 +38,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ toggleCompare: [] }>()
 
-const { openDetail } = useComboDetail({
-  combo: () => props.combo,
-  route: () => props.route,
-  laps: () => props.laps,
-  fastestTimeSec: () => props.fastestTimeSec,
-  loadFrameCombos: () => props.loadWheelOptions,
-  requestKey: () => props.requestKey
-})
+// The combo alone: everything else the drawer needs is the Applied Ranking,
+// which it reads for itself - see `openBikeDetail`.
+const { openBikeDetail } = useOverlays()
 
 // Quick-adds start at the rider's chosen default stage for unowned bikes -
 // the stage unowned bikes are scored and displayed at everywhere else - so
@@ -59,7 +54,9 @@ function toggleOwned() {
   setOwned(props.combo.frame.id, isOwned.value ? null : defaultUnownedLevel.value)
 }
 
-const distanceKm = computed(() => props.route ? computeRouteTotals(props.route, props.laps ?? 1).distanceKm : undefined)
+const distanceKm = computed(() => props.ranking.course
+  ? computeRouteTotals(props.ranking.course, props.ranking.ride.laps ?? 1).distanceKm
+  : undefined)
 const botTested = computed(() => isBotTested(props.combo))
 </script>
 
@@ -80,7 +77,7 @@ const botTested = computed(() => isBotTested(props.combo))
           type="button"
           class="text-left hover:underline focus-visible:underline"
           :aria-label="`Details for ${combo.frame.name}`"
-          @click="openDetail"
+          @click="openBikeDetail(combo)"
         >
           {{ combo.frame.name }}
         </button>
@@ -144,7 +141,7 @@ const botTested = computed(() => isBotTested(props.combo))
         color="primary"
         variant="link"
         class="px-0"
-        @click="openDetail"
+        @click="openBikeDetail(combo)"
       >
         Details &amp; upgrades
       </UButton>
@@ -191,7 +188,7 @@ const botTested = computed(() => isBotTested(props.combo))
     </div>
     <ComboWheelAlternatives
       :combo="combo"
-      :load-wheel-options="loadWheelOptions"
+      :load-wheel-options="ranking.loadWheelOptions"
     />
   </section>
 </template>

@@ -1,4 +1,4 @@
-import type { BikeCategory } from '../../shared/types/catalog'
+import type { BikeCategory, ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import type { RaceFormat } from '../../shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { draftingAllowed, ttBikesAllowed } from '#shared/utils/events'
@@ -65,6 +65,72 @@ export interface Ride {
    * segment is a sprint effort; everything else is race pace.
    */
   power?: 'race' | 'sprint'
+}
+
+/**
+ * The wheelsets a frame could be ridden with on this Ride, fastest first -
+ * see **Wheel alternatives** in `CONTEXT.md`. `null` is the answer for a
+ * Ranking that has since been replaced, which is a different answer from no
+ * wheels.
+ */
+export type LoadWheelAlternatives = (frameId: number) => Promise<ComboScore[] | null>
+
+/**
+ * The Ranking on screen and everything it was computed from, as one object -
+ * see **Applied Ranking** in `CONTEXT.md`. `useRecommendRequest` builds it
+ * from the provenance of the response it accepted, and it is the whole of
+ * what a ranked row or the Equipment drawer is told: a row is handed the
+ * Ranking it belongs to and nothing else, and the drawer reads the one on
+ * screen rather than being pushed facts by the page.
+ *
+ * Declared here, beside `Ride`, because the rules that read it are plain
+ * functions with no Nuxt in them (`app/utils/equipmentDrawer.ts`).
+ *
+ * Every field is the APPLIED value, never the live control: the rider moves
+ * a slider a second before the response lands, and a row that paired the new
+ * lap count with the old finish time would show a speed that was never
+ * computed. They move together, when a ranking is accepted.
+ */
+export interface AppliedRanking {
+  /** The rows on screen, rank 1 first: the loaded pages in the browser, the fetched page on the server. */
+  readonly combos: readonly ComboScore[]
+  /** What was ranked - laps, race format, power and the rules that came with them. */
+  readonly ride: Ride
+  /** The rider the times were computed for. */
+  readonly rider: AppliedRiderInputs
+  /** The filters, garage and search the pool was drawn from. */
+  readonly restrictions: RiderInputs
+  /** The time every gap on the page is measured against; absent when nothing ranked carries a time. */
+  readonly fastestTimeSec: number | undefined
+  /**
+   * The serialised query these rows were fetched for, for anything that has
+   * to notice when the ride being ranked changes underneath it - the drawer
+   * keys its route upgrade curve on it (`upgradeCurveKey`). Only equality is
+   * meaningful; nothing parses it back out.
+   */
+  readonly requestKey: string
+  /**
+   * The drill-down that ranks one frame's Wheel alternatives, so they come
+   * out of the same pipeline, rider, laps, draft mode and rules as the row
+   * that asked.
+   *
+   * It belongs to the page that produced this Ranking rather than to this
+   * object: it answers under whatever that page has accepted when it is
+   * called, and returns `null` once that has moved on. Which is the same
+   * thing while a row holds the Ranking it is rendering, and is not once a
+   * record outlives the page it was taken on - see the standing rules in
+   * `equipmentDrawer.ts`.
+   */
+  readonly loadWheelOptions: LoadWheelAlternatives
+  /**
+   * The course the times were computed over, which is part of what the
+   * Applied Ride is: a km/h or a "seconds off N laps of X" caption divides
+   * this distance by a time from the same response. The page supplies it,
+   * because a race page has to reconcile its Category group's course with
+   * the endpoint the ranking actually came from; absent while that
+   * reconciliation has no answer, or before the page's own lookup resolves.
+   */
+  readonly course: RouteWithMeta | undefined
 }
 
 /**

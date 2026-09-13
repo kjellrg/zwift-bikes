@@ -86,6 +86,14 @@ _Avoid_: results list, alternatives list, the field, matches
 Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, and the paths deeper into it. It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. It carries everything a lower rank carries, the comparison pick included.
 _Avoid_: top combo, hero card, winner, best bike
 
+**Wheel alternatives**:
+The wheelsets a frame could be ridden with on the Ride, ranked fastest first under the Applied Ranking's own request, so their times come out of the same pipeline, rider, laps, draft mode and rules as the row that asked. A row's disclosure shows them; the Equipment drawer takes its upgrade curve from the fastest of them. They answer for one Ranking: once that Ranking is replaced they describe nothing on screen and are not shown.
+_Avoid_: drill-down, wheel options, wheel list, frame combos
+
+**Equipment drawer**:
+The Overlay that shows everything known about one ranked setup: its numbers on the Ride, its physics, its bot-test and route upgrade curves, and its Garage controls. It reads the Applied Ranking on screen and follows its setup through refreshes; when the setup is on no loaded row it says whether the setup lost or was never allowed to start, and keeps the numbers from the last ranking it found the setup in.
+_Avoid_: bike drawer, bike detail, slideover, modal
+
 **Palette**:
 The one primary and one neutral scale the whole site is drawn in, shared by both Colour modes: every badge, button, chart and share card takes its colour from a semantic name that resolves into the palette, never from a colour of its own. A palette change is therefore a change to those two scales and to the brand assets that were painted from them, and it leaves no page looking different from the share card that announces it. It is not the light/dark switch; both modes are drawn in the same palette.
 _Avoid_: theme, colour scheme, skin, colours (which mode or which scale?)

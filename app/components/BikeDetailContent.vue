@@ -1,51 +1,49 @@
 <script setup lang="ts">
 import type { ClassifiedWheel, ComboScore, EquipmentPhysicsDelta } from '../../shared/types/catalog'
-import type { BikeDetail } from '../composables/useOverlays'
+import type { EquipmentDrawerView } from '../utils/equipmentDrawer'
 
 /**
  * Everything the app knows about one frame+wheelset combo, laid out as a
  * drawer. Deliberately presentation-only: every number comes from the
- * `ComboScore` the result card already holds (scores, confidence, solved
+ * `ComboScore` the ranked row already holds (scores, confidence, solved
  * physics deltas, breakdown, finish time), so opening it costs no request
- * and can never disagree with the card it was opened from.
+ * and can never disagree with the row it was opened from.
+ *
+ * What it is showing, and where that setup stands in the Ranking on screen,
+ * is decided by `equipmentDrawerView` and handed down whole - this component
+ * adds only the route upgrade curve and the dropped-bike refetch, the two
+ * things that need a request.
  */
-const props = defineProps<{ detail: BikeDetail }>()
+const props = defineProps<{ view: EquipmentDrawerView }>()
+/** The setup and the ride facts its numbers belong to - see `EquipmentDrawerRecord`. */
+const record = computed(() => props.view.record)
+/** True while this bike is on no loaded row because the Ride outlaws it, rather than because it lost. */
+const barredByRide = computed(() => props.view.standing === 'barred')
+/** True while a stage change has pushed it below every loaded row. */
+const droppedFromRanking = computed(() => props.view.standing === 'dropped')
 
 const { owned, load, setOwned, setWheelOwned, isWheelOwned } = useGarage()
 const { defaultUnownedLevel, powerW } = useRiderProfile()
-const { bikeDetailDropped, rankedFastestTimeSec, rankedRideBarsTtFrames } = useOverlays()
 onMounted(() => load())
 
 /**
- * A bike that a level change pushed off every loaded page has no card to
- * sync the drawer from (`syncBikeDetail`), so the drawer fetches it itself
- * through the page's per-frame drill-down, which ranks this frame's wheels
- * under the accepted ranking's own request regardless of where the frame
- * sits overall. The
- * fastest of those is the combo the card would have shown. Held apart from
- * the snapshot in `detail` and cleared whenever a card syncs a fresh one.
+ * A bike that a level change pushed off every loaded row is on no row to
+ * re-take from, so the drawer fetches it itself through the Applied
+ * Ranking's per-frame drill-down, which ranks this frame's wheels under that
+ * ranking's own request regardless of where the frame sits overall. The
+ * fastest of those is the combo the row would have shown. Held apart from
+ * the record and dropped whenever the record picks up a fresh one.
  */
 const refetched = ref<ComboScore>()
 const refetching = ref(false)
 let refetchToken = 0
-watch(() => props.detail, () => {
+watch(record, () => {
   refetched.value = undefined
 })
 
-const combo = computed(() => refetched.value ?? props.detail.combo)
+const combo = computed(() => refetched.value ?? record.value.combo)
 const frame = computed(() => combo.value.frame)
 const wheelset = computed(() => combo.value.wheelset)
-
-/**
- * Whether this bike is absent from the ranking because the Ride outlaws it
- * rather than because it lost. The drawer outlives a client-side navigation,
- * so a TT frame opened on a route page is still open on the points race the
- * rider clicks through to - where nothing the pipeline produces can name it,
- * not the ranking and not the per-frame drill-down. It is not slow there; it
- * is illegal there, and every number the drawer holds is still true of the
- * page it was opened from.
- */
-const barredByRide = computed(() => bikeDetailDropped.value && rankedRideBarsTtFrames.value && frame.value.category === 'tt')
 
 const isOwnedFrame = computed(() => owned.value[frame.value.id] !== undefined)
 const ownedFrameLevel = computed(() => owned.value[frame.value.id])
@@ -56,8 +54,8 @@ const currentLevel = computed(() => ownedFrameLevel.value ?? frame.value.level)
 /**
  * What upgrading this bike is worth on the route being ranked, in seconds off
  * this ride at each stage - the drawer's one number that cannot come from the
- * card, since the card holds one stage and this is six. It arrives on the
- * fastest combo of the same per-frame drill-down the card's wheel list uses
+ * row, since the row holds one stage and this is six. It arrives on the
+ * fastest combo of the same per-frame drill-down the row's wheel list uses
  * (`ComboScore.upgradeFinishTimesSec`), so opening the drawer costs the
  * request the "other wheels" disclosure would have cost anyway, and both
  * views agree because they are one response.
@@ -104,17 +102,17 @@ function takeUpgradeCurve(combos: ComboScore[], bike: string, request: string) {
   curveFor.value = { bike, request }
 }
 
-watch(() => upgradeCurveKey(combo.value, props.detail.requestKey), async (key) => {
+watch(() => upgradeCurveKey(combo.value, record.value.requestKey), async (key) => {
   if (key === curveFor.value?.request) return
   const bikeKey = comboKey(combo.value)
   const frameId = combo.value.frame.id
   const token = ++curveToken
   if (bikeKey !== curveFor.value?.bike) routeUpgradeTimesSec.value = undefined
   curveFor.value = undefined
-  if (!props.detail.loadFrameCombos) return
+  if (!record.value.loadWheelOptions) return
   routeUpgradeLoading.value = true
   try {
-    const combos = await props.detail.loadFrameCombos(frameId)
+    const combos = await record.value.loadWheelOptions(frameId)
     // No curve for a ranking that has been replaced: the key below would
     // label it with a request it was not computed under. The replacement
     // moves this watcher's key again, which fetches the curve that fits.
@@ -158,35 +156,36 @@ const routeUpgradePending = computed(() =>
 // them are long ("2022 Cycling Esports World Championships Route").
 const routeUpgradeLabel = 'On this route'
 const routeUpgradeText = computed(() => {
-  const laps = props.detail.laps ?? 1
-  const rideText = props.detail.route
-    ? `${laps > 1 ? `${laps} laps of ` : ''}${props.detail.route.name}`
+  const laps = record.value.laps ?? 1
+  const rideText = record.value.course
+    ? `${laps > 1 ? `${laps} laps of ` : ''}${record.value.course.name}`
     : 'this ride'
   const wheelText = wheelset.value ? ` on ${wheelset.value.name}` : ''
   return `Seconds off ${rideText} at ${Math.round(powerW.value)} W${wheelText}, simulated at each stage over the route's own terrain.`
 })
 
-// No refetch for a barred bike: the drill-down is the same pipeline, past
-// the same legality filter, so it can only answer with an empty list.
-watch([bikeDetailDropped, ownedFrameLevel], async ([dropped]) => {
-  if (!dropped || barredByRide.value || !props.detail.loadFrameCombos) return
+// Dropped only, never barred: the drill-down is the same pipeline, past the
+// same legality filter, so for a barred bike it could only answer with an
+// empty list.
+watch([droppedFromRanking, ownedFrameLevel], async ([dropped]) => {
+  if (!dropped || !record.value.loadWheelOptions) return
   const token = ++refetchToken
   refetching.value = true
   try {
-    const combos = await props.detail.loadFrameCombos(props.detail.combo.frame.id)
-    // Superseded by a newer refetch, or by the bike ranking again (a card
-    // has synced a fresh combo since): this answer is for a state that is gone.
-    if (token !== refetchToken || !combos || !bikeDetailDropped.value) return
+    const combos = await record.value.loadWheelOptions(record.value.combo.frame.id)
+    // Superseded by a newer refetch, or by the bike ranking again (the record
+    // has picked up a fresh combo since): this answer is for a state that is gone.
+    if (token !== refetchToken || !combos || !droppedFromRanking.value) return
     if (combos[0]) {
       refetched.value = combos[0]
       // Same frame, same query, same response the curve watcher would have
       // asked for - claim it here so a level change that drops the bike does
       // not fetch this twice. The request half can be behind while the bike
-      // is dropped: no card exists to sync a fresh `requestKey` from, so this
-      // labels a curve that WAS fetched under the accepted ranking's request
-      // with the last key the drawer was told about. The curve is right either way; the
-      // cost of the lag is one redundant refetch when the bike ranks again.
-      takeUpgradeCurve(combos, comboKey(combos[0]), upgradeCurveKey(combos[0], props.detail.requestKey))
+      // is dropped: no row exists to re-take a fresh `requestKey` from, so
+      // this labels a curve that WAS fetched under the accepted ranking's
+      // request with the last key the record holds. The curve is right either
+      // way; the cost of the lag is one redundant refetch when it ranks again.
+      takeUpgradeCurve(combos, comboKey(combos[0]), upgradeCurveKey(combos[0], record.value.requestKey))
     }
   } catch {
     // Leave the previous numbers up; the notice already says they predate the change.
@@ -206,16 +205,19 @@ function toggleWheelOwned() {
 }
 
 const finishTimeSec = computed(() => combo.value.finishTimeSec)
-// A dropped bike's own snapshot of the fastest time predates the change;
-// the list's current fastest is what it now trails. Not for a barred bike:
-// it is not in that ranking at all, and its own time is for another ride
-// entirely, so the two subtract to a number about nothing.
-const fastestTimeSec = computed(() => (bikeDetailDropped.value && !barredByRide.value ? rankedFastestTimeSec.value : undefined) ?? props.detail.fastestTimeSec)
+// Which fastest time the gap is measured against is the view's call: the
+// ranking's current one for a dropped bike, whose own snapshot predates the
+// change, and the record's own for every other standing.
+const fastestTimeSec = computed(() => props.view.fastestTimeSec)
 const gapSec = computed(() => finishTimeSec.value !== undefined && fastestTimeSec.value !== undefined
   ? Math.max(0, finishTimeSec.value - fastestTimeSec.value)
   : undefined)
-const totalDistanceKm = computed(() => props.detail.route ? computeRouteTotals(props.detail.route, props.detail.laps ?? 1).distanceKm : undefined)
-const surfacePenaltyText = computed(() => props.detail.route ? formatSurfaceTimePenalty(props.detail.route.surface, combo.value.surfaceTimePenaltySec) : undefined)
+const totalDistanceKm = computed(() => record.value.course
+  ? computeRouteTotals(record.value.course, record.value.laps ?? 1).distanceKm
+  : undefined)
+const surfacePenaltyText = computed(() => record.value.course
+  ? formatSurfaceTimePenalty(record.value.course.surface, combo.value.surfaceTimePenaltySec)
+  : undefined)
 
 /** One row per rating, one column per part - the frame's, each wheel's, and the set's blended value. */
 const scoreRows = computed(() => {
@@ -361,7 +363,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
       description="TT frames cannot be started on it, so it is missing from the ranking rather than beaten by it - no upgrade stage would list it here. The numbers below are still those of the ride this drawer was opened from, and it stays eligible everywhere TT frames are."
     />
     <UAlert
-      v-else-if="bikeDetailDropped"
+      v-else-if="droppedFromRanking"
       color="warning"
       variant="subtle"
       icon="i-lucide-arrow-down-to-line"

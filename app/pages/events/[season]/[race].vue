@@ -90,10 +90,16 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRide, appliedRestrictions, canShowMore, hasRanking, isFirstLoad, isRefreshing,
+  appliedInputs, appliedRide, appliedRestrictions, canShowMore, appliedRanking, hasRanking, isFirstLoad, isRefreshing,
   refreshFailed, expansionFailed, retry, resultsAnnouncement,
-  bikeSearch, bikeSearchDebounced, loadWheelOptions, appliedRequestKey
-} = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
+  bikeSearch, bikeSearchDebounced
+} = useRecommendRequest(() => ride.value, {
+  key: `recommend-race-${seasonSlug.value}-${raceSlug.value}`,
+  // The reconciled course below, not the selected group's: a group switch
+  // moves the route and the ranking on two different clocks, and this is the
+  // one the accepted times were computed over.
+  course: () => appliedRoute.value
+})
 
 // `useAsyncData` rather than `useFetch` for the route lookup: the selected
 // category group can change which route is being shown, and can have no
@@ -421,12 +427,6 @@ const {
   includes: isCompared, toggle: toggleCompared,
   clear: clearComparison, remove: removeFromComparison
 } = useComparison(() => combos.value)
-
-// Tells the open bike drawer whether its bike is still on a loaded page, and
-// whether this Ride bars it outright - see `noteRankedFrames`. A TT frame
-// whose drawer was opened on a route page is not slow here; it is illegal.
-const { noteRankedFrames } = useOverlays()
-watch(combos, list => noteRankedFrames(list, appliedRide.value), { immediate: true })
 
 /** Only meaningful once the race window has closed - resolved client-side, see below. */
 const isPast = ref(false)
@@ -929,17 +929,13 @@ useHead(() => {
               class="transition-opacity"
               :class="{ 'opacity-60': isRefreshing }"
             >
-              <!-- The APPLIED course and lap count, not the selector's: the
-                   km/h beside the time divides a distance by a time, and the
-                   two must describe one ride. -->
+              <!-- The Applied Ranking carries the APPLIED course and lap
+                   count, not the selector's: the km/h beside the time divides
+                   a distance by a time, and the two must describe one ride. -->
               <RideRecommendation
                 v-if="topCombo"
                 :combo="topCombo"
-                :route="appliedRoute"
-                :laps="resultsLaps"
-                :fastest-time-sec="fastestTimeSec"
-                :load-wheel-options="loadWheelOptions"
-                :request-key="appliedRequestKey"
+                :ranking="appliedRanking"
                 :limited-data-note="limitedDataNote"
                 :notes="recommendationNotes"
                 :compared="isCompared(topCombo)"
@@ -1061,12 +1057,7 @@ useHead(() => {
         <RideAlternatives
           v-model:search="bikeSearch"
           v-model:selected="comparisonKeys"
-          :combos="combos"
-          :route="appliedRoute"
-          :laps="resultsLaps"
-          :fastest-time-sec="fastestTimeSec"
-          :load-wheel-options="loadWheelOptions"
-          :request-key="appliedRequestKey"
+          :ranking="appliedRanking"
           :has-more="hasMore"
           :can-show-more="canShowMore"
           :applied-search="appliedRestrictions.search"

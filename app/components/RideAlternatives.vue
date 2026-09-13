@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { ComboScore } from '../../shared/types/catalog'
+import type { AppliedRanking } from '../utils/recommendRequest'
 
 /**
  * The Ranking from rank 2 down, with the search box that narrows it and the
  * comparison picks. Rank 1 is not repeated here: it is the Recommendation
  * above, carrying the same marker, the same Compare checkbox and a link back
  * to this section, so one ranking lives in one place and no setup appears
- * twice. The full `combos` still arrives - the first is skipped on render, so
- * the ranks are the page's own and nothing has to be sliced upstream.
+ * twice. The whole ranking still arrives - the first row is skipped on
+ * render, so the ranks are the page's own and nothing has to be sliced
+ * upstream.
  *
  * Search is the page's request state (`v-model:search` onto
  * `useRecommendRequest().bikeSearch`), so a term reaches the whole eligible
@@ -17,14 +19,12 @@ import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
  * pick order; the page turns them back into combos for the comparison.
  */
 const props = defineProps<{
-  /** The whole ranking, rank 1 first; the rows below start at its second entry. */
-  combos: ComboScore[]
-  route?: RouteWithMeta
-  laps?: number
-  fastestTimeSec?: number
-  loadWheelOptions?: (frameId: number) => Promise<ComboScore[] | null>
-  /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
-  requestKey?: string
+  /**
+   * The Applied Ranking these rows are of. Its `combos` are the whole
+   * ranking, rank 1 first; the rows below start at its second entry, and
+   * every row is handed the object itself rather than facts picked off it.
+   */
+  ranking: AppliedRanking
   hasMore: boolean
   canShowMore: boolean
   appliedSearch: string
@@ -41,7 +41,7 @@ const selected = defineModel<string[]>('selected', { default: () => [] })
 /** Where the rows pick the ranking up, the Recommendation having taken rank 1. */
 const FIRST_ROW_RANK = 2
 /** Empty on a ranking of one, which is a recommendation with nothing beneath it. */
-const rest = computed(() => props.combos.slice(FIRST_ROW_RANK - 1))
+const rest = computed(() => props.ranking.combos.slice(FIRST_ROW_RANK - 1))
 const compareFull = computed(() => selected.value.length >= COMPARISON_LIMIT)
 function toggle(combo: ComboScore) {
   selected.value = toggleComparison(selected.value, comboKey(combo))
@@ -117,11 +117,7 @@ const listId = useId()
         :key="comboKey(combo)"
         :combo="combo"
         :rank="FIRST_ROW_RANK + index"
-        :route="route"
-        :laps="laps"
-        :fastest-time-sec="fastestTimeSec"
-        :load-wheel-options="loadWheelOptions"
-        :request-key="requestKey"
+        :ranking="ranking"
         :compared="selected.includes(comboKey(combo))"
         :compare-disabled="compareFull && !selected.includes(comboKey(combo))"
         @toggle-compare="toggle(combo)"
@@ -135,7 +131,7 @@ const listId = useId()
       <!-- Two different emptinesses: nothing ranked at all, which the
            recommendation above is also reporting, and a ranking of one, where
            the answer is up there and only the field behind it is missing. -->
-      <template v-if="!combos.length">
+      <template v-if="!ranking.combos.length">
         <template v-if="appliedSearch">
           Nothing in the catalog matches "{{ appliedSearch }}" under the current filters.
         </template>

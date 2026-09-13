@@ -1,23 +1,25 @@
 <script setup lang="ts">
-import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { ComboScore } from '../../shared/types/catalog'
+import type { AppliedRanking } from '../utils/recommendRequest'
 
 /**
  * One ranked setup in the Ranking, from rank 2 down (rank 1 is the
  * Recommendation, which carries the same parts): rank, names, the gap to the
  * fastest, where its numbers come from, and the same three paths the
  * recommendation offers - the drawer, the garage, the frame's other wheels -
- * plus the comparison checkbox. Its own component so each row owns its drawer
- * sync and its wheel-list state.
+ * plus the comparison checkbox. Its own component so each row owns its
+ * wheel-list state.
  */
 const props = defineProps<{
   combo: ComboScore
   rank: number
-  route?: RouteWithMeta
-  laps?: number
-  fastestTimeSec?: number
-  loadWheelOptions?: (frameId: number) => Promise<ComboScore[] | null>
-  /** The serialised query these results belong to, so the drawer's route curve can follow it - see `upgradeCurveKey`. */
-  requestKey?: string
+  /**
+   * The Applied Ranking this row belongs to - the time its gap is measured
+   * against, the drill-down behind its wheel alternatives, and what the
+   * Equipment drawer is opened under. One name rather than five, so a new
+   * fact about the Ranking reaches every row at once.
+   */
+  ranking: AppliedRanking
   compared: boolean
   /** Whether the comparison is full and this row is not in it - the checkbox is then disabled rather than evicting a pick. */
   compareDisabled: boolean
@@ -25,14 +27,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ toggleCompare: [] }>()
 
-const { openDetail } = useComboDetail({
-  combo: () => props.combo,
-  route: () => props.route,
-  laps: () => props.laps,
-  fastestTimeSec: () => props.fastestTimeSec,
-  loadFrameCombos: () => props.loadWheelOptions,
-  requestKey: () => props.requestKey
-})
+// The combo alone: everything else the drawer needs is the Applied Ranking,
+// which it reads for itself - see `openBikeDetail`.
+const { openBikeDetail } = useOverlays()
 
 // Quick-adds start at the rider's chosen default stage for unowned bikes -
 // the stage unowned bikes are scored and displayed at everywhere else - so
@@ -49,7 +46,8 @@ function toggleOwned() {
 // The tie check quantises the gap the way `formatDurationGap` does (hundredths), so a row
 // that would render `+0.00s` shows its time instead.
 const isFastest = computed(() => props.combo.finishTimeSec !== undefined
-  && (props.fastestTimeSec === undefined || Math.round((props.combo.finishTimeSec - props.fastestTimeSec) * 100) <= 0))
+  && (props.ranking.fastestTimeSec === undefined
+    || Math.round((props.combo.finishTimeSec - props.ranking.fastestTimeSec) * 100) <= 0))
 const botTested = computed(() => isBotTested(props.combo))
 </script>
 
@@ -62,7 +60,7 @@ const botTested = computed(() => isBotTested(props.combo))
           type="button"
           class="text-left hover:underline focus-visible:underline"
           :aria-label="`Details for ${combo.frame.name}`"
-          @click="openDetail"
+          @click="openBikeDetail(combo)"
         >
           {{ combo.frame.name }}
         </button>
@@ -77,7 +75,7 @@ const botTested = computed(() => isBotTested(props.combo))
         class="text-xl font-bold tabular-nums whitespace-nowrap"
         :class="isFastest ? 'text-primary' : 'text-warning'"
       >
-        {{ isFastest ? formatDuration(combo.finishTimeSec) : formatDurationGap(combo.finishTimeSec - fastestTimeSec!) }}
+        {{ isFastest ? formatDuration(combo.finishTimeSec) : formatDurationGap(combo.finishTimeSec - ranking.fastestTimeSec!) }}
       </p>
       <p
         v-else
@@ -105,7 +103,7 @@ const botTested = computed(() => isBotTested(props.combo))
         variant="link"
         class="px-0"
         :aria-label="`Details and upgrades for ${combo.frame.name}`"
-        @click="openDetail"
+        @click="openBikeDetail(combo)"
       >
         Details &amp; upgrades
       </UButton>
@@ -132,7 +130,7 @@ const botTested = computed(() => isBotTested(props.combo))
     <div class="col-start-2 sm:col-span-2">
       <ComboWheelAlternatives
         :combo="combo"
-        :load-wheel-options="loadWheelOptions"
+        :load-wheel-options="ranking.loadWheelOptions"
       />
     </div>
   </li>
