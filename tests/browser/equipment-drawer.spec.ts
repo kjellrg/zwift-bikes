@@ -56,8 +56,8 @@ test.describe('equipment drawer', () => {
 
     await visit(page, ROUTE)
     // Entered from a ranked row rather than the recommendation: the row is
-    // the path with no card of its own above the fold, and both go through
-    // `useComboDetail`.
+    // the path with no card of its own above the fold, and both open the
+    // drawer the same way.
     const row = rows(page).first()
     const frameName = normalise(await row.getByRole('button', { name: /^Details for / }).innerText())
     await row.getByRole('button', { name: /^Details for / }).click()
@@ -74,8 +74,8 @@ test.describe('equipment drawer', () => {
     await expect(drawer(page).getByRole('button', { name: 'Frame in your garage' })).toBeVisible()
     await expect(finishEstimate(page)).toHaveText(timeAtDefault)
 
-    // One stage down keeps the bike ranked, so a card syncs the changed
-    // request and the curve is refetched under it. The chart must not blank
+    // One stage down keeps the bike ranked, so the drawer re-takes its record
+    // from the changed ranking and the curve is refetched under it. The chart must not blank
     // while that runs: the six stage times belong to the bike and the course,
     // so the answer already on screen is still the answer, and flashing the
     // placeholder over every stage press would be the drawer's main
@@ -110,7 +110,7 @@ test.describe('equipment drawer', () => {
     test.skip(isMobile, 'the desktop journey covers the dropped bike')
     await visit(page, ROUTE)
     // The slowest loaded row: at stage 0 it is behind bikes that were already
-    // ahead of it, so it leaves the loaded page and the drawer has no card
+    // ahead of it, so it leaves the loaded page and the drawer has no row
     // left to follow.
     const row = rows(page).last()
     const frameName = normalise(await row.getByRole('button', { name: /^Details for / }).innerText())
@@ -239,6 +239,44 @@ test.describe('equipment drawer', () => {
     await expect(drawer(page).getByRole('columnheader', { name: /wheel/i })).toHaveCount(0)
     await expect(drawer(page).getByRole('cell', { name: 'Wheels', exact: true })).toHaveCount(0)
     await expect(drawer(page).getByRole('cell', { name: 'Frame', exact: true })).toHaveCount(1)
+  })
+
+  test('follows the ranking of the page a link took the rider to', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers the navigation')
+    // The drawer is mounted once for the whole app and reads whichever
+    // Applied Ranking is on screen, so a ranking page arriving has to be the
+    // one it reads - not the page that has just gone. Changing a stage from
+    // inside the drawer is the outside-observable proof: the numbers can only
+    // follow if the drawer is reading the ranking that refetches.
+    await visit(page, ROUTE)
+    await page.getByRole('tab', { name: 'Segments', exact: true }).click()
+    const segment = page.getByRole('list', { name: 'Segments in ride order' }).getByRole('link').first()
+    const segmentName = normalise(await segment.innerText())
+    await segment.click()
+    await expect(page).toHaveURL(/\/segments\//)
+    await ready(page)
+    // A segment is ridden once and takes far less time than a lap of the
+    // route, so its ranking cannot be mistaken for the one left behind.
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(segmentName)
+
+    const row = rows(page).first()
+    const frameName = normalise(await row.getByRole('button', { name: /^Details for / }).innerText())
+    await row.getByRole('button', { name: /^Details for / }).click()
+    await expect(drawer(page)).toBeVisible()
+    const timeAtDefault = await finishEstimate(page).innerText()
+    await expect(routeCurveCaption(page)).toContainText(segmentName)
+
+    await rerank(page, () => drawer(page).getByRole('button', { name: 'Add frame to garage' }).click())
+    await rerank(page, () => drawer(page).getByRole('button', { name: `Set upgrade stage 0 for ${frameName}` }).click())
+    // The stage change reached the drawer through this page's ranking: the
+    // ride got slower, the marker moved to the just-bought bike, and the
+    // curve beside them is still this segment's. A drawer left reading the
+    // page the rider came from would have kept all three where they were.
+    // Whether stage 0 also drops the bike off these rows is the ranking's
+    // business - on a segment this tight it usually does.
+    await expect(routeCurveMarker(page)).toContainText('now +0.0')
+    await expect(routeCurveCaption(page)).toContainText(segmentName)
+    expect(secondsOf(await finishEstimate(page).innerText())).toBeGreaterThan(secondsOf(timeAtDefault))
   })
 
   test('keeps the comparison across a drawer visit and the refetch one triggers', async ({ page, isMobile }) => {

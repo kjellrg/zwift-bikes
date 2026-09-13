@@ -7,8 +7,8 @@ import type { AppliedRanking } from '../utils/recommendRequest'
  * Recommendation, which carries the same parts): rank, names, the gap to the
  * fastest, where its numbers come from, and the same three paths the
  * recommendation offers - the drawer, the garage, the frame's other wheels -
- * plus the comparison checkbox. Its own component so each row owns its drawer
- * sync and its wheel-list state.
+ * plus the comparison checkbox. Its own component so each row owns its
+ * wheel-list state.
  */
 const props = defineProps<{
   combo: ComboScore
@@ -27,14 +27,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ toggleCompare: [] }>()
 
-const { openDetail } = useComboDetail({
-  combo: () => props.combo,
-  route: () => props.ranking.course,
-  laps: () => props.ranking.ride.laps,
-  fastestTimeSec: () => props.ranking.fastestTimeSec,
-  loadFrameCombos: () => props.ranking.loadWheelOptions,
-  requestKey: () => props.ranking.requestKey
-})
+// The combo alone: everything else the drawer needs is the Applied Ranking,
+// which it reads for itself - see `openBikeDetail`.
+const { openBikeDetail } = useOverlays()
 
 // Quick-adds start at the rider's chosen default stage for unowned bikes -
 // the stage unowned bikes are scored and displayed at everywhere else - so
@@ -65,7 +60,7 @@ const botTested = computed(() => isBotTested(props.combo))
           type="button"
           class="text-left hover:underline focus-visible:underline"
           :aria-label="`Details for ${combo.frame.name}`"
-          @click="openDetail"
+          @click="openBikeDetail(combo)"
         >
           {{ combo.frame.name }}
         </button>
@@ -108,7 +103,7 @@ const botTested = computed(() => isBotTested(props.combo))
         variant="link"
         class="px-0"
         :aria-label="`Details and upgrades for ${combo.frame.name}`"
-        @click="openDetail"
+        @click="openBikeDetail(combo)"
       >
         Details &amp; upgrades
       </UButton>

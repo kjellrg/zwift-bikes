@@ -38,14 +38,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ toggleCompare: [] }>()
 
-const { openDetail } = useComboDetail({
-  combo: () => props.combo,
-  route: () => props.ranking.course,
-  laps: () => props.ranking.ride.laps,
-  fastestTimeSec: () => props.ranking.fastestTimeSec,
-  loadFrameCombos: () => props.ranking.loadWheelOptions,
-  requestKey: () => props.ranking.requestKey
-})
+// The combo alone: everything else the drawer needs is the Applied Ranking,
+// which it reads for itself - see `openBikeDetail`.
+const { openBikeDetail } = useOverlays()
 
 // Quick-adds start at the rider's chosen default stage for unowned bikes -
 // the stage unowned bikes are scored and displayed at everywhere else - so
@@ -82,7 +77,7 @@ const botTested = computed(() => isBotTested(props.combo))
           type="button"
           class="text-left hover:underline focus-visible:underline"
           :aria-label="`Details for ${combo.frame.name}`"
-          @click="openDetail"
+          @click="openBikeDetail(combo)"
         >
           {{ combo.frame.name }}
         </button>
@@ -146,7 +141,7 @@ const botTested = computed(() => isBotTested(props.combo))
         color="primary"
         variant="link"
         class="px-0"
-        @click="openDetail"
+        @click="openBikeDetail(combo)"
       >
         Details &amp; upgrades
       </UButton>

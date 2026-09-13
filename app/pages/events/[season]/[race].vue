@@ -428,12 +428,6 @@ const {
   clear: clearComparison, remove: removeFromComparison
 } = useComparison(() => combos.value)
 
-// Tells the open bike drawer whether its bike is still on a loaded page, and
-// whether this Ride bars it outright - see `noteRankedFrames`. A TT frame
-// whose drawer was opened on a route page is not slow here; it is illegal.
-const { noteRankedFrames } = useOverlays()
-watch(combos, list => noteRankedFrames(list, appliedRide.value), { immediate: true })
-
 /** Only meaningful once the race window has closed - resolved client-side, see below. */
 const isPast = ref(false)
 onMounted(() => {

@@ -125,10 +125,6 @@ const reportRideLine = computed(() => formatRideLine({ ride: appliedRide.value, 
 const resolvedRide = computed(() => routeData.value ? rideForRoute(routeData.value, resultsLaps.value) : undefined)
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
 
-// Tells the open bike drawer whether its bike is still on a loaded page - see `noteRankedFrames`.
-const { noteRankedFrames } = useOverlays()
-watch(combos, list => noteRankedFrames(list), { immediate: true })
-
 // Whether the team climb pace control is worth showing at all - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Deliberately keyed on the
 // rider's NORMAL power, never on `tttClimbWkg`: the climb pace must not
