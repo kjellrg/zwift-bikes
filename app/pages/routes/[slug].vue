@@ -20,10 +20,16 @@ const ride = computed<Ride>(() => ({ endpoint: `/api/recommend/${slug.value}`, l
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRestrictions, canShowMore,
+  appliedInputs, appliedRestrictions, canShowMore, appliedRanking,
   appliedRide, hasRanking, isFirstLoad, isRefreshing, refreshFailed, expansionFailed, retry,
-  resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, appliedRequestKey
-} = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
+  resultsAnnouncement, bikeSearch, bikeSearchDebounced
+} = useRecommendRequest(() => ride.value, {
+  key: `recommend-route-${slug.value}`,
+  // Read lazily, out of the Applied Ranking: the lookup below is fired
+  // alongside the ranking rather than before it, so this getter closes over a
+  // binding that setup has not reached yet.
+  course: () => routeData.value ?? undefined
+})
 
 // Fired together (not sequentially): the recommendation depends on the Ride and the rider's own
 // stored state (both read inside `useRecommendRequest`), never on the route lookup resolving first.
@@ -394,11 +400,7 @@ useHead(() => {
             <RideRecommendation
               v-if="topCombo"
               :combo="topCombo"
-              :route="routeData"
-              :laps="resultsLaps"
-              :fastest-time-sec="fastestTimeSec"
-              :load-wheel-options="loadWheelOptions"
-              :request-key="appliedRequestKey"
+              :ranking="appliedRanking"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
               :compared="isCompared(topCombo)"
@@ -515,12 +517,7 @@ useHead(() => {
       <RideAlternatives
         v-model:search="bikeSearch"
         v-model:selected="comparisonKeys"
-        :combos="combos"
-        :route="routeData"
-        :laps="resultsLaps"
-        :fastest-time-sec="fastestTimeSec"
-        :load-wheel-options="loadWheelOptions"
-        :request-key="appliedRequestKey"
+        :ranking="appliedRanking"
         :has-more="hasMore"
         :can-show-more="canShowMore"
         :applied-search="appliedRestrictions.search"

@@ -90,10 +90,15 @@ const ride = computed<Ride>(() => ({
 const {
   ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
   combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRide, appliedRestrictions, canShowMore,
+  appliedInputs, appliedRide, appliedRestrictions, canShowMore, appliedRanking,
   hasRanking, isFirstLoad, isRefreshing, refreshFailed, expansionFailed, retry,
-  resultsAnnouncement, bikeSearch, bikeSearchDebounced, loadWheelOptions, appliedRequestKey
-} = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
+  resultsAnnouncement, bikeSearch, bikeSearchDebounced
+} = useRecommendRequest(() => ride.value, {
+  key: `recommend-segment-${slug.value}`,
+  // The segment is ridden on its host route, which is what a km/h or a
+  // "seconds off" caption is measured over.
+  course: () => segmentRoute.value
+})
 await recommendReady
 
 /**
@@ -431,17 +436,15 @@ useHead(() => {
             class="transition-opacity"
             :class="{ 'opacity-60': isRefreshing }"
           >
-            <!-- `laps` is 1 on purpose: the synthetic segment-as-route has no
-                 lead-in, so the km/h beside the time divides the segment's own
-                 length by a time that starts at its timed start. -->
+            <!-- A segment Ride carries no lap count (see `Ride.laps`), which
+                 the card reads as the one lap it is: the synthetic
+                 segment-as-route has no lead-in, so the km/h beside the time
+                 divides the segment's own length by a time that starts at its
+                 timed start. -->
             <RideRecommendation
               v-if="topCombo"
               :combo="topCombo"
-              :route="segmentRoute"
-              :laps="1"
-              :fastest-time-sec="fastestTimeSec"
-              :load-wheel-options="loadWheelOptions"
-              :request-key="appliedRequestKey"
+              :ranking="appliedRanking"
               :limited-data-note="limitedDataNote"
               :notes="recommendationNotes"
               :compared="isCompared(topCombo)"
@@ -563,12 +566,7 @@ useHead(() => {
       <RideAlternatives
         v-model:search="bikeSearch"
         v-model:selected="comparisonKeys"
-        :combos="combos"
-        :route="segmentRoute"
-        :laps="1"
-        :fastest-time-sec="fastestTimeSec"
-        :load-wheel-options="loadWheelOptions"
-        :request-key="appliedRequestKey"
+        :ranking="appliedRanking"
         :has-more="hasMore"
         :can-show-more="canShowMore"
         :applied-search="appliedRestrictions.search"

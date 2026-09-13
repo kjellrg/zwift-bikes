@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
-import { computed, effectScope, nextTick, onScopeDispose, ref, watch } from 'vue'
-import { useRecommendRequest, type RecommendResponse } from './useRecommendRequest'
+import { computed, effectScope, nextTick, onScopeDispose, ref, toRaw, watch } from 'vue'
+import { useAppliedRankingSlot, useRecommendRequest, type RecommendResponse } from './useRecommendRequest'
 import { useRecommendationAnswer } from './useRecommendationAnswer'
-import type { RecommendEnvelope, Ride } from '../utils/recommendRequest'
+import type { AppliedRanking, RecommendEnvelope, Ride } from '../utils/recommendRequest'
+import type { RouteWithMeta } from '../../shared/types/catalog'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -22,6 +23,15 @@ const page = (time: number, note: string): RecommendResponse => ({
   pagination: { hasMore: true }
 })
 
+/**
+ * The app's `useState` globals, shared by every composable a test sets up -
+ * two `setup()`s in one test are two pages of one app, which is what the
+ * Applied Ranking slot is about. Reset between tests.
+ */
+const globalState = new Map<string, ReturnType<typeof ref>>()
+
+const course = (name: string) => ({ slug: name.toLowerCase(), name } as RouteWithMeta)
+
 function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrating: boolean }) {
   const owned = ref<Record<number, number>>({})
   const ownedWheels = ref<Record<string, true>>({})
@@ -30,7 +40,13 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   const includeHaloBikes = ref(false)
   const bikeCategory = ref('standard')
   const ride = ref<Ride>({ endpoint: '/api/recommend/test', laps: 1 })
+  const routeData = ref<RouteWithMeta | undefined>(course('Test route'))
   const scope = effectScope()
+  // The page's mount and unmount, which the composable publishes the Applied
+  // Ranking from and clears it on. Held rather than run, so a test can order
+  // one page's unmount against another's mount the way Suspense does.
+  const mounted: (() => void)[] = []
+  const unmounted: (() => void)[] = []
   let readEnvelope: () => RecommendEnvelope<RecommendResponse> | undefined = () => undefined
   const pending: ReturnType<typeof deferred<RecommendResponse>>[] = []
   const fetch = vi.fn((_endpoint: string, _options: { query: Record<string, unknown> & { offset: number } }) => {
@@ -43,7 +59,16 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   vi.stubGlobal('watch', watch)
   vi.stubGlobal('nextTick', nextTick)
   vi.stubGlobal('onScopeDispose', onScopeDispose)
-  vi.stubGlobal('onMounted', vi.fn())
+  vi.stubGlobal('toRaw', toRaw)
+  vi.stubGlobal('onMounted', (hook: () => void) => void mounted.push(hook))
+  vi.stubGlobal('onUnmounted', (hook: () => void) => void unmounted.push(hook))
+  vi.stubGlobal('useState', <T>(key: string, init: () => T) => {
+    const existing = globalState.get(key)
+    if (existing) return existing
+    const state = ref(init())
+    globalState.set(key, state)
+    return state
+  })
   vi.stubGlobal('$fetch', fetch)
   vi.stubGlobal('useRefetchNotice', vi.fn())
   vi.stubGlobal('useGarage', () => ({ owned, ownedWheels, load: vi.fn() }))
@@ -90,7 +115,10 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
     const ready = entry ? Promise.resolve() : refresh()
     return Object.assign(ready, { data, status, error, refresh })
   })
-  const request = scope.run(() => useRecommendRequest(() => ride.value, { key: 'test' }))!
+  const request = scope.run(() => useRecommendRequest(() => ride.value, {
+    key: 'test',
+    course: () => routeData.value
+  }))!
   const answer = scope.run(() => useRecommendationAnswer({
     combo: () => request.topCombo.value,
     rideName: () => 'Test route',
@@ -100,14 +128,23 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   }))!
   scopes.push(scope)
   const payload = () => JSON.parse(JSON.stringify(readEnvelope())) as RecommendEnvelope<RecommendResponse>
-  return { request, answer, owned, ownedWheels, powerW, verifiedOnly, includeHaloBikes, bikeCategory, ride, pending, fetch, payload }
+  const mount = () => scope.run(() => mounted.forEach(hook => hook()))
+  const unmount = () => unmounted.forEach(hook => hook())
+  return {
+    request, answer, owned, ownedWheels, powerW, verifiedOnly, includeHaloBikes, bikeCategory, ride, routeData,
+    pending, fetch, payload, mount, unmount
+  }
 }
 
 const scopes: ReturnType<typeof effectScope>[] = []
 afterEach(() => {
   scopes.splice(0).forEach(scope => scope.stop())
+  globalState.clear()
   vi.unstubAllGlobals()
 })
+
+/** What a mounted page has put in the slot the Equipment drawer reads - through the same accessor the drawer uses. */
+const slot = (): AppliedRanking | undefined => useAppliedRankingSlot().value
 
 async function settle() {
   for (let turn = 0; turn < 8; turn++) await nextTick()
@@ -495,6 +532,95 @@ describe('useRecommendRequest applied ranking', () => {
     expect(times(test)).toEqual([80])
     test.pending[2]!.resolve(page(105, 'Superseded wheels'))
     expect(await late).toBeNull()
+  })
+
+  it('hands out one object whose every field follows acceptance, not the live controls', async () => {
+    const test = await expanded()
+    const before = test.request.appliedRanking.value
+    test.powerW.value = 250
+    test.ride.value = { endpoint: '/api/recommend/test', laps: 3 }
+    await nextTick()
+    // The rider is two controls ahead of the response. Everything a row reads
+    // still describes the rows it is rendering.
+    expect(test.request.appliedRanking.value).toMatchObject({ fastestTimeSec: 100, requestKey: before.requestKey })
+    expect(test.request.appliedRanking.value.ride.laps).toBe(1)
+    expect(test.request.appliedRanking.value.rider.powerW).toBe(200)
+    expect(test.request.appliedRanking.value.combos.map(combo => combo.finishTimeSec)).toEqual([100, 110])
+
+    test.pending[2]!.resolve(page(80, 'New physics'))
+    await settle()
+    const applied = test.request.appliedRanking.value
+    expect(applied.ride.laps).toBe(3)
+    expect(applied.rider.powerW).toBe(250)
+    expect(applied.restrictions.powerW).toBe(250)
+    expect(applied.combos.map(combo => combo.finishTimeSec)).toEqual([80])
+    expect(applied.fastestTimeSec).toBe(80)
+    expect(applied.requestKey).not.toBe(before.requestKey)
+    // The drill-down travels with the object rather than being handed out
+    // separately, so a row cannot hold one ranking and ask another for wheels.
+    expect(applied.loadWheelOptions).toBe(test.request.loadWheelOptions)
+  })
+
+  it('reads the course live, so a lookup that answers after the ranking still describes it', async () => {
+    const test = setup()
+    // The page fires both requests together; the ranking can land first.
+    test.routeData.value = undefined
+    test.pending[0]!.resolve(page(100, 'Original physics'))
+    await test.request.ready
+    await settle()
+    expect(test.request.appliedRanking.value.course).toBeUndefined()
+
+    test.routeData.value = course('Hilly Route')
+    expect(test.request.appliedRanking.value.course?.name).toBe('Hilly Route')
+    // And it follows a page that takes its course away again - a race group
+    // whose route the catalog does not have.
+    test.routeData.value = undefined
+    expect(test.request.appliedRanking.value.course).toBeUndefined()
+  })
+
+  it('publishes the Applied Ranking only once mounted, and clears it on unmount', async () => {
+    const test = setup()
+    test.pending[0]!.resolve(page(100, 'Original physics'))
+    await test.request.ready
+    await settle()
+    // Never on the server: the object carries a function and `useState` is
+    // serialised into the payload.
+    expect(slot()).toBeUndefined()
+
+    test.mount()
+    expect(slot()?.combos.map(combo => combo.finishTimeSec)).toEqual([100])
+    test.powerW.value = 250
+    await nextTick()
+    test.pending[1]!.resolve(page(80, 'New physics'))
+    await settle()
+    expect(slot()?.combos.map(combo => combo.finishTimeSec)).toEqual([80])
+    expect(slot()?.rider.powerW).toBe(250)
+
+    test.unmount()
+    expect(slot()).toBeUndefined()
+  })
+
+  it('leaves the slot to the page that replaced it', async () => {
+    // Pages swap under Suspense: the incoming page publishes before the
+    // outgoing one unmounts, and a drawer open across the navigation must be
+    // left reading the ranking the rider has arrived at.
+    const outgoing = setup()
+    outgoing.mount()
+    outgoing.pending[0]!.resolve(page(100, 'Outgoing physics'))
+    await outgoing.request.ready
+    await settle()
+
+    const incoming = setup()
+    incoming.mount()
+    incoming.pending[0]!.resolve(page(80, 'Incoming physics'))
+    await incoming.request.ready
+    await settle()
+    expect(slot()?.combos.map(combo => combo.finishTimeSec)).toEqual([80])
+
+    outgoing.unmount()
+    expect(slot()?.combos.map(combo => combo.finishTimeSec)).toEqual([80])
+    incoming.unmount()
+    expect(slot()).toBeUndefined()
   })
 
   it('captures legal rider substitutions and detaches Garage input before fetching', async () => {

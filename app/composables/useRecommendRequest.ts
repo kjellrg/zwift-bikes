@@ -1,5 +1,5 @@
 import type { InternalApi } from 'nitropack/types'
-import type { ComboScore } from '../../shared/types/catalog'
+import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import {
   buildRecommendQuery,
@@ -7,6 +7,7 @@ import {
   recommendChangeKind,
   riderInputsForRide,
   serializeRecommendQuery,
+  type AppliedRanking,
   type AppliedRiderInputs,
   type RecommendEnvelope,
   type RecommendRequest,
@@ -57,7 +58,37 @@ const WHEEL_OPTIONS_LIMIT = 6
 /** How long the search box sits still before the ranking is refetched for it. */
 const SEARCH_DEBOUNCE_MS = 300
 
+/**
+ * The Applied Ranking on screen, for the one surface that is not inside a
+ * ranking page's tree: the Equipment drawer, which is mounted once in
+ * `app.vue` and has to be about whichever ranking the rider is looking at.
+ * Everything else is handed the object as a prop.
+ *
+ * `undefined` means no ranking page is mounted - a Discovery page, the About
+ * page - and also, for the one tick of a client-side navigation, that the
+ * outgoing page has gone and the incoming one has not published yet.
+ *
+ * Client-only, and written from `onMounted` rather than setup: `useState` is
+ * serialised into the payload, the object carries a function, and the drawer
+ * never opens on the server anyway.
+ */
+export function useAppliedRankingSlot() {
+  return useState<AppliedRanking | undefined>('applied-ranking', () => undefined)
+}
+
 export interface RecommendRequestOptions {
+  /**
+   * The course the endpoint ranks, live. It travels with the Ride as part of
+   * the Applied Ranking, because everything that turns a finish time into a
+   * speed or a caption needs the distance the time was computed over.
+   *
+   * A getter rather than a value, and the page's rather than this module's,
+   * because a race page has to reconcile three clocks to answer it: the
+   * selected Category group, the route lookup it fired, and the endpoint the
+   * accepted ranking actually came from. Folding that in here is the later
+   * "the Applied Ride knows its own course" change.
+   */
+  course: () => RouteWithMeta | undefined
   /**
    * The `useAsyncData` key. Two rules, and each of them is a bug that got
    * out:
@@ -199,7 +230,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     if (replaces) resultsAnnouncement.value = 'Results updated'
   }
 
-  const appliedRanking = computed(() => {
+  const acceptedRanking = computed(() => {
     const candidate = envelope.value
     if (candidate && candidate !== observed) {
       observed = candidate
@@ -275,14 +306,14 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     }
   )
   const { data: envelope, status, error, refresh } = asyncData
-  // `appliedRanking` decides acceptance where it is read, which is what
+  // `acceptedRanking` decides acceptance where it is read, which is what
   // keeps it right under SSR: a watcher never flushes there, but the first
   // render reads the ranking. On the client a landed response must not wait
   // for a reader - acceptance announces itself, and the live region is
   // rendered above the results, so it would otherwise hear about a ranking
   // a render after the rows did.
-  watch(envelope, () => void appliedRanking.value)
-  const recommendData = computed(() => appliedRanking.value?.result ?? null)
+  watch(envelope, () => void acceptedRanking.value)
+  const recommendData = computed(() => acceptedRanking.value?.result ?? null)
   useRefetchNotice(error, status, refresh)
 
   /**
@@ -293,7 +324,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * refetch lands. The cards and FAQ read this lagged Ride instead, which
    * catches up exactly when the recomputed times do.
    */
-  const appliedRide = computed(() => (appliedRanking.value?.provenance ?? initialRequest).ride)
+  const appliedRide = computed(() => (acceptedRanking.value?.provenance ?? initialRequest).ride)
   /**
    * The rider the combos on screen were computed for - see **Applied** in
    * `CONTEXT.md`. Same rule and same lifecycle as `appliedRide`: the
@@ -303,11 +334,11 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * was, beside the results it still describes.
    */
   const appliedInputs = computed<AppliedRiderInputs>(() => {
-    const provenance = appliedRanking.value?.provenance ?? initialRequest
+    const provenance = acceptedRanking.value?.provenance ?? initialRequest
     return riderInputsForRide(provenance.rider, provenance.ride)
   })
-  const appliedRestrictions = computed(() => (appliedRanking.value?.provenance ?? initialRequest).rider)
-  const appliedRequestKey = computed(() => appliedRanking.value?.forQuery ?? serializeRecommendQuery(initialRequest.query))
+  const appliedRestrictions = computed(() => (acceptedRanking.value?.provenance ?? initialRequest).rider)
+  const appliedRequestKey = computed(() => acceptedRanking.value?.forQuery ?? serializeRecommendQuery(initialRequest.query))
   const combos = computed(() => recommendData.value?.combos ?? [])
   /**
    * Whether there is a ranking on screen to keep. Not "are there rows": a
@@ -318,12 +349,12 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    */
   const hasRanking = computed(() => !!recommendData.value)
   const hasMore = computed(() => recommendData.value?.pagination?.hasMore ?? false)
-  const isOutdated = computed(() => appliedRanking.value?.endpoint !== endpoint.value
-    || appliedRanking.value?.forQuery !== serializedQuery.value)
+  const isOutdated = computed(() => acceptedRanking.value?.endpoint !== endpoint.value
+    || acceptedRanking.value?.forQuery !== serializedQuery.value)
   const canShowMore = computed(() => hasMore.value && status.value !== 'pending' && !isOutdated.value && !loadingMore.value)
 
   async function showMore() {
-    const ranking = appliedRanking.value
+    const ranking = acceptedRanking.value
     if (!canShowMore.value || !ranking?.endpoint || !ranking.result) return
     const token = ++expansion
     loadingMore.value = true
@@ -332,7 +363,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
       const page = await $fetch<RecommendResponse>(ranking.endpoint, {
         query: { ...ranking.provenance.query, offset: ranking.result.combos.length, limit: RECOMMEND_MAX_LIMIT }
       })
-      if (token !== expansion || appliedRanking.value !== ranking || isOutdated.value) return
+      if (token !== expansion || acceptedRanking.value !== ranking || isOutdated.value) return
       // More of the ranking already accepted, not a new one: it keeps its
       // provenance and its explanations, so it does not go through
       // `acceptRanking` and nothing is announced.
@@ -375,7 +406,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   })
 
   /**
-   * The wheel list behind a result card's disclosure. Fetched on click
+   * A frame's Wheel alternatives, behind a row's disclosure. Fetched on click
    * through the endpoint's `wheelsForFrame` drill-down under the Applied
    * Ranking's own request - not the live controls - so the times in the
    * list come out of the same pipeline, with the same rider, laps, draft
@@ -396,12 +427,12 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
    * rows it describes.
    */
   async function loadWheelOptions(frameId: number): Promise<ComboScore[] | null> {
-    const ranking = appliedRanking.value
+    const ranking = acceptedRanking.value
     if (!ranking?.endpoint) return null
     const data = await $fetch<RecommendResponse>(ranking.endpoint, {
       query: { ...ranking.provenance.query, wheelsForFrame: frameId, offset: 0, limit: WHEEL_OPTIONS_LIMIT }
     })
-    if (appliedRanking.value?.provenance !== ranking.provenance) return null
+    if (acceptedRanking.value?.provenance !== ranking.provenance) return null
     return data.combos ?? []
   }
 
@@ -409,6 +440,54 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
   const fastestTimeSec = computed(() => {
     const times = combos.value.map(combo => combo.finishTimeSec).filter((time): time is number => typeof time === 'number')
     return times.length ? Math.min(...times) : undefined
+  })
+
+  /**
+   * Everything the accepted ranking is, as one object - see `AppliedRanking`.
+   * A ranked row takes this and nothing else, and the Equipment drawer reads
+   * it from the slot below, so a new fact about the Ranking reaches every
+   * surface by being added here rather than threaded through the pages.
+   *
+   * A computed rather than an assembled ref: the course is the page's own
+   * and moves without a response, and `showMore` grows the rows in place.
+   * Its identity changes whenever any part of it does, which is what the
+   * drawer's re-take and the slot's ownership check are written against.
+   */
+  const appliedRanking = computed<AppliedRanking>(() => ({
+    combos: combos.value,
+    ride: appliedRide.value,
+    rider: appliedInputs.value,
+    restrictions: appliedRestrictions.value,
+    fastestTimeSec: fastestTimeSec.value,
+    requestKey: appliedRequestKey.value,
+    loadWheelOptions,
+    course: options.course()
+  }))
+
+  const rankingSlot = useAppliedRankingSlot()
+  // What this page last put in the slot, so unmounting can tell its own
+  // object from a successor's.
+  let published: AppliedRanking | undefined
+  onMounted(() => {
+    // From the mount rather than from setup because the slot must never be
+    // written on the server - see `useAppliedRankingSlot`. Immediate, so a
+    // drawer opened before the first response still has a ranking to read.
+    watch(appliedRanking, (ranking) => {
+      published = ranking
+      rankingSlot.value = ranking
+    }, { immediate: true })
+  })
+  onUnmounted(() => {
+    // Only when the slot is still holding this page's object. Pages swap
+    // under Suspense, and the incoming page can have published before this
+    // runs - clearing unconditionally would leave the drawer with no ranking
+    // on the page the rider has just arrived at.
+    //
+    // Through `toRaw`, because `useState` is a `ref` and hands back a
+    // reactive proxy of whatever was put in it: the proxy is stable per
+    // object, but it is never the object itself, so a plain `===` here would
+    // never be true and every page would clear its successor's ranking.
+    if (toRaw(rankingSlot.value) === published) rankingSlot.value = undefined
   })
 
   // `recommendData` keeps its previous value while a refetch is in flight, so
@@ -472,6 +551,8 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     loadingMore,
     expansionFailed,
     showMore,
+    /** The Ranking on screen as one object - what a ranked row is handed, and what the drawer reads. */
+    appliedRanking,
     appliedRide,
     appliedInputs,
     appliedRestrictions,
@@ -488,12 +569,16 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     /**
      * The serialised query the ranking on screen was fetched for, for
      * anything that has to notice when the ride being ranked changes
-     * underneath it. The Applied Ranking's own, not the live controls':
-     * the bike drawer keys its route upgrade curve on this
+     * underneath it. The Applied Ranking's own, not the live controls': the
+     * Equipment drawer keys its route upgrade curve on this
      * (`upgradeCurveKey`) and fills that curve from the same drill-down
      * `loadWheelOptions` uses, so a key that moved with the controls would
-     * label a curve with a request it was not computed under. Nothing
-     * parses it back out.
+     * label a curve with a request it was not computed under. Nothing parses
+     * it back out.
+     *
+     * Every reader now takes it off the Applied Ranking; it stays here, like
+     * the other loose names beside it, until the ranking pages' results
+     * column is built once and the page interface can be trimmed as a whole.
      */
     appliedRequestKey,
     loadWheelOptions
