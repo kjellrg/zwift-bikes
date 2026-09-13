@@ -1,11 +1,9 @@
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
 import { clampPowerW, clampSprintPowerW, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, storedPowerW } from '#shared/utils/riderBounds'
+import { clampUpgradeStage, DEFAULT_UNOWNED_LEVEL } from '#shared/utils/upgradeStage'
 
 const STORAGE_KEY = 'zwift-bikes:rider-profile'
-
-/** Upgrade stages run 0 (stock) to 5 (fully upgraded); the API rejects anything outside. */
-const clampUnownedLevel = (value: number) => Math.min(5, Math.max(0, value))
 
 const DEFAULT_WEIGHT_KG = 75
 /**
@@ -17,9 +15,10 @@ const MIN_WEIGHT_KG = 40
 const MAX_WEIGHT_KG = 130
 const clampWeightKg = (value: number) => Math.min(MAX_WEIGHT_KG, Math.max(MIN_WEIGHT_KG, Math.round(value)))
 const DEFAULT_HEIGHT_CM = 175
-// `DEFAULT_UNOWNED_LEVEL` deliberately isn't defined here: the recommend
-// endpoints and the MCP tools have to assume the same stage, so it lives in
-// `shared/utils/classifyBikeFrame.ts` alongside the level semantics.
+// `DEFAULT_UNOWNED_LEVEL` and the stage clamp deliberately aren't defined
+// here: the recommend endpoints and the MCP tools have to assume the same
+// stage and hold it to the same bounds, so both live in
+// `shared/utils/upgradeStage.ts` alongside the rest of the stage semantics.
 
 /**
  * Tracks rider dimensions and power used by the route physics model.
@@ -116,7 +115,7 @@ export function useRiderProfile() {
       const migratedPowerW = storedPowerW(parsed, weightKg.value)
       if (migratedPowerW !== undefined) powerW.value = migratedPowerW
       if (typeof parsed.sprintPowerW === 'number') sprintPowerW.value = clampSprintPowerW(parsed.sprintPowerW)
-      if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = clampUnownedLevel(parsed.defaultUnownedLevel)
+      if (typeof parsed.defaultUnownedLevel === 'number') defaultUnownedLevel.value = clampUpgradeStage(parsed.defaultUnownedLevel)
       if (parsed.draftMode === 'ttt' || parsed.draftMode === 'race' || parsed.draftMode === 'solo') {
         draftMode.value = parsed.draftMode
         storedDraftMode.value = parsed.draftMode
@@ -152,7 +151,7 @@ export function useRiderProfile() {
   }
 
   function setDefaultUnownedLevel(value: number) {
-    defaultUnownedLevel.value = clampUnownedLevel(value)
+    defaultUnownedLevel.value = clampUpgradeStage(value)
     persist()
   }
 

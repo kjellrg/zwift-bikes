@@ -76,7 +76,7 @@ _Avoid_: owned bikes, my bikes, inventory, collection
 
 **Upgrade stage**:
 Where a frame stands on Zwift's five-step upgrade ladder. Stage 0 is the frame as bought, stage 5 is fully upgraded, and each stage is earned by riding it. A frame in the garage is ranked at the stage the rider set; a frame outside it at the stage the profile assumes for unowned frames, which is 5 unless changed and flatters a bike the rider might buy. Wheels have no stages. A frame nobody has bot-tested has no per-stage numbers, so its stage cannot be set.
-_Avoid_: level, upgrade level, tier (a frame's price class, a different axis)
+_Avoid_: level, upgrade level, tier (a frame's price class, a different axis). The API query key `defaultUnownedLevel` and the MCP `upgradeLevel` argument keep the old word on purpose - they are a published contract, not drift.
 
 **Ranking**:
 Every eligible setup for a Ride, ordered by the finish time the Applied rider gets on it, fastest first. It is one list: the Recommendation is its rank 1 shown large, and the rows beneath it continue from rank 2, so no setup appears twice. A Directed search, a filter change or a Garage change produces a new ranking rather than narrowing this one, and a ranking of a single setup is a recommendation with nothing beneath it. The comparison picks from anywhere in the ranking, rank 1 included.

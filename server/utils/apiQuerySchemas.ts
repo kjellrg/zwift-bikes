@@ -4,11 +4,11 @@ import { z } from 'zod'
 import type { Sport, WorldSlug } from 'zwift-data'
 import type { BikeCategory, RouteFilters } from '../../shared/types/catalog'
 import { getWorlds } from '../../shared/utils/catalog'
-import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/classifyBikeFrame'
 import { clampTttClimbWkg, clampTttRiders, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '../../shared/utils/physics'
 import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../shared/utils/recommendLimits'
 import { RIDER_BOUNDS } from '../../shared/utils/riderBounds'
 import { MAX_LAPS } from '../../shared/utils/routeLaps'
+import { DEFAULT_UNOWNED_LEVEL, MAX_UPGRADE_STAGE, toUpgradeStage } from '../../shared/utils/upgradeStage'
 
 /**
  * Zod schemas for every query parameter the API accepts (issue #45).
@@ -118,7 +118,7 @@ const ownedLevelsSchema = z.preprocess(emptyToUndef, z.string().max(5000).option
       // Zwift, and whole stages are all the precomputed physics table
       // (shared/data/equipmentPhysics.ts) covers - same semantic
       // normalization family as the laps/TTT snapping documented above.
-      levels[frameId] = Math.min(5, Math.max(0, Math.round(level)))
+      levels[frameId] = toUpgradeStage(level)
     }
     return levels
   })
@@ -215,7 +215,7 @@ const recommendBaseShape = {
   // `useRiderProfile` clamps its persisted copy on load, so the site itself
   // can never send an out-of-range value here.
   // Rounded like the `owned` levels above: whole stages are the domain.
-  defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(5).optional()).transform(value => (value === undefined ? DEFAULT_UNOWNED_LEVEL : Math.round(value))),
+  defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(MAX_UPGRADE_STAGE).optional()).transform(value => (value === undefined ? DEFAULT_UNOWNED_LEVEL : Math.round(value))),
   weightKg: qNumber.pipe(z.number().min(RIDER_BOUNDS.weightKg.min).max(RIDER_BOUNDS.weightKg.max).optional()),
   heightCm: qNumber.pipe(z.number().min(RIDER_BOUNDS.heightCm.min).max(RIDER_BOUNDS.heightCm.max).optional()),
   powerW: qNumber.pipe(z.number().min(RIDER_BOUNDS.powerW.min).max(RIDER_BOUNDS.powerW.max).optional()),

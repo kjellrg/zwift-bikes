@@ -1,3 +1,5 @@
+import { toUpgradeStage } from '#shared/utils/upgradeStage'
+
 const STORAGE_KEY = 'zwift-bikes:garage'
 const WHEELS_STORAGE_KEY = 'zwift-bikes:garage-wheels'
 
@@ -47,7 +49,7 @@ export function useGarage() {
     if (!import.meta.client) return
     // Levels sanitize with the same clamp `setOwned` applies on the way in.
     const nextOwned = loadStored<Record<number, number>>(STORAGE_KEY, value =>
-      typeof value === 'number' && Number.isFinite(value) ? Math.min(5, Math.max(0, Math.round(value))) : undefined)
+      typeof value === 'number' && Number.isFinite(value) ? toUpgradeStage(value) : undefined)
     if (JSON.stringify(nextOwned) !== JSON.stringify(owned.value)) owned.value = nextOwned
     const nextOwnedWheels = loadStored<Record<string, true>>(WHEELS_STORAGE_KEY, value =>
       value === true ? true : undefined)
@@ -61,7 +63,7 @@ export function useGarage() {
       const remaining = Object.fromEntries(Object.entries(next).filter(([id]) => Number(id) !== frameId))
       owned.value = remaining
     } else {
-      owned.value = { ...owned.value, [frameId]: Math.min(5, Math.max(0, Math.round(level))) }
+      owned.value = { ...owned.value, [frameId]: toUpgradeStage(level) }
     }
     persist()
   }

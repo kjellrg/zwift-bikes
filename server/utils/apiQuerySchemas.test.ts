@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/classifyBikeFrame'
+import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/upgradeStage'
 import { RIDER_BOUNDS } from '../../shared/utils/riderBounds'
 import { bikesQuerySchema, recommendRouteQuerySchema, recommendSegmentQuerySchema, routesQuerySchema } from './apiQuerySchemas'
 
