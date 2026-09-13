@@ -209,8 +209,8 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, ra
     weightKg: profile.weightKg,
     heightCm: profile.heightCm,
     // The MCP contract stays W/kg (how riders state their power in chat);
-    // the recommend endpoints now take absolute watts, so convert here
-    // rather than leaning on the endpoints' deprecated `wkg` alias.
+    // the recommend endpoints take absolute watts and, since issue #186, only
+    // that - they would ignore a `wkg` key rather than convert it.
     powerW: Math.round(profile.wkg * profile.weightKg),
     // Falls back to the shared constant, not a local 0: the assumed stage
     // changes which frame wins, so an adapter picking its own default would

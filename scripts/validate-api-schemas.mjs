@@ -133,14 +133,17 @@ bad(recommendRouteQuerySchema, 'recommend: ownedWheels non-string entry', { owne
 // --- rider profile: all-or-nothing, bounded ---
 ok(recommendRouteQuerySchema, 'recommend: full profile', { weightKg: '75', heightCm: '183', powerW: '250' },
   { weightKg: 75, heightCm: 183, powerW: 250 })
-ok(recommendRouteQuerySchema, 'recommend: legacy wkg alias converts to watts', { weightKg: '75', heightCm: '183', wkg: '3.2' },
-  { weightKg: 75, heightCm: 183, powerW: 240 })
+// The `wkg` alias was removed (issue #186), and these schemas ignore unknown
+// keys - so `wkg` no longer 400s by name, it just stops counting towards a
+// complete profile.
+bad(recommendRouteQuerySchema, 'recommend: removed wkg alias no longer completes a profile', { weightKg: '75', heightCm: '183', wkg: '3.2' }, 'together')
+ok(recommendRouteQuerySchema, 'recommend: removed wkg alias is ignored beside powerW', { weightKg: '75', heightCm: '183', powerW: '250', wkg: '3.2' },
+  { weightKg: 75, heightCm: 183, powerW: 250, wkg: undefined })
 bad(recommendRouteQuerySchema, 'recommend: partial profile', { weightKg: '75' }, 'together')
 bad(recommendRouteQuerySchema, 'recommend: non-numeric weight', { weightKg: 'abc', heightCm: '183', powerW: '250' }, 'weightKg')
 bad(recommendRouteQuerySchema, 'recommend: absurd weight', { weightKg: '1e9', heightCm: '183', powerW: '250' }, 'weightKg')
 bad(recommendRouteQuerySchema, 'recommend: height below bound', { weightKg: '75', heightCm: '95', powerW: '250' }, 'heightCm')
 bad(recommendRouteQuerySchema, 'recommend: absurd powerW', { weightKg: '75', heightCm: '183', powerW: '99999' }, 'powerW')
-bad(recommendRouteQuerySchema, 'recommend: absurd wkg', { weightKg: '75', heightCm: '183', wkg: '99' }, 'wkg')
 
 // --- modes: strict where the old code silently defaulted ---
 bad(recommendRouteQuerySchema, 'recommend: unknown physics mode', { physics: 'quantum' }, 'physics')
