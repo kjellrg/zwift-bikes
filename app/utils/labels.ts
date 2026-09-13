@@ -2,6 +2,7 @@ import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, W
 import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
+import { formatDuration, formatDurationGap } from '#shared/utils/duration'
 
 /**
  * A rank as the Ranking prints it: `01`, `02`, ... The Recommendation is rank
@@ -141,8 +142,10 @@ export function formatElevation(m: number): string {
 }
 
 // `formatDuration` now lives in `shared/utils/duration.ts` so the MCP tools
-// can format times the same way these pages do; it is auto-imported here and
-// used unchanged.
+// can format times the same way these pages do; it is used unchanged.
+// Imported explicitly rather than left to Nuxt's auto-import, because the
+// wording built from it below is asserted in the plain-node suite (see
+// `rankingResults.test.ts`), which teaches no auto-imports.
 
 /**
  * Describes how much time a route's non-tarmac sections cost vs. an
