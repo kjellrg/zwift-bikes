@@ -10,6 +10,8 @@
  * ZwiftInsider bot tests in seconds per hour, and the rider's own route in
  * seconds off this ride (`ComboScore.upgradeFinishTimesSec`).
  */
+import { toUpgradeStage } from '#shared/utils/upgradeStage'
+
 const props = defineProps<{
   /** Six values, stage 0 to 5, seconds per hour against the reference bike (`UpgradeCurve.flat` or `.climb`). */
   values: readonly number[]
@@ -65,7 +67,7 @@ const points = computed(() => {
 })
 
 const polyline = computed(() => points.value.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '))
-const current = computed(() => points.value[Math.min(5, Math.max(0, Math.round(props.level)))])
+const current = computed(() => points.value[toUpgradeStage(props.level)])
 const maxed = computed(() => gains.value[gains.value.length - 1] ?? 0)
 
 const signed = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}`

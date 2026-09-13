@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/classifyBikeFrame'
+import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/upgradeStage'
 import { RIDER_BOUNDS } from '../../shared/utils/riderBounds'
 import { bikesQuerySchema, recommendRouteQuerySchema, recommendSegmentQuerySchema, routesQuerySchema } from './apiQuerySchemas'
 
@@ -88,11 +88,18 @@ describe('rider profile is all-or-nothing', () => {
     }
   })
 
-  it('converts the deprecated wkg alias to whole watts, with an explicit powerW winning', () => {
-    const legacy = recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '183', wkg: '3.2' })
-    expect(legacy.powerW).toBe(240)
-    const both = recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '183', powerW: '250', wkg: '3.2' })
-    expect(both.powerW).toBe(250)
+  // The `wkg` alias is gone (issue #186). These schemas are `z.object` and
+  // never `z.strictObject`, so `wkg` is now an unknown key: ignored, not
+  // rejected. That silent swallow is the surprising half of the removal -
+  // a caller who only sent `wkg` gets the partial-profile 400 rather than a
+  // message naming `wkg`, and one who sent both just loses it.
+  it('ignores the removed wkg alias rather than rejecting it', () => {
+    const onlyWkg = recommendRouteQuerySchema.safeParse({ weightKg: '75', heightCm: '183', wkg: '3.2' })
+    expect(onlyWkg.success).toBe(false)
+    expect(onlyWkg.error?.issues[0]?.message).toContain('together')
+    const alongside = recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '183', powerW: '250', wkg: '3.2' })
+    expect(alongside.powerW).toBe(250)
+    expect(alongside).not.toHaveProperty('wkg')
   })
 })
 

@@ -6,6 +6,7 @@ import type { FrameSpeedSample } from '../data/frameSpeedData'
 import { type TtBaseline, precomputedFrameDelta } from '../data/equipmentPhysics'
 import { CRR_COBBLE_SCORE, CRR_GRAVEL_SCORE } from './classifyWheel'
 import { solveFrameEquipmentDelta } from './physics/equipment'
+import { MAX_UPGRADE_STAGE, UPGRADE_STAGES, clampUpgradeStage, toUpgradeStage } from './upgradeStage'
 
 /**
  * Classifier for Zwift bike frames.
@@ -40,24 +41,6 @@ import { solveFrameEquipmentDelta } from './physics/equipment'
  * passed to get scores for a specific upgrade stage instead of the default
  * Stage 0 (just-purchased) baseline - see `interpolateGap`.
  */
-
-/**
- * What upgrade stage to assume for a frame the rider hasn't put in their
- * garage. Lives here, next to the `level` semantics it refers to, so that
- * every surface that has to pick a stage - `useRiderProfile`, the recommend
- * endpoints, the MCP tools - reads the same number.
- *
- * That matters more than it looks: frames upgrade along different per-stage
- * schemes, so the assumed stage changes the *ranking*, not just the times.
- * On Road to Sky a stage-0 assumption puts the Tarmac SL9 on top while a
- * stage-5 one puts the Aethos S-Works there, 74s apart - so two surfaces
- * disagreeing on this default answer the same question with different bikes.
- *
- * 5 (fully upgraded) rather than 0: it is what the site has always shown, and
- * an unowned frame is being considered as something to work towards, which
- * makes its end state the fair comparison against everything else.
- */
-export const DEFAULT_UNOWNED_LEVEL = 5
 
 // Calibration bounds for converting a raw "seconds saved/lost per hour at
 // 300W vs. baseline" gap into a 0-100 score. Chosen from the bulk of the
@@ -115,7 +98,11 @@ function scoreFromGap(gapSec: number, [gapMin, gapMax]: [number, number]): numbe
 // stage-tested, tiers 2 and 3 only run for future frames, so no real
 // catalog entry exercises them end-to-end.
 export function interpolateGap(gap0: number, gap5: number, level: number, curve?: StageCurve, byStage?: readonly number[]): number {
-  const clampedLevel = Math.min(5, Math.max(0, level))
+  // Clamped without rounding, deliberately: a fractional level is meaningful
+  // on the two interpolating paths below, which read it as a position between
+  // the stage-0 and stage-5 endpoints. Only the `byStage` lookup needs a whole
+  // stage, and it rounds for itself - see `clampUpgradeStage`.
+  const clampedLevel = clampUpgradeStage(level)
   // Stages are whole numbers: round before indexing so a fractional level
   // from a future direct caller picks the nearest measured stage instead of
   // indexing past the array and silently returning stage-5 performance.
@@ -135,24 +122,14 @@ function frameStageChart(frameName: string): StageChart | undefined {
 }
 
 /**
- * Every upgrade stage a frame can be at. Exported so the recommend endpoints
- * can walk the same six stages when simulating what upgrading is worth on a
- * particular route (`ComboScore.upgradeFinishTimesSec`) - one list, so a
- * seventh stage could never mean two different things.
- */
-export const UPGRADE_STAGES = [0, 1, 2, 3, 4, 5] as const
-
-const STAGES = UPGRADE_STAGES
-
-/**
  * The whole six-stage curve a measured frame is scored from, through the
  * same `interpolateGap` tiers as any single level - so what the drawer shows
  * for a stage is exactly the gap that stage would be classified at.
  */
 function upgradeCurveFor(measured: FrameSpeedSample, chart: StageChart | undefined): UpgradeCurve {
   return {
-    flat: STAGES.map(stage => interpolateGap(measured.flatGapSec0, measured.flatGapSec5, stage, chart?.flat, measured.flatGapSecByStage)),
-    climb: STAGES.map(stage => interpolateGap(measured.climbGapSec0, measured.climbGapSec5, stage, chart?.climb, measured.climbGapSecByStage))
+    flat: UPGRADE_STAGES.map(stage => interpolateGap(measured.flatGapSec0, measured.flatGapSec5, stage, chart?.flat, measured.flatGapSecByStage)),
+    climb: UPGRADE_STAGES.map(stage => interpolateGap(measured.climbGapSec0, measured.climbGapSec5, stage, chart?.climb, measured.climbGapSecByStage))
   }
 }
 
@@ -359,12 +336,13 @@ function withFixedWheelOffroadScores(classified: ClassifiedBikeFrame): Classifie
 
 export function classifyBikeFrame(frame: BikeFrame, level = 0): ClassifiedBikeFrame {
   // Only whole levels 0-5 are cached, which is the entire real domain (see
-  // `DEFAULT_UNOWNED_LEVEL` and the garage). Anything else - a fraction, a
-  // negative, a level past 5 - still classifies (as its rounded/clamped
-  // stage, see `classifyFrame`) and is simply not stored, so a caller
-  // passing arbitrary numbers (the `owned` query parameter is rider-supplied
-  // JSON) can neither change an answer nor grow this map without bound.
-  if (!Number.isInteger(level) || level < 0 || level > 5) return withFixedWheelOffroadScores(classifyFrame(frame, level))
+  // `DEFAULT_UNOWNED_LEVEL` in `./upgradeStage`, and the garage). Anything
+  // else - a fraction, a negative, a level past 5 - still classifies (as its
+  // rounded/clamped stage, see `classifyFrame`) and is simply not stored, so
+  // a caller passing arbitrary numbers (the `owned` query parameter is
+  // rider-supplied JSON) can neither change an answer nor grow this map
+  // without bound.
+  if (!Number.isInteger(level) || level < 0 || level > MAX_UPGRADE_STAGE) return withFixedWheelOffroadScores(classifyFrame(frame, level))
 
   let byLevel = classifiedByFrame.get(frame)
   if (!byLevel) {
@@ -388,7 +366,7 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
   // (`../data/equipmentPhysics.ts`) covers. The API schemas already snap
   // incoming levels to integers; rounding again here makes the classifier
   // total for any numeric input a direct caller might pass.
-  const clampedLevel = Math.min(5, Math.max(0, Math.round(level)))
+  const clampedLevel = toUpgradeStage(level)
 
   if (category === 'standard') {
     const style = classifyBikeStyle(frame.name)
@@ -451,7 +429,7 @@ function classifyFrame(frame: BikeFrame, level: number): ClassifiedBikeFrame {
 export function solveMeasuredFramePhysics(name: string, level: number, isTT: boolean, ttBaseline?: TtBaseline): EquipmentPhysicsDelta | undefined {
   const measured = (isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[name]
   if (!measured) return undefined
-  const clampedLevel = Math.min(5, Math.max(0, Math.round(level)))
+  const clampedLevel = toUpgradeStage(level)
   const chart = frameStageChart(name)
   const flatGap = interpolateGap(measured.flatGapSec0, measured.flatGapSec5, clampedLevel, chart?.flat, measured.flatGapSecByStage)
   const climbGap = interpolateGap(measured.climbGapSec0, measured.climbGapSec5, clampedLevel, chart?.climb, measured.climbGapSecByStage)

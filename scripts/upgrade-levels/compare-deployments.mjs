@@ -35,7 +35,14 @@ if (!args.old || !args.new) {
 const OLD = String(args.old).replace(/\/$/, '')
 const NEW = String(args.new).replace(/\/$/, '')
 const level = args.level === undefined ? 3 : Number(args.level)
-const rider = `weightKg=${args.weight ?? 75}&heightCm=${args.height ?? 180}&wkg=${args.wkg ?? 3.5}`
+// `--wkg` stays the human-facing flag - its sibling `compare-bike-levels.mjs`
+// takes the same one, so the two diagnostics keep identical CLIs - but the API
+// only speaks absolute watts now that its `wkg` alias is gone (issue #186), so
+// the conversion happens here. The endpoint ignores unknown query keys, so
+// sending `wkg` instead would have silently dropped the whole rider profile.
+const weightKg = Number(args.weight ?? 75)
+const powerW = Math.round(Number(args.wkg ?? 3.5) * weightKg)
+const rider = `weightKg=${weightKg}&heightCm=${args.height ?? 180}&powerW=${powerW}`
 
 // A spread of terrain types by default: flat, flat+cobbles, rolling,
 // rolling+dirt, hilly and mountain, so a surface- or grade-dependent change

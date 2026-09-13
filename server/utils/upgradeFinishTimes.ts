@@ -1,6 +1,7 @@
 import type { ClassifiedBikeFrame, ComboScore } from '../../shared/types/catalog'
-import { UPGRADE_STAGES, classifyBikeFrame } from '../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame } from '../../shared/utils/classifyBikeFrame'
 import { getFrameById } from '../../shared/utils/catalog'
+import { UPGRADE_STAGES, toUpgradeStage } from '../../shared/utils/upgradeStage'
 
 /**
  * What upgrading this bike is worth on the route being ranked: the simulated
@@ -41,7 +42,7 @@ export function upgradeFinishTimesSec(
   const base = getFrameById(combo.frame.id)
   if (!base) return undefined
 
-  const currentStage = Math.min(5, Math.max(0, Math.round(combo.frame.level)))
+  const currentStage = toUpgradeStage(combo.frame.level)
   return UPGRADE_STAGES.map(stage => (stage === currentStage
     ? combo.finishTimeSec!
     : simulateAtStage(classifyBikeFrame(base, stage))))

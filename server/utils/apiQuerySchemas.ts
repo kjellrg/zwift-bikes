@@ -4,11 +4,11 @@ import { z } from 'zod'
 import type { Sport, WorldSlug } from 'zwift-data'
 import type { BikeCategory, RouteFilters } from '../../shared/types/catalog'
 import { getWorlds } from '../../shared/utils/catalog'
-import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/classifyBikeFrame'
 import { clampTttClimbWkg, clampTttRiders, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '../../shared/utils/physics'
 import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../shared/utils/recommendLimits'
 import { RIDER_BOUNDS } from '../../shared/utils/riderBounds'
 import { MAX_LAPS } from '../../shared/utils/routeLaps'
+import { DEFAULT_UNOWNED_LEVEL, MAX_UPGRADE_STAGE, toUpgradeStage } from '../../shared/utils/upgradeStage'
 
 /**
  * Zod schemas for every query parameter the API accepts (issue #45).
@@ -118,7 +118,7 @@ const ownedLevelsSchema = z.preprocess(emptyToUndef, z.string().max(5000).option
       // Zwift, and whole stages are all the precomputed physics table
       // (shared/data/equipmentPhysics.ts) covers - same semantic
       // normalization family as the laps/TTT snapping documented above.
-      levels[frameId] = Math.min(5, Math.max(0, Math.round(level)))
+      levels[frameId] = toUpgradeStage(level)
     }
     return levels
   })
@@ -215,15 +215,10 @@ const recommendBaseShape = {
   // `useRiderProfile` clamps its persisted copy on load, so the site itself
   // can never send an out-of-range value here.
   // Rounded like the `owned` levels above: whole stages are the domain.
-  defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(5).optional()).transform(value => (value === undefined ? DEFAULT_UNOWNED_LEVEL : Math.round(value))),
+  defaultUnownedLevel: qNumber.pipe(z.number().min(0).max(MAX_UPGRADE_STAGE).optional()).transform(value => (value === undefined ? DEFAULT_UNOWNED_LEVEL : Math.round(value))),
   weightKg: qNumber.pipe(z.number().min(RIDER_BOUNDS.weightKg.min).max(RIDER_BOUNDS.weightKg.max).optional()),
   heightCm: qNumber.pipe(z.number().min(RIDER_BOUNDS.heightCm.min).max(RIDER_BOUNDS.heightCm.max).optional()),
   powerW: qNumber.pipe(z.number().min(RIDER_BOUNDS.powerW.min).max(RIDER_BOUNDS.powerW.max).optional()),
-  // Deprecated alias for `powerW`, from before the power sliders switched to
-  // absolute watts. Still accepted so pre-rename clients (old JS in flight
-  // during a deploy window, external callers) keep their finish times -
-  // `resolveLegacyWkg` below converts it. Removable in a later release.
-  wkg: qNumber.pipe(z.number().min(RIDER_BOUNDS.wkg.min).max(RIDER_BOUNDS.wkg.max).optional()),
   physics: qEnum(['dynamic', 'legacy', 'compare'] as const).transform(value => value ?? 'dynamic'),
   // Draft mode (see `physics/draft.ts`). In `ttt` the rider's `powerW` is their
   // own average over the rotation, and the paceline moves at the speed that
@@ -245,24 +240,12 @@ const recommendBaseShape = {
  * code silently dropped into no-profile mode, which read as "the API ignored
  * my weight" rather than "I forgot a parameter".
  */
-const riderProfileComplete = (query: { weightKg?: number, heightCm?: number, wkg?: number, powerW?: number }, ctx: z.RefinementCtx) => {
-  const provided = [query.weightKg, query.heightCm, query.powerW ?? query.wkg].filter(value => value !== undefined).length
+const riderProfileComplete = (query: { weightKg?: number, heightCm?: number, powerW?: number }, ctx: z.RefinementCtx) => {
+  const provided = [query.weightKg, query.heightCm, query.powerW].filter(value => value !== undefined).length
   if (provided > 0 && provided < 3) {
     ctx.addIssue({ code: 'custom', message: 'Pass `weightKg`, `heightCm` and `powerW` together, or none of them' })
   }
 }
-
-/**
- * Folds the deprecated `wkg` alias into `powerW` once the profile is known
- * complete. Rounded to whole watts so the derived value is stable (no float
- * dust like 3.2 x 75 = 240.00000000000003 reaching handlers or logs); it
- * always lands inside `RIDER_BOUNDS.powerW`, which is exactly the wkg bounds
- * multiplied out across the weight bounds. An explicit `powerW` wins.
- */
-const resolveLegacyWkg = <Q extends { weightKg?: number, wkg?: number, powerW?: number }>(query: Q): Q =>
-  query.powerW === undefined && query.wkg !== undefined && query.weightKg !== undefined
-    ? { ...query, powerW: Math.round(query.wkg * query.weightKg) }
-    : query
 
 /**
  * The race format's TT-frame bar, sent by a page or tool that has been told
@@ -288,7 +271,7 @@ export const recommendRouteQuerySchema = z.object({
   // from multiplying into an arbitrarily expensive request).
   laps: qNumber.pipe(z.number().min(1).max(MAX_LAPS).optional()),
   excludeTT
-}).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
+}).superRefine(riderProfileComplete)
 
 // No segment-specific parameters: the old `route` param (which host route's
 // surface data to slice) was removed once measurement showed hosts never
@@ -298,7 +281,7 @@ export const recommendRouteQuerySchema = z.object({
 export const recommendSegmentQuerySchema = z.object({
   ...recommendBaseShape,
   excludeTT
-}).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
+}).superRefine(riderProfileComplete)
 
 export type RecommendRouteQuery = z.output<typeof recommendRouteQuerySchema>
 export type RecommendSegmentQuery = z.output<typeof recommendSegmentQuerySchema>

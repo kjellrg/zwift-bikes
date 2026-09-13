@@ -92,7 +92,9 @@ through as the tool error.
 | `recommend_for_route` | Rank frame + wheelset combos by predicted finish time over a whole route |
 | `recommend_for_segment` | Same, for a single climb or sprint, simulated after a flat run-up |
 
-Both recommend tools take `upgradeLevel` (0-5), defaulting to
+Both recommend tools take `upgradeLevel` (a whole 0-5; anything in between is
+rounded to the nearest stage, and the response header reports the stage
+actually used), defaulting to
 `DEFAULT_UNOWNED_LEVEL` (5, fully upgraded) - the same constant
 `useRiderProfile` and the endpoints read, so all three surfaces assume the same
 stage. That matters more than a display detail: frames upgrade along different

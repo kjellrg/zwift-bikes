@@ -1,10 +1,10 @@
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
-import { DEFAULT_UNOWNED_LEVEL } from '../../../shared/utils/classifyBikeFrame'
 import type { RaceFormat } from '../../../shared/utils/events'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '../../../shared/utils/events'
 import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
 import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
 import { clampLaps, computeRouteTotals, MAX_LAPS, MAX_TOTAL_DISTANCE_KM, maxLapsForRoute } from '../../../shared/utils/routeLaps'
+import { DEFAULT_UNOWNED_LEVEL, toUpgradeStage } from '../../../shared/utils/upgradeStage'
 import { BIKE_CATEGORIES } from '../apiQuerySchemas'
 import type { RpcContext } from './protocol'
 import {
@@ -150,13 +150,19 @@ function emptyVerifiedMessage(): string {
 }
 
 /**
- * The upgrade stage this call assumes. Clamped here as well as in the
+ * The upgrade stage this call assumes. Normalized here as well as in the
  * endpoints - the duplication buys a header that reports the stage actually
  * used, rather than echoing an out-of-range number back at the model.
+ *
+ * Rounded as well as clamped, for the same reason: stages are whole numbers,
+ * so `upgradeLevel: 3.5` used to render "All bikes assumed at upgrade stage
+ * 3.5" - a stage that does not exist - while the classifier ranked every
+ * frame at 4. A header whose whole job is to report the assumption must not
+ * report one that was never used.
  */
 function upgradeLevelFor(args: Record<string, unknown>): number {
   const level = Number(args.upgradeLevel)
-  return Number.isFinite(level) ? Math.min(5, Math.max(0, level)) : DEFAULT_UNOWNED_LEVEL
+  return Number.isFinite(level) ? toUpgradeStage(level) : DEFAULT_UNOWNED_LEVEL
 }
 
 /**
@@ -203,8 +209,8 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, ra
     weightKg: profile.weightKg,
     heightCm: profile.heightCm,
     // The MCP contract stays W/kg (how riders state their power in chat);
-    // the recommend endpoints now take absolute watts, so convert here
-    // rather than leaning on the endpoints' deprecated `wkg` alias.
+    // the recommend endpoints take absolute watts and, since issue #186, only
+    // that - they would ignore a `wkg` key rather than convert it.
     powerW: Math.round(profile.wkg * profile.weightKg),
     // Falls back to the shared constant, not a local 0: the assumed stage
     // changes which frame wins, so an adapter picking its own default would
@@ -245,7 +251,7 @@ const RECOMMEND_FILTER_PROPERTIES = {
   weightKg: { type: 'number', description: 'Rider weight in kilograms. Only needed to override (or stand in for) the session profile set by `set_rider_profile`.' },
   heightCm: { type: 'number', description: 'Rider height in centimetres (100-220). Affects aerodynamic drag. Pass together with weightKg and wkg.' },
   wkg: { type: 'number', description: 'Sustained power in watts per kilogram for an effort of this length. Pass together with weightKg and heightCm.' },
-  upgradeLevel: { type: 'number', description: `Assume every bike is at this Zwift upgrade stage, 0-5 (0 = stock, just unlocked; 5 = fully upgraded). Defaults to ${DEFAULT_UNOWNED_LEVEL}. Frames upgrade along different per-stage schemes, so this changes which bike wins, not just the times - pass 0 if the user is asking about bikes as they come out of the drop shop.` },
+  upgradeLevel: { type: 'number', description: `Assume every bike is at this Zwift upgrade stage: a whole number 0-5 (0 = stock, just unlocked; 5 = fully upgraded), defaulting to ${DEFAULT_UNOWNED_LEVEL}. Stages are whole - anything in between is rounded to the nearest, and the response header reports the stage actually used. Frames upgrade along different per-stage schemes, so this changes which bike wins, not just the times - pass 0 if the user is asking about bikes as they come out of the drop shop.` },
   category: { type: 'string', enum: [...BIKE_CATEGORIES], description: 'Restrict to one Zwift garage category. Note Zwift only lets gravel frames take gravel/mountain wheels and road/TT frames take road wheels, so this also changes which wheelsets appear.' },
   verifiedOnly: { type: 'boolean', description: 'Defaults to true: rank only frames and wheels whose performance comes from real ZwiftInsider bot-test data. Set to false to also include heuristic estimates - necessary for gravel and fun bikes, which have no bot-test data and are therefore absent by default, and worth doing if the user asks about a specific bike that returns no results.' },
   search: { type: 'string', description: 'Only include combos whose frame or wheelset name matches this text. Use to answer "how fast would MY bike be" without ranking the whole catalog.' },

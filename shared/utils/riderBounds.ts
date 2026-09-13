@@ -11,11 +11,11 @@
  * they exist to reject nonsense like `weightKg=1e9`, not to police
  * realistic riders.
  *
- * `wkg` survives for two callers only: the MCP server's external contract
- * (riders state their power in W/kg there) and the deprecated `wkg` query
- * alias the recommend schemas still accept. `powerW` is its image across the
- * weight bounds (0.3 x 30 = 9, 15 x 200 = 3000), so any wkg -> watts
- * conversion those callers produce can never land outside `powerW`.
+ * `wkg` survives for one caller only: the MCP server's external contract,
+ * where riders state their power in W/kg. (The recommend schemas' `wkg`
+ * query alias is gone - issue #186.) `powerW` is its image across the weight
+ * bounds (0.3 x 30 = 9, 15 x 200 = 3000), so any wkg -> watts conversion
+ * that caller produces can never land outside `powerW`.
  */
 export const RIDER_BOUNDS = {
   weightKg: { min: 30, max: 200 },

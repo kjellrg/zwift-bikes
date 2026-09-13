@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/classifyBikeFrame'
+import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/upgradeStage'
 import { TTT_DEFAULT_RIDERS } from '../../shared/utils/physics/draft'
 import { RECOMMEND_MAX_LIMIT } from '../../shared/utils/recommendLimits'
 import { DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W } from '../../shared/utils/riderBounds'
