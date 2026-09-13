@@ -153,6 +153,11 @@ bad(recommendRouteQuerySchema, 'recommend: non-numeric limit', { limit: 'abc' },
 // through the ignore-unknown-keys contract, never 400 or reach the handler.
 ok(recommendSegmentQuerySchema, 'segment recommend: legacy route param is ignored', { route: 'not-a-real-route' }, { route: undefined })
 bad(recommendSegmentQuerySchema, 'segment recommend: partial profile', { powerW: '250' }, 'together')
+// A segment can be ridden under a race format (#224), so it takes the same
+// TT-frame bar the route endpoint does - off unless asked for.
+ok(recommendSegmentQuerySchema, 'segment recommend: TT bar defaults off', {}, { excludeTT: false })
+ok(recommendSegmentQuerySchema, 'segment recommend: TT bar parses', { excludeTT: 'true' }, { excludeTT: true })
+bad(recommendSegmentQuerySchema, 'segment recommend: non-boolean TT bar', { excludeTT: 'maybe' }, 'excludeTT')
 
 if (failures > 0) {
   console.error(`\napi-schemas: ${failures} assertion(s) failed`)

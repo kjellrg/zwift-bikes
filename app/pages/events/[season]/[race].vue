@@ -49,15 +49,10 @@ const laps = computed(() => lapsForCategoryGroup(race!, categoryGroupIndex.value
  * that group's published figures; it just can't rank bikes for it.
  */
 const selectedRouteSlug = computed(() => selectedGroup.value?.routeSlug)
-const ttAllowed = ttBikesAllowed(race)
-const draftAllowed = draftingAllowed(race)
+const ttAllowed = ttBikesAllowed(race.format)
+const draftAllowed = draftingAllowed(race.format)
 const formatLabel = computed(() => RACE_FORMAT_LABELS[race!.format!])
-/**
- * The format for use mid-sentence. Every other format's label lowercases into
- * ordinary prose ("this is a points race"); "Race of Truth" is a proper name
- * and reads as gibberish if it doesn't keep its capitals.
- */
-const formatPhrase = computed(() => race!.format === 'rot' ? 'Race of Truth' : formatLabel.value.toLowerCase())
+const formatPhrase = computed(() => raceFormatPhrase(race!.format!))
 
 /**
  * The Ride: this group's course and lap count, plus the two equipment rules
@@ -85,8 +80,12 @@ const recommendEndpoint = (slug: string) => `/api/recommend/${slug}`
 const ride = computed<Ride>(() => ({
   endpoint: selectedRouteSlug.value ? recommendEndpoint(selectedRouteSlug.value) : undefined,
   laps: laps.value,
-  ttFramesAllowed: ttAllowed,
-  draftingAllowed: draftAllowed
+  // Non-null like every other read of the format on this page: a race with
+  // no published format has no page (`isRacePublishable`). Passing the
+  // optional straight through would give one page two readings of an absent
+  // format - "not a race, everything legal" here and "rules unknown, TT
+  // barred" in `ttAllowed` below.
+  ...rideRulesForFormat(race!.format!)
 }))
 const {
   ready: recommendReady, physics: physicsInfo, fastestOverall,
@@ -435,21 +434,10 @@ onMounted(() => {
   isPast.value = raceEndDate(race!) < new Date().toISOString().slice(0, 10)
 })
 
-/**
- * The race's own rules, ahead of the answer and inside the one string the FAQ
- * structured data carries - see `rideRules` on `buildRecommendationAnswer`.
- * Who does the disabling differs and it matters to a rider reading the rules:
- * Zwift itself blocks TT frames in points and scratch races, whereas WTRL
- * bans them by regulation in a Race of Truth.
- */
-const rideRules = computed(() => {
-  const tt = ttAllowed
-    ? 'TT bikes are allowed in this team time trial'
-    : race!.format === 'rot'
-      ? 'WTRL bans TT bikes from its Race of Truth'
-      : `TT bikes are disabled for this ${formatPhrase.value}`
-  return `${tt}${draftAllowed ? '' : ', and WTRL turns drafting off, so the time below is ridden solo'}.`
-})
+// The race's own rules, in the wording every page that can be told a format
+// shares - see `rideRulesLine`, which a segment page reached from here reads
+// the same rule off.
+const rideRules = computed(() => rideRulesLine(race!.format!))
 
 const faqQuestion = computed(() => `What bike should I ride for ${raceTitle.value}?`)
 // The visible answer under the recommendation and the FAQ structured data are
@@ -870,7 +858,7 @@ useHead(() => {
           :tbd="scoringSegmentsTbd"
           :organizer="season!.organizer"
           :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
-          :tt-allowed="ttAllowed"
+          :format="race!.format!"
         />
       </div>
     </div>
@@ -1116,7 +1104,7 @@ useHead(() => {
             :tbd="scoringSegmentsTbd"
             :organizer="season!.organizer"
             :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
-            :tt-allowed="ttAllowed"
+            :format="race!.format!"
           />
         </template>
       </RideCourseAnalysis>

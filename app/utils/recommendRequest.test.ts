@@ -5,6 +5,7 @@ import { RECOMMEND_MAX_LIMIT } from '../../shared/utils/recommendLimits'
 import { DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W } from '../../shared/utils/riderBounds'
 import {
   buildRecommendQuery,
+  rideRulesForFormat,
   cachedRecommendToServe,
   recommendChangeKind,
   rideCategory,
@@ -123,6 +124,27 @@ describe('buildRecommendQuery', () => {
 
     it('keeps a non-TT preference on a ride that bars TT frames', () => {
       expect(rideCategory('gravel', { ...ROUTE_RIDE, ttFramesAllowed: false })).toBe('gravel')
+    })
+  })
+
+  describe('race format', () => {
+    it('turns a format into the ride rules, and no format into no rules at all', () => {
+      // The whole point of one builder: a page cannot record a format and
+      // then disagree with itself about what that format allows.
+      expect(rideRulesForFormat('points')).toEqual({ raceFormat: 'points', ttFramesAllowed: false, draftingAllowed: true })
+      expect(rideRulesForFormat('ttt')).toEqual({ raceFormat: 'ttt', ttFramesAllowed: true, draftingAllowed: true })
+      expect(rideRulesForFormat('rot')).toEqual({ raceFormat: 'rot', ttFramesAllowed: false, draftingAllowed: false })
+      // Not a race: every frame is legal and the draft is the rider's own
+      // business - the opposite of a race whose format is unpublished.
+      expect(rideRulesForFormat(undefined)).toEqual({})
+    })
+
+    it('bars TT frames server-side for a ride told a format that outlaws them', () => {
+      const barred = buildRecommendQuery(DEFAULT_INPUTS, { ...ROUTE_RIDE, ...rideRulesForFormat('scratch') })
+      expect(barred.excludeTT).toBe('true')
+      const allowed = buildRecommendQuery(DEFAULT_INPUTS, { ...ROUTE_RIDE, ...rideRulesForFormat('ttt') })
+      expect(allowed.excludeTT).toBeUndefined()
+      expect(buildRecommendQuery(DEFAULT_INPUTS, { ...ROUTE_RIDE, ...rideRulesForFormat(undefined) }).excludeTT).toBeUndefined()
     })
   })
 

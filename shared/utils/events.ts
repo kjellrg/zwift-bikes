@@ -49,6 +49,14 @@ const isoDate = z.string()
 export const raceFormatSchema = z.enum(['ttt', 'points', 'scratch', 'rot'])
 
 /**
+ * Every format, for the surfaces that have to enumerate them: the segment
+ * page's "Ridden as" control and the `?rules=` values a link may carry. In the
+ * schema's own order, which is not a display order - a control that wants one
+ * says so where it builds its options.
+ */
+export const RACE_FORMATS = raceFormatSchema.options
+
+/**
  * Zwift's lettered racing pens (E is ZRacing legacy / women's E). Not every
  * series uses them - ZRacing 2026 entries are racing-score ranges (Women-Only,
  * Range 1, Range 2, Advanced), which a group models with `label` instead.
@@ -380,19 +388,27 @@ export function getPublishableRaces(): PublishableRace[] {
  * A Race of Truth is the case that looks like it should be an exception and
  * isn't: drafting is off, which in Zwift is normally the TT bike's argument,
  * but WTRL bans TT frames in it outright, so it stays with the majority.
+ *
+ * Takes the format rather than the Race, because a Race format travels
+ * without its race (see `CONTEXT.md`): a segment page can be told one through
+ * `?rules=`, and the MCP tools through `raceFormat`. A caller that has no
+ * format at all is not asking about a race and must not ask this - `undefined`
+ * here means "a race whose format the organiser hasn't published", which is
+ * the opposite answer from "not a race", where every frame is legal.
  */
-export function ttBikesAllowed(race: EventRace): boolean {
-  return race.format === 'ttt'
+export function ttBikesAllowed(format: RaceFormat | undefined): boolean {
+  return format === 'ttt'
 }
 
 /**
  * Drafting is off only in WTRL's Race of Truth - every other covered format is
  * a draft-legal mass start, or a TTT where the whole point is the rotation. A
  * race page uses this to rank on solo physics regardless of the rider's saved
- * draft preference, which it deliberately leaves untouched.
+ * draft preference, which it deliberately leaves untouched. Same `undefined`
+ * rule as `ttBikesAllowed` above.
  */
-export function draftingAllowed(race: EventRace): boolean {
-  return race.format !== 'rot'
+export function draftingAllowed(format: RaceFormat | undefined): boolean {
+  return format !== 'rot'
 }
 
 /**

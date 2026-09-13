@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/classifyBikeFrame'
 import { RIDER_BOUNDS } from '../../shared/utils/riderBounds'
-import { bikesQuerySchema, recommendRouteQuerySchema, routesQuerySchema } from './apiQuerySchemas'
+import { bikesQuerySchema, recommendRouteQuerySchema, recommendSegmentQuerySchema, routesQuerySchema } from './apiQuerySchemas'
 
 /**
  * The strict 400 contract from issue #45: wrong values of known parameters
@@ -41,6 +41,15 @@ describe('recommend query defaults', () => {
 
   it('normalizes search to trimmed lowercase', () => {
     expect(bikesQuerySchema.parse({ search: '  TarMAC ' }).search).toBe('tarmac')
+  })
+
+  // The segment endpoint takes the TT-frame bar too (issue #224): a segment
+  // ridden under a race format is ridden under that format's equipment rules,
+  // and the ranking has to be able to say so.
+  it('takes the TT-frame bar on a segment as well as a route, off by default', () => {
+    expect(recommendSegmentQuerySchema.parse({}).excludeTT).toBe(false)
+    expect(recommendSegmentQuerySchema.parse({ excludeTT: 'true' }).excludeTT).toBe(true)
+    expect(recommendRouteQuerySchema.parse({ excludeTT: 'true' }).excludeTT).toBe(true)
   })
 })
 

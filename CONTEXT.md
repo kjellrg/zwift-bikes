@@ -5,7 +5,7 @@ Ranks every Zwift frame and wheelset by how fast it would carry a specific rider
 ## Language
 
 **Ride**:
-The thing being ranked, together with everything the page knows about it that the rider's stored profile does not: the route or segment, the lap count, whether TT frames are barred, and any rider-side substitution the ride itself demands (a sprint segment is ridden at sprint power; a race with drafting off is ridden solo). One Ride is what a page hands to the recommendation request, and what the server's pipeline receives from an endpoint.
+The thing being ranked, together with everything the page knows about it that the rider's stored profile does not: the route or segment, the lap count, whether TT frames are barred, and any rider-side substitution the ride itself demands (a sprint segment is ridden at sprint power; a race with drafting off is ridden solo). One Ride is what a page hands to the recommendation request, and what the server's pipeline receives from an endpoint. A TT-frame bar can come from a Race format the page was told as readily as from a race the page is.
 One Ride has two representations, one on each side of the request. `Ride` in `app/utils/recommendRequest.ts` is what the page knows; a page hands one to `useRecommendRequest` and owns nothing else about the request. `RecommendRide` is the same Ride resolved against the catalog and ready to be timed: the route to rank against, the laps, the TT-frame rule, and how one combo is timed on it (a segment is entered at speed off a warm-up, a route from its lead-in). The rider-side substitutions never reach the server as part of the Ride; they arrive already applied, as a power figure and a draft mode.
 _Avoid_: context, request options, page config, ride params
 
@@ -15,7 +15,7 @@ _Avoid_: category, class, pen, division
 
 **Shared view**:
 The values a link to a ranking page carries so that the recipient sees what the sender saw: the bike search, the bike category, the draft mode, and whatever the page ranks by beyond the Ride's identity (the lap count on a route, the category group on a race). A shared view never changes the rider's stored preferences. It lasts for the visit: a category or draft mode a link supplied follows the rider to the next ranking page, and is written into that page's link so a reload reproduces it, until the rider chooses that value through a control (which stores it) or restores their saved one; the bike search and the page's own selection - a route's lap count, a race's Category group - belong to the page and stay behind. A fresh visit starts from the stored preferences. A view that only shows the defaults has nothing to carry, so its link stays clean.
-The URL carries a shared view's non-default values. The homepage filters are not a shared view: that page ranks nothing.
+The URL carries a shared view's non-default values. A page's own selection is a bounded integer (a lap count, a Category group) or one of a fixed set of words (the Race format a segment is ridden under); either way one page has one, and the value a clean link omits is the hard default. The homepage filters are not a shared view: that page ranks nothing.
 _Avoid_: URL state, per-visit knobs, query params, visit override
 
 **Directed search**:
@@ -65,6 +65,10 @@ _Avoid_: week (one race's slot inside a round), block, phase
 **Race**:
 A Ride an organiser has put on a Season's calendar: a date, a format, its Category groups and the rules those fix. A race stays upcoming until its last day has passed, so a week-long stage is upcoming all week; the first upcoming race in a season is its next race. A race with no format or no known course is on the schedule but has no page yet, and says so where it is listed.
 _Avoid_: event (the section's name, not a thing on it), stage (an organiser's word for a week-long race)
+
+**Race format**:
+The organiser's word for how a race is run - a team time trial, a points race, a scratch race, WTRL's Race of Truth - and the one field every equipment rule is derived from: whether TT frames may be started on, and whether there is a draft at all. A format can travel without the race it belongs to: a ranking page that is not a race page can be told one, and then ranks under those rules, so a scoring sprint opened from a race is ranked as that race is raced. Being told a format is not being told which race; the page carries the rules, never the race's identity. A page told no format is not riding a race, and every frame is legal there - which is a different thing from a race whose format the organiser hasn't published yet, where the rules are unknown and TT frames are assumed barred.
+_Avoid_: race type, event format, ride rules, race rules
 
 **Garage**:
 The frames and wheels a rider has told the site they own, with an upgrade stage per frame. It lives only in the rider's own browser, like the profile: no account, nothing follows them to another device. Ranking pages read it through Garage fallback, and a garage change refreshes what is already on screen rather than starting the list over, because the controls that change it sit on the results themselves. The garage is edited in an Overlay or on its own page; both edit the same thing.

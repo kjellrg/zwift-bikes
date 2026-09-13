@@ -264,6 +264,21 @@ const resolveLegacyWkg = <Q extends { weightKg?: number, wkg?: number, powerW?: 
     ? { ...query, powerW: Math.round(query.wkg * query.weightKg) }
     : query
 
+/**
+ * The race format's TT-frame bar, sent by a page or tool that has been told
+ * the format its ranking is ridden under - a race page from the race itself,
+ * a segment page from `?rules=`, an MCP call from `raceFormat`. Zwift disables
+ * TT frames for points and scratch races and WTRL bans them from a Race of
+ * Truth; `ttBikesAllowed` in `shared/utils/events.ts` is the one place that
+ * derivation happens, and this is only its result on the wire.
+ *
+ * It's a LEGALITY filter like ownership, not a display trim, and `category`
+ * can't express it: a points race allows road AND gravel frames, just never
+ * TT. Both recommend endpoints take it, because a scoring sprint inside a
+ * points race is ridden under that race's rules as much as the race is.
+ */
+const excludeTT = qBool(false)
+
 export const recommendRouteQuerySchema = z.object({
   ...recommendBaseShape,
   // Bounded here; the handler still runs `clampLaps` for the route-dependent
@@ -272,12 +287,7 @@ export const recommendRouteQuerySchema = z.object({
   // linear in total distance, so the cap is what keeps a long lappable route
   // from multiplying into an arbitrarily expensive request).
   laps: qNumber.pipe(z.number().min(1).max(MAX_LAPS).optional()),
-  // Event race pages send this when the race format outlaws TT frames (Zwift
-  // disables them for points and scratch races - see `ttBikesAllowed` in
-  // `shared/utils/events.ts`). It's a LEGALITY filter like ownership, not a
-  // display trim, and `category` can't express it: a points race allows road
-  // AND gravel frames, just never TT.
-  excludeTT: qBool(false)
+  excludeTT
 }).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
 
 // No segment-specific parameters: the old `route` param (which host route's
@@ -286,7 +296,8 @@ export const recommendRouteQuerySchema = z.object({
 // best-instrumented host itself. Old crawled `?route=` URLs still parse
 // cleanly via the ignore-unknown-keys contract above.
 export const recommendSegmentQuerySchema = z.object({
-  ...recommendBaseShape
+  ...recommendBaseShape,
+  excludeTT
 }).superRefine(riderProfileComplete).transform(resolveLegacyWkg)
 
 export type RecommendRouteQuery = z.output<typeof recommendRouteQuerySchema>
