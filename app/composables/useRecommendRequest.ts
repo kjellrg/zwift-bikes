@@ -565,22 +565,6 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     /** `v-model:search` for `RideAlternatives`; the composable debounces it into the query. */
     bikeSearch,
     /** The settled search term - what the query was actually built from, and what a page writes to the URL. */
-    bikeSearchDebounced,
-    /**
-     * The serialised query the ranking on screen was fetched for, for
-     * anything that has to notice when the ride being ranked changes
-     * underneath it. The Applied Ranking's own, not the live controls': the
-     * Equipment drawer keys its route upgrade curve on this
-     * (`upgradeCurveKey`) and fills that curve from the same drill-down
-     * `loadWheelOptions` uses, so a key that moved with the controls would
-     * label a curve with a request it was not computed under. Nothing parses
-     * it back out.
-     *
-     * Every reader now takes it off the Applied Ranking; it stays here, like
-     * the other loose names beside it, until the ranking pages' results
-     * column is built once and the page interface can be trimmed as a whole.
-     */
-    appliedRequestKey,
-    loadWheelOptions
+    bikeSearchDebounced
   }
 }

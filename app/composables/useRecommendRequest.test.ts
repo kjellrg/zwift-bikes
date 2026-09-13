@@ -162,6 +162,13 @@ async function expanded() {
 }
 
 const times = (test: ReturnType<typeof setup>) => test.request.combos.value.map(combo => combo.finishTimeSec)
+/**
+ * A frame's Wheel alternatives, asked for the way every caller asks: off the
+ * Applied Ranking the row holding it was rendered from. Read at call time, so
+ * a test can ask under a ranking the controls have already moved past.
+ */
+const wheelAlternatives = (test: ReturnType<typeof setup>, frameId: number) =>
+  test.request.appliedRanking.value.loadWheelOptions(frameId)
 
 describe('useRecommendRequest applied ranking', () => {
   it('hydrates the rendered provenance before fetching the stored rider and preserves it on failure', async () => {
@@ -491,7 +498,7 @@ describe('useRecommendRequest applied ranking', () => {
     const test = await expanded()
     test.powerW.value = 250
     await nextTick()
-    const held = test.request.loadWheelOptions(12)
+    const held = wheelAlternatives(test, 12)
     const heldCall = test.fetch.mock.calls.at(-1)!
     expect(heldCall[1].query).toMatchObject({ powerW: 200, wheelsForFrame: 12, offset: 0 })
     test.pending.at(-1)!.resolve(page(105, 'Applied wheels'))
@@ -502,7 +509,7 @@ describe('useRecommendRequest applied ranking', () => {
     test.pending[2]!.reject(new Error('Refresh failed'))
     await settle()
     expect(test.request.refreshFailed.value).toBe(true)
-    const afterFailure = test.request.loadWheelOptions(12)
+    const afterFailure = wheelAlternatives(test, 12)
     expect(test.fetch.mock.calls.at(-1)![1].query).toMatchObject({ powerW: 200, wheelsForFrame: 12 })
     test.pending.at(-1)!.resolve(page(105, 'Applied wheels'))
     expect((await afterFailure)?.map(combo => combo.finishTimeSec)).toEqual([105])
@@ -513,7 +520,7 @@ describe('useRecommendRequest applied ranking', () => {
     test.pending[0]!.resolve(page(100, 'Original physics'))
     await test.request.ready
     await settle()
-    const options = test.request.loadWheelOptions(12)
+    const options = wheelAlternatives(test, 12)
     const more = test.request.showMore()
     test.pending[2]!.resolve(page(110, 'Original physics'))
     await more
@@ -524,7 +531,7 @@ describe('useRecommendRequest applied ranking', () => {
 
   it('discards wheel alternatives that arrive under a ranking no longer on screen', async () => {
     const test = await expanded()
-    const late = test.request.loadWheelOptions(12)
+    const late = wheelAlternatives(test, 12)
     test.powerW.value = 250
     await nextTick()
     test.pending[3]!.resolve(page(80, 'New physics'))
@@ -556,9 +563,6 @@ describe('useRecommendRequest applied ranking', () => {
     expect(applied.combos.map(combo => combo.finishTimeSec)).toEqual([80])
     expect(applied.fastestTimeSec).toBe(80)
     expect(applied.requestKey).not.toBe(before.requestKey)
-    // The drill-down travels with the object rather than being handed out
-    // separately, so a row cannot hold one ranking and ask another for wheels.
-    expect(applied.loadWheelOptions).toBe(test.request.loadWheelOptions)
   })
 
   it('reads the course live, so a lookup that answers after the ranking still describes it', async () => {
