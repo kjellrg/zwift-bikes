@@ -1,5 +1,7 @@
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
 import { DEFAULT_UNOWNED_LEVEL } from '../../../shared/utils/classifyBikeFrame'
+import type { RaceFormat } from '../../../shared/utils/events'
+import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '../../../shared/utils/events'
 import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
 import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
 import { clampLaps, computeRouteTotals, MAX_LAPS, MAX_TOTAL_DISTANCE_KM, maxLapsForRoute } from '../../../shared/utils/routeLaps'
@@ -11,6 +13,7 @@ import {
   formatPagination,
   formatSurface,
   formatRaceAssumption,
+  formatRaceFormatAssumption,
   formatTttAssumption,
   type RecommendRouteResponse,
   type RecommendSegmentResponse
@@ -156,8 +159,46 @@ function upgradeLevelFor(args: Record<string, unknown>): number {
   return Number.isFinite(level) ? Math.min(5, Math.max(0, level)) : DEFAULT_UNOWNED_LEVEL
 }
 
+/**
+ * The Race format this call is ridden under, or an error naming what the
+ * argument accepts. Absent is a real answer - "not a race", every frame legal
+ * - and not a missing one.
+ *
+ * Validated here rather than forwarded, because unlike every other argument
+ * this one never reaches an endpoint that would reject it: it is translated
+ * into `excludeTT` and a draft mode, so a typo would silently produce a
+ * ranking under no rules at all - exactly the silent wrongness issue #225 is
+ * about.
+ */
+function resolveRaceFormat(args: Record<string, unknown>): { format?: RaceFormat } | { error: string } {
+  const value = args.raceFormat
+  if (value === undefined || value === null) return {}
+  if (typeof value !== 'string' || !(RACE_FORMATS as readonly string[]).includes(value)) {
+    return { error: `Invalid arguments: raceFormat must be one of ${RACE_FORMATS.join(', ')}. Omit it when the ride is not a race.` }
+  }
+  const format = value as RaceFormat
+  // Said rather than answered with an empty table: "no TT bikes are fast
+  // enough" and "TT bikes are illegal here" are different answers, and the
+  // second is the one a model would otherwise have to guess at. The website
+  // substitutes instead, because there the category is a STORED preference the
+  // rider never chose for this race; here both arrived in one call.
+  if (args.category === 'tt' && !ttBikesAllowed(format)) {
+    return { error: `Invalid arguments: raceFormat "${format}" bars TT frames, so category "tt" leaves nothing legal to rank. Drop category to rank every category this format allows, or drop raceFormat to rank the whole catalog.` }
+  }
+  return { format }
+}
+
 /** Query params shared by both recommend endpoints. */
-function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): Record<string, unknown> {
+function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, raceFormat?: RaceFormat): Record<string, unknown> {
+  // The format WINS over `draftMode`: a Race of Truth has no draft at all, so
+  // a paceline or bunch saving there would be minutes fast and could reorder
+  // the list. The header says so - see `formatRaceFormatAssumption` - because
+  // an override a model cannot see is one it will confidently misreport.
+  // A TTT format is deliberately NOT read as `draftMode: 'ttt'`: the race page
+  // doesn't make that leap either, and a rider asking about TTT equipment may
+  // want the solo baseline.
+  const requested = args.draftMode === 'ttt' ? 'ttt' : args.draftMode === 'race' ? 'race' : undefined
+  const draftMode = raceFormat !== undefined && !draftingAllowed(raceFormat) ? undefined : requested
   return {
     weightKg: profile.weightKg,
     heightCm: profile.heightCm,
@@ -186,12 +227,16 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile): R
     // limit 20 deserves the first 9 results, not an error to retry from.
     limit: Number.isFinite(Number(args.limit)) ? Math.min(RECOMMEND_MAX_LIMIT, Math.max(1, Math.floor(Number(args.limit)))) : RECOMMEND_MAX_LIMIT,
     offset: Number.isFinite(Number(args.offset)) ? Math.min(RECOMMEND_MAX_OFFSET, Math.max(0, Math.floor(Number(args.offset)))) : 0,
+    // A LEGALITY filter, not a display trim, and `category` cannot express it:
+    // a points race allows road AND gravel frames, just never TT. The
+    // derivation lives in `ttBikesAllowed`, shared with the site's own pages.
+    excludeTT: raceFormat !== undefined && !ttBikesAllowed(raceFormat) ? 'true' : undefined,
     // Omitted entirely in solo mode, matching the web pages - a solo request is
     // byte-identical to one from before draft mode existed. Race mode sends the
     // mode and nothing else; it has no parameters.
-    draftMode: args.draftMode === 'ttt' ? 'ttt' : args.draftMode === 'race' ? 'race' : undefined,
-    tttRiders: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? clampTttRiders(Number(args.tttRiders)) : undefined,
-    tttClimbWkg: args.draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? clampTttClimbWkg(Number(args.tttClimbWkg)) : undefined
+    draftMode,
+    tttRiders: draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? clampTttRiders(Number(args.tttRiders)) : undefined,
+    tttClimbWkg: draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? clampTttClimbWkg(Number(args.tttClimbWkg)) : undefined
   }
 }
 
@@ -208,7 +253,8 @@ const RECOMMEND_FILTER_PROPERTIES = {
   offset: { type: 'number', description: 'Skip this many ranks, for paging past the first page of results. Capped at 100 - deeper ranks are not reachable through this tool; narrow with `search` or filters instead.' },
   draftMode: { type: 'string', enum: ['solo', 'ttt', 'race'], description: 'Defaults to solo (a lone rider, no draft - how ZwiftInsider\'s bot tests ride). "ttt" models a rotating Team Time Trial paceline. The rider\'s wkg still means their OWN average over a full rotation (what they can sustain), and the group rides at the speed that combined effort produces - roughly the speed of a solo rider at 1.38x their power for an 8-rider team. The response gains a physics.ttt block with the pull/last-wheel watts and a simulated "saves vs riding this alone at the same effort" comparison. "race" models a mass-start bunch (any points/scratch race, group ride or crit) using one draft saving calibrated against thirteen real ZwiftPower race fields - it takes NO further parameters, and the rider\'s wkg still means their own MECHANICAL AVERAGE power for the whole race, not their normalised power (feeding NP in overstates the prediction by ~2%). It estimates a TYPICAL MID-PACK finish time, not a win, a breakaway or a solo effort off the front; a real bunch spreads about +/-1-2% around it. The response gains a physics.race block with the applied saving and the same "saves vs riding solo" comparison.' },
   tttRiders: { type: 'number', description: 'TTT mode only: riders in the rotation, 2-8. Defaults to 8. Bigger teams are faster for the same per-rider effort, because each rider spends a smaller share of the time on the front.' },
-  tttClimbWkg: { type: 'number', description: 'TTT mode only, optional: the team\'s average W/kg on stretches slow enough that the rotation stops - estimated solo speed under ~21 km/h for 2.5+ minutes, where the paceline breaks up (2-9). Applied instead of the rider\'s flat-effort wkg on those stretches. Omit to ride climbs at the same wkg.' }
+  tttClimbWkg: { type: 'number', description: 'TTT mode only, optional: the team\'s average W/kg on stretches slow enough that the rotation stops - estimated solo speed under ~21 km/h for 2.5+ minutes, where the paceline breaks up (2-9). Applied instead of the rider\'s flat-effort wkg on those stretches. Omit to ride climbs at the same wkg.' },
+  raceFormat: { type: 'string', enum: [...RACE_FORMATS], description: 'The race format this ride is raced under, when it is a race at all - omit it otherwise, and the whole catalog is ranked. It fixes what may be started on: "points", "scratch" and "rot" (WTRL\'s Race of Truth) all BAR TT frames, so none are ranked, while "ttt" (a team time trial) is the one format where Zwift enables them and gives them draft. "rot" also has no draft at all, so it is always ranked solo and OVERRIDES draftMode - the response header says when that happened. Note "ttt" does NOT imply draftMode "ttt": pass that separately if the rider wants paceline times rather than the solo baseline. Pass this whenever the user says what they are racing, so the ranking only contains bikes they can legally start on.' }
 } as const
 
 const TOOLS: ToolDefinition[] = [
@@ -460,7 +506,8 @@ const TOOLS: ToolDefinition[] = [
     title: 'Recommend bikes for a route',
     description: 'Rank Zwift bike frame + wheelset combinations by predicted finish time on a whole route, for a specific rider. '
       + 'This is the main tool - call it whenever the user asks which bike is fastest, or how much time a bike would save, on a named route. '
-      + 'Needs a rider profile: either call set_rider_profile first, or pass weightKg, heightCm and wkg here.',
+      + 'Needs a rider profile: either call set_rider_profile first, or pass weightKg, heightCm and wkg here. '
+      + 'If the ride is a race, pass raceFormat: points races, scratch races and WTRL\'s Race of Truth all bar TT frames, so without it the ranking can recommend a bike the rider cannot start on.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -476,6 +523,8 @@ const TOOLS: ToolDefinition[] = [
       const slug = String(args.route ?? '')
       const resolved = resolveProfile(args, context)
       if ('error' in resolved) return failure(resolved.error)
+      const raceFormat = resolveRaceFormat(args)
+      if ('error' in raceFormat) return failure(raceFormat.error)
 
       // Fetched first so an unknown slug fails with a suggestion before any
       // ranking work, and so the header can report the lap count and totals
@@ -492,7 +541,7 @@ const TOOLS: ToolDefinition[] = [
       const laps = clampLaps(route, Number(args.laps))
       const totals = computeRouteTotals(route, laps)
       const response = await fetchApi<RecommendRouteResponse>(`/api/recommend/${encodeURIComponent(slug)}`, {
-        ...recommendQuery(args, resolved.profile),
+        ...recommendQuery(args, resolved.profile, raceFormat.format),
         laps
       })
 
@@ -507,6 +556,7 @@ const TOOLS: ToolDefinition[] = [
         '',
         `- ${lapNote}: ${totals.distanceKm.toFixed(1)} km, ${Math.round(totals.elevationM)} m total (lead-in included)`,
         `- Surface: ${formatSurface(route.surface)}`,
+        formatRaceFormatAssumption(raceFormat.format, args.draftMode),
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${(physics.rider.powerW / physics.rider.weightKg).toFixed(2)} W/kg (${physics.rider.powerW} W)` : undefined,
         physics ? `- Physics: ${physics.mode}, geometry ${physics.geometry}` : undefined,
@@ -535,7 +585,8 @@ const TOOLS: ToolDefinition[] = [
     description: 'Rank Zwift bike frame + wheelset combinations by predicted time on a single named climb or sprint, for a specific rider. '
       + 'Use this instead of recommend_for_route when the user asks about one segment (e.g. "fastest bike up Alpe du Zwift"). '
       + 'The segment is simulated after a flat run-up so it starts at realistic speed rather than from a standstill. '
-      + 'Needs a rider profile: either call set_rider_profile first, or pass weightKg, heightCm and wkg here.',
+      + 'Needs a rider profile: either call set_rider_profile first, or pass weightKg, heightCm and wkg here. '
+      + 'If the segment is scored inside a race - a points sprint, a KOM in a scratch race - pass raceFormat, so the ranking only contains bikes that race allows.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -550,10 +601,12 @@ const TOOLS: ToolDefinition[] = [
       const slug = String(args.segment ?? '')
       const resolved = resolveProfile(args, context)
       if ('error' in resolved) return failure(resolved.error)
+      const raceFormat = resolveRaceFormat(args)
+      if ('error' in raceFormat) return failure(raceFormat.error)
 
       let response: RecommendSegmentResponse
       try {
-        response = await fetchApi<RecommendSegmentResponse>(`/api/recommend/segments/${encodeURIComponent(slug)}`, recommendQuery(args, resolved.profile))
+        response = await fetchApi<RecommendSegmentResponse>(`/api/recommend/segments/${encodeURIComponent(slug)}`, recommendQuery(args, resolved.profile, raceFormat.format))
       } catch (error) {
         if (statusOf(error) === 404) return failure(`No segment with slug "${slug}". ${await suggestSegments(slug)}`)
         throw error
@@ -567,6 +620,7 @@ const TOOLS: ToolDefinition[] = [
         `# Fastest bikes on ${segment.name} (${segment.worldName})`,
         '',
         `- ${segment.type}: ${segment.lengthKm.toFixed(1)} km, ${Math.round(segment.measuredElevationM ?? segment.elevationM)} m, ${(segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)}% avg${segment.climbType ? `, category ${segment.climbType}` : ''}`,
+        formatRaceFormatAssumption(raceFormat.format, args.draftMode),
         verifiedOnly ? '- Verified equipment only' : '- Including heuristic estimates',
         physics ? `- Rider: ${physics.rider.weightKg} kg, ${physics.rider.heightCm} cm, ${(physics.rider.powerW / physics.rider.weightKg).toFixed(2)} W/kg (${physics.rider.powerW} W)` : undefined,
         formatTttAssumption(physics),

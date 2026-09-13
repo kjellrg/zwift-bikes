@@ -1,4 +1,5 @@
 import type { ComboScore, RouteSummary, SegmentSummary, SurfaceEstimate } from '../../../shared/types/catalog'
+import type { RaceFormat } from '../../../shared/utils/events'
 import { formatDuration, formatDurationGap } from '../../../shared/utils/duration'
 import { RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
 
@@ -174,4 +175,31 @@ export function formatRaceAssumption(physics: RecommendPhysics | undefined): str
       : `~${formatDuration(Math.abs(race.raceSavedSec))} SLOWER than riding solo`)
   }
   return parts.join('; ')
+}
+
+/**
+ * What a Race format did to a recommend call, said out loud in the header.
+ *
+ * The format WINS over `draftMode`, and a model that cannot see the override
+ * will confidently misreport the answer - so every line names both the rule
+ * and its consequence (issue #225). `requestedDraftMode` is what the caller
+ * asked for, only so the Race of Truth line can say what was taken away.
+ *
+ * Wording of its own rather than the site's `rideRulesLine`: this is a header
+ * for a model deciding what to say next, not a sentence under a ranking. The
+ * rules themselves still come from `ttBikesAllowed` / `draftingAllowed`.
+ */
+export function formatRaceFormatAssumption(format: RaceFormat | undefined, requestedDraftMode: unknown): string | undefined {
+  if (!format) return undefined
+  if (format === 'ttt') {
+    return '- Race format: team time trial - Zwift enables TT frames and gives them draft here, so they are ranked below. Drafting is whatever was asked for; a TTT format does NOT imply ttt draft mode, and a rider asking about TTT equipment may want the solo baseline.'
+  }
+  if (format === 'rot') {
+    const taken = requestedDraftMode === 'ttt' || requestedDraftMode === 'race'
+      ? ` The requested "${String(requestedDraftMode)}" draft mode was overridden by the format.`
+      : ''
+    return `- Race format: WTRL Race of Truth - WTRL bans TT frames outright, so none are ranked below, and the format has no draft at all, so every time below is ridden solo.${taken}`
+  }
+  const label = format === 'points' ? 'points race' : 'scratch race'
+  return `- Race format: ${label} - Zwift disables TT frames for points and scratch races, so none are ranked below. Everything listed is a bike the rider can actually start on.`
 }

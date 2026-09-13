@@ -129,6 +129,41 @@ bunch spreads about ±1-2% around it. The response's `physics.race` block carrie
 the applied saving, the rider's own watts and the same "saves X vs riding solo"
 comparison, again surfaced as a header assumption line.
 
+Both recommend tools also take `raceFormat` (`ttt` | `points` | `scratch` |
+`rot`), which is the whole of issue #225: without it a race was ranked against
+the whole catalog, and the answer could name a bike the rider is not allowed to
+start on. Omitting it means "not a race", which is a real answer and the
+default. The four values are the same enum the site's own event data uses, and
+the rules come from the same two derivations (`ttBikesAllowed` /
+`draftingAllowed` in `shared/utils/events.ts`) the race and segment pages call —
+`points`, `scratch` and WTRL's `rot` all bar TT frames; `ttt` is the one format
+where Zwift enables them and gives them draft.
+
+Two things about it a model must not get wrong, which is why the header states
+both rather than leaving them to be inferred:
+
+- **The format wins over `draftMode`.** A Race of Truth has no draft at all, so
+  it is always ranked solo and a `ttt` or `race` mode passed alongside it is
+  overridden. The header says when that happened: an override a model cannot
+  see is one it will confidently misreport.
+- **`raceFormat: "ttt"` does NOT imply `draftMode: "ttt"`.** The website's race
+  page does not make that leap either, and a rider asking which bike to take to
+  a team time trial may well want the solo baseline. Pass both if paceline
+  times are what is wanted.
+
+An unknown value is rejected with a message naming the four, rather than
+ignored: `raceFormat` is translated into a legality filter and a draft mode
+rather than forwarded, so a typo has no endpoint to 400 on it. So is
+`category: "tt"` alongside a format that bars TT frames — "no TT bike is fast
+enough" and "TT bikes are illegal here" are different answers, and an empty
+table would leave a model to guess which one it got. (The website substitutes
+rather than refusing, because there the category is a stored preference the
+rider never chose for this race; here both arrived in one call.)
+
+Event awareness - looking a race up on the calendar and reading its format off
+it - is deliberately not part of this (issue #241). A model that knows what the
+user is racing passes the format; it does not have to know which race.
+
 They return at most 9 combos per call - the same cap the HTTP endpoint
 enforces - with `offset` for paging, and **one row per frame**, paired with
 that frame's fastest wheelset for the route. The web UI can afford to show a
