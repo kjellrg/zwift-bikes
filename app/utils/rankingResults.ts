@@ -23,10 +23,13 @@ export function hasSurfaceLocations(course: RouteWithMeta | undefined): boolean 
 }
 
 /**
- * The physics block of a recommend response, as the evidence lines read it -
- * see `RecommendResponse` in `useRecommendRequest`, which is where the whole
- * shape is declared. Named here so this module stays plain node: nothing in
- * it may import a composable.
+ * The physics block of a recommend response, as the evidence lines read it.
+ *
+ * A deliberate restatement of `RecommendResponse['physics']` in
+ * `useRecommendRequest`, which declares the whole shape and which carries the
+ * pointer back here: this module stays plain node, so nothing in it may
+ * import a composable. The two move together - a field the lines below read
+ * that is renamed there must be renamed here.
  */
 type RankingPhysics = {
   mode: string
@@ -36,9 +39,12 @@ type RankingPhysics = {
 
 /**
  * Whether the ranking ran on the dynamic physics model - the header badge's
- * question. One spelling of `'dynamic'`, because three pages ask it and a
- * renamed mode must break all three at once rather than quietly turn the
- * badge off on the two nobody reloaded.
+ * question, asked by all three ranking pages.
+ *
+ * One spelling of `'dynamic'` because nothing checks it: `mode` reaches the
+ * client as a plain `string` (see `RecommendResponse`), so a renamed mode
+ * would turn the badge off in silence rather than fail a build. One place to
+ * correct beats three to find.
  */
 export function isDynamicPhysics(physics: Pick<RankingPhysics, 'mode'> | undefined): boolean {
   return physics?.mode === 'dynamic'

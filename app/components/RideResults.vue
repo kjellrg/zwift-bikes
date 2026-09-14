@@ -187,9 +187,10 @@ const evidence = computed(() => rankingEvidence({
   </div>
 
   <!-- Full width beneath both columns: the answer the page's title asks
-       for, with its assumptions on a smaller line. Inside the
-       recommendation column it drove the row's height and left the
-       briefing beside acres of whitespace. -->
+       for - its Ride rules first, where the Ride has any - with its
+       assumptions on a smaller line. Inside the recommendation column it
+       drove the row's height and left the briefing beside acres of
+       whitespace. -->
   <section
     v-if="answer"
     aria-labelledby="ride-answer-heading"

@@ -34,6 +34,11 @@ export interface RecommendResponse {
     /** Absent when the filters left no rank 1 to measure the gap against - see `FastestOverall`. */
     deltaSec?: number
   }
+  /**
+   * Mirrored, deliberately, by `RankingPhysics` in `app/utils/rankingResults.ts`,
+   * which derives the evidence lines from it and must stay plain node. A field
+   * renamed here has to be renamed there too - nothing else connects them.
+   */
   physics?: {
     mode: string
     summary?: string
