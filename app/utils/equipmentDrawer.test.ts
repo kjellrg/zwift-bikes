@@ -20,7 +20,7 @@ const loadWheelOptions = async () => null
 function ranking(combos: ComboScore[], overrides: Partial<AppliedRanking> = {}): AppliedRanking {
   return {
     combos,
-    ride: { endpoint: '/api/recommend/hilly-route', laps: 1 },
+    ride: { course: { kind: 'route', slug: 'hilly-route' }, laps: 1 },
     rider: {} as AppliedRanking['rider'],
     restrictions: {} as AppliedRanking['restrictions'],
     fastestTimeSec: combos[0]?.finishTimeSec,
@@ -64,7 +64,7 @@ describe('equipmentDrawerView', () => {
   it('re-takes the ranking\'s own facts with the row, so the numbers cannot come from two rides', () => {
     const record = openedEquipmentDrawerRecord(combo(TARMAC, 'zipp-808', 1805), ranking([combo(TARMAC, 'zipp-808', 1805)]))
     const twoLaps = ranking([combo(CONCEPT, undefined, 3500), combo(TARMAC, 'zipp-808', 3600)], {
-      ride: { endpoint: '/api/recommend/road-to-sky', laps: 2 },
+      ride: { course: { kind: 'route', slug: 'road-to-sky' }, laps: 2 },
       course: ALPE,
       requestKey: 'laps=2'
     })
@@ -106,7 +106,7 @@ describe('equipmentDrawerView', () => {
     const record = openedEquipmentDrawerRecord(tt, ranking([tt]))
 
     const view = equipmentDrawerView(record, ranking([combo(TARMAC, 'zipp-808', 1900)], {
-      ride: { endpoint: '/api/recommend/hilly-route', laps: 1, ttFramesAllowed: false }
+      ride: { course: { kind: 'route', slug: 'hilly-route' }, laps: 1, ttFramesAllowed: false }
     }))
     expect(view.standing).toBe('barred')
     expect(view.fastestTimeSec).toBe(1700)
@@ -117,7 +117,7 @@ describe('equipmentDrawerView', () => {
     const record = openedEquipmentDrawerRecord(road, ranking([road]))
 
     const view = equipmentDrawerView(record, ranking([combo(CONCEPT, undefined, 1800)], {
-      ride: { endpoint: '/api/recommend/hilly-route', laps: 1, ttFramesAllowed: false }
+      ride: { course: { kind: 'route', slug: 'hilly-route' }, laps: 1, ttFramesAllowed: false }
     }))
     expect(view.standing).toBe('dropped')
   })

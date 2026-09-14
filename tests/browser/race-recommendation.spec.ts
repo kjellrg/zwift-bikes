@@ -176,62 +176,17 @@ test.describe('race recommendation', () => {
     // Settled on one course, nothing needs naming a second one.
     await expect(panel(page, 'Speed & surface')).not.toContainText('Urumaze')
 
-    // Hold the ranking for the new group so the window the old page got wrong
-    // is open long enough to look at: the selector and the route lookup have
-    // moved, the ranking has not.
-    let release = () => {}
-    const held = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    await page.route(url => isListingUrl(url.toString()), async (route) => {
-      await held
-      await route.continue()
-    }, { times: 1 })
-
-    const settled = page.waitForResponse(isListingResponse)
-    await groupPicker(page).click()
-    await page.getByRole('option', { name: 'C/D - 1 lap' }).click()
-
-    // The header follows the selector immediately - that is the point of it.
+    // The window between the group moving and its ranking landing - where
+    // the chart must keep describing the course its setup was ranked on, and
+    // where a ranking that lands before its course lookup has no course at
+    // all - is the request module's rule, and is held open and asserted in
+    // `useRecommendRequest.test.ts` rather than by intercepting requests
+    // here. What the browser proves is the settled state on either side.
+    await pickGroup(page, 'C/D - 1 lap')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Round 1 Week 3: Urumaze')
-    // The chart does not: it still describes the combo that was ranked on
-    // Makuri 40, and says which course that was.
-    await expect(panel(page, 'Speed & surface')).toContainText('on Makuri 40')
-    await expect(page.locator('#ride-results')).toHaveAttribute('aria-busy', 'true')
-
-    release()
-    expect((await settled).ok()).toBe(true)
-    await ready(page)
-    // Settled on the new course, and back to naming none.
+    await expect(panel(page, 'Speed & surface')).toContainText('225 W')
     await expect(panel(page, 'Speed & surface')).not.toContainText('on Makuri 40')
     await expect(answer(page)).toContainText('of Urumaze in Makuri Islands')
-  })
-
-  test('does not explain a new ranking with an older course while its route lookup is held', async ({ page }) => {
-    await visit(page, SPLIT_BY_COURSE)
-    let release = () => {}
-    const held = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    await page.route('**/api/routes/4092230492', async (route) => {
-      await held
-      await route.continue()
-    })
-    try {
-      const ranking = page.waitForResponse(response => isListingResponse(response) && response.url().includes('/4092230492?'))
-      await groupPicker(page).click()
-      await page.getByRole('option', { name: 'C/D - 1 lap' }).click()
-      expect((await ranking).ok()).toBe(true)
-      await ready(page)
-      await expect(recommendation(page)).toBeVisible()
-      await expect(recommendation(page)).not.toContainText('km/h')
-      await expect(answer(page)).toHaveCount(0)
-      release()
-      await expect(answer(page)).toContainText('of Urumaze in Makuri Islands')
-    } finally {
-      release()
-      await page.unrouteAll({ behavior: 'wait' })
-    }
   })
 
   test('keeps its draft explanation on the Applied rider when a new mode fails', async ({ page }) => {

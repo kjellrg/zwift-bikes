@@ -55,7 +55,7 @@ function toggleOwned() {
 }
 
 const distanceKm = computed(() => props.ranking.course
-  ? computeRouteTotals(props.ranking.course, props.ranking.ride.laps ?? 1).distanceKm
+  ? computeRouteTotals(props.ranking.course, props.ranking.ride?.laps ?? 1).distanceKm
   : undefined)
 const botTested = computed(() => isBotTested(props.combo))
 </script>

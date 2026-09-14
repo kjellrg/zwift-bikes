@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { RaceFormat } from '#shared/utils/events'
-import type { Ride } from '../../utils/recommendRequest'
+import type { Ride, RideCourse } from '../../utils/recommendRequest'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/events'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForSegment } from '#shared/utils/recommendRide'
@@ -9,14 +9,19 @@ import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../utils/ranki
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
-const { data: segmentData, error: segmentError } = await useFetch(() => `/api/segments/${slug.value}`)
+// The identity this page ranks, and the one it looks up - one spelling, so
+// the two cannot disagree about which kind of course it is.
+const course = computed<RideCourse>(() => ({ kind: 'segment', slug: slug.value }))
+// The segment's summary and the synthetic segment-as-route the server ranks
+// against, which carries the segment's sliced elevation profile and surface
+// breakdown (see `routeWithMetaForSegment`). Positional segments on a
+// measured host get a real profile; membership segments don't, and the chart
+// hides itself. The same lookup the request makes for its applied course,
+// under the same key - see `useCourse`.
+const { ready: segmentReady, segment: segmentData, course: segmentRoute, error: segmentError } = useCourse(() => course.value)
+await segmentReady
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
 
-// The synthetic segment-as-route the server ranks against - carries the
-// segment's sliced elevation profile and surface breakdown (see
-// `routeWithMetaForSegment`). Positional segments on a measured host get a
-// real profile; membership segments don't, and the chart hides itself.
-const segmentRoute = computed(() => segmentData.value?.route)
 const resolvedRide = computed(() => segmentRoute.value ? rideForSegment(segmentRoute.value) : undefined)
 
 // Sprint segments rank at the rider's separate sprint power (see
@@ -84,7 +89,7 @@ const draftAllowed = computed(() => !raceFormat.value || draftingAllowed(raceFor
  * preference being touched.
  */
 const ride = computed<Ride>(() => ({
-  endpoint: `/api/recommend/segments/${slug.value}`,
+  course: course.value,
   power: isSprint.value ? 'sprint' : 'race',
   ...rideRulesForFormat(raceFormat.value)
 }))
@@ -92,15 +97,10 @@ const ride = computed<Ride>(() => ({
 // about the Ranking; what is destructured here is what the page itself is
 // still about - its header, its race-format control, its briefing and its
 // analysis.
-const request = useRecommendRequest(() => ride.value, {
-  key: `recommend-segment-${slug.value}`,
-  // The segment is ridden on its host route, which is what a km/h or a
-  // "seconds off" caption is measured over.
-  course: () => segmentRoute.value
-})
+const request = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRide, appliedRestrictions,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, appliedRide, appliedRestrictions,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 await recommendReady
@@ -111,7 +111,7 @@ await recommendReady
  * `isSprint`, so the power and the word for it can never disagree.
  */
 const reportRideLine = computed(() => formatRideLine({
-  subject: appliedRide.value.power === 'sprint' ? 'Sprint segment' : 'Climbing segment',
+  subject: appliedRide.value?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment',
   ride: appliedRide.value,
   rider: appliedInputs.value
 }))
@@ -225,7 +225,7 @@ const answer = useRecommendationAnswer({
   // APPLIED, unlike the two control props above: this explains the times on
   // screen, so it must name the format they were ranked under. Same wording
   // as the race page's, from `rideRulesLine`.
-  rideRules: () => appliedRide.value.raceFormat ? rideRulesLine(appliedRide.value.raceFormat) : undefined
+  rideRules: () => appliedRide.value?.raceFormat ? rideRulesLine(appliedRide.value.raceFormat) : undefined
 })
 const faqAnswer = computed(() => answer.value?.text)
 
@@ -417,6 +417,7 @@ useHead(() => {
          route-style, from a standing start, and their scope lines say so. -->
     <RideCourseAnalysis
       :route="segmentRoute"
+      :results-route="appliedRanking.course"
       :kind="segmentData.type"
       :laps="1"
       :results-laps="1"

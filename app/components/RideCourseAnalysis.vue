@@ -4,6 +4,7 @@ import type { TttPlan } from '../composables/useTttPlan'
 import type { AppliedRiderInputs } from '../utils/recommendRequest'
 import { MIN_ROUTE_KM, type RacePlanItem } from '#shared/utils/physics/racePlan'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
+import { courseNote, hasElevationProfile, hasSurfaceLocations } from '../utils/rankingResults'
 
 /**
  * The course-analysis tabs under a route or segment page: the Ride-only
@@ -21,19 +22,20 @@ import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOc
  * `resultsLaps`, `combo`, `rider`): a plan priced for a setup must describe
  * the ride and the rider that setup was ranked for, and during a refresh
  * they keep the previous results, dimmed, exactly as the recommendation
- * does. On a route or a segment the two Rides are always the same course and
- * `resultsRoute` is left off; on a race the category group can move the
- * course itself, and a speed curve drawn on the new course for a setup
- * ranked on the old one is a chart of a bike that was never ranked there.
- * The TTT plan itself arrives from the page (`useTttPlan`), which computes
+ * does. `resultsRoute` is the Applied Ranking's own course on every page,
+ * never the selected one standing in for it: on a race the category group
+ * can move the course itself, and a speed curve drawn on the new course for
+ * a setup ranked on the old one is a chart of a bike that was never ranked
+ * there (#233). Until the ranking's lookup has answered, the equipment tabs
+ * say so instead. The TTT plan itself arrives from the page (`useTttPlan`), which computes
  * it once for the briefing's TTT line and this tab, so the two cannot
  * disagree.
  */
 const props = defineProps<{
   /** The route the rider has selected, or the synthetic segment-as-route the segment page ranks against. The Ride-only tabs describe this one. */
   route: RouteWithMeta
-  /** The applied course; omitted defaults to `route`, null means its geometry has not arrived. */
-  resultsRoute?: RouteWithMeta | null
+  /** The applied course - `appliedRanking.course` - which the equipment tabs describe. Absent until the ranking's own lookup has answered. */
+  resultsRoute: RouteWithMeta | undefined
   /** What the page ranks: a route gets the Segments tab; a sprint has no speed chart (a standing-start simulation says nothing about a flying sprint). */
   kind: 'route' | 'climb' | 'sprint'
   /** The picker's lap count, which the Ride-only tabs follow. 1 on a segment. */
@@ -63,15 +65,9 @@ const hasElevation = computed(() => (props.route.terrain.elevationProfile?.lengt
 const leadInKm = computed(() => props.route.leadInDistance ?? 0)
 
 // The applied course, for the two tabs that describe a ranked setup on it.
-const equipmentRoute = computed(() => props.resultsRoute ?? props.route)
-// True only while the applied results are still a previous course's - the
-// window between a race's group moving and its ranking landing. The scope
-// lines name the course then, so a curve under a freshly changed selector is
-// never read as the course now selected.
-const equipmentCourseDiffers = computed(() => props.resultsRoute != null && props.resultsRoute.slug !== props.route.slug)
-const equipmentLeadInKm = computed(() => equipmentRoute.value.leadInDistance ?? 0)
-const equipmentHasElevation = computed(() => (equipmentRoute.value.terrain.elevationProfile?.length ?? 0) > 1)
-const equipmentHasSurfaceLocations = computed(() => (equipmentRoute.value.surface.segments?.length ?? 0) > 0)
+const equipmentLeadInKm = computed(() => props.resultsRoute?.leadInDistance ?? 0)
+const equipmentHasElevation = computed(() => hasElevationProfile(props.resultsRoute))
+const equipmentHasSurfaceLocations = computed(() => hasSurfaceLocations(props.resultsRoute))
 
 const items = computed(() => [
   { label: 'Elevation', value: 'elevation' as const, slot: 'elevation' as const, icon: 'i-lucide-mountain' },
@@ -107,21 +103,20 @@ const segmentsScope = computed(() => leadInKm.value > 0
 const setupLabel = computed(() => props.combo
   ? `${props.combo.frame.name} / ${props.combo.wheelset?.name ?? 'fixed disc wheels'}`
   : undefined)
-/** Which course these results are for, said out loud only when it is not the selected one. */
-const courseNote = computed(() => equipmentCourseDiffers.value ? ` on ${equipmentRoute.value.name}` : '')
+const equipmentCourseNote = computed(() => courseNote(props.route, props.resultsRoute))
 
 // Always one lap - see `computeRouteSurfaceSpeedProfile` - while the finish
 // estimate above is for every selected lap, so the scope says both.
 const speedScope = computed(() => {
   const ride = !isRoute.value
     ? 'route-style simulation from a standing start, not the timed estimate'
-    : equipmentRoute.value.lap
+    : props.resultsRoute?.lap
       ? `one lap${equipmentLeadInKm.value > 0 ? ' plus the lead-in' : ''}; the finish estimate covers ${lapsLabel(props.resultsLaps)}`
       : 'the whole ride'
-  return `${setupLabel.value}${courseNote.value} · ${props.rider.powerW} W · ${DRAFT_MODE_LABELS[props.rider.draftMode]} · ${ride}.`
+  return `${setupLabel.value}${equipmentCourseNote.value} · ${props.rider.powerW} W · ${DRAFT_MODE_LABELS[props.rider.draftMode]} · ${ride}.`
 })
 const speedUnavailable = computed(() => {
-  if (props.resultsRoute === null) return 'Course data for the ranked setup is not available yet.'
+  if (!props.resultsRoute) return 'Course data for the ranked setup is not available yet.'
   if (equipmentHasElevation.value && equipmentHasSurfaceLocations.value) return undefined
   const missing = !equipmentHasElevation.value && !equipmentHasSurfaceLocations.value
     ? 'elevation and surface locations are missing'
@@ -139,7 +134,7 @@ const planScope = computed(() => {
     ? `${lapsLabel(props.resultsLaps)}${equipmentLeadInKm.value > 0 ? ', lead-in included once' : ''}; distances are from the ride start`
     : 'from the start of the timed segment; warm-up excluded'
   const team = `${props.plan.riders}-rider paceline${props.plan.climbWkg ? `, team climb pace ${props.plan.climbWkg.toFixed(1)} W/kg` : ''}`
-  return `${setupLabel.value}${courseNote.value} · ${props.rider.powerW} W · ${team} · ${ride}.`
+  return `${setupLabel.value}${equipmentCourseNote.value} · ${props.rider.powerW} W · ${team} · ${ride}.`
 })
 const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-mountain', surface: 'i-lucide-triangle-alert' }
 </script>
@@ -284,7 +279,10 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
               The speed &amp; surface profile needs a ranked setup to simulate; it returns with the first match.
             </template>
           </p>
-          <template v-else>
+          <!-- The course is there whenever `speedUnavailable` is not; the
+               condition only tells the type checker what the line above already
+               said. -->
+          <template v-else-if="resultsRoute">
             <p
               v-if="refreshing"
               class="flex items-center gap-1.5 text-sm text-muted"
@@ -302,7 +300,7 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
                 {{ speedScope }} The curve is this setup's simulated pace at every grade and surface change, over a faint elevation backdrop; the strip beneath marks the surface behind each dip.
               </p>
               <RouteSurfaceSpeedProfile
-                :route="equipmentRoute"
+                :route="resultsRoute"
                 :frame="combo.frame"
                 :wheelset="combo.wheelset"
                 :weight-kg="rider.weightKg"

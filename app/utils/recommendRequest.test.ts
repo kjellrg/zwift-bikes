@@ -8,6 +8,7 @@ import {
   rideRulesForFormat,
   cachedRecommendToServe,
   recommendChangeKind,
+  recommendEndpoint,
   rideCategory,
   riderInputsForRide,
   serializeRecommendQuery,
@@ -41,8 +42,15 @@ const DEFAULT_INPUTS: RiderInputs = {
   search: ''
 }
 
-const ROUTE_RIDE: Ride = { endpoint: '/api/recommend/watopia-figure-8', laps: 1 }
-const SEGMENT_RIDE: Ride = { endpoint: '/api/recommend/segments/alpe-du-zwift' }
+const ROUTE_RIDE: Ride = { course: { kind: 'route', slug: 'watopia-figure-8' }, laps: 1 }
+const SEGMENT_RIDE: Ride = { course: { kind: 'segment', slug: 'alpe-du-zwift' } }
+
+describe('recommendEndpoint', () => {
+  it('derives where a ride is ranked from the course it names, so no page spells it', () => {
+    expect(recommendEndpoint(ROUTE_RIDE.course)).toBe('/api/recommend/watopia-figure-8')
+    expect(recommendEndpoint(SEGMENT_RIDE.course)).toBe('/api/recommend/segments/alpe-du-zwift')
+  })
+})
 
 describe('buildRecommendQuery', () => {
   it('serialises the default profile and preferences to the prerendered query', () => {
@@ -163,12 +171,12 @@ describe('buildRecommendQuery', () => {
 
 describe('cachedRecommendToServe', () => {
   const query = buildRecommendQuery(DEFAULT_INPUTS, ROUTE_RIDE)
-  const entry = { endpoint: ROUTE_RIDE.endpoint, forQuery: serializeRecommendQuery(query), result: null }
+  const entry = { endpoint: recommendEndpoint(ROUTE_RIDE.course), forQuery: serializeRecommendQuery(query), result: null }
   const lookup = {
     isHydrating: false,
     hydrationEntry: { ...entry, forQuery: 'anything at all' },
     navigationEntry: entry,
-    endpoint: ROUTE_RIDE.endpoint,
+    endpoint: recommendEndpoint(ROUTE_RIDE.course),
     serializedQuery: serializeRecommendQuery(query)
   }
 
@@ -200,7 +208,7 @@ describe('cachedRecommendToServe', () => {
 })
 
 describe('recommendChangeKind', () => {
-  const endpoint = ROUTE_RIDE.endpoint
+  const endpoint = recommendEndpoint(ROUTE_RIDE.course)
   const request = (query: RecommendQuery) => ({ endpoint, query })
   const base = buildRecommendQuery(DEFAULT_INPUTS, ROUTE_RIDE)
 
@@ -248,18 +256,25 @@ describe('recommendChangeKind', () => {
 })
 
 describe('riderInputsForRide', () => {
+  const HILLY: Ride['course'] = { kind: 'route', slug: 'hilly-route' }
   const inputs: RiderInputs = { ...DEFAULT_INPUTS, weightKg: 82, heightCm: 180, powerW: 260, sprintPowerW: 900, draftMode: 'ttt', tttRiders: 6, tttClimbWkg: 3.2, bikeCategory: 'tt' }
 
   it('is the stored rider, made legal for an ordinary ride', () => {
-    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/hilly-route', laps: 2 })).toEqual({
+    expect(riderInputsForRide(inputs, { course: HILLY, laps: 2 })).toEqual({
       weightKg: 82, heightCm: 180, powerW: 260, draftMode: 'ttt', tttRiders: 6, tttClimbWkg: 3.2, category: 'tt'
     })
   })
 
   it('substitutes what the ride itself dictates: sprint power, solo where drafting is off, every category where TT frames are', () => {
-    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/segments/fuego-flats', power: 'sprint' }).powerW).toBe(900)
-    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/hilly-route', draftingAllowed: false }).draftMode).toBe('solo')
-    expect(riderInputsForRide(inputs, { endpoint: '/api/recommend/hilly-route', ttFramesAllowed: false }).category).toBe('all')
-    expect(riderInputsForRide({ ...inputs, bikeCategory: 'all' }, { endpoint: '/api/recommend/hilly-route' }).category).toBe('all')
+    expect(riderInputsForRide(inputs, { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }).powerW).toBe(900)
+    expect(riderInputsForRide(inputs, { course: HILLY, draftingAllowed: false }).draftMode).toBe('solo')
+    expect(riderInputsForRide(inputs, { course: HILLY, ttFramesAllowed: false }).category).toBe('all')
+    expect(riderInputsForRide({ ...inputs, bikeCategory: 'all' }, { course: HILLY }).category).toBe('all')
+  })
+
+  it('is the stored rider as they are when there is no Ride to make them legal for', () => {
+    expect(riderInputsForRide(inputs, undefined)).toEqual({
+      weightKg: 82, heightCm: 180, powerW: 260, draftMode: 'ttt', tttRiders: 6, tttClimbWkg: 3.2, category: 'tt'
+    })
   })
 })

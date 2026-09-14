@@ -3,7 +3,7 @@ import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import { computed, effectScope, nextTick, onScopeDispose, ref, toRaw, watch } from 'vue'
 import { useAppliedRankingSlot, useRecommendRequest, type RecommendResponse } from './useRecommendRequest'
 import { useRecommendationAnswer } from './useRecommendationAnswer'
-import type { AppliedRanking, RecommendEnvelope, Ride } from '../utils/recommendRequest'
+import type { AppliedRanking, RecommendEnvelope, Ride, RideCourse } from '../utils/recommendRequest'
 import type { RouteWithMeta } from '../../shared/types/catalog'
 
 function deferred<T>() {
@@ -30,7 +30,7 @@ const page = (time: number, note: string): RecommendResponse => ({
  */
 const globalState = new Map<string, ReturnType<typeof ref>>()
 
-const course = (name: string) => ({ slug: name.toLowerCase(), name } as RouteWithMeta)
+const course = (slug: string, name: string) => ({ slug, name } as RouteWithMeta)
 
 function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrating: boolean }) {
   const owned = ref<Record<number, number>>({})
@@ -39,8 +39,13 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   const verifiedOnly = ref(true)
   const includeHaloBikes = ref(false)
   const bikeCategory = ref('standard')
-  const ride = ref<Ride>({ endpoint: '/api/recommend/test', laps: 1 })
-  const routeData = ref<RouteWithMeta | undefined>(course('Test route'))
+  const ride = ref<Ride | undefined>({ course: { kind: 'route', slug: 'test' }, laps: 1 })
+  /**
+   * What `useCourse` answers, whatever it is asked for - the test decides
+   * whether that answer is the applied course or a previous key's data.
+   */
+  const courseLookup = ref<RouteWithMeta | undefined>(course('test', 'Test route'))
+  let appliedIdentity: () => RideCourse | undefined = () => undefined
   const scope = effectScope()
   // The page's mount and unmount, which the composable publishes the Applied
   // Ranking from and clears it on. Held rather than run, so a test can order
@@ -71,6 +76,10 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   })
   vi.stubGlobal('$fetch', fetch)
   vi.stubGlobal('useRefetchNotice', vi.fn())
+  vi.stubGlobal('useCourse', (identity: () => RideCourse | undefined) => {
+    appliedIdentity = identity
+    return { course: computed(() => courseLookup.value) }
+  })
   vi.stubGlobal('useGarage', () => ({ owned, ownedWheels, load: vi.fn() }))
   vi.stubGlobal('useRiderProfile', () => ({
     weightKg: ref(75), heightCm: ref(175), powerW, sprintPowerW: ref(500),
@@ -115,10 +124,7 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
     const ready = entry ? Promise.resolve() : refresh()
     return Object.assign(ready, { data, status, error, refresh })
   })
-  const request = scope.run(() => useRecommendRequest(() => ride.value, {
-    key: 'test',
-    course: () => routeData.value
-  }))!
+  const request = scope.run(() => useRecommendRequest(() => ride.value, { key: 'test' }))!
   const answer = scope.run(() => useRecommendationAnswer({
     combo: () => request.topCombo.value,
     rideName: () => 'Test route',
@@ -131,7 +137,9 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   const mount = () => scope.run(() => mounted.forEach(hook => hook()))
   const unmount = () => unmounted.forEach(hook => hook())
   return {
-    request, answer, owned, ownedWheels, powerW, verifiedOnly, includeHaloBikes, bikeCategory, ride, routeData,
+    request, answer, owned, ownedWheels, powerW, verifiedOnly, includeHaloBikes, bikeCategory, ride, courseLookup,
+    /** The identity the composable is asking `useCourse` about, read live. */
+    appliedIdentity: () => appliedIdentity(),
     pending, fetch, payload, mount, unmount
   }
 }
@@ -302,10 +310,10 @@ describe('useRecommendRequest applied ranking', () => {
     expect(test.request.physics.value?.note).toBe('Original physics')
   })
 
-  it('clears a populated ranking for an unsupported group and ignores its pending expansion', async () => {
+  it('clears a populated ranking for a group with no Ride to rank and ignores its pending expansion', async () => {
     const test = await expanded()
     const more = test.request.showMore()
-    test.ride.value = { endpoint: undefined }
+    test.ride.value = undefined
     await settle()
     expect(times(test)).toEqual([])
     expect(test.request.recommendData.value).toBeNull()
@@ -313,7 +321,10 @@ describe('useRecommendRequest applied ranking', () => {
     test.pending[2]!.resolve(page(120, 'Old group'))
     await more
     expect(times(test)).toEqual([])
-    expect(test.request.appliedRide.value.endpoint).toBeUndefined()
+    // No Ride at all, not a Ride with nothing in it: every reader of the
+    // Applied Ride has to say so rather than describe an empty one.
+    expect(test.request.appliedRide.value).toBeUndefined()
+    expect(test.request.appliedRanking.value.ride).toBeUndefined()
   })
 
   it.each(['success', 'failure'])('ignores a superseded %s when the latest request fails', async (outcome) => {
@@ -381,10 +392,10 @@ describe('useRecommendRequest applied ranking', () => {
     expect(test.request.appliedRestrictions.value.verifiedOnly).toBe(false)
     expect(test.request.appliedRestrictions.value.includeHaloBikes).toBe(true)
     expect(test.request.hasMore.value).toBe(false)
-    test.ride.value = { endpoint: undefined }
+    test.ride.value = undefined
     await settle()
     expect(test.request.recommendData.value).toBeNull()
-    expect(test.request.appliedRide.value.endpoint).toBeUndefined()
+    expect(test.request.appliedRide.value).toBeUndefined()
     expect(test.fetch).toHaveBeenCalledTimes(3)
   })
 
@@ -545,19 +556,19 @@ describe('useRecommendRequest applied ranking', () => {
     const test = await expanded()
     const before = test.request.appliedRanking.value
     test.powerW.value = 250
-    test.ride.value = { endpoint: '/api/recommend/test', laps: 3 }
+    test.ride.value = { course: { kind: 'route', slug: 'test' }, laps: 3 }
     await nextTick()
     // The rider is two controls ahead of the response. Everything a row reads
     // still describes the rows it is rendering.
     expect(test.request.appliedRanking.value).toMatchObject({ fastestTimeSec: 100, requestKey: before.requestKey })
-    expect(test.request.appliedRanking.value.ride.laps).toBe(1)
+    expect(test.request.appliedRanking.value.ride?.laps).toBe(1)
     expect(test.request.appliedRanking.value.rider.powerW).toBe(200)
     expect(test.request.appliedRanking.value.combos.map(combo => combo.finishTimeSec)).toEqual([100, 110])
 
     test.pending[2]!.resolve(page(80, 'New physics'))
     await settle()
     const applied = test.request.appliedRanking.value
-    expect(applied.ride.laps).toBe(3)
+    expect(applied.ride?.laps).toBe(3)
     expect(applied.rider.powerW).toBe(250)
     expect(applied.restrictions.powerW).toBe(250)
     expect(applied.combos.map(combo => combo.finishTimeSec)).toEqual([80])
@@ -565,20 +576,54 @@ describe('useRecommendRequest applied ranking', () => {
     expect(applied.requestKey).not.toBe(before.requestKey)
   })
 
-  it('reads the course live, so a lookup that answers after the ranking still describes it', async () => {
+  it('looks its applied course up itself, so a lookup that answers after the ranking still describes it', async () => {
     const test = setup()
     // The page fires both requests together; the ranking can land first.
-    test.routeData.value = undefined
+    test.courseLookup.value = undefined
     test.pending[0]!.resolve(page(100, 'Original physics'))
     await test.request.ready
     await settle()
+    expect(test.appliedIdentity()).toEqual({ kind: 'route', slug: 'test' })
     expect(test.request.appliedRanking.value.course).toBeUndefined()
 
-    test.routeData.value = course('Hilly Route')
+    test.courseLookup.value = course('test', 'Test route')
+    expect(test.request.appliedRanking.value.course?.name).toBe('Test route')
+  })
+
+  it('keeps the applied course while the Ride moves ahead, and never explains the new ranking with the old course', async () => {
+    const test = setup()
+    test.pending[0]!.resolve(page(100, 'Original physics'))
+    await test.request.ready
+    await settle()
+    expect(test.request.appliedRanking.value.course?.name).toBe('Test route')
+
+    test.ride.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 1 }
+    await nextTick()
+    // The selector has moved; the ranking has not. The lookup is still asked
+    // for the applied course, which still explains the rows on screen.
+    expect(test.appliedIdentity()).toEqual({ kind: 'route', slug: 'test' })
+    expect(test.request.appliedRanking.value.course?.name).toBe('Test route')
+
+    test.pending[1]!.resolve(page(90, 'Hilly physics'))
+    await settle()
+    // The ranking has landed and the lookup has moved with it - but Nuxt
+    // seeds a changed key with the previous key's data until the fetch
+    // lands, and that data is another course.
+    expect(test.appliedIdentity()).toEqual({ kind: 'route', slug: 'hilly-route' })
+    expect(test.request.appliedRanking.value.course).toBeUndefined()
+    test.courseLookup.value = course('hilly-route', 'Hilly Route')
     expect(test.request.appliedRanking.value.course?.name).toBe('Hilly Route')
-    // And it follows a page that takes its course away again - a race group
-    // whose route the catalog does not have.
-    test.routeData.value = undefined
+  })
+
+  it('has no course once it has no Ride, whatever the lookup still holds', async () => {
+    const test = setup()
+    test.pending[0]!.resolve(page(100, 'Original physics'))
+    await test.request.ready
+    await settle()
+    test.ride.value = undefined
+    await settle()
+    expect(test.appliedIdentity()).toBeUndefined()
+    expect(test.courseLookup.value).toBeDefined()
     expect(test.request.appliedRanking.value.course).toBeUndefined()
   })
 
@@ -630,9 +675,10 @@ describe('useRecommendRequest applied ranking', () => {
   it('captures legal rider substitutions and detaches Garage input before fetching', async () => {
     const test = await expanded()
     test.bikeCategory.value = 'tt'
-    test.ride.value = { endpoint: '/api/recommend/sprint', power: 'sprint', ttFramesAllowed: false, draftingAllowed: false }
+    test.ride.value = { course: { kind: 'segment', slug: 'sprint' }, power: 'sprint', ttFramesAllowed: false, draftingAllowed: false }
     test.owned.value = { 12: 3 }
     await nextTick()
+    expect(test.fetch.mock.calls[2]![0]).toBe('/api/recommend/segments/sprint')
     test.pending[2]!.resolve(page(50, 'Sprint physics'))
     await settle()
     expect(test.request.appliedInputs.value).toMatchObject({ powerW: 500, category: 'all', draftMode: 'solo' })

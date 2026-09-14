@@ -100,7 +100,7 @@ export function equipmentDrawerView(
     return { record: current, standing: 'ranked', fastestTimeSec: current.fastestTimeSec }
   }
 
-  if (ranking.ride.ttFramesAllowed === false && record.combo.frame.category === 'tt') {
+  if (ranking.ride?.ttFramesAllowed === false && record.combo.frame.category === 'tt') {
     return { record, standing: 'barred', fastestTimeSec: record.fastestTimeSec }
   }
   return { record, standing: 'dropped', fastestTimeSec: ranking.fastestTimeSec ?? record.fastestTimeSec }
@@ -116,7 +116,7 @@ function rankedRow(combos: readonly ComboScore[], combo: ComboScore): ComboScore
 function rideFacts(ranking: AppliedRanking) {
   return {
     course: ranking.course,
-    laps: ranking.ride.laps,
+    laps: ranking.ride?.laps,
     fastestTimeSec: ranking.fastestTimeSec,
     requestKey: ranking.requestKey,
     loadWheelOptions: ranking.loadWheelOptions
