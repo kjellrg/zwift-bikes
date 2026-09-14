@@ -1,6 +1,6 @@
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from './catalog'
 import type { PhysicsRider, RouteGeometry } from './physics'
-import type { PowerSegmentW, simulateRoute } from '../utils/physics'
+import type { RideDraft, simulateRoute } from '../utils/physics'
 
 export type TimingMetaValue = string | number | boolean | undefined
 
@@ -9,15 +9,13 @@ export interface SimulateComboOptions {
   frame: ClassifiedBikeFrame
   wheelset?: Wheelset
   /**
-     * The TTT pacing plan, in the RIDE's own coordinates - a ride that
-     * simulates on shifted geometry has to shift these to match.
+     * The Draft this timing is ridden under, resolved on this ride's own
+     * geometry (`resolveDraft(_, ride.planGeometry(), _)`) - a ride that
+     * simulates on shifted geometry has to shift its plan to match. Always
+     * present: the "what would this be solo?" disclosures pass `draft.solo`,
+     * never a draft with a field left out.
      */
-  powerSegmentsW?: PowerSegmentW[]
-  /**
-     * The draft power scaling. Absent for the "what would this be solo?"
-     * disclosures, which are the same ride with nothing but the draft removed.
-     */
-  powerScaleAtSpeed?: (speedMps: number) => number
+  draft: RideDraft
 }
 
 export interface RidePhysics {

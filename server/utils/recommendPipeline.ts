@@ -1,12 +1,13 @@
 import type { H3Event } from 'h3'
 import type { BikeCategory, ComboScore } from '../../shared/types/catalog'
-import type { RecommendRide } from '../../shared/types/recommendRide'
+import type { RecommendRide, SimulateComboOptions } from '../../shared/types/recommendRide'
 import { getFrames } from '../../shared/utils/catalog'
 import { getWheelsets } from '../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../shared/utils/finishTime'
-import { confirmWheelPicks, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, racePowerScaleAtSpeed, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, WHEEL_OPTIONS_ORDER_MARGIN } from '../../shared/utils/physics'
+import { confirmWheelPicks, draftOf, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, resolveDraft, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, WHEEL_OPTIONS_ORDER_MARGIN } from '../../shared/utils/physics'
+import type { RideDraft } from '../../shared/utils/physics'
 import type { RecommendBaseQuery } from './apiQuerySchemas'
 import { addTimingMeta, markPhase } from './timing'
 import { upgradeFinishTimesSec } from './upgradeFinishTimes'
@@ -107,8 +108,10 @@ export async function runRecommendPipeline(
   const {
     search: listSearch, category, limit, offset, verifiedOnly, includeHalo,
     maxWheelsetsPerFrame, wheelsForFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
-    defaultUnownedLevel, physics: physicsMode, draftMode, tttRiders
+    defaultUnownedLevel, physics: physicsMode
   } = query
+  // The Draft the rider chose (see `CONTEXT.md`), before it meets the ride.
+  const setting = draftOf(query)
   // A drill-down ignores the list's `search`: the rider is asking what else
   // fits THIS bike, and a term that matched the frame's own name would
   // otherwise cut the wheel list down to the wheels that happen to share it.
@@ -133,7 +136,6 @@ export async function runRecommendPipeline(
   const weightKg = query.weightKg ?? 0
   const heightCm = query.heightCm ?? 0
   const powerW = query.powerW ?? 0
-  const tttClimbWkg = draftMode === 'ttt' ? query.tttClimbWkg : undefined
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
@@ -222,27 +224,27 @@ export async function runRecommendPipeline(
   // knows how to time a combo on it - one integration for a route, a warmed
   // start after its warm-up for a segment.
   const { simulateSec } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
-  // Computed ONCE per request and shared by every combo - a per-combo plan
+  // Everything timed on this ride is timed under one draft, resolved ONCE on
+  // the ride's own geometry and shared by every combo - a per-combo draft
   // would poison `orderBySimulatedTime`'s physics-keyed dedupe cache (see
-  // `physics/draft.ts`). Legacy mode uses the same ride geometry for the
-  // estimate's two-phase split, without running the simulator.
-  const tttPlan = hasRiderProfile && tttClimbWkg
-    ? tttPowerPlan(ride.planGeometry(), tttClimbWkg, weightKg, powerW)
+  // `resolveDraft`). Resolved whenever there is a rider, legacy mode included:
+  // the estimate's two-phase climb split reads the plan there without running
+  // the simulator, and `prepare` gets no rider in legacy mode, which is why
+  // the draft is the pipeline's to resolve rather than the ride's.
+  const draft = hasRiderProfile ? resolveDraft(setting, ride.planGeometry(), rider) : undefined
+  // `simulateSec` exists only when `prepare` was given the rider, so a draft
+  // always accompanies it. Folding the two lets every timing below say only
+  // which draft it rides under - the request's, or that draft's own `solo`.
+  const timeSec = simulateSec && draft
+    ? (combo: Pick<SimulateComboOptions, 'frame' | 'wheelset'>, under: RideDraft = draft) =>
+        simulateSec({ frame: combo.frame, wheelset: combo.wheelset, draft: under })
     : undefined
-  // The one object every draft-aware call site threads through: the draft
-  // scaling for the simulator, and its closed-form twin for the estimate.
-  const draftEstimate = draftMode === 'ttt'
-    ? { mode: 'ttt' as const, riders: tttRiders, climb: tttPlan ? { distanceM: tttPlan.climbDistanceM, elevationM: tttPlan.climbElevationM, powerW: tttPlan.climbPowerW } : undefined }
-    : draftMode === 'race' ? { mode: 'race' as const } : undefined
-  const powerScaleAtSpeed = draftMode === 'ttt'
-    ? (speedMps: number) => tttPowerScaleAtSpeed(tttRiders, speedMps)
-    : draftMode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined
   await markPhase(event, 'geometry')
 
   let orderedCombos = rankedCombos
   if (hasRiderProfile) {
     orderedCombos = rankedCombos
-      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps, draftEstimate) }))
+      .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps, draft?.estimate) }))
       .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
   }
   await markPhase(event, 'estimate')
@@ -273,13 +275,13 @@ export async function runRecommendPipeline(
   // keeps the estimate's ordering, since showing where the two models differ
   // is its whole purpose.
   const simulatedSec = new Map<typeof orderedCombos[number], number>()
-  if (simulateSec && physicsMode === 'dynamic') {
+  if (timeSec && physicsMode === 'dynamic') {
     const ordering = orderBySimulatedTime(
       filteredRankedCombos,
       // A drill-down's pool is one frame against every wheel that fits it, so
       // it reaches the simulator very nearly in order - see the two margins.
       offset + limit + (wheelsForFrame === undefined ? SIMULATED_ORDER_MARGIN : WHEEL_OPTIONS_ORDER_MARGIN),
-      combo => simulateSec({ frame: combo.frame, wheelset: combo.wheelset, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed })
+      combo => timeSec(combo)
     )
     filteredRankedCombos = ordering.ordered
     for (const [combo, seconds] of ordering.simulatedSec) simulatedSec.set(combo, seconds)
@@ -294,11 +296,10 @@ export async function runRecommendPipeline(
       // instead of recalculating the same closed-form estimate twice.
       const legacyFinishTimeSec = combo.finishTimeSec!
       combo.surfaceTimePenaltySec = estimateSurfaceTimePenaltySec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps)
-      if (physicsMode === 'legacy' || !simulateSec) {
+      if (physicsMode === 'legacy' || !timeSec) {
         combo.finishTimeSec = legacyFinishTimeSec
       } else {
-        combo.finishTimeSec = simulatedSec.get(combo)
-          ?? simulateSec({ frame: combo.frame, wheelset: combo.wheelset, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed })
+        combo.finishTimeSec = simulatedSec.get(combo) ?? timeSec(combo)
         if (physicsMode === 'compare') (combo as typeof combo & { legacyFinishTimeSec?: number }).legacyFinishTimeSec = legacyFinishTimeSec
       }
     }
@@ -318,14 +319,14 @@ export async function runRecommendPipeline(
   // collide with a sibling row of the same frame. Skipped while searching too:
   // a search lists individual wheel matches, so swapping a row's wheel could
   // silently replace the very match that was typed.
-  if (hasRiderProfile && simulateSec && physicsMode === 'dynamic' && !search
+  if (hasRiderProfile && timeSec && physicsMode === 'dynamic' && !search
     && wheelsForFrame === undefined && maxWheelsetsPerFrame === 1) {
     const picks = confirmWheelPicks({
       page: pageCombos,
       pool: orderedCombos,
       currentSec: row => row.finishTimeSec!,
       valueOf: rankValue,
-      simulate: candidate => simulateSec({ frame: candidate.frame, wheelset: candidate.wheelset, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed }),
+      simulate: candidate => timeSec(candidate),
       alreadySimulated: simulatedSec
     })
     for (const [index, pick] of picks.entries()) {
@@ -358,52 +359,51 @@ export async function runRecommendPipeline(
   // combo the bike drawer is about to show. Confined to the drill-down
   // because that is the request the drawer makes and the frame it makes it
   // for - doing it per listed combo would be nine times this cost for eight
-  // curves nobody opened. Same rider, laps, draft mode and wheels as
-  // everything else in this response, so the curve and the time it is drawn
-  // beside come out of one pipeline.
-  if (hasRiderProfile && simulateSec && physicsMode === 'dynamic' && wheelsForFrame !== undefined && offset === 0) {
+  // curves nobody opened. Same rider, laps, draft and wheels as everything
+  // else in this response, so the curve and the time it is drawn beside come
+  // out of one pipeline.
+  if (hasRiderProfile && timeSec && physicsMode === 'dynamic' && wheelsForFrame !== undefined && offset === 0) {
     const drawerCombo = pageCombos[0]
     if (drawerCombo) {
-      drawerCombo.upgradeFinishTimesSec = upgradeFinishTimesSec(drawerCombo, staged => simulateSec({
-        frame: staged, wheelset: drawerCombo.wheelset, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed
-      }))
+      drawerCombo.upgradeFinishTimesSec = upgradeFinishTimesSec(drawerCombo, staged => timeSec({ frame: staged, wheelset: drawerCombo.wheelset }))
     }
   }
 
   // "Riding as a TTT saves X vs solo": ONE extra timing per request (top
-  // combo, first page, dynamic mode only) of the same rider at the same
-  // power and the same pacing plan, with the draft scaling removed. The only
-  // difference between the two rides is the draft itself, so the gap is
-  // exactly what the paceline is worth.
+  // combo, first page, dynamic mode only) of the same ride under the draft's
+  // own `solo` - the same rider at the same power and the same pacing plan,
+  // with nothing but the draft removed - so the gap is exactly what the
+  // paceline is worth. `draft` stands in for `hasRiderProfile` here: it is
+  // resolved exactly when there is a rider.
   let ttt: TttDisclosure | undefined
-  if (hasRiderProfile && draftMode === 'ttt') {
+  if (draft && setting.mode === 'ttt') {
     const topCombo = pageCombos[0]
     let soloFinishTimeSec: number | undefined
     let tttSavedSec: number | undefined
-    if (simulateSec && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
-      soloFinishTimeSec = simulateSec({ frame: topCombo.frame, wheelset: topCombo.wheelset, powerSegmentsW: tttPlan?.powerSegmentsW })
+    if (timeSec && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
+      soloFinishTimeSec = timeSec(topCombo, draft.solo)
       tttSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
     ttt = {
-      riders: tttRiders,
+      riders: setting.riders,
       riderPowerW: Math.round(rider.powerW),
-      frontPullPowerW: Math.round(tttFrontPullPowerW(rider.powerW, tttRiders)),
-      lastWheelPowerW: Math.round(tttLastWheelPowerW(rider.powerW, tttRiders)),
-      climbWkg: tttClimbWkg,
+      frontPullPowerW: Math.round(tttFrontPullPowerW(rider.powerW, setting.riders)),
+      lastWheelPowerW: Math.round(tttLastWheelPowerW(rider.powerW, setting.riders)),
+      climbWkg: setting.climbWkg,
       soloFinishTimeSec,
       tttSavedSec
     }
   }
   // "Sitting in the bunch saves X vs solo": the same one-extra-timing trick
-  // as the TTT block above, with the race power scale removed. Race mode has no
-  // pacing plan, so the two rides differ by nothing but the draft.
+  // as the TTT block above. Race mode has no pacing plan, so its `solo` is a
+  // plain solo and the two rides differ by nothing but the draft.
   let race: RaceDisclosure | undefined
-  if (hasRiderProfile && draftMode === 'race') {
+  if (draft && setting.mode === 'race') {
     const topCombo = pageCombos[0]
     let soloFinishTimeSec: number | undefined
     let raceSavedSec: number | undefined
-    if (simulateSec && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
-      soloFinishTimeSec = simulateSec({ frame: topCombo.frame, wheelset: topCombo.wheelset })
+    if (timeSec && physicsMode === 'dynamic' && offset === 0 && wheelsForFrame === undefined && topCombo && typeof topCombo.finishTimeSec === 'number') {
+      soloFinishTimeSec = timeSec(topCombo, draft.solo)
       raceSavedSec = soloFinishTimeSec - topCombo.finishTimeSec
     }
     race = {
@@ -442,7 +442,7 @@ export async function runRecommendPipeline(
     const hiddenFrames = allFrames.filter(f => (category && f.category !== category) || isHiddenHalo(f))
     if (hiddenFrames.length) {
       let candidates = rankCombos(route, hiddenFrames, wheelsets, hiddenFrames.length * wheelsets.length)
-        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps, draftEstimate) }))
+        .map(combo => ({ ...combo, finishTimeSec: estimateFinishTimeSec(route, combo.frame, combo.wheelset, weightKg, heightCm, powerW, laps, draft?.estimate) }))
         .sort((a, b) => a.finishTimeSec - b.finishTimeSec)
       let overallTopSec = candidates[0]?.finishTimeSec
       // Same estimate-then-simulate discipline as the main path: the estimate
@@ -451,11 +451,11 @@ export async function runRecommendPipeline(
       // gap would be comparing two different models. It goes through the same
       // `simulateSec` the ranked results use, so the two times are directly
       // comparable.
-      if (simulateSec && physicsMode === 'dynamic') {
+      if (timeSec && physicsMode === 'dynamic') {
         const ordering = orderBySimulatedTime(
           candidates,
           1 + FASTEST_OVERALL_ORDER_MARGIN,
-          combo => simulateSec({ frame: combo.frame, wheelset: combo.wheelset, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed })
+          combo => timeSec(combo)
         )
         candidates = ordering.ordered
         overallTopSec = candidates[0] ? ordering.simulatedSec.get(candidates[0]) : undefined
@@ -489,7 +489,7 @@ export async function runRecommendPipeline(
   addTimingMeta(event, {
     ...ride.timingMeta,
     physics: physicsMode,
-    draft: draftMode,
+    draft: setting.mode,
     category,
     profile: hasRiderProfile,
     combos: rankedCombos.length,
