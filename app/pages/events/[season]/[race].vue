@@ -3,6 +3,7 @@ import type { Ride } from '../../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
+import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../../utils/rankingResults'
 
 /**
  * One race. Everything a route page can't know lives here: the date, the
@@ -30,7 +31,6 @@ const round = getRoundForRace(season, race)
 // themselves live in `RiderProfileControls` / `RideEquipmentFilters`, and
 // `useRecommendRequest` reads the rest of this state itself.
 const { weightKg, powerW, setDraftMode } = useRiderProfile()
-const { setBikeCategory, setIncludeHaloBikes } = usePreferences()
 
 // A/B and C/D routinely race the same route over a different number of laps,
 // which changes the distance, the climbing and therefore the ranking - so the
@@ -87,19 +87,22 @@ const ride = computed<Ride>(() => ({
   // barred" in `ttAllowed` below.
   ...rideRulesForFormat(race!.format!)
 }))
-const {
-  ready: recommendReady, physics: physicsInfo, fastestOverall,
-  combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRide, appliedRestrictions, canShowMore, appliedRanking, hasRanking, isFirstLoad, isRefreshing,
-  refreshFailed, expansionFailed, retry, resultsAnnouncement,
-  bikeSearch, bikeSearchDebounced
-} = useRecommendRequest(() => ride.value, {
+// Handed whole to `RideResults`, which renders everything this page shows
+// about the Ranking; what is destructured here is what the page itself is
+// still about - its header, its Category group selector, its briefing, its
+// analysis, and the decision of whether there is a ranking to show at all.
+const request = useRecommendRequest(() => ride.value, {
   key: `recommend-race-${seasonSlug.value}-${raceSlug.value}`,
   // The reconciled course below, not the selected group's: a group switch
   // moves the route and the ranking on two different clocks, and this is the
   // one the accepted times were computed over.
   course: () => appliedRoute.value
 })
+const {
+  ready: recommendReady, physics: physicsInfo,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRide, appliedRestrictions,
+  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
+} = request
 
 // `useAsyncData` rather than `useFetch` for the route lookup: the selected
 // category group can change which route is being shown, and can have no
@@ -397,20 +400,7 @@ const hasLongClimb = computed(() => resolvedRide.value
 // cost the recommended setup, and what the race's own draft is worth over
 // riding it alone. All fall away by themselves when the selected group has no
 // catalog route - there is no physics block without a ranking.
-const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
-const surfaceTimePenaltyText = computed(() => appliedRoute.value ? formatSurfaceTimePenalty(appliedRoute.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined)
-const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
-const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
-// The evidence lines under the recommended time - each is about the fastest
-// combo, so they sit with it rather than under the race header.
-const recommendationNotes = computed(() => [surfaceTimePenaltyText.value, tttSavingText.value, raceSavingText.value]
-  .filter((note): note is string => Boolean(note)))
-const limitedDataNote = computed(() => appliedRoute.value
-  ? limitedCourseDataNote({
-      hasElevationProfile: (appliedRoute.value.terrain.elevationProfile?.length ?? 0) > 1,
-      hasSurfaceLocations: (appliedRoute.value.surface.segments?.length ?? 0) > 0
-    })
-  : undefined)
+const physicsIsDynamic = computed(() => isDynamicPhysics(physicsInfo.value))
 // One plan for the briefing's TTT line and the TTT plan tab, from the applied
 // results - see `useTttPlan`. Undefined outside TTT drafting, which for a TTT
 // race is exactly what the draft hint above offers to switch on.
@@ -422,11 +412,11 @@ const tttPlan = useTttPlan({
   loading: () => isFirstLoad.value
 })
 
-const {
-  keys: comparisonKeys, picked: comparedCombos, full: comparisonFull,
-  includes: isCompared, toggle: toggleCompared,
-  clear: clearComparison, remove: removeFromComparison
-} = useComparison(() => combos.value)
+// Also handed whole to `RideResults`, so the recommendation and the rows
+// pick through one set of picks; the section they are compared in renders
+// below, in this page's own flow, which is where "Show comparison" scrolls.
+const comparison = useComparison(() => combos.value)
+const { picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = comparison
 
 /** Only meaningful once the race window has closed - resolved client-side, see below. */
 const isPast = ref(false)
@@ -494,41 +484,20 @@ defineOgImage('EventCard', {
 
 useHead(() => {
   if (!routeData.value) return {}
-  // Keyed for the same reason as on the route and segment pages: unhead
-  // then updates the server-rendered tag in place instead of adding a second
-  // FAQ script when the answer changes during hydration.
-  const scripts = [
-    {
-      key: 'breadcrumbs',
-      type: 'application/ld+json' as const,
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        'itemListElement': [
-          { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteConfig.url },
-          { '@type': 'ListItem', 'position': 2, 'name': 'Race calendars', 'item': `${siteConfig.url}/events` },
-          { '@type': 'ListItem', 'position': 3, 'name': `${season!.seriesName} ${season!.label}`, 'item': `${siteConfig.url}/events/${season!.slug}` },
-          { '@type': 'ListItem', 'position': 4, 'name': raceHeading.value, 'item': canonicalUrl.value }
-        ]
-      }).replace(/</g, '\\u003c')
-    }
-  ]
-  if (faqAnswer.value) {
-    scripts.push({
-      key: 'faq',
-      type: 'application/ld+json' as const,
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        'mainEntity': [{
-          '@type': 'Question',
-          'name': faqQuestion.value,
-          'acceptedAnswer': { '@type': 'Answer', 'text': faqAnswer.value }
-        }]
-      }).replace(/</g, '\\u003c')
-    })
+  // The trail is this page's own - the deepest on the site, a race under its
+  // season under the calendars - and the envelope, the keying and the
+  // escaping are `rankingResults.ts`'s.
+  return {
+    script: [
+      breadcrumbScript([
+        { name: 'Home', item: siteConfig.url },
+        { name: 'Race calendars', item: `${siteConfig.url}/events` },
+        { name: `${season!.seriesName} ${season!.label}`, item: `${siteConfig.url}/events/${season!.slug}` },
+        { name: raceHeading.value, item: canonicalUrl.value }
+      ]),
+      faqScript(faqQuestion.value, faqAnswer.value)
+    ].filter(script => script !== undefined)
   }
-  return { script: scripts }
 })
 </script>
 
@@ -864,212 +833,87 @@ useHead(() => {
     </div>
 
     <template v-else>
-      <div
-        v-if="draftHint"
-        class="flex flex-wrap items-center gap-3 rounded-lg border border-default p-4"
+      <RideResults
+        :request="request"
+        :comparison="comparison"
+        :answer="answer"
+        :faq-question="faqQuestion"
       >
-        <UIcon
-          name="i-lucide-users"
-          class="size-5 text-warning shrink-0"
-        />
-        <p class="flex-1 min-w-64 text-sm text-muted">
-          {{ draftHint.text }}
-        </p>
-        <UButton
-          size="xs"
-          color="warning"
-          variant="subtle"
-          @click="setDraftMode(draftHint.mode)"
-        >
-          {{ draftHint.action }}
-        </UButton>
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-x"
-          aria-label="Dismiss draft mode hint"
-          @click="draftHintDismissed = true"
-        />
-      </div>
-
-      <RideRefreshNotice
-        :failed="refreshFailed"
-        :has-results="hasRanking"
-        @retry="retry"
-      />
-
-      <!-- The recommendation is first in source order and first on a phone;
-           on a desktop the briefing takes the left column and the
-           recommendation the wider right one. The briefing reads only the
-           Ride, so it renders through a refetch and with no matches. -->
-      <div
-        id="ride-results"
-        class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12"
-        :aria-busy="isFirstLoad || isRefreshing"
-      >
-        <div class="lg:col-start-2 lg:row-start-1 lg:border-l lg:border-default lg:pl-12">
+        <template #page-block>
           <div
-            v-if="isFirstLoad"
-            class="space-y-4"
+            v-if="draftHint"
+            class="flex flex-wrap items-center gap-3 rounded-lg border border-default p-4"
           >
-            <RideRecommendationSkeleton />
-          </div>
-          <template v-else>
-            <p
-              v-if="isRefreshing"
-              class="mb-3 flex items-center gap-1.5 text-sm text-muted"
-            >
-              <UIcon
-                name="i-lucide-loader-circle"
-                class="size-4 animate-spin"
-              />Updating results…
+            <UIcon
+              name="i-lucide-users"
+              class="size-5 text-warning shrink-0"
+            />
+            <p class="flex-1 min-w-64 text-sm text-muted">
+              {{ draftHint.text }}
             </p>
-            <div
-              class="transition-opacity"
-              :class="{ 'opacity-60': isRefreshing }"
+            <UButton
+              size="xs"
+              color="warning"
+              variant="subtle"
+              @click="setDraftMode(draftHint.mode)"
             >
-              <!-- The Applied Ranking carries the APPLIED course and lap
-                   count, not the selector's: the km/h beside the time divides
-                   a distance by a time, and the two must describe one ride. -->
-              <RideRecommendation
-                v-if="topCombo"
-                :combo="topCombo"
-                :ranking="appliedRanking"
-                :limited-data-note="limitedDataNote"
-                :notes="recommendationNotes"
-                :compared="isCompared(topCombo)"
-                :compare-disabled="comparisonFull && !isCompared(topCombo)"
-                :compare-count="comparisonKeys.length"
-                @toggle-compare="toggleCompared(topCombo)"
-              >
-                <template #fastest-overall>
-                  <!-- `pointer-events-auto`: the wrapper blocks clicks on stale
-                       results while a refetch runs, but the reveal is a filter
-                       change, not a stale result, and stays usable as before. -->
-                  <FastestOverallNote
-                    v-if="fastestOverall"
-                    :fastest-overall="fastestOverall"
-                    class="mb-0 pointer-events-auto"
-                    @show-all="setBikeCategory('all')"
-                    @include-halo="setIncludeHaloBikes(true)"
-                  />
-                </template>
-              </RideRecommendation>
-              <section
-                v-else
-                aria-label="Recommended setup"
-                class="space-y-4"
-              >
-                <p class="text-muted">
-                  No bikes match your filters.
-                  <template v-if="appliedRestrictions.search">
-                    Clear the search below or widen the filters above to see the ranking again.
-                  </template>
-                  <template v-else>
-                    Widen the filters above to see the ranking again.
-                  </template>
-                </p>
-                <FastestOverallNote
-                  v-if="fastestOverall"
-                  :fastest-overall="fastestOverall"
-                  class="mb-0 pointer-events-auto"
-                  @show-all="setBikeCategory('all')"
-                  @include-halo="setIncludeHaloBikes(true)"
-                />
-                <ul
-                  v-if="recommendationNotes.length"
-                  class="space-y-1 text-sm text-muted"
-                >
-                  <li
-                    v-for="note in recommendationNotes"
-                    :key="note"
-                  >
-                    {{ note }}
-                  </li>
-                </ul>
-              </section>
-            </div>
-          </template>
-        </div>
-        <!-- The selector's route and lap count, not the applied ones: the
-             briefing describes the race the rider has picked a group for. -->
-        <RideBriefing
-          v-if="routeInfo && routeTotals"
-          :route="routeInfo"
-          :kind="formatLabel"
-          per-lap
-          class="lg:col-start-1 lg:row-start-1"
-        >
-          <li v-if="selectedGroup && categoryGroupOptions.length > 1">
-            Ridden by {{ formatCategoryGroup(selectedGroup) }} in this race.
-          </li>
-          <li v-if="climbOccurrences[0]">
-            {{ climbOccurrences.length }} mapped climb occurrence{{ climbOccurrences.length === 1 ? '' : 's' }}. First: {{ climbOccurrences[0].name }} at km {{ climbOccurrences[0].rideFromKm.toFixed(1) }}.
-          </li>
-          <li v-else>
-            No mapped climbs on this ride.
-          </li>
-          <TttBriefingLine
-            v-if="tttPlan"
-            :plan="tttPlan"
+              {{ draftHint.action }}
+            </UButton>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-x"
+              aria-label="Dismiss draft mode hint"
+              @click="draftHintDismissed = true"
+            />
+          </div>
+        </template>
+
+        <template #briefing>
+          <!-- The selector's route and lap count, not the applied ones: the
+               briefing describes the race the rider has picked a group for. -->
+          <RideBriefing
+            v-if="routeInfo && routeTotals"
+            :route="routeInfo"
+            :kind="formatLabel"
+            per-lap
+            class="lg:col-start-1 lg:row-start-1"
+          >
+            <li v-if="selectedGroup && categoryGroupOptions.length > 1">
+              Ridden by {{ formatCategoryGroup(selectedGroup) }} in this race.
+            </li>
+            <li v-if="climbOccurrences[0]">
+              {{ climbOccurrences.length }} mapped climb occurrence{{ climbOccurrences.length === 1 ? '' : 's' }}. First: {{ climbOccurrences[0].name }} at km {{ climbOccurrences[0].rideFromKm.toFixed(1) }}.
+            </li>
+            <li v-else>
+              No mapped climbs on this ride.
+            </li>
+            <TttBriefingLine
+              v-if="tttPlan"
+              :plan="tttPlan"
+            />
+            <li>
+              {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
+                + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
+                  / {{ formatElevation(routeTotals.leadInElevationM) }}
+                </template>, ridden once
+              </template>
+            </li>
+            <!-- Curated fact only: absent powerup data renders no line at all. -->
+            <li v-if="powerupsLine">
+              <span class="font-medium text-highlighted">PowerUps:</span> {{ powerupsLine }}
+            </li>
+          </RideBriefing>
+        </template>
+
+        <template #report-link>
+          <ReportDataLink
+            :item="`${raceTitle}${routeInfo ? ` (${routeInfo.name})` : ''}`"
+            :ride="reportRideLine"
           />
-          <li>
-            {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
-              + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
-                / {{ formatElevation(routeTotals.leadInElevationM) }}
-              </template>, ridden once
-            </template>
-          </li>
-          <!-- Curated fact only: absent powerup data renders no line at all. -->
-          <li v-if="powerupsLine">
-            <span class="font-medium text-highlighted">PowerUps:</span> {{ powerupsLine }}
-          </li>
-        </RideBriefing>
-      </div>
-
-      <!-- Full width beneath both columns: the answer the page's title asks
-           for, its rules first, with its assumptions on a smaller line. -->
-      <section
-        v-if="answer"
-        aria-labelledby="ride-answer-heading"
-        class="border-y border-default py-5"
-      >
-        <h2
-          id="ride-answer-heading"
-          class="text-lg font-semibold text-highlighted"
-        >
-          {{ faqQuestion }}
-        </h2>
-        <p class="mt-2 text-muted">
-          {{ answer.summary }}
-        </p>
-        <p class="mt-1 text-xs text-muted">
-          {{ answer.assumptions }}
-        </p>
-      </section>
-
-      <div
-        v-if="!isFirstLoad"
-        class="transition-opacity"
-        :class="{ 'opacity-60': isRefreshing }"
-      >
-        <RideAlternatives
-          v-model:search="bikeSearch"
-          v-model:selected="comparisonKeys"
-          :ranking="appliedRanking"
-          :has-more="hasMore"
-          :can-show-more="canShowMore"
-          :applied-search="appliedRestrictions.search"
-          :loading-more="loadingMore"
-          :expansion-failed="expansionFailed"
-          @show-more="showMore"
-        />
-        <ReportDataLink
-          :item="`${raceTitle}${routeInfo ? ` (${routeInfo.name})` : ''}`"
-          :ride="reportRideLine"
-        />
-      </div>
+        </template>
+      </RideResults>
 
       <!-- Ride-only tabs follow the selector, like the briefing; the
            equipment tabs follow the applied results, like the

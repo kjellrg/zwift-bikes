@@ -4,6 +4,7 @@ import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
 import { expandClimbsForLaps } from '#shared/utils/routeOccurrences'
+import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../utils/rankingResults'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -13,23 +14,25 @@ const slug = computed(() => route.params.slug as string)
 // same `useState`-backed state. `useRecommendRequest` reads it too, and owns
 // every refetch it triggers.
 const { weightKg, powerW } = useRiderProfile()
-const { showUpcomingRaces, setBikeCategory, setIncludeHaloBikes } = usePreferences()
+const { showUpcomingRaces } = usePreferences()
 
 const laps = ref(1)
 const ride = computed<Ride>(() => ({ endpoint: `/api/recommend/${slug.value}`, laps: laps.value }))
-const {
-  ready: recommendReady, recommendData, physics: physicsInfo, fastestOverall,
-  combos, topCombo, fastestTimeSec, hasMore, loadingMore, showMore,
-  appliedInputs, appliedRestrictions, canShowMore, appliedRanking,
-  appliedRide, hasRanking, isFirstLoad, isRefreshing, refreshFailed, expansionFailed, retry,
-  resultsAnnouncement, bikeSearch, bikeSearchDebounced
-} = useRecommendRequest(() => ride.value, {
+// Handed whole to `RideResults`, which renders everything this page shows
+// about the Ranking; what is destructured here is what the page itself is
+// still about - its header, its lap picker, its briefing and its analysis.
+const request = useRecommendRequest(() => ride.value, {
   key: `recommend-route-${slug.value}`,
   // Read lazily, out of the Applied Ranking: the lookup below is fired
   // alongside the ranking rather than before it, so this getter closes over a
   // binding that setup has not reached yet.
   course: () => routeData.value ?? undefined
 })
+const {
+  ready: recommendReady, recommendData, physics: physicsInfo,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRestrictions, appliedRide,
+  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
+} = request
 
 // Fired together (not sequentially): the recommendation depends on the Ride and the rider's own
 // stored state (both read inside `useRecommendRequest`), never on the route lookup resolving first.
@@ -134,20 +137,7 @@ const hasLongClimb = computed(() => resolvedRide.value
   ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
   : true)
 
-const surfaceTimePenaltyText = computed(() => routeData.value ? formatSurfaceTimePenalty(routeData.value.surface, topCombo.value?.surfaceTimePenaltySec) : undefined)
-const physicsIsDynamic = computed(() => physicsInfo.value?.mode === 'dynamic')
-const tttSavingText = computed(() => formatTttTimeSaving(physicsInfo.value?.ttt))
-const raceSavingText = computed(() => formatRaceTimeSaving(physicsInfo.value?.race))
-// The evidence lines under the recommended time - each is about the fastest
-// combo, so they sit with it rather than under the route header.
-const recommendationNotes = computed(() => [surfaceTimePenaltyText.value, tttSavingText.value, raceSavingText.value]
-  .filter((note): note is string => Boolean(note)))
-const limitedDataNote = computed(() => routeData.value
-  ? limitedCourseDataNote({
-      hasElevationProfile: (routeData.value.terrain.elevationProfile?.length ?? 0) > 1,
-      hasSurfaceLocations: (routeData.value.surface.segments?.length ?? 0) > 0
-    })
-  : undefined)
+const physicsIsDynamic = computed(() => isDynamicPhysics(physicsInfo.value))
 // One plan for the briefing's TTT line and the TTT plan tab, from the
 // applied results - see `useTttPlan`. Undefined outside TTT drafting.
 const tttPlan = useTttPlan({
@@ -158,11 +148,11 @@ const tttPlan = useTttPlan({
   loading: () => isFirstLoad.value
 })
 
-const {
-  keys: comparisonKeys, picked: comparedCombos, full: comparisonFull,
-  includes: isCompared, toggle: toggleCompared,
-  clear: clearComparison, remove: removeFromComparison
-} = useComparison(() => combos.value)
+// Also handed whole to `RideResults`, so the recommendation and the rows
+// pick through one set of picks; the section they are compared in renders
+// below, in this page's own flow, which is where "Show comparison" scrolls.
+const comparison = useComparison(() => combos.value)
+const { picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = comparison
 
 const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined)
 // The visible answer under the recommendation and the FAQ structured data
@@ -185,38 +175,17 @@ const siteConfig = useSiteConfig()
 const canonicalUrl = useCanonicalUrl()
 useHead(() => {
   if (!routeData.value) return {}
-  // Keyed, so unhead updates the server-rendered tag in place. Without a
-  // key it matches by content hash, and a patch that lands while the page
-  // is still hydrating - the stored profile's ranking is accepted - inserts a second FAQ script and
-  // leaves the crawler-facing default-rider one in the document.
-  const scripts = [{
-    key: 'breadcrumbs',
-    type: 'application/ld+json' as const,
-    innerHTML: JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'BreadcrumbList',
-      'itemListElement': [
-        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteConfig.url },
-        { '@type': 'ListItem', 'position': 2, 'name': routeData.value.name, 'item': canonicalUrl.value }
-      ]
-    }).replace(/</g, '\\u003c')
-  }]
-  if (faqAnswer.value) {
-    scripts.push({
-      key: 'faq',
-      type: 'application/ld+json' as const,
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        'mainEntity': [{
-          '@type': 'Question',
-          'name': faqQuestion.value,
-          'acceptedAnswer': { '@type': 'Answer', 'text': faqAnswer.value }
-        }]
-      }).replace(/</g, '\\u003c')
-    })
+  // The trail is this page's own - a route sits directly under the home page
+  // - and the envelope, the keying and the escaping are `rankingResults.ts`'s.
+  return {
+    script: [
+      breadcrumbScript([
+        { name: 'Home', item: siteConfig.url },
+        { name: routeData.value.name, item: canonicalUrl.value }
+      ]),
+      faqScript(faqQuestion.value, faqAnswer.value)
+    ].filter(script => script !== undefined)
   }
-  return { script: scripts }
 })
 </script>
 
@@ -336,196 +305,72 @@ useHead(() => {
       {{ resultsAnnouncement }}
     </p>
 
-    <UAlert
-      v-if="showUpcomingRaces && upcomingEvents.length"
-      color="info"
-      variant="subtle"
-      icon="i-lucide-calendar-days"
-      title="This route features in upcoming races"
+    <RideResults
+      :request="request"
+      :comparison="comparison"
+      :answer="answer"
+      :faq-question="faqQuestion"
     >
-      <template #description>
-        <span
-          v-for="(entry, index) in upcomingEvents"
-          :key="entry.path"
+      <template #page-block>
+        <UAlert
+          v-if="showUpcomingRaces && upcomingEvents.length"
+          color="info"
+          variant="subtle"
+          icon="i-lucide-calendar-days"
+          title="This route features in upcoming races"
         >
-          <ULink
-            :to="entry.path"
-            class="text-primary underline"
-          >{{ raceContextLabel(entry.season, entry.round) }} {{ raceDisplayName(entry.race) }}</ULink>
-          ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
-        </span>
-      </template>
-    </UAlert>
-
-    <RideRefreshNotice
-      :failed="refreshFailed"
-      :has-results="hasRanking"
-      @retry="retry"
-    />
-
-    <!-- The recommendation is first in source order and first on a phone;
-         on a desktop the briefing takes the left column and the
-         recommendation the wider right one. The briefing reads only the
-         Ride, so it renders through a refetch and with no matches. -->
-    <div
-      id="ride-results"
-      class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12"
-      :aria-busy="isFirstLoad || isRefreshing"
-    >
-      <div class="lg:col-start-2 lg:row-start-1 lg:border-l lg:border-default lg:pl-12">
-        <div
-          v-if="isFirstLoad"
-          class="space-y-4"
-        >
-          <RideRecommendationSkeleton />
-        </div>
-        <template v-else>
-          <p
-            v-if="isRefreshing"
-            class="mb-3 flex items-center gap-1.5 text-sm text-muted"
-          >
-            <UIcon
-              name="i-lucide-loader-circle"
-              class="size-4 animate-spin"
-            />Updating results…
-          </p>
-          <div
-            class="transition-opacity"
-            :class="{ 'opacity-60': isRefreshing }"
-          >
-            <RideRecommendation
-              v-if="topCombo"
-              :combo="topCombo"
-              :ranking="appliedRanking"
-              :limited-data-note="limitedDataNote"
-              :notes="recommendationNotes"
-              :compared="isCompared(topCombo)"
-              :compare-disabled="comparisonFull && !isCompared(topCombo)"
-              :compare-count="comparisonKeys.length"
-              @toggle-compare="toggleCompared(topCombo)"
+          <template #description>
+            <span
+              v-for="(entry, index) in upcomingEvents"
+              :key="entry.path"
             >
-              <template #fastest-overall>
-                <!-- `pointer-events-auto`: the wrapper blocks clicks on stale
-                     results while a refetch runs, but the reveal is a filter
-                     change, not a stale result, and stays usable as before. -->
-                <FastestOverallNote
-                  v-if="fastestOverall"
-                  :fastest-overall="fastestOverall"
-                  class="mb-0 pointer-events-auto"
-                  @show-all="setBikeCategory('all')"
-                  @include-halo="setIncludeHaloBikes(true)"
-                />
-              </template>
-            </RideRecommendation>
-            <section
-              v-else
-              aria-label="Recommended setup"
-              class="space-y-4"
-            >
-              <p class="text-muted">
-                No bikes match your filters.
-                <template v-if="appliedRestrictions.search">
-                  Clear the search below or widen the filters above to see the ranking again.
-                </template>
-                <template v-else>
-                  Widen the filters above to see the ranking again.
-                </template>
-              </p>
-              <FastestOverallNote
-                v-if="fastestOverall"
-                :fastest-overall="fastestOverall"
-                class="mb-0 pointer-events-auto"
-                @show-all="setBikeCategory('all')"
-                @include-halo="setIncludeHaloBikes(true)"
-              />
-              <ul
-                v-if="recommendationNotes.length"
-                class="space-y-1 text-sm text-muted"
-              >
-                <li
-                  v-for="note in recommendationNotes"
-                  :key="note"
-                >
-                  {{ note }}
-                </li>
-              </ul>
-            </section>
-          </div>
-        </template>
-      </div>
-      <!-- `laps` (the picker), not `resultsLaps`: the briefing describes the
-           ride the rider has chosen, and the climbs are expanded for it. -->
-      <RideBriefing
-        v-if="routeTotals"
-        :route="routeData"
-        :kind="TERRAIN_LABELS[routeData.terrain.category]"
-        per-lap
-        class="lg:col-start-1 lg:row-start-1"
-      >
-        <li v-if="climbOccurrences[0]">
-          {{ climbOccurrences.length }} mapped climb occurrence{{ climbOccurrences.length === 1 ? '' : 's' }}. First: {{ climbOccurrences[0].name }} at km {{ climbOccurrences[0].rideFromKm.toFixed(1) }}.
-        </li>
-        <li v-else>
-          No mapped climbs on this ride.
-        </li>
-        <TttBriefingLine
-          v-if="tttPlan"
-          :plan="tttPlan"
-        />
-        <li>
-          {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
-            + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
-              / {{ formatElevation(routeTotals.leadInElevationM) }}
-            </template>, ridden once
+              <ULink
+                :to="entry.path"
+                class="text-primary underline"
+              >{{ raceContextLabel(entry.season, entry.round) }} {{ raceDisplayName(entry.race) }}</ULink>
+              ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
+            </span>
           </template>
-        </li>
-      </RideBriefing>
-    </div>
+        </UAlert>
+      </template>
 
-    <!-- Full width beneath both columns: the answer the page's title asks
-         for, with its assumptions on a smaller line. Inside the
-         recommendation column it drove the row's height and left the
-         briefing beside acres of whitespace. -->
-    <section
-      v-if="answer"
-      aria-labelledby="ride-answer-heading"
-      class="border-y border-default py-5"
-    >
-      <h2
-        id="ride-answer-heading"
-        class="text-lg font-semibold text-highlighted"
-      >
-        {{ faqQuestion }}
-      </h2>
-      <p class="mt-2 text-muted">
-        {{ answer.summary }}
-      </p>
-      <p class="mt-1 text-xs text-muted">
-        {{ answer.assumptions }}
-      </p>
-    </section>
+      <template #briefing>
+        <!-- `laps` (the picker), not `resultsLaps`: the briefing describes the
+             ride the rider has chosen, and the climbs are expanded for it. -->
+        <RideBriefing
+          v-if="routeTotals"
+          :route="routeData"
+          :kind="TERRAIN_LABELS[routeData.terrain.category]"
+          per-lap
+          class="lg:col-start-1 lg:row-start-1"
+        >
+          <li v-if="climbOccurrences[0]">
+            {{ climbOccurrences.length }} mapped climb occurrence{{ climbOccurrences.length === 1 ? '' : 's' }}. First: {{ climbOccurrences[0].name }} at km {{ climbOccurrences[0].rideFromKm.toFixed(1) }}.
+          </li>
+          <li v-else>
+            No mapped climbs on this ride.
+          </li>
+          <TttBriefingLine
+            v-if="tttPlan"
+            :plan="tttPlan"
+          />
+          <li>
+            {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
+              + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
+                / {{ formatElevation(routeTotals.leadInElevationM) }}
+              </template>, ridden once
+            </template>
+          </li>
+        </RideBriefing>
+      </template>
 
-    <div
-      v-if="!isFirstLoad"
-      class="transition-opacity"
-      :class="{ 'opacity-60': isRefreshing }"
-    >
-      <RideAlternatives
-        v-model:search="bikeSearch"
-        v-model:selected="comparisonKeys"
-        :ranking="appliedRanking"
-        :has-more="hasMore"
-        :can-show-more="canShowMore"
-        :applied-search="appliedRestrictions.search"
-        :loading-more="loadingMore"
-        :expansion-failed="expansionFailed"
-        @show-more="showMore"
-      />
-      <ReportDataLink
-        :item="routeData?.name"
-        :ride="reportRideLine"
-      />
-    </div>
+      <template #report-link>
+        <ReportDataLink
+          :item="routeData?.name"
+          :ride="reportRideLine"
+        />
+      </template>
+    </RideResults>
 
     <!-- Ride-only tabs follow the picker `laps` like the briefing; the
          equipment tabs follow the applied results, like the recommendation. -->

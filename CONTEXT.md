@@ -86,6 +86,10 @@ _Avoid_: results list, alternatives list, the field, matches
 Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, and the paths deeper into it. It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. It carries everything a lower rank carries, the comparison pick included.
 _Avoid_: top combo, hero card, winner, best bike
 
+**Ranking results**:
+Everything a page shows about its Applied Ranking: the Recommendation, the evidence lines that say what its time rests on, the answer the page's title asks for, the ranking beneath it, and what all of that looks like while it is refreshing or when nothing matched. It is one thing, shown the same way wherever a ride is ranked, so what a rider learns on a route page is true on a segment or a race page. What a page states on its own is not part of it - its header, its selection control, its briefing, its course analysis, and the decision of whether there is a ranking to show at all.
+_Avoid_: the results column, results section, results area, recommendation block
+
 **Wheel alternatives**:
 The wheelsets a frame could be ridden with on the Ride, ranked fastest first under the Applied Ranking's own request, so their times come out of the same pipeline, rider, laps, draft mode and rules as the row that asked. A row's disclosure shows them; the Equipment drawer takes its upgrade curve from the fastest of them. They answer for one Ranking: once that Ranking is replaced they describe nothing on screen and are not shown.
 _Avoid_: drill-down, wheel options, wheel list, frame combos
