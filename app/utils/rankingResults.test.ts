@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { breadcrumbScript, faqScript, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
+import { breadcrumbScript, courseNote, faqScript, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
 const course = (terrain: unknown, surface: unknown) => ({ terrain, surface } as RouteWithMeta)
@@ -88,6 +88,27 @@ describe('rankingEvidence', () => {
 
     expect(evidence.notes).toEqual([])
     expect(evidence.limitedDataNote).toBeUndefined()
+  })
+})
+
+/**
+ * Which course an equipment view's scope line names - only when it is not the
+ * one the rider has selected, which on a race page is the window between a
+ * group change and its ranking landing.
+ */
+describe('courseNote', () => {
+  const makuri = { slug: 'makuri-40', name: 'Makuri 40' } as RouteWithMeta
+  const urumaze = { slug: 'urumaze', name: 'Urumaze' } as RouteWithMeta
+
+  it('names the applied course only while it is not the selected one', () => {
+    expect(courseNote(urumaze, makuri)).toBe(' on Makuri 40')
+    expect(courseNote(makuri, makuri)).toBe('')
+  })
+
+  it('names nothing when the applied course is not known yet', () => {
+    // The view says so on its own line; a scope line about no course would
+    // be a claim about nothing.
+    expect(courseNote(urumaze, undefined)).toBe('')
   })
 })
 

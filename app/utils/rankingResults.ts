@@ -23,6 +23,21 @@ export function hasSurfaceLocations(course: RouteWithMeta | undefined): boolean 
 }
 
 /**
+ * Which course an equipment view is describing, said out loud only when it is
+ * not the one the rider has selected: ` on Makuri 40`, or nothing. A race
+ * page's group can move the selected course while the ranking on screen is
+ * still the previous group's, and a speed curve under a freshly changed
+ * selector must not be read as the course now selected.
+ *
+ * Nothing, too, while the applied course is not known - the view says that
+ * on a line of its own, and a scope line about no course would be a claim
+ * about nothing.
+ */
+export function courseNote(selected: Pick<RouteWithMeta, 'slug'>, applied: Pick<RouteWithMeta, 'slug' | 'name'> | undefined): string {
+  return applied && applied.slug !== selected.slug ? ` on ${applied.name}` : ''
+}
+
+/**
  * The physics block of a recommend response, as the evidence lines read it.
  *
  * A deliberate restatement of `RecommendResponse['physics']` in

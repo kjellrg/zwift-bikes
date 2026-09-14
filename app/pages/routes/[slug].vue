@@ -24,7 +24,7 @@ const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }
 const request = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRestrictions, appliedRide,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, appliedRestrictions, appliedRide,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 
@@ -369,6 +369,7 @@ useHead(() => {
          equipment tabs follow the applied results, like the recommendation. -->
     <RideCourseAnalysis
       :route="routeData"
+      :results-route="appliedRanking.course"
       kind="route"
       :laps="laps"
       :results-laps="resultsLaps"

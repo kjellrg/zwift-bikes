@@ -97,7 +97,7 @@ const ride = computed<Ride>(() => ({
 const request = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRide, appliedRestrictions,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, appliedRide, appliedRestrictions,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 await recommendReady
@@ -414,6 +414,7 @@ useHead(() => {
          route-style, from a standing start, and their scope lines say so. -->
     <RideCourseAnalysis
       :route="segmentRoute"
+      :results-route="appliedRanking.course"
       :kind="segmentData.type"
       :laps="1"
       :results-laps="1"

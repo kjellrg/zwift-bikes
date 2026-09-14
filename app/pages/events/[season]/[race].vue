@@ -883,7 +883,7 @@ useHead(() => {
       <RideCourseAnalysis
         v-if="routeInfo"
         :route="routeInfo"
-        :results-route="appliedRanking.course ?? null"
+        :results-route="appliedRanking.course"
         kind="route"
         :laps="laps"
         :results-laps="resultsLaps"
