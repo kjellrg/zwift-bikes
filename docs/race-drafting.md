@@ -1061,9 +1061,10 @@ Stated plainly, because these are the limits of the claim:
 | The constant | `RACE_DRAFT_SAVING` in [`shared/utils/physics/draft.ts`](../shared/utils/physics/draft.ts) — one line, one place |
 | The transform the constant is valid under | `racePowerScaleAtSpeed` in the same module |
 | Speed scaling | *unchanged* — the existing `draftSavingsSpeedScale`, i.e. the `(v / 11.7)²` fit TTT mode already uses |
+| The `race` arm of the draft resolver | `resolveDraft` in the same module: the scale for the simulator, the `{ mode: 'race' }` twin for the estimate, and a plain solo as the draft's `solo` |
 | Per-timestep application | `powerScaleAtSpeed` in [`shared/utils/physics/simulator.ts`](../shared/utils/physics/simulator.ts) |
 | Ranking-key equivalent (closed form) | `raceGroupSpeedMps`, called from `estimateFinishTimeSec`'s `draft: { mode: 'race' }` arm in [`shared/utils/finishTime.ts`](../shared/utils/finishTime.ts) |
-| Request wiring, "saves vs solo" comparison | `draftMode=race` in [`server/utils/recommendPipeline.ts`](../server/utils/recommendPipeline.ts), returning a `physics.race` block; the geometry each ride is timed on comes from [`server/api/recommend/[slug].get.ts`](../server/api/recommend/[slug].get.ts) and [`segments/[slug].get.ts`](../server/api/recommend/segments/[slug].get.ts) |
+| Request wiring, "saves vs solo" comparison | [`server/utils/recommendPipeline.ts`](../server/utils/recommendPipeline.ts) resolves the request's draft once and times the comparison under `draft.solo`, returning a `physics.race` block; the geometry each ride is timed on comes from [`server/api/recommend/[slug].get.ts`](../server/api/recommend/[slug].get.ts) and [`segments/[slug].get.ts`](../server/api/recommend/segments/[slug].get.ts) |
 | Rider-facing state | `draftMode` in [`app/composables/useRiderProfile.ts`](../app/composables/useRiderProfile.ts), the mode picker in `RiderProfileControls.vue` / `ProfileContent.vue`, the saving line via `formatRaceTimeSaving` |
 | Speed chart | the `race` arm of `computeRouteSurfaceSpeedProfile`, so the chart's dashed solo line and the headline time cannot disagree |
 | MCP | `draftMode: 'race'` in [`server/utils/mcp/tools.ts`](../server/utils/mcp/tools.ts), `formatRaceAssumption` in `format.ts` |

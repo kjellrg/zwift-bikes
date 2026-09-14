@@ -196,8 +196,9 @@ Stated plainly, because these are the limits of the claim:
 | Concern | Location |
 |---|---|
 | Constants, factors, speed scaling, climb detection | `shared/utils/physics/draft.ts` |
-| Per-timestep application | `powerScaleAtSpeed` in `shared/utils/physics/simulator.ts` |
-| Ranking-key equivalent | `estimateFinishTimeSec` in `shared/utils/finishTime.ts` |
-| Request wiring, "saves vs solo" comparison | `server/utils/recommendPipeline.ts`, with the geometry wiring in `server/api/recommend/[slug].get.ts` and `.../segments/[slug].get.ts` |
-| Speed chart + solo overlay | `shared/utils/physics/routeSurfaceSpeedProfile.ts` |
-| TTT plan | `shared/utils/physics/racePlan.ts` |
+| The Draft and its resolution: plan, scale, estimate twin, `solo` | `Draft`, `RideDraft`, `draftOf`, `resolveDraft` in the same module - the one place the mode-to-scaling mapping lives |
+| Per-timestep application | `powerScaleAtSpeed` in `shared/utils/physics/simulator.ts`, handed the draft's scale and plan by the ride builders in `shared/utils/recommendRide.ts` |
+| Ranking-key equivalent | `estimateFinishTimeSec` in `shared/utils/finishTime.ts`, handed the draft's `estimate` twin |
+| Request wiring, "saves vs solo" comparison | `server/utils/recommendPipeline.ts` resolves the draft once per request and times the comparison under `draft.solo`; the geometry wiring is in `server/api/recommend/[slug].get.ts` and `.../segments/[slug].get.ts` |
+| Speed chart + solo overlay | `shared/utils/physics/routeSurfaceSpeedProfile.ts`, resolving the same `Draft` on its single-lap geometry |
+| TTT plan | `shared/utils/physics/racePlan.ts`, reading the `RideDraft` that `app/composables/useTttPlan.ts` resolves on the laps geometry |
