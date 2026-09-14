@@ -1,4 +1,5 @@
 import type { RouteGeometry } from '../../types/physics'
+import type { EstimateDraft } from '../finishTime'
 import { speedForPower } from './forces'
 
 /**
@@ -497,4 +498,103 @@ export function tttPowerPlan(geometry: RouteGeometry, climbWkg: number, weightKg
     climbElevationM: blocks.reduce((sum, block) => sum + block.elevationM, 0),
     climbPowerW
   }
+}
+
+/**
+ * A Draft (see `CONTEXT.md`): how a Ride is ridden relative to other riders.
+ * The rider's choice, before it meets a course - `resolveDraft` is where it
+ * meets one. An explicit `solo` arm rather than `undefined`, so that "not
+ * drafting" is a value a call site has to pass, never a field it happens to
+ * leave out.
+ */
+export type Draft
+  = | { mode: 'solo' }
+    | { mode: 'ttt', riders: number, climbWkg?: number | undefined }
+    | { mode: 'race' }
+
+/**
+ * The one Draft behind the three loose fields the wire, the stored profile
+ * and a page's applied inputs all carry (`draftMode`, `tttRiders`,
+ * `tttClimbWkg`). Those stay loose at the client boundary - the display
+ * readers of them are many and untouched - and fold into a Draft here, where
+ * a draft is consumed. The TTT fields are dropped outside TTT mode: a climb
+ * pace left over from a TTT must not pace a solo ride.
+ */
+export function draftOf(inputs: { draftMode: DraftMode, tttRiders: number, tttClimbWkg?: number | undefined }): Draft {
+  switch (inputs.draftMode) {
+    case 'ttt': return { mode: 'ttt', riders: inputs.tttRiders, climbWkg: inputs.tttClimbWkg }
+    case 'race': return { mode: 'race' }
+    case 'solo': return { mode: 'solo' }
+  }
+}
+
+/**
+ * A Draft resolved against one course and one rider: everything a timing of
+ * that Ride needs to ride under it, computed once and handed to every call.
+ */
+export interface RideDraft {
+  setting: Draft
+  /**
+   * The TTT pacing plan on this geometry (`tttPowerPlan`), in the ride's own
+   * coordinates - a ride that simulates on shifted geometry has to shift it
+   * to match. Present only for a TTT with a climb pace on a course with a
+   * long climb; the plan is pacing, not drafting, which is why `solo` keeps it.
+   */
+  plan?: TttPowerPlan
+  /** The simulator's per-timestep multiplier on the rider's power (`SimulateRouteOptions.powerScaleAtSpeed`). Absent when nothing but the rider moves the bike. */
+  powerScaleAtSpeed?: (speedMps: number) => number
+  /** The closed-form estimate's twin of `powerScaleAtSpeed` and `plan`, for `estimateFinishTimeSec`. Absent for solo, where the estimate is unchanged. */
+  estimate?: EstimateDraft
+  /**
+   * The same ride solo: the same rider, the same power and the same climb
+   * pacing, with only the draft removed - what every "saves X vs solo"
+   * comparison is measured against. A solo draft's `solo` is itself.
+   */
+  solo: RideDraft
+}
+
+/**
+ * The only place the mode-to-scaling mapping lives. A fourth draft mode is a
+ * new arm here - the simulator's scale, the estimate's twin and what "solo"
+ * keeps of it - and nowhere else.
+ *
+ * Resolved ONCE per request and shared by every combo: the plan is built on
+ * representative physics for exactly that reason (see `REPRESENTATIVE_CDA_M2`),
+ * and a per-combo draft would poison `orderBySimulatedTime`'s physics-keyed
+ * dedupe cache. `rider.powerW` is the rider's own average, which is what the
+ * plan detects climbs at (see `tttPowerPlan`).
+ */
+export function resolveDraft(draft: Draft, geometry: RouteGeometry, rider: { weightKg: number, powerW: number }): RideDraft {
+  switch (draft.mode) {
+    case 'solo':
+      return soloDraft()
+    case 'ttt': {
+      const plan = draft.climbWkg ? tttPowerPlan(geometry, draft.climbWkg, rider.weightKg, rider.powerW) : undefined
+      return {
+        setting: draft,
+        plan,
+        powerScaleAtSpeed: (speedMps: number) => tttPowerScaleAtSpeed(draft.riders, speedMps),
+        estimate: {
+          mode: 'ttt',
+          riders: draft.riders,
+          climb: plan ? { distanceM: plan.climbDistanceM, elevationM: plan.climbElevationM, powerW: plan.climbPowerW } : undefined
+        },
+        solo: soloDraft(plan)
+      }
+    }
+    case 'race':
+      return {
+        setting: draft,
+        powerScaleAtSpeed: (speedMps: number) => racePowerScaleAtSpeed(speedMps),
+        estimate: { mode: 'race' },
+        solo: soloDraft()
+      }
+  }
+}
+
+/** A solo `RideDraft`, its own `solo`; with `plan` when it is a drafted ride's solo comparison and keeps that ride's pacing. */
+function soloDraft(plan?: TttPowerPlan): RideDraft {
+  const solo = { setting: { mode: 'solo' as const }, plan } as RideDraft
+  solo.solo = solo
+  return solo
 }
