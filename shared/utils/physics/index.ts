@@ -1,6 +1,6 @@
 export { calculateForces, rollingResistanceCoefficient, GRAVITY, AIR_DENSITY, DRIVETRAIN_EFFICIENCY } from './forces'
-export { clampTttClimbWkg, clampTttRiders, detectLongClimbBlocks, draftSavingsSpeedScale, raceGroupSpeedMps, racePowerScaleAtSpeed, RACE_DRAFT_SAVING, tttAveragePowerFactor, tttAveragePowerFactorAtSpeed, tttFrontPullPowerW, tttGroupSpeedMps, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, TTT_DEFAULT_RIDERS, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS, TTT_POSITION_POWER_SAVINGS } from './draft'
-export type { DraftMode, PowerSegmentW, TttClimbBlock, TttPowerPlan } from './draft'
+export { clampTttClimbWkg, clampTttRiders, detectLongClimbBlocks, draftOf, draftSavingsSpeedScale, raceGroupSpeedMps, racePowerScaleAtSpeed, RACE_DRAFT_SAVING, resolveDraft, tttAveragePowerFactor, tttAveragePowerFactorAtSpeed, tttFrontPullPowerW, tttGroupSpeedMps, tttLastWheelPowerW, tttPowerPlan, tttPowerScaleAtSpeed, TTT_DEFAULT_RIDERS, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS, TTT_POSITION_POWER_SAVINGS } from './draft'
+export type { Draft, DraftMode, PowerSegmentW, RideDraft, TttClimbBlock, TttPowerPlan } from './draft'
 export { buildRacePlan } from './racePlan'
 export type { RacePlanItem, RacePlanOptions } from './racePlan'
 export { bikeMassFromScore, equipmentCdaFromScore, equipmentPhysics, riderCdaM2, riderScaledCdaM2, solveFrameEquipmentDelta, solveWheelEquipmentDelta, standardEquivalentClimbScore } from './equipment'

@@ -19,8 +19,8 @@ export function rideForRoute(route: RouteWithMeta, requestedLaps?: number, exclu
       if (!rider) return {}
       const geometry = planGeometry()
       return {
-        simulateSec: ({ frame, wheelset, powerSegmentsW, powerScaleAtSpeed }) =>
-          simulate({ rider, frame, wheelset, geometry, powerSegmentsW, powerScaleAtSpeed }).elapsedSec
+        simulateSec: ({ frame, wheelset, draft }) =>
+          simulate({ rider, frame, wheelset, geometry, powerSegmentsW: draft.plan?.powerSegmentsW, powerScaleAtSpeed: draft.powerScaleAtSpeed }).elapsedSec
       }
     }
   }
@@ -70,16 +70,18 @@ export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, w
       return {
         // Two counted integrations preserve a flying start without subtracting
         // independently approximated times. Only the warm-up's exit speed is
-        // transferred, so the timed run and plan use the same coordinates.
+        // transferred, so the timed run and plan use the same coordinates -
+        // which is why the warm-up is drafted (its exit speed is the drafted
+        // group's) but never paced: the plan is in the timed run's coordinates.
         // Tight convergence prevents the warm-up shortcut from handing over
         // a still-accelerating speed (issue #199; docs/shared-ride-verification.md).
-        simulateSec: ({ frame, wheelset, powerSegmentsW, powerScaleAtSpeed }) => {
+        simulateSec: ({ frame, wheelset, draft }) => {
           const warmup = simulate({
             rider,
             frame,
             wheelset,
             geometry: warmupOnlyGeometry,
-            powerScaleAtSpeed,
+            powerScaleAtSpeed: draft.powerScaleAtSpeed,
             steadyStateToleranceMps2: WARMUP_STEADY_STATE_TOLERANCE_MPS2
           })
           return simulate({
@@ -88,8 +90,8 @@ export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, w
             wheelset,
             geometry,
             initialSpeedMps: warmup.finalSpeedMps,
-            powerSegmentsW,
-            powerScaleAtSpeed
+            powerSegmentsW: draft.plan?.powerSegmentsW,
+            powerScaleAtSpeed: draft.powerScaleAtSpeed
           }).elapsedSec
         }
       }

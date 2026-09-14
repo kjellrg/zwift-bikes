@@ -101,6 +101,16 @@ function leadInCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): number
 }
 
 /**
+ * The closed-form estimate's own view of a draft - `resolveDraft` builds one as
+ * the twin of the simulator's scaling, so the two models are handed the same
+ * draft rather than two readings of the same query. Solo has no arm: the
+ * estimate is unchanged with `draft` unset (see the function's own comment).
+ */
+export type EstimateDraft
+  = | { mode: 'ttt', riders: number, climb?: { distanceM: number, elevationM: number, powerW: number } }
+    | { mode: 'race' }
+
+/**
  * Estimates finish time in seconds for a route ridden on a specific
  * frame+wheelset combo, by a rider of `weightKg`/`heightCm` sustaining
  * `powerW` watts. `wheelset` is optional/ignored for `frame.hasFixedWheels` frames
@@ -132,10 +142,11 @@ function leadInCrr(wheelset: Wheelset | undefined, route: RouteWithMeta): number
  *   saving, no rider count and no power plan, because race mode has neither
  *   (see `RACE_DRAFT_SAVING`).
  *
- * A discriminated union rather than one flag per mode so a fourth draft mode is
- * a new arm here instead of a new parameter at every call site. When `draft` is
- * unset this function is unchanged, so solo-mode ordering cannot drift by
- * construction.
+ * A discriminated union (`EstimateDraft`) rather than one flag per mode, so a
+ * fourth draft mode is a new arm here and in `resolveDraft` - which builds the
+ * union as the simulator scale's twin - instead of a new parameter at every
+ * call site. When `draft` is unset this function is unchanged, so solo-mode
+ * ordering cannot drift by construction.
  */
 export function estimateFinishTimeSec(
   route: RouteWithMeta,
@@ -145,7 +156,7 @@ export function estimateFinishTimeSec(
   heightCm: number,
   powerW: number,
   laps = 1,
-  draft?: { mode: 'ttt', riders: number, climb?: { distanceM: number, elevationM: number, powerW: number } } | { mode: 'race' }
+  draft?: EstimateDraft
 ): number {
   const grade = route.terrain.climbRatio / 1000 // m/km -> m/m
 

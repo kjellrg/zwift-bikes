@@ -75,8 +75,8 @@ function query(params: Record<string, string> = {}): RecommendBaseQuery {
   return recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '175', powerW: '225', ...params })
 }
 
-/** Every `simulateSec` call the pipeline made, so the disclosures' call shapes can be asserted. */
-type SimulateLog = Pick<SimulateComboOptions, 'powerSegmentsW' | 'powerScaleAtSpeed'>[]
+/** Every `simulateSec` call the pipeline made, so the draft each timing was ridden under can be asserted. */
+type SimulateLog = Pick<SimulateComboOptions, 'draft'>[]
 
 function loggedRide(ride: RecommendRide, log: SimulateLog): RecommendRide {
   return {
@@ -87,7 +87,7 @@ function loggedRide(ride: RecommendRide, log: SimulateLog): RecommendRide {
       return {
         ...physics,
         simulateSec: simulateSec && ((options) => {
-          log.push({ powerSegmentsW: options.powerSegmentsW, powerScaleAtSpeed: options.powerScaleAtSpeed })
+          log.push({ draft: options.draft })
           return simulateSec(options)
         })
       }
@@ -250,19 +250,26 @@ describe('runRecommendPipeline', () => {
       routeRide(tttLog, { route: climbRoute })
     )
     expect(ttt.physics?.ttt?.tttSavedSec).toBeGreaterThan(0)
-    // Exactly one timing loses the draft scaling: the "what would this be
-    // solo?" run. It keeps the pacing plan, so nothing but the draft differs.
-    const tttSolo = tttLog.filter(call => call.powerScaleAtSpeed === undefined)
+    // Every timing rides under the one draft resolved for the request, except
+    // the "what would this be solo?" run, which rides under that draft's own
+    // solo: the same pacing plan with nothing but the draft removed.
+    const drafted = tttLog.filter(call => call.draft.setting.mode === 'ttt')
+    const tttSolo = tttLog.filter(call => call.draft.setting.mode === 'solo')
+    expect(drafted.length).toBeGreaterThan(0)
+    expect(new Set(drafted.map(call => call.draft)).size).toBe(1)
+    expect(drafted[0]!.draft.plan?.blocks.length).toBeGreaterThan(0)
     expect(tttSolo).toHaveLength(1)
-    expect(tttSolo[0]!.powerSegmentsW?.length).toBeGreaterThan(0)
+    expect(tttSolo[0]!.draft).toBe(drafted[0]!.draft.solo)
+    expect(tttSolo[0]!.draft.plan).toBe(drafted[0]!.draft.plan)
 
     const raceLog: SimulateLog = []
     const race = await runRecommendPipeline(fakeEvent(), query({ draftMode: 'race' }), routeRide(raceLog))
     expect(race.physics?.race?.raceSavedSec).toBeGreaterThan(0)
-    // Race mode has no pacing plan at all, so its solo run carries neither.
-    const raceSolo = raceLog.filter(call => call.powerScaleAtSpeed === undefined)
+    // Race mode has no pacing plan at all, so its solo is a plain solo.
+    const raceSolo = raceLog.filter(call => call.draft.setting.mode === 'solo')
     expect(raceSolo).toHaveLength(1)
-    expect(raceSolo[0]!.powerSegmentsW).toBeUndefined()
+    expect(raceSolo[0]!.draft).toBe(raceLog.find(call => call.draft.setting.mode === 'race')!.draft.solo)
+    expect(raceSolo[0]!.draft.plan).toBeUndefined()
   })
 
   it('ranks the garage alone when it holds both frames and wheels', async () => {

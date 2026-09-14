@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getFrames, getRouteBySlug } from './catalog'
 import { rideForRoute, rideForSegment } from './recommendRide'
 import { getSegmentSummary, routeWithMetaForSegment } from './routeSegments'
-import { simulateRoute, tttPowerPlan, tttPowerScaleAtSpeed } from './physics'
+import { resolveDraft, simulateRoute } from './physics'
 import { getWheelsets } from './wheelsets'
 
 describe('rideForRoute', () => {
@@ -33,30 +33,31 @@ describe('rideForSegment', () => {
     const ride = rideForSegment(route, false, 3000)
     const rider = { weightKg: 75, heightCm: 175, powerW: 225 }
     const geometry = ride.planGeometry()
-    const plan = tttPowerPlan(geometry, 3.5, rider.weightKg, rider.powerW)!
+    const draft = resolveDraft({ mode: 'ttt', riders: 6, climbWkg: 3.5 }, geometry, rider)
+    expect(draft.plan).toBeDefined()
     const calls: { options: Parameters<typeof simulateRoute>[0], result: ReturnType<typeof simulateRoute> }[] = []
     const recordingSimulate: typeof simulateRoute = (options) => {
       const result = simulateRoute(options)
       calls.push({ options, result })
       return result
     }
-    const powerScaleAtSpeed = (speed: number) => tttPowerScaleAtSpeed(6, speed)
     const elapsedSec = ride.prepare(recordingSimulate, rider).simulateSec!({
       frame: getFrames().find(frame => frame.name === 'Zwift Carbon')!,
       wheelset: getWheelsets().find(wheelset => wheelset.name === 'Zwift 32mm Carbon')!,
-      powerSegmentsW: plan.powerSegmentsW,
-      powerScaleAtSpeed
+      draft
     })
     expect(calls).toHaveLength(2)
     const [warmup, timed] = calls
+    // The warm-up is drafted but never paced: its plan is in the timed run's
+    // coordinates, and only the exit speed carries over.
     expect(warmup!.options.geometry.totalDistanceM).toBe(3000)
     expect(warmup!.options.powerSegmentsW).toBeUndefined()
-    expect(warmup!.options.powerScaleAtSpeed).toBe(powerScaleAtSpeed)
+    expect(warmup!.options.powerScaleAtSpeed).toBe(draft.powerScaleAtSpeed)
     expect(warmup!.result.finalSpeedMps).toBeGreaterThan(0)
     expect(timed!.options.initialSpeedMps).toBe(warmup!.result.finalSpeedMps)
     expect(timed!.options.geometry).toBe(geometry)
-    expect(timed!.options.powerSegmentsW).toBe(plan.powerSegmentsW)
-    expect(timed!.options.powerScaleAtSpeed).toBe(powerScaleAtSpeed)
+    expect(timed!.options.powerSegmentsW).toBe(draft.plan!.powerSegmentsW)
+    expect(timed!.options.powerScaleAtSpeed).toBe(draft.powerScaleAtSpeed)
     expect(elapsedSec).toBe(timed!.result.elapsedSec)
   })
 
@@ -67,14 +68,13 @@ describe('rideForSegment', () => {
     const wheelset = getWheelsets().find(wheelset => wheelset.name === 'Zwift 32mm Carbon')!
     expect(frame).toBeDefined()
     expect(wheelset).toBeDefined()
-    for (const drafted of [false, true]) {
+    for (const setting of [{ mode: 'solo' as const }, { mode: 'ttt' as const, riders: 6, climbWkg: 3.5 }]) {
       const times = [2000, 3000, 4000].map((warmup) => {
         const ride = rideForSegment(route, false, warmup)
         return ride.prepare(simulateRoute, rider).simulateSec!({
           frame,
           wheelset,
-          powerSegmentsW: drafted ? tttPowerPlan(ride.planGeometry(), 3.5, rider.weightKg, rider.powerW)?.powerSegmentsW : undefined,
-          powerScaleAtSpeed: drafted ? speed => tttPowerScaleAtSpeed(6, speed) : undefined
+          draft: resolveDraft(setting, ride.planGeometry(), rider)
         })
       })
       expect(Math.max(...times) - Math.min(...times)).toBeLessThan(0.1)

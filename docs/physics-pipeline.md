@@ -463,7 +463,15 @@ same 18 put a 1.6 s inversion back on page one.
 
 `draftMode=ttt` (with `tttRiders` 2–8 and optional `tttClimbWkg`) threads a
 Team Time Trial through the whole pipeline without touching any equipment
-physics. The rider's entered power still means **their own average over a full
+physics. On the server those three query fields fold into one `Draft`
+(`draftOf`), and the pipeline resolves it once against the ride's own
+geometry into a `RideDraft` (`resolveDraft`, both in
+`shared/utils/physics/draft.ts`): the TTT pacing plan on that geometry, the
+simulator's power scale, the closed-form estimate's twin, and the same ride
+`solo`. Every timing in the request is handed that one object, so a fourth
+draft mode is a new arm in the resolver and nowhere else.
+
+The rider's entered power still means **their own average over a full
 rotation** — the same thing it means in solo mode — and the paceline rides at
 the speed that combined effort produces. No CdA changes anywhere, and the
 solvers in `equipment.ts` (which invert ZwiftInsider's no-draft bot protocol)
@@ -507,17 +515,21 @@ and validation evidence is in [ttt-drafting.md](ttt-drafting.md):
   quarter of its flat value (`draftSavingsSpeedScale` = 0.25, ~21.1 km/h -
   `CLIMB_BLOCK_MAX_SPEED_MPS`) for at least 2.5 estimated minutes
   (`CLIMB_BLOCK_MIN_DURATION_SEC`, down from 210 s, which missed climbs teams
-  visibly ride individually), with short sub-threshold gaps merged. The plan is computed **once per request** and shared by
-  every combo — a per-combo plan would poison `orderBySimulatedTime`'s
-  physics-keyed dedupe cache. The cheap estimate mirrors the same physics:
-  `tttGroupSpeedMps` is a 4-iteration fixed point (draft depends on speed,
-  speed depends on draft), plus the same two-phase climb split, so ranking
-  keeps tracking the simulator. With `draftMode=solo` neither model changes
-  at all.
+  visibly ride individually), with short sub-threshold gaps merged. The plan is
+  part of the `RideDraft`, resolved **once per request** and shared by every
+  combo — a per-combo plan would poison `orderBySimulatedTime`'s physics-keyed
+  dedupe cache. The cheap estimate mirrors the same physics through the draft's
+  `estimate` twin: `tttGroupSpeedMps` is a 4-iteration fixed point (draft
+  depends on speed, speed depends on draft), plus the same two-phase climb
+  split, so ranking keeps tracking the simulator. With `draftMode=solo` neither
+  model changes at all.
 - **The "saves X vs solo" comparison** simulates one extra ride (top combo,
-  first page only): the same rider, same power, same pacing plan, with the
-  draft scaling removed. The only difference between the two rides is the
-  draft, so the gap is exactly what the paceline is worth.
+  first page only) under the draft's own `solo`: the same rider, same power,
+  same pacing plan, with only the draft removed. The only difference between
+  the two rides is the draft, so the gap is exactly what the paceline is worth.
+  The speed chart's dashed solo line and the TTT plan tab read the same
+  resolver, on their own geometry, so they cannot be computed under different
+  rules from the ranking.
 
 ## 10. Race draft mode
 
@@ -546,10 +558,12 @@ single number.
   is a model the data does not support.
 - **The cheap estimate** solves `raceGroupSpeedMps`, the same 4-iteration fixed
   point as TTT's, so full-pool ranking keeps tracking the displayed simulated
-  times. `estimateFinishTimeSec`'s draft argument is a discriminated union
-  (`{ mode: 'ttt', … } | { mode: 'race' }`) so a fourth mode is a new arm rather
-  than a new parameter at every call site. With `draftMode=solo` both models are
-  bit-identical to before race mode existed.
+  times. `estimateFinishTimeSec`'s draft argument is the `EstimateDraft` union
+  (`{ mode: 'ttt', … } | { mode: 'race' }`), built by `resolveDraft` as the
+  twin of the simulator's scale, so a fourth mode is a new arm in the resolver
+  rather than a new parameter at every call site. A race draft's `solo` is a
+  plain solo — there is no pacing plan to keep. With `draftMode=solo` both
+  models are bit-identical to before race mode existed.
 - **What it is worth**, reference rider (75 kg, 3.0 W/kg): ~11% faster than solo
   on the flat, ~10% rolling, ~3% on Alpe du Zwift — monotone in climbing with no
   grade term, and much smaller than the 31% power saving because speed goes as

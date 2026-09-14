@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from '../../shared/types/catalog'
 import type { DraftMode } from '../../shared/utils/physics/draft'
-import { TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
+import { draftOf, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
 import { computeRouteSurfaceSpeedProfile } from '#shared/utils/physics/routeSurfaceSpeedProfile'
 
 const props = defineProps<{
@@ -78,9 +78,7 @@ const profile = computed(() => hasOpened.value
       props.weightKg,
       props.heightCm,
       props.powerW,
-      props.draftMode === 'ttt'
-        ? { mode: 'ttt' as const, riders: props.tttRiders ?? TTT_DEFAULT_RIDERS, climbWkg: props.tttClimbWkg }
-        : props.draftMode === 'race' ? { mode: 'race' as const } : undefined
+      draftOf({ draftMode: props.draftMode ?? 'solo', tttRiders: props.tttRiders ?? TTT_DEFAULT_RIDERS, tttClimbWkg: props.tttClimbWkg })
     )
   : undefined)
 
