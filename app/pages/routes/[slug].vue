@@ -17,7 +17,7 @@ const { weightKg, powerW } = useRiderProfile()
 const { showUpcomingRaces } = usePreferences()
 
 const laps = ref(1)
-const ride = computed<Ride>(() => ({ endpoint: `/api/recommend/${slug.value}`, laps: laps.value }))
+const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }, laps: laps.value }))
 // Handed whole to `RideResults`, which renders everything this page shows
 // about the Ranking; what is destructured here is what the page itself is
 // still about - its header, its lap picker, its briefing and its analysis.
@@ -121,7 +121,7 @@ const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(ro
 // itself moves the header stats immediately, but a speed readout must divide
 // a distance by a finish time computed for the SAME lap count. See
 // `appliedRide` on `useRecommendRequest`.
-const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
+const resultsLaps = computed(() => appliedRide.value?.laps ?? 1)
 
 /** What a report filed from this page says the ranking was ridden as - see `formatRideLine`. */
 const reportRideLine = computed(() => formatRideLine({ ride: appliedRide.value, rider: appliedInputs.value }))

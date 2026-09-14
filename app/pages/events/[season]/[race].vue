@@ -66,27 +66,21 @@ const formatPhrase = computed(() => raceFormatPhrase(race!.format!))
  * minutes fast and could genuinely reorder the list. Neither stored
  * preference is touched: both still apply to every other race they open.
  *
- * A group with no catalog route has no endpoint, so nothing is requested and
- * nothing is ranked - the page still shows that group's published figures.
+ * A group with no catalog route is no Ride at all, so nothing is requested
+ * and nothing is ranked - the page still shows that group's published figures.
  */
-/**
- * One spelling of a course's recommend endpoint, because two things compare
- * against it: the Ride that asks for a ranking, and the applied-course
- * snapshot below that recognises the answer. A second spelling is how those
- * two would drift into never matching, silently.
- */
-const recommendEndpoint = (slug: string) => `/api/recommend/${slug}`
-
-const ride = computed<Ride>(() => ({
-  endpoint: selectedRouteSlug.value ? recommendEndpoint(selectedRouteSlug.value) : undefined,
-  laps: laps.value,
-  // Non-null like every other read of the format on this page: a race with
-  // no published format has no page (`isRacePublishable`). Passing the
-  // optional straight through would give one page two readings of an absent
-  // format - "not a race, everything legal" here and "rules unknown, TT
-  // barred" in `ttAllowed` below.
-  ...rideRulesForFormat(race!.format!)
-}))
+const ride = computed<Ride | undefined>(() => selectedRouteSlug.value
+  ? {
+      course: { kind: 'route', slug: selectedRouteSlug.value },
+      laps: laps.value,
+      // Non-null like every other read of the format on this page: a race with
+      // no published format has no page (`isRacePublishable`). Passing the
+      // optional straight through would give one page two readings of an absent
+      // format - "not a race, everything legal" here and "rules unknown, TT
+      // barred" in `ttAllowed` below.
+      ...rideRulesForFormat(race!.format!)
+    }
+  : undefined)
 // Handed whole to `RideResults`, which renders everything this page shows
 // about the Ranking; what is destructured here is what the page itself is
 // still about - its header, its Category group selector, its briefing, its
@@ -341,7 +335,7 @@ const draftHint = computed(() => {
 // divide a distance by a finish time computed for the SAME lap count, so this
 // only advances when results for it actually arrive. See `appliedRide` on
 // `useRecommendRequest`.
-const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
+const resultsLaps = computed(() => appliedRide.value?.laps ?? 1)
 /**
  * The COURSE those combos were computed for - **Applied** (see `CONTEXT.md`)
  * extended from the rider to the Ride itself, because on this page alone the
@@ -361,10 +355,10 @@ const resultsLaps = computed(() => appliedRide.value.laps ?? 1)
  */
 const appliedRoute = shallowRef<NonNullable<typeof routeData.value>>()
 watchEffect(() => {
-  const endpoint = appliedRide.value.endpoint
-  if (!endpoint) appliedRoute.value = undefined
-  else if (routeData.value && recommendEndpoint(routeData.value.slug) === endpoint) appliedRoute.value = routeData.value
-  else if (appliedRoute.value && recommendEndpoint(appliedRoute.value.slug) !== endpoint) appliedRoute.value = undefined
+  const slug = appliedRide.value?.course.slug
+  if (!slug) appliedRoute.value = undefined
+  else if (routeData.value && routeData.value.slug === slug) appliedRoute.value = routeData.value
+  else if (appliedRoute.value && appliedRoute.value.slug !== slug) appliedRoute.value = undefined
 })
 /**
  * What a report filed from this page says the ranking was ridden as - see
@@ -376,7 +370,7 @@ watchEffect(() => {
  */
 const appliedGroup = computed(() => race!.categories.find(group =>
   group.routeSlug
-  && recommendEndpoint(group.routeSlug) === appliedRide.value.endpoint
+  && group.routeSlug === appliedRide.value?.course.slug
   && group.laps === appliedRide.value.laps))
 const reportRideLine = computed(() => formatRideLine({
   subject: appliedGroup.value ? formatCategoryGroup(appliedGroup.value) : undefined,
@@ -385,7 +379,7 @@ const reportRideLine = computed(() => formatRideLine({
 }))
 
 const resultsTotals = computed(() => appliedRoute.value ? computeRouteTotals(appliedRoute.value, resultsLaps.value) : undefined)
-const resolvedRide = computed(() => appliedRoute.value ? rideForRoute(appliedRoute.value, resultsLaps.value, appliedRide.value.ttFramesAllowed === false) : undefined)
+const resolvedRide = computed(() => appliedRoute.value ? rideForRoute(appliedRoute.value, resultsLaps.value, appliedRide.value?.ttFramesAllowed === false) : undefined)
 
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL

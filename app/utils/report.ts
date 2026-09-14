@@ -280,8 +280,8 @@ export function buildReport(draft: ReportDraft): BuiltReport {
 export interface RideLineInputs {
   /** What was ranked, where the URL doesn't say it: 'Sprint segment', 'Category B'. */
   subject?: string
-  /** The Ride the results on screen were ranked for - `useRecommendRequest().appliedRide`. */
-  ride: Pick<Ride, 'laps' | 'raceFormat' | 'ttFramesAllowed' | 'draftingAllowed' | 'power'>
+  /** The Ride the results on screen were ranked for - `useRecommendRequest().appliedRide` - or none, where nothing was ranked. */
+  ride: Pick<Ride, 'laps' | 'raceFormat' | 'ttFramesAllowed' | 'draftingAllowed' | 'power'> | undefined
   /** The rider those results were computed for - `useRecommendRequest().appliedInputs`. */
   rider: Pick<AppliedRiderInputs, 'powerW' | 'draftMode' | 'tttRiders'>
 }
@@ -291,14 +291,14 @@ export function formatRideLine({ subject, ride, rider }: RideLineInputs): string
   // segment page can be ranked under a format without being a race page
   // (issue #224), so "TT frames barred" on its own leaves the reader of a
   // report guessing which rule produced the ranking being reported.
-  const format = ride.raceFormat ? `ridden as a ${raceFormatPhrase(ride.raceFormat)}` : undefined
-  const laps = ride.laps === undefined ? undefined : `${ride.laps} lap${ride.laps === 1 ? '' : 's'}`
-  const power = `${rider.powerW} W${ride.power === 'sprint' ? ' sprint power' : ''}`
+  const format = ride?.raceFormat ? `ridden as a ${raceFormatPhrase(ride.raceFormat)}` : undefined
+  const laps = ride?.laps === undefined ? undefined : `${ride.laps} lap${ride.laps === 1 ? '' : 's'}`
+  const power = `${rider.powerW} W${ride?.power === 'sprint' ? ' sprint power' : ''}`
   // The applied draft mode is already solo where the ride bars drafting
   // (`rideDraftMode`), which on its own reads as the rider's own choice.
   const draft = DRAFT_MODE_LABELS[rider.draftMode]
     + (rider.draftMode === 'ttt' ? ` (${rider.tttRiders} riders)` : '')
-    + (ride.draftingAllowed === false ? ' (this race bars drafting)' : '')
-  const frames = ride.ttFramesAllowed === false ? 'TT frames barred' : undefined
+    + (ride?.draftingAllowed === false ? ' (this race bars drafting)' : '')
+  const frames = ride?.ttFramesAllowed === false ? 'TT frames barred' : undefined
   return [subject, format, laps, power, draft, frames].filter(Boolean).join(', ')
 }

@@ -5,6 +5,7 @@ import {
   buildRecommendQuery,
   cachedRecommendToServe,
   recommendChangeKind,
+  recommendEndpoint,
   riderInputsForRide,
   serializeRecommendQuery,
   type AppliedRanking,
@@ -18,8 +19,8 @@ import {
 /**
  * What both recommend endpoints return, as the pages read it.
  *
- * Declared rather than inferred: the endpoint is a string on a `Ride`, so
- * Nitro can't resolve it to one route's response type. The two assertions
+ * Declared rather than inferred: the endpoint is derived from a `Ride`'s
+ * course at runtime, so Nitro can't resolve it to one route's response type. The two assertions
  * below are what keep it honest - both endpoints must stay assignable to it,
  * so a renamed or dropped field on either is a type error here rather than a
  * page quietly rendering `undefined`.
@@ -130,9 +131,9 @@ export interface RecommendRequestOptions {
  * everything after it, and pages need to await this alongside their own
  * route/segment lookup anyway.
  */
-export function useRecommendRequest(ride: () => Ride, options: RecommendRequestOptions) {
+export function useRecommendRequest(ride: () => Ride | undefined, options: RecommendRequestOptions) {
   const currentRide = computed(ride)
-  const endpoint = computed(() => currentRide.value.endpoint)
+  const endpoint = computed(() => rideEndpoint(currentRide.value))
 
   const { owned, ownedWheels, load: loadGarage } = useGarage()
   // Read-only here: the controls that write these (sliders, draft
@@ -183,7 +184,9 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
       owned: Object.freeze({ ...inputs.value.owned }),
       ownedWheels: Object.freeze({ ...inputs.value.ownedWheels })
     })
-    const ride = Object.freeze({ ...currentRide.value })
+    const ride = currentRide.value
+      ? Object.freeze({ ...currentRide.value, course: Object.freeze({ ...currentRide.value.course }) })
+      : undefined
     return Object.freeze({ rider, ride, query: Object.freeze(buildRecommendQuery(rider, ride)) })
   }
   type Provenance = ReturnType<typeof captureRequest>
@@ -267,7 +270,7 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     async () => {
       const previous = accepted.value
       const provenance = captureRequest()
-      const target = provenance.ride.endpoint
+      const target = rideEndpoint(provenance.ride)
       const forQuery = serializeRecommendQuery(provenance.query)
       const token = ++generation
       requested = true
@@ -572,6 +575,11 @@ export function useRecommendRequest(ride: () => Ride, options: RecommendRequestO
     /** The settled search term - what the query was actually built from, and what a page writes to the URL. */
     bikeSearchDebounced
   }
+}
+
+/** Where a Ride is ranked - nowhere, when there is no Ride. */
+function rideEndpoint(ride: Ride | undefined): string | undefined {
+  return ride ? recommendEndpoint(ride.course) : undefined
 }
 
 /**

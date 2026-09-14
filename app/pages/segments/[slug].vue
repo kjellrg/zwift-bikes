@@ -84,7 +84,7 @@ const draftAllowed = computed(() => !raceFormat.value || draftingAllowed(raceFor
  * preference being touched.
  */
 const ride = computed<Ride>(() => ({
-  endpoint: `/api/recommend/segments/${slug.value}`,
+  course: { kind: 'segment', slug: slug.value },
   power: isSprint.value ? 'sprint' : 'race',
   ...rideRulesForFormat(raceFormat.value)
 }))
@@ -111,7 +111,7 @@ await recommendReady
  * `isSprint`, so the power and the word for it can never disagree.
  */
 const reportRideLine = computed(() => formatRideLine({
-  subject: appliedRide.value.power === 'sprint' ? 'Sprint segment' : 'Climbing segment',
+  subject: appliedRide.value?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment',
   ride: appliedRide.value,
   rider: appliedInputs.value
 }))
@@ -225,7 +225,7 @@ const answer = useRecommendationAnswer({
   // APPLIED, unlike the two control props above: this explains the times on
   // screen, so it must name the format they were ranked under. Same wording
   // as the race page's, from `rideRulesLine`.
-  rideRules: () => appliedRide.value.raceFormat ? rideRulesLine(appliedRide.value.raceFormat) : undefined
+  rideRules: () => appliedRide.value?.raceFormat ? rideRulesLine(appliedRide.value.raceFormat) : undefined
 })
 const faqAnswer = computed(() => answer.value?.text)
 
