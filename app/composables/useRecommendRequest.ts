@@ -1,5 +1,5 @@
 import type { InternalApi } from 'nitropack/types'
-import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { ComboScore } from '../../shared/types/catalog'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import {
   buildRecommendQuery,
@@ -83,18 +83,6 @@ export function useAppliedRankingSlot() {
 }
 
 export interface RecommendRequestOptions {
-  /**
-   * The course the endpoint ranks, live. It travels with the Ride as part of
-   * the Applied Ranking, because everything that turns a finish time into a
-   * speed or a caption needs the distance the time was computed over.
-   *
-   * A getter rather than a value, and the page's rather than this module's,
-   * because a race page has to reconcile three clocks to answer it: the
-   * selected Category group, the route lookup it fired, and the endpoint the
-   * accepted ranking actually came from. Folding that in here is the later
-   * "the Applied Ride knows its own course" change.
-   */
-  course: () => RouteWithMeta | undefined
   /**
    * The `useAsyncData` key. Two rules, and each of them is a bug that got
    * out:
@@ -334,6 +322,26 @@ export function useRecommendRequest(ride: () => Ride | undefined, options: Recom
    */
   const appliedRide = computed(() => (acceptedRanking.value?.provenance ?? initialRequest).ride)
   /**
+   * The course the Applied Ride is on - looked up under the APPLIED identity,
+   * not the page's selected one, so a ranking comes back knowing the course
+   * its times were computed over (see **Ride** in `CONTEXT.md`).
+   *
+   * Trusted only while the answer's slug is the identity's. The lookup is
+   * keyed on the identity, but Nuxt seeds a changed key with the previous
+   * key's data until the fetch lands, and a ranking can land before its
+   * lookup does; either way the answer is a course these times were not
+   * computed over, and no course is the honest thing to say until the right
+   * one arrives - the old course cannot explain the new ranking. Pure, with
+   * no memory: the race page's own reconciliation used to keep a stale
+   * value alive through exactly that window.
+   */
+  const appliedLookup = useCourse(() => appliedRide.value?.course)
+  const appliedCourse = computed(() => {
+    const identity = appliedRide.value?.course
+    const course = appliedLookup.course.value
+    return identity && course?.slug === identity.slug ? course : undefined
+  })
+  /**
    * The rider the combos on screen were computed for - see **Applied** in
    * `CONTEXT.md`. Same rule and same lifecycle as `appliedRide`: the
    * controls run ahead of it between a slider's release and the response,
@@ -456,8 +464,8 @@ export function useRecommendRequest(ride: () => Ride | undefined, options: Recom
    * it from the slot below, so a new fact about the Ranking reaches every
    * surface by being added here rather than threaded through the pages.
    *
-   * A computed rather than an assembled ref: the course is the page's own
-   * and moves without a response, and `showMore` grows the rows in place.
+   * A computed rather than an assembled ref: the course lookup answers
+   * without a response, and `showMore` grows the rows in place.
    * Its identity changes whenever any part of it does, which is what the
    * drawer's re-take and the slot's ownership check are written against.
    */
@@ -469,7 +477,7 @@ export function useRecommendRequest(ride: () => Ride | undefined, options: Recom
     fastestTimeSec: fastestTimeSec.value,
     requestKey: appliedRequestKey.value,
     loadWheelOptions,
-    course: options.course()
+    course: appliedCourse.value
   }))
 
   const rankingSlot = useAppliedRankingSlot()

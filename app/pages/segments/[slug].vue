@@ -9,14 +9,16 @@ import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../utils/ranki
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
-const { data: segmentData, error: segmentError } = await useFetch(() => `/api/segments/${slug.value}`)
+// The segment's summary and the synthetic segment-as-route the server ranks
+// against, which carries the segment's sliced elevation profile and surface
+// breakdown (see `routeWithMetaForSegment`). Positional segments on a
+// measured host get a real profile; membership segments don't, and the chart
+// hides itself. The same lookup the request makes for its applied course,
+// under the same key - see `useCourse`.
+const { ready: segmentReady, segment: segmentData, course: segmentRoute, error: segmentError } = useCourse(() => ({ kind: 'segment', slug: slug.value }))
+await segmentReady
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
 
-// The synthetic segment-as-route the server ranks against - carries the
-// segment's sliced elevation profile and surface breakdown (see
-// `routeWithMetaForSegment`). Positional segments on a measured host get a
-// real profile; membership segments don't, and the chart hides itself.
-const segmentRoute = computed(() => segmentData.value?.route)
 const resolvedRide = computed(() => segmentRoute.value ? rideForSegment(segmentRoute.value) : undefined)
 
 // Sprint segments rank at the rider's separate sprint power (see
@@ -92,12 +94,7 @@ const ride = computed<Ride>(() => ({
 // about the Ranking; what is destructured here is what the page itself is
 // still about - its header, its race-format control, its briefing and its
 // analysis.
-const request = useRecommendRequest(() => ride.value, {
-  key: `recommend-segment-${slug.value}`,
-  // The segment is ridden on its host route, which is what a km/h or a
-  // "seconds off" caption is measured over.
-  course: () => segmentRoute.value
-})
+const request = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
   combos, topCombo, fastestTimeSec, appliedInputs, appliedRide, appliedRestrictions,

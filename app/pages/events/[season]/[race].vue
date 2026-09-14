@@ -85,33 +85,21 @@ const ride = computed<Ride | undefined>(() => selectedRouteSlug.value
 // about the Ranking; what is destructured here is what the page itself is
 // still about - its header, its Category group selector, its briefing, its
 // analysis, and the decision of whether there is a ranking to show at all.
-const request = useRecommendRequest(() => ride.value, {
-  key: `recommend-race-${seasonSlug.value}-${raceSlug.value}`,
-  // The reconciled course below, not the selected group's: a group switch
-  // moves the route and the ranking on two different clocks, and this is the
-  // one the accepted times were computed over.
-  course: () => appliedRoute.value
-})
+const request = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 const {
   ready: recommendReady, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRide, appliedRestrictions,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, appliedRide, appliedRestrictions,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 
-// `useAsyncData` rather than `useFetch` for the route lookup: the selected
-// category group can change which route is being shown, and can have no
-// route at all, which a `useFetch` URL can't express. The route lookup is
-// keyed on the slug so switching category fetches that group's route instead
-// of reusing the previous one. Fired together with the recommendation, which
-// doesn't depend on it resolving first.
-const [{ data: routeData }] = await Promise.all([
-  useAsyncData(
-    () => `race-route-${selectedRouteSlug.value ?? 'none'}`,
-    () => selectedRouteSlug.value ? $fetch(`/api/routes/${selectedRouteSlug.value}`) : Promise.resolve(null),
-    { watch: [selectedRouteSlug] }
-  ),
-  recommendReady
-])
+// The SELECTED group's course, which follows the selector the moment it
+// moves and is absent for a group with no catalog route; the course the
+// ranking on screen was computed over is `appliedRanking.course`, looked up
+// by the request under the same key once it has landed - see `useCourse`.
+// Fired together with the recommendation, which doesn't depend on it
+// resolving first.
+const { ready: courseReady, course: routeInfo } = useCourse(() => ride.value?.course)
+await Promise.all([courseReady, recommendReady])
 
 // `?group=1&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. The
 // group is the one knob a race link carries beyond the Ride's identity: it
@@ -136,13 +124,6 @@ const raceHeading = computed(() => raceDisplayName(race!))
 // the round name is what riders search for, and every derived surface
 // (title, description, FAQ, OG alt) inherits it from here.
 const raceTitle = computed(() => `${raceContextLabel(season!, round)} ${raceHeading.value}`)
-
-/**
- * `useAsyncData` resolves to `null` when the selected group has no catalog
- * route; the route components take `undefined`. Normalised once here rather
- * than asserted at each of the half-dozen places they're used.
- */
-const routeInfo = computed(() => routeData.value ?? undefined)
 
 const routeTotals = computed(() => routeInfo.value ? computeRouteTotals(routeInfo.value, laps.value) : undefined)
 const climbOccurrences = computed(() => routeInfo.value ? expandClimbsForLaps(routeInfo.value, laps.value) : [])
@@ -337,30 +318,6 @@ const draftHint = computed(() => {
 // `useRecommendRequest`.
 const resultsLaps = computed(() => appliedRide.value?.laps ?? 1)
 /**
- * The COURSE those combos were computed for - **Applied** (see `CONTEXT.md`)
- * extended from the rider to the Ride itself, because on this page alone the
- * Ride's own identity moves.
- *
- * Three clocks settle in any order when the group changes: the selector, the
- * route lookup (`routeData`, refetched on the new slug) and the recommend
- * response. Handing the new group's geometry to a chart drawn for the
- * previous group's top combo shows a speed curve for a bike that was never
- * ranked on that course. So this only advances when the route lookup and the
- * ranking agree on one slug, and everything equipment-dependent reads it.
- * If the ranking arrives first, its geometry is unavailable until that lookup
- * answers; the previous course cannot explain the newly accepted times.
- * Meanwhile,
- * the briefing, the header stats and the Ride-only tabs follow the selector,
- * which is what the rider just moved.
- */
-const appliedRoute = shallowRef<NonNullable<typeof routeData.value>>()
-watchEffect(() => {
-  const slug = appliedRide.value?.course.slug
-  if (!slug) appliedRoute.value = undefined
-  else if (routeData.value && routeData.value.slug === slug) appliedRoute.value = routeData.value
-  else if (appliedRoute.value && appliedRoute.value.slug !== slug) appliedRoute.value = undefined
-})
-/**
  * What a report filed from this page says the ranking was ridden as - see
  * `formatRideLine`. The Category group is matched on the course and lap count
  * the results were fetched for rather than read off the selector, which moves
@@ -378,8 +335,19 @@ const reportRideLine = computed(() => formatRideLine({
   rider: appliedInputs.value
 }))
 
-const resultsTotals = computed(() => appliedRoute.value ? computeRouteTotals(appliedRoute.value, resultsLaps.value) : undefined)
-const resolvedRide = computed(() => appliedRoute.value ? rideForRoute(appliedRoute.value, resultsLaps.value, appliedRide.value?.ttFramesAllowed === false) : undefined)
+// The COURSE those combos were computed for is `appliedRanking.course` -
+// **Applied** (see `CONTEXT.md`) extended from the rider to the Ride itself,
+// because on this page alone the Ride's own identity moves. It is absent
+// until the request's lookup for the applied identity has answered: the
+// previous group's course cannot explain the newly accepted times, and the
+// new group's geometry under a chart drawn for the previous group's top
+// combo would be a speed curve for a bike that was never ranked there.
+// Meanwhile the briefing, the header stats and the Ride-only tabs follow the
+// selector, which is what the rider just moved.
+const resultsTotals = computed(() => appliedRanking.value.course ? computeRouteTotals(appliedRanking.value.course, resultsLaps.value) : undefined)
+const resolvedRide = computed(() => appliedRanking.value.course
+  ? rideForRoute(appliedRanking.value.course, resultsLaps.value, appliedRide.value?.ttFramesAllowed === false)
+  : undefined)
 
 // Whether the team climb pace control is worth showing - see the
 // `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
@@ -399,7 +367,7 @@ const physicsIsDynamic = computed(() => isDynamicPhysics(physicsInfo.value))
 // results - see `useTttPlan`. Undefined outside TTT drafting, which for a TTT
 // race is exactly what the draft hint above offers to switch on.
 const tttPlan = useTttPlan({
-  route: () => appliedRoute.value,
+  route: () => appliedRanking.value.course,
   combo: () => topCombo.value,
   rider: () => appliedInputs.value,
   laps: () => resultsLaps.value,
@@ -430,10 +398,10 @@ const faqQuestion = computed(() => `What bike should I ride for ${raceTitle.valu
 // crawler reads is what a rider sees.
 const answer = useRecommendationAnswer({
   combo: () => topCombo.value,
-  rideName: () => appliedRoute.value
-    ? `${resultsLaps.value} lap${resultsLaps.value === 1 ? '' : 's'} of ${appliedRoute.value.name} in ${appliedRoute.value.worldName}`
+  rideName: () => appliedRanking.value.course
+    ? `${resultsLaps.value} lap${resultsLaps.value === 1 ? '' : 's'} of ${appliedRanking.value.course.name} in ${appliedRanking.value.course.worldName}`
     : undefined,
-  distanceKm: () => resultsTotals.value?.distanceKm ?? appliedRoute.value?.distance,
+  distanceKm: () => resultsTotals.value?.distanceKm ?? appliedRanking.value.course?.distance,
   rider: () => appliedInputs.value,
   laps: () => resultsLaps.value,
   restrictions: () => appliedRestrictions.value,
@@ -477,7 +445,7 @@ defineOgImage('EventCard', {
 })
 
 useHead(() => {
-  if (!routeData.value) return {}
+  if (!routeInfo.value) return {}
   // The trail is this page's own - the deepest on the site, a race under its
   // season under the calendars - and the envelope, the keying and the
   // escaping are `rankingResults.ts`'s.
@@ -915,7 +883,7 @@ useHead(() => {
       <RideCourseAnalysis
         v-if="routeInfo"
         :route="routeInfo"
-        :results-route="appliedRoute ?? null"
+        :results-route="appliedRanking.course ?? null"
         kind="route"
         :laps="laps"
         :results-laps="resultsLaps"

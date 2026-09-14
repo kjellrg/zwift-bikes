@@ -135,10 +135,10 @@ export interface AppliedRanking {
   /**
    * The course the times were computed over, which is part of what the
    * Applied Ride is: a km/h or a "seconds off N laps of X" caption divides
-   * this distance by a time from the same response. The page supplies it,
-   * because a race page has to reconcile its Category group's course with
-   * the endpoint the ranking actually came from; absent while that
-   * reconciliation has no answer, or before the page's own lookup resolves.
+   * this distance by a time from the same response. `useRecommendRequest`
+   * looks it up under the Applied Ride's own identity (`ride.course`);
+   * absent while that lookup has not answered for this very identity, and
+   * when there is no Ride.
    */
   readonly course: RouteWithMeta | undefined
 }

@@ -21,13 +21,7 @@ const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }
 // Handed whole to `RideResults`, which renders everything this page shows
 // about the Ranking; what is destructured here is what the page itself is
 // still about - its header, its lap picker, its briefing and its analysis.
-const request = useRecommendRequest(() => ride.value, {
-  key: `recommend-route-${slug.value}`,
-  // Read lazily, out of the Applied Ranking: the lookup below is fired
-  // alongside the ranking rather than before it, so this getter closes over a
-  // binding that setup has not reached yet.
-  course: () => routeData.value ?? undefined
-})
+const request = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
   combos, topCombo, fastestTimeSec, appliedInputs, appliedRestrictions, appliedRide,
@@ -36,10 +30,9 @@ const {
 
 // Fired together (not sequentially): the recommendation depends on the Ride and the rider's own
 // stored state (both read inside `useRecommendRequest`), never on the route lookup resolving first.
-const [{ data: routeData, error: routeError }] = await Promise.all([
-  useFetch(() => `/api/routes/${slug.value}`),
-  recommendReady
-])
+// The same lookup the request makes for its applied course, under the same key - see `useCourse`.
+const { ready: courseReady, course: routeData, error: routeError } = useCourse(() => ride.value.course)
+await Promise.all([courseReady, recommendReady])
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: 'Route not found', fatal: true })
 
 // Per-route rather than a flat 1..MAX_LAPS: `maxLapsForRoute` also caps the
@@ -141,7 +134,7 @@ const physicsIsDynamic = computed(() => isDynamicPhysics(physicsInfo.value))
 // One plan for the briefing's TTT line and the TTT plan tab, from the
 // applied results - see `useTttPlan`. Undefined outside TTT drafting.
 const tttPlan = useTttPlan({
-  route: () => routeData.value ?? undefined,
+  route: () => routeData.value,
   combo: () => topCombo.value,
   rider: () => appliedInputs.value,
   laps: () => resultsLaps.value,
