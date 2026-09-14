@@ -142,10 +142,11 @@ export type EstimateDraft
  *   saving, no rider count and no power plan, because race mode has neither
  *   (see `RACE_DRAFT_SAVING`).
  *
- * A discriminated union rather than one flag per mode so a fourth draft mode is
- * a new arm here instead of a new parameter at every call site. When `draft` is
- * unset this function is unchanged, so solo-mode ordering cannot drift by
- * construction.
+ * A discriminated union (`EstimateDraft`) rather than one flag per mode, so a
+ * fourth draft mode is a new arm here and in `resolveDraft` - which builds the
+ * union as the simulator scale's twin - instead of a new parameter at every
+ * call site. When `draft` is unset this function is unchanged, so solo-mode
+ * ordering cannot drift by construction.
  */
 export function estimateFinishTimeSec(
   route: RouteWithMeta,

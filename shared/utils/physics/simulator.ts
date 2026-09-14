@@ -18,21 +18,24 @@ export interface SimulateRouteOptions {
   /**
    * Optional power overrides by position (m, ascending, non-overlapping):
    * inside `[fromM, toM)` the rider produces `powerW` instead of
-   * `rider.powerW`; outside every segment the base power applies. Used by the
-   * TTT draft mode to ride long climbs at a team climb power (see
-   * `physics/draft.ts`) and for the solo-equivalent comparison. Absent means
-   * exactly today's behavior.
+   * `rider.powerW`; outside every segment the base power applies. Fed from a
+   * `RideDraft`'s `plan` (see `resolveDraft` in `physics/draft.ts`): the TTT
+   * pacing plan that rides long climbs at a team climb power, which the
+   * draft's own `solo` keeps, so the solo comparison is paced the same way.
+   * Absent means exactly today's behavior.
    */
   powerSegmentsW?: { fromM: number, toM: number, powerW: number }[]
   /**
    * Optional multiplier on the rider's power as a function of the CURRENT
-   * speed, applied on top of `powerSegmentsW`. Used by the TTT draft mode:
-   * a paceline whose riders each average `rider.powerW` drives itself at
-   * `powerW / averagePowerFactor(speed)`, and that factor depends on how
-   * fast the group is actually moving (see `tttPowerScaleAtSpeed`), so the
-   * benefit fades on climbs and grows on descents with no per-grade
-   * bookkeeping here. Evaluated at both midpoint-integration velocities.
-   * Absent means exactly today's behavior.
+   * speed, applied on top of `powerSegmentsW`. Fed from a `RideDraft`'s
+   * `powerScaleAtSpeed` - the draft itself, which a `solo` draft has none of.
+   * In TTT mode a paceline whose riders each average `rider.powerW` drives
+   * itself at `powerW / averagePowerFactor(speed)`, and that factor depends
+   * on how fast the group is actually moving (see `tttPowerScaleAtSpeed`);
+   * race mode applies `racePowerScaleAtSpeed` the same way. So the benefit
+   * fades on climbs and grows on descents with no per-grade bookkeeping
+   * here. Evaluated at both midpoint-integration velocities. Absent means
+   * exactly today's behavior.
    */
   powerScaleAtSpeed?: (speedMps: number) => number
 }

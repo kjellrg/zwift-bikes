@@ -29,19 +29,6 @@ export interface TttPlan {
  * Undefined outside TTT drafting: race drafting models a bunch, not a
  * paceline, and has no plan.
  */
-/** The plan's sectors, with the applied draft resolved on the same laps geometry the plan is built on - the one rule `RacePlanOptions.draft` asks for. */
-function sectorsFor(route: RouteWithMeta, laps: number, rider: AppliedRiderInputs, combo: ComboScore): RacePlanItem[] {
-  const geometry = geometryForRouteLaps(route, laps)
-  return buildRacePlan(geometry, {
-    weightKg: rider.weightKg,
-    heightCm: rider.heightCm,
-    riderPowerW: rider.powerW,
-    draft: resolveDraft(draftOf(rider), geometry, rider),
-    frame: combo.frame,
-    wheelset: combo.wheelset
-  })
-}
-
 export function useTttPlan(inputs: {
   route: () => RouteWithMeta | undefined
   combo: () => ComboScore | undefined
@@ -62,5 +49,18 @@ export function useTttPlan(inputs: {
       ? coveredSectors(sectorsFor(route, inputs.laps(), rider, combo), coverage)
       : []
     return { sectors, coverage, hasSetup: Boolean(combo), loading: inputs.loading(), riders: rider.tttRiders, climbWkg: rider.tttClimbWkg }
+  })
+}
+
+/** The plan's sectors, with the applied draft resolved on the same laps geometry the plan is built on - the one rule `RacePlanOptions.draft` asks for. */
+function sectorsFor(route: RouteWithMeta, laps: number, rider: AppliedRiderInputs, combo: ComboScore): RacePlanItem[] {
+  const geometry = geometryForRouteLaps(route, laps)
+  return buildRacePlan(geometry, {
+    weightKg: rider.weightKg,
+    heightCm: rider.heightCm,
+    riderPowerW: rider.powerW,
+    draft: resolveDraft(draftOf(rider), geometry, rider),
+    frame: combo.frame,
+    wheelset: combo.wheelset
   })
 }
