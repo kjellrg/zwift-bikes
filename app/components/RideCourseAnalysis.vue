@@ -103,7 +103,6 @@ const segmentsScope = computed(() => leadInKm.value > 0
 const setupLabel = computed(() => props.combo
   ? `${props.combo.frame.name} / ${props.combo.wheelset?.name ?? 'fixed disc wheels'}`
   : undefined)
-/** Which course these results are for, said out loud only when it is not the selected one - see `courseNote`. */
 const equipmentCourseNote = computed(() => courseNote(props.route, props.resultsRoute))
 
 // Always one lap - see `computeRouteSurfaceSpeedProfile` - while the finish

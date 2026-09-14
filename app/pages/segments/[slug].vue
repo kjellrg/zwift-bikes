@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { RaceFormat } from '#shared/utils/events'
-import type { Ride } from '../../utils/recommendRequest'
+import type { Ride, RideCourse } from '../../utils/recommendRequest'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/events'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForSegment } from '#shared/utils/recommendRide'
@@ -9,13 +9,16 @@ import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../utils/ranki
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
+// The identity this page ranks, and the one it looks up - one spelling, so
+// the two cannot disagree about which kind of course it is.
+const course = computed<RideCourse>(() => ({ kind: 'segment', slug: slug.value }))
 // The segment's summary and the synthetic segment-as-route the server ranks
 // against, which carries the segment's sliced elevation profile and surface
 // breakdown (see `routeWithMetaForSegment`). Positional segments on a
 // measured host get a real profile; membership segments don't, and the chart
 // hides itself. The same lookup the request makes for its applied course,
 // under the same key - see `useCourse`.
-const { ready: segmentReady, segment: segmentData, course: segmentRoute, error: segmentError } = useCourse(() => ({ kind: 'segment', slug: slug.value }))
+const { ready: segmentReady, segment: segmentData, course: segmentRoute, error: segmentError } = useCourse(() => course.value)
 await segmentReady
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
 
@@ -86,7 +89,7 @@ const draftAllowed = computed(() => !raceFormat.value || draftingAllowed(raceFor
  * preference being touched.
  */
 const ride = computed<Ride>(() => ({
-  course: { kind: 'segment', slug: slug.value },
+  course: course.value,
   power: isSprint.value ? 'sprint' : 'race',
   ...rideRulesForFormat(raceFormat.value)
 }))

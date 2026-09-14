@@ -54,6 +54,10 @@ export function useCourse(identity: () => RideCourse | undefined) {
       // before the selector moved away and back - is served rather than
       // fetched again. The recommend request needs the opposite rule
       // (`cachedRecommendToServe`), because its key outlives its query.
+      // A custom rule also means Nuxt does not purge the entry on unmount
+      // (`purgeCachedData` skips keys with one), so a course visited once
+      // stays in the payload for the app's life - the same lifetime the
+      // recommend envelope already has, for a payload a fraction of its size.
       getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
       // And a fetch already in flight for the key is joined, never cancelled
       // and re-run: when a ranking lands before the page's lookup does, the

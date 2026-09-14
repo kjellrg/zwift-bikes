@@ -360,8 +360,8 @@ export function useRecommendRequest(ride: () => Ride | undefined, options: Recom
    * Whether there is a ranking on screen to keep. Not "are there rows": a
    * ranking that legitimately matched nothing is still the answer on
    * screen and still worth keeping through a failed refresh. A first load
-   * that failed has nothing behind its empty state, and neither has a Ride
-   * with no endpoint to rank.
+   * that failed has nothing behind its empty state, and neither has a page
+   * with no Ride to rank.
    */
   const hasRanking = computed(() => !!recommendData.value)
   const hasMore = computed(() => recommendData.value?.pagination?.hasMore ?? false)
