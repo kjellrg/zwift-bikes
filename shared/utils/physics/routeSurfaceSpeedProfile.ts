@@ -1,7 +1,8 @@
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset, ZwiftSurfaceType } from '../../types/catalog'
 import type { RouteGeometryPoint } from '../../types/physics'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
-import { racePowerScaleAtSpeed, tttFrontPullPowerW, tttPowerPlan, tttPowerScaleAtSpeed } from './draft'
+import type { Draft } from './draft'
+import { resolveDraft, tttFrontPullPowerW } from './draft'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { powerForSpeed } from './forces'
 import { geometryForRouteLaps } from './routeGeometry'
@@ -168,7 +169,7 @@ export function computeRouteSurfaceSpeedProfile(
   weightKg: number,
   heightCm: number,
   powerW: number,
-  draft?: { mode: 'ttt', riders: number, climbWkg?: number } | { mode: 'race' }
+  draft: Draft
 ): RouteSurfaceSpeedProfile | undefined {
   if (!route.terrain.elevationProfile || route.terrain.elevationProfile.length < 2) return undefined
   if (!route.surface.segments || route.surface.segments.length === 0) return undefined
@@ -183,14 +184,11 @@ export function computeRouteSurfaceSpeedProfile(
   const boundariesM = Array.from(new Set([...gradeBoundariesM, ...surfaceBoundariesM])).sort((a, b) => a - b)
 
   const rider = { weightKg, heightCm, powerW }
-  // Chart is per-lap (single lap geometry), so the TTT plan here is built on
-  // that same single-lap geometry - independent of the endpoints' per-request
-  // plans, which cover the full laps+lead-in ride.
-  const tttPlan = draft?.mode === 'ttt' && draft.climbWkg ? tttPowerPlan(geometry, draft.climbWkg, weightKg, powerW) : undefined
-  const powerScaleAtSpeed = draft?.mode === 'ttt'
-    ? (speedMps: number) => tttPowerScaleAtSpeed(draft.riders, speedMps)
-    : draft?.mode === 'race' ? (speedMps: number) => racePowerScaleAtSpeed(speedMps) : undefined
-  const result = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: tttPlan?.powerSegmentsW, powerScaleAtSpeed })
+  // Chart is per-lap (single lap geometry), so the draft - and with it any
+  // TTT pacing plan - is resolved on that same single-lap geometry, under the
+  // same resolver the endpoints use on their full laps+lead-in ride.
+  const rideDraft = resolveDraft(draft, geometry, rider)
+  const result = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: rideDraft.plan?.powerSegmentsW, powerScaleAtSpeed: rideDraft.powerScaleAtSpeed })
 
   const timePoints = buildTimePoints(result, boundariesM, totalDistanceM)
 
@@ -236,11 +234,13 @@ export function computeRouteSurfaceSpeedProfile(
   const speedSamples = resampleSpeedSamples(timePoints, totalDistanceM)
 
   // One extra simulation, only while the chart is open in a drafted mode: the
-  // same ride with the draft scaling removed, so the gap between the two lines
-  // is exactly what the draft is worth at each point on the route.
+  // same ride under the draft's own `solo` - the same pacing with nothing but
+  // the draft removed - so the gap between the two lines is exactly what the
+  // draft is worth at each point on the route.
   let soloComparison: RouteSurfaceSpeedProfile['soloComparison']
-  if (draft) {
-    const soloResult = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: tttPlan?.powerSegmentsW })
+  if (draft.mode !== 'solo') {
+    const solo = rideDraft.solo
+    const soloResult = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: solo.plan?.powerSegmentsW, powerScaleAtSpeed: solo.powerScaleAtSpeed })
     soloComparison = {
       speedSamples: resampleSpeedSamples(buildTimePoints(soloResult, boundariesM, totalDistanceM), totalDistanceM),
       overallAvgSpeedKmh: Math.round(soloResult.averageSpeedMps * 3.6 * 10) / 10,

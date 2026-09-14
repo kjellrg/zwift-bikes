@@ -1,7 +1,8 @@
 import type { ClassifiedBikeFrame, Wheelset } from '../../types/catalog'
 import type { PhysicsSurface, RouteGeometry, RouteGeometryPoint } from '../../types/physics'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
-import { detectLongClimbBlocks, tttGroupSpeedMps, tttPowerPlan } from './draft'
+import type { RideDraft } from './draft'
+import { detectLongClimbBlocks, tttGroupSpeedMps } from './draft'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { powerForSpeed, speedForPower } from './forces'
 
@@ -27,9 +28,15 @@ export interface RacePlanOptions {
   heightCm: number
   /** The rider's own sustained power - see `physics/draft.ts` for what that means in TTT mode. */
   riderPowerW: number
-  climbWkg?: number
-  /** TTT rotation size, when in TTT mode: the group crosses a rough sector faster than a lone rider would, and the Crr penalty scales with speed. */
-  riders?: number
+  /**
+   * The Draft the plan is for, resolved on the SAME geometry the plan is
+   * built on (`useTttPlan` resolves it on the laps geometry it builds) - the
+   * climb rows are the draft's own pacing plan, so the tab and the ranking
+   * cannot disagree about where the paceline breaks up. A TTT's rotation size
+   * prices the rough sectors: the group crosses one faster than a lone rider
+   * would, and the Crr penalty scales with speed.
+   */
+  draft: RideDraft
   /** The combo the surface cost is quoted for - the same one the speed/surface chart uses, so the two tabs' watt figures are computed the same way. */
   frame: ClassifiedBikeFrame
   wheelset?: Wheelset
@@ -103,17 +110,18 @@ export function buildRacePlan(geometry: RouteGeometry, options: RacePlanOptions)
 
   const items: RacePlanItem[] = []
 
-  // Blocks are always DETECTED at the rider's normal power - never at the
-  // team climb pace, which must not gate its own applicability (the same
-  // rule as `tttPowerPlan`; detecting at the climb power made this plan's
-  // climb row vanish when the pace was raised past the block's speed
-  // cutoff). With a climb pace set, `tttPowerPlan` re-times the blocks at
-  // that pace so the estimated duration matches how the climb is actually
-  // ridden; without one, the duration is estimated at the rider's normal
-  // power instead.
-  const climbBlocks = options.climbWkg
-    ? tttPowerPlan(geometry, options.climbWkg, options.weightKg, options.riderPowerW)?.blocks ?? []
-    : detectLongClimbBlocks(geometry, options.riderPowerW, options.weightKg)
+  // With a climb pace set, the rows are the draft's own pacing plan, whose
+  // blocks are re-timed at that pace so the estimated duration matches how
+  // the climb is actually ridden. Without one there is no plan, and the
+  // blocks are detected here at the rider's normal power - the same
+  // detection `tttPowerPlan` runs, so a pace being set or not never moves a
+  // row: blocks are never detected at the team climb pace, which must not
+  // gate its own applicability (detecting at the climb power made this
+  // plan's climb row vanish when the pace was raised past the block's speed
+  // cutoff).
+  const setting = options.draft.setting
+  const climbWkg = setting.mode === 'ttt' ? setting.climbWkg : undefined
+  const climbBlocks = options.draft.plan?.blocks ?? detectLongClimbBlocks(geometry, options.riderPowerW, options.weightKg)
   for (const block of climbBlocks) {
     items.push({
       type: 'climb',
@@ -121,8 +129,8 @@ export function buildRacePlan(geometry: RouteGeometry, options: RacePlanOptions)
       toKm: block.toM / 1000,
       lengthKm: block.distanceM / 1000,
       detail: `${(block.distanceM / 1000).toFixed(1)} km at ${(block.avgGrade * 100).toFixed(1)}%, est. ${formatEstDuration(block.estDurationSec)}`,
-      note: options.climbWkg
-        ? `Long climb - the paceline likely breaks up here; ridden at your team climb pace of ${options.climbWkg.toFixed(1)} W/kg.`
+      note: climbWkg
+        ? `Long climb - the paceline likely breaks up here; ridden at your team climb pace of ${climbWkg.toFixed(1)} W/kg.`
         : 'Long climb - the paceline likely breaks up here. Draft gives almost nothing at climbing speeds, so agree a climb pace beforehand.'
     })
   }
@@ -160,8 +168,8 @@ export function buildRacePlan(geometry: RouteGeometry, options: RacePlanOptions)
     const worstSurface = [...sector.surfaces].reduce((worst, surface) => crrFor(surface, crrClass) > crrFor(worst, crrClass) ? surface : worst)
     const crr = crrFor(worstSurface, crrClass)
     const grade = (elevationAt(geometry.points, sector.toM) - elevationAt(geometry.points, sector.fromM)) / lengthM
-    const speedMps = options.riders
-      ? tttGroupSpeedMps(options.riderPowerW, options.riders, massKg, grade, crr, cdaM2)
+    const speedMps = setting.mode === 'ttt'
+      ? tttGroupSpeedMps(options.riderPowerW, setting.riders, massKg, grade, crr, cdaM2)
       : speedForPower(options.riderPowerW, massKg, grade, crr, cdaM2)
     const extraWattsVsTarmac = powerForSpeed(speedMps, massKg, grade, crr, cdaM2)
       - powerForSpeed(speedMps, massKg, grade, tarmacCrr, cdaM2)

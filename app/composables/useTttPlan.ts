@@ -1,5 +1,6 @@
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import type { AppliedRiderInputs } from '../utils/recommendRequest'
+import { draftOf, resolveDraft } from '#shared/utils/physics/draft'
 import { buildRacePlan, type RacePlanItem } from '#shared/utils/physics/racePlan'
 import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 import { coveredSectors, tttPlanCoverage, type TttPlanCoverage } from '../utils/tttPlan'
@@ -28,6 +29,19 @@ export interface TttPlan {
  * Undefined outside TTT drafting: race drafting models a bunch, not a
  * paceline, and has no plan.
  */
+/** The plan's sectors, with the applied draft resolved on the same laps geometry the plan is built on - the one rule `RacePlanOptions.draft` asks for. */
+function sectorsFor(route: RouteWithMeta, laps: number, rider: AppliedRiderInputs, combo: ComboScore): RacePlanItem[] {
+  const geometry = geometryForRouteLaps(route, laps)
+  return buildRacePlan(geometry, {
+    weightKg: rider.weightKg,
+    heightCm: rider.heightCm,
+    riderPowerW: rider.powerW,
+    draft: resolveDraft(draftOf(rider), geometry, rider),
+    frame: combo.frame,
+    wheelset: combo.wheelset
+  })
+}
+
 export function useTttPlan(inputs: {
   route: () => RouteWithMeta | undefined
   combo: () => ComboScore | undefined
@@ -45,15 +59,7 @@ export function useTttPlan(inputs: {
     const combo = inputs.combo()
     // Pure closed-form (no simulation - see `buildRacePlan`), cheap enough to compute eagerly.
     const sectors = combo && !coverage.withheld
-      ? coveredSectors(buildRacePlan(geometryForRouteLaps(route, inputs.laps()), {
-          weightKg: rider.weightKg,
-          heightCm: rider.heightCm,
-          riderPowerW: rider.powerW,
-          climbWkg: rider.tttClimbWkg,
-          riders: rider.tttRiders,
-          frame: combo.frame,
-          wheelset: combo.wheelset
-        }), coverage)
+      ? coveredSectors(sectorsFor(route, inputs.laps(), rider, combo), coverage)
       : []
     return { sectors, coverage, hasSetup: Boolean(combo), loading: inputs.loading(), riders: rider.tttRiders, climbWkg: rider.tttClimbWkg }
   })

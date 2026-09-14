@@ -3,7 +3,7 @@ import { bikeFrames } from 'zwift-data'
 import type { RouteGeometry, RouteGeometryPoint } from '../../types/physics'
 import { classifyBikeFrame } from '../classifyBikeFrame'
 import { getWheelsets } from '../wheelsets'
-import { TTT_MAX_CLIMB_WKG, TTT_MIN_CLIMB_WKG, tttPowerPlan } from './draft'
+import { resolveDraft, TTT_MAX_CLIMB_WKG, TTT_MIN_CLIMB_WKG, tttPowerPlan } from './draft'
 import { buildRacePlan } from './racePlan'
 
 function geometry(points: RouteGeometryPoint[]): RouteGeometry {
@@ -24,13 +24,16 @@ const CLIMB_GEOMETRY = geometry([
   { distanceM: 7000, elevationM: 150 }
 ])
 
+const RIDER = { weightKg: 79, heightCm: 182, riderPowerW: 260 }
 const OPTIONS = {
-  weightKg: 79,
-  heightCm: 182,
-  riderPowerW: 260,
-  riders: 8,
+  ...RIDER,
   frame: classifyBikeFrame(bikeFrames.find(f => f.name === 'Zwift Carbon')!, 0),
   wheelset: getWheelsets().find(w => w.name === 'Zwift 32mm Carbon')!
+}
+
+/** An 8-rider TTT on the climb geometry, resolved the way `useTttPlan` resolves it: on the geometry the plan is built for. */
+function tttDraft(climbWkg?: number) {
+  return resolveDraft({ mode: 'ttt', riders: 8, climbWkg }, CLIMB_GEOMETRY, { weightKg: RIDER.weightKg, powerW: RIDER.riderPowerW })
 }
 
 describe('race plan climb rows are independent of the climb pace', () => {
@@ -38,10 +41,10 @@ describe('race plan climb rows are independent of the climb pace', () => {
     // Regression: the row used to be detected at the CLIMB power, so raising
     // the team climb pace past the block's speed cutoff silently deleted it
     // from the plan (Greater London 8, >= ~4.0 W/kg).
-    const reference = buildRacePlan(CLIMB_GEOMETRY, OPTIONS).find(item => item.type === 'climb')
+    const reference = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, draft: tttDraft() }).find(item => item.type === 'climb')
     expect(reference).toBeDefined()
     for (let climbWkg = TTT_MIN_CLIMB_WKG; climbWkg <= TTT_MAX_CLIMB_WKG; climbWkg += 0.5) {
-      const climb = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, climbWkg }).find(item => item.type === 'climb')
+      const climb = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, draft: tttDraft(climbWkg) }).find(item => item.type === 'climb')
       expect(climb, `${climbWkg} W/kg`).toBeDefined()
       expect([climb!.fromKm, climb!.toKm], `${climbWkg} W/kg`).toEqual([reference!.fromKm, reference!.toKm])
       expect(climb!.note).toContain(`${climbWkg.toFixed(1)} W/kg`)
@@ -49,8 +52,8 @@ describe('race plan climb rows are independent of the climb pace', () => {
   })
 
   it('the estimated duration reflects the pace the climb is actually ridden at', () => {
-    const easy = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, climbWkg: 3 }).find(item => item.type === 'climb')!
-    const hard = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, climbWkg: 8 }).find(item => item.type === 'climb')!
+    const easy = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, draft: tttDraft(3) }).find(item => item.type === 'climb')!
+    const hard = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, draft: tttDraft(8) }).find(item => item.type === 'climb')!
     const minutes = (item: { detail: string }) => Number(/est\. (\d+) min/.exec(item.detail)![1])
     expect(minutes(hard)).toBeLessThan(minutes(easy))
   })
@@ -64,7 +67,7 @@ describe('TTT plan tab and TTT pacing plan agree', () => {
   it('the plan shows exactly the blocks the pacing plan rides', () => {
     for (const climbWkg of [2.5, 4.0, 7.5]) {
       const plan = tttPowerPlan(CLIMB_GEOMETRY, climbWkg, OPTIONS.weightKg, OPTIONS.riderPowerW)!
-      const rows = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, climbWkg }).filter(item => item.type === 'climb')
+      const rows = buildRacePlan(CLIMB_GEOMETRY, { ...OPTIONS, draft: tttDraft(climbWkg) }).filter(item => item.type === 'climb')
       expect(rows.map(row => [row.fromKm, row.toKm]), `${climbWkg} W/kg`)
         .toEqual(plan.blocks.map(block => [block.fromM / 1000, block.toM / 1000]))
     }
