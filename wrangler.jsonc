@@ -64,9 +64,10 @@
   },
   "ratelimits": [
     // Backs server/middleware/01.rate-limit.ts: 30 requests per 60s window
-    // per client IP on the expensive requests (/api/recommend/**, /api/mcp,
-    // and a page URL asking for markdown, which runs the same pipeline).
-    // Counters are per Cloudflare location and eventually consistent.
+    // per client IP on the expensive requests anyone can make
+    // (/api/recommend/** and a page URL asking for markdown, which runs the
+    // same pipeline). /api/mcp is gated at the edge instead, so it is not
+    // counted here. Per Cloudflare location and eventually consistent.
     {
       "name": "RECOMMEND_RATE_LIMITER",
       "namespace_id": "1001",

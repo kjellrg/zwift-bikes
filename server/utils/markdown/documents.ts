@@ -177,8 +177,8 @@ function nextSteps(origin: string): string[] {
   return [
     '## Rank this for your own weight, height and power',
     '',
-    `- **MCP server** (best for a conversation): \`${origin}/api/mcp\` - streamable HTTP, no auth. Call \`set_rider_profile\`, then \`recommend_for_route\` or \`recommend_for_segment\`.`,
-    `- **HTTP API**: \`GET ${origin}/api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=\`, and \`${origin}/api/recommend/segments/{segmentSlug}\` for a climb or sprint. JSON.`,
+    `- **HTTP API** (open, best for a one-off answer): \`GET ${origin}/api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=\`, and \`${origin}/api/recommend/segments/{segmentSlug}\` for a climb or sprint. JSON.`,
+    `- **MCP server** (best for a conversation, requires access): \`${origin}/api/mcp\` - streamable HTTP, gated at the edge. Call \`set_rider_profile\`, then \`recommend_for_route\` or \`recommend_for_segment\`.`,
     `- **Site index for agents**: \`${origin}/llms.txt\`.`,
     `- Every route, segment and race page answers in markdown when the request sends \`Accept: text/markdown\`, as this one did - as do \`${origin}/\` and \`${origin}/segments\`.`
   ]

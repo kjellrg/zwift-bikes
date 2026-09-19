@@ -96,13 +96,22 @@ describe('a path routed to the Worker that has no document', () => {
   })
 })
 
-describe('the endpoints this middleware already metered', () => {
-  it('still cost a count', async () => {
+describe('the recommend API', () => {
+  it('still costs a count', async () => {
     const { limit, context } = limiterReturning(true)
 
     await handler(eventFor('/api/recommend/hilly-route?weightKg=75', undefined, context))
+    expect(limit).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not meter /api/mcp, which the edge gates instead', async () => {
+    // Access is enforced at the Cloudflare zone, so a caller that reaches
+    // the Worker is already a known party. If that gate ever goes, this
+    // expectation is the thing that should start failing.
+    const { limit, context } = limiterReturning(true)
+
     await handler(eventFor('/api/mcp', undefined, context))
-    expect(limit).toHaveBeenCalledTimes(2)
+    expect(limit).not.toHaveBeenCalled()
   })
 
   it('are exempt when the platform context is absent', async () => {

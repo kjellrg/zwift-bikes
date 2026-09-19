@@ -3,14 +3,20 @@ import { markdownDocumentFor } from '../utils/markdown/documents'
 import { prefersMarkdown } from '../utils/markdown/negotiate'
 
 /**
- * Best-effort rate limiting for the expensive requests. Three shapes of them
- * reach this middleware:
+ * Best-effort rate limiting for the expensive requests that anyone can make.
+ * Two shapes of them reach this middleware:
  *
  * - `/api/recommend/**`, which runs a physics simulation per candidate combo.
- * - `/api/mcp`, the unauthenticated public MCP endpoint.
  * - A page URL that asked for markdown, which runs that same pipeline behind
  *   a page path - `GET /routes/x` with `Accept: text/markdown` costs what an
  *   `/api/recommend/**` request costs (see `02.markdown.ts`).
+ *
+ * `/api/mcp` is deliberately NOT metered here, though its recommend tools run
+ * the same pipeline: access to it is gated at the Cloudflare edge, so an
+ * unauthenticated caller never reaches the Worker and an authenticated one is
+ * a known party rather than the anonymous abuser this budget exists to cap.
+ * That gate lives in the zone config, not in this repo - if it is ever
+ * removed, `/api/mcp` has to come back into `isExpensive` with it.
  *
  * Everything else (catalog lookups, pages as HTML) is cheap enough not to
  * bother. The HTML at those same page URLs is prerendered bytes handed back
@@ -51,9 +57,9 @@ import { prefersMarkdown } from '../utils/markdown/negotiate'
  * MCP tools' and the markdown documents' in-process API calls - which DO
  * pass through this middleware) never carries the Workers platform context,
  * so `limiter` resolves to undefined for it - and the same absence covers
- * `nuxt dev`, where no binding exists either. One external MCP call or
- * markdown page request therefore costs exactly one count, not one per
- * internal fetch it fans out into.
+ * `nuxt dev`, where no binding exists either. One external markdown page
+ * request therefore costs exactly one count, not one per internal fetch it
+ * fans out into.
  *
  * ## Ordering
  *
@@ -93,7 +99,7 @@ const RETRY_AFTER_SEC = 60
  * metered request to exempt.
  */
 function isExpensive(event: H3Event, path: string): boolean {
-  if (path.startsWith('/api/recommend/') || path === '/api/mcp') return true
+  if (path.startsWith('/api/recommend/')) return true
   if (!markdownDocumentFor(path)) return false
   return prefersMarkdown(getRequestHeader(event, 'accept'))
 }
