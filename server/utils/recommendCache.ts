@@ -23,7 +23,7 @@ import { addTimingMeta } from './timing'
  * global memo. That's fine: this is a cost/latency valve, not a guarantee.
  *
  * Interplay with the middleware, which runs on hits and misses alike:
- * `rate-limit.ts` still counts every request against the caller's budget, and
+ * `01.rate-limit.ts` still counts every request against the caller's budget, and
  * the `site-flags-gate.ts` kill switch still 503s before this wrapper is
  * reached - a data incident is exactly when a cached-but-wrong answer must
  * not slip out.
@@ -46,7 +46,7 @@ const CACHE_TTL_SEC = 7 * 24 * 60 * 60
 
 /**
  * Minimal Cache API surface, hand-declared for the same reason as
- * `rate-limit.ts` and `siteFlags.ts`: `@cloudflare/workers-types`' ambient
+ * `01.rate-limit.ts` and `siteFlags.ts`: `@cloudflare/workers-types`' ambient
  * globals would fight the Node types everywhere else. A string key is
  * interpreted by the runtime as the URL of a GET request.
  */

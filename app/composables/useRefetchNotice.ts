@@ -5,7 +5,7 @@
  * nothing on the page hints that the results no longer match the controls.
  *
  * Server-rendered loads can't land here - SSR fetches are internal and exempt
- * from the API's rate limiting (see server/middleware/rate-limit.ts) - so an
+ * from the API's rate limiting (see server/middleware/01.rate-limit.ts) - so an
  * error in this watcher is always a live browser talking to the API. A 429
  * gets one automatic retry after the server's `Retry-After` window (the
  * bucket refills quickly, and the rider's own IP is usually only throttled

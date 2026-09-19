@@ -8,7 +8,7 @@
  * request's `Accept` header, which is what this module is.
  *
  * Kept free of h3 so the rules below are testable as plain strings - the
- * middleware (`server/middleware/01.markdown.ts`) is what reads the header
+ * middleware (`server/middleware/02.markdown.ts`) is what reads the header
  * off an event and acts on the answer.
  */
 

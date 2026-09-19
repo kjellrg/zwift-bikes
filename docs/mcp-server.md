@@ -262,7 +262,7 @@ curl -s localhost:3000/api/mcp \
   simulator, the expensive path) are limited per client IP - generous enough
   that normal use never sees it; past it, requests get a 429 with a
   `Retry-After` header. Counting is done by the Workers rate limiting
-  binding (see `server/middleware/rate-limit.ts` and `ratelimits` in
+  binding (see `server/middleware/01.rate-limit.ts` and `ratelimits` in
   wrangler.jsonc): per Cloudflare location and eventually consistent, so the
   effective global ceiling is looser than the configured number.
 - **Sessions are best-effort**, for the reasons above.

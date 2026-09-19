@@ -7,7 +7,7 @@ import { getAllSegmentSummaries } from './shared/utils/routeSegments'
  * The site's public origin, in one place because two things need it and
  * neither can read the other's. `site.url` below feeds every module that
  * builds an absolute URL (canonical tags, the sitemap, OG cards);
- * `runtimeConfig.siteUrl` feeds `server/middleware/01.markdown.ts`, which
+ * `runtimeConfig.siteUrl` feeds `server/middleware/02.markdown.ts`, which
  * needs the same value to stamp a canonical `Link` header - and cannot call
  * `getSiteConfig()`, because nuxt-site-config resolves its stack in a plugin
  * that has not run when a middleware does (the composable says so out loud:
@@ -47,7 +47,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     /**
-     * The canonical origin for `server/middleware/01.markdown.ts` - see
+     * The canonical origin for `server/middleware/02.markdown.ts` - see
      * `SITE_URL` above for why this is not read from the site config.
      * Server-only on purpose: the browser already has `useSiteConfig()`, so
      * shipping a second copy to the client would buy nothing.

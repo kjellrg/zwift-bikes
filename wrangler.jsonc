@@ -23,7 +23,7 @@
     // "drop-trailing-slash" serves index.html at the bare path and redirects
     // the slashed form back onto it, matching that policy.
     "html_handling": "drop-trailing-slash",
-    // Markdown content negotiation (server/middleware/01.markdown.ts). These
+    // Markdown content negotiation (server/middleware/02.markdown.ts). These
     // paths are prerendered, so by default the asset worker answers them
     // before this Worker runs and an `Accept: text/markdown` header is
     // simply never seen. Listing them here inverts that for these paths
@@ -63,8 +63,9 @@
     "cpu_ms": 15000
   },
   "ratelimits": [
-    // Backs server/middleware/rate-limit.ts: 30 requests per 60s window per
-    // client IP on the expensive endpoints (/api/recommend/**, /api/mcp).
+    // Backs server/middleware/01.rate-limit.ts: 30 requests per 60s window
+    // per client IP on the expensive requests (/api/recommend/**, /api/mcp,
+    // and a page URL asking for markdown, which runs the same pipeline).
     // Counters are per Cloudflare location and eventually consistent.
     {
       "name": "RECOMMEND_RATE_LIMITER",
@@ -96,7 +97,7 @@
   // observability, preview_urls) is inherited from the top level - except
   // bindings (ratelimits, kv_namespaces), which wrangler does not inherit
   // into environments and drops with only a warning, breaking
-  // server/middleware/rate-limit.ts. Keep the ratelimits block a copy of the
+  // server/middleware/01.rate-limit.ts. Keep the ratelimits block a copy of
   // top-level one; kv_namespaces deliberately differs by ID only - the
   // preview namespace, shared by every PR Worker.
   "env": {

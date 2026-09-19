@@ -41,21 +41,18 @@ import { getSiteFlags } from '../utils/siteFlags'
  * already set on the event rather than clearing it. Same values from both
  * sides, so the page is covered whichever of the two ever changes.
  *
- * It runs BEFORE `rate-limit.ts` and `site-flags-gate.ts`, and returning a
- * response here means neither of them ever runs. Both are keyed on `/api/**`
- * paths, so a page URL would slip past them either way, and the two gates
- * are handled differently:
+ * It runs AFTER `01.rate-limit.ts` and BEFORE `site-flags-gate.ts`, and
+ * returning a response here means the latter never runs. The two gates are
+ * handled differently:
  *
- * **Rate limiting is deliberately NOT done here.** Rendering a ranking
- * document runs the recommend pipeline behind a page URL, so it does need a
- * budget - but metering it in app code would put a second, divergent
- * implementation beside the zone's own rule. The zone rule covers it
- * instead, matched on the header rather than the path; docs/markdown-for-
- * agents.md carries the expression and flags it as a deploy prerequisite.
- * Note neither the binding in `rate-limit.ts` nor a path-matched zone rule
- * on `/api/recommend` sees this traffic on its own: the ranking goes out
- * over Nitro's in-process `$fetch`, which never crosses the edge and
- * carries no platform context.
+ * **Rate limiting IS applied to this traffic, by `01.rate-limit.ts`.**
+ * Rendering a ranking document runs the recommend pipeline behind a page
+ * URL, so it needs a budget, and that middleware is ordered ahead of this
+ * one precisely so it can take one before this one answers. It reaches for
+ * the same resolver and the same `Accept` test used here, because the path
+ * alone cannot tell an agent from a reader: the HTML at these URLs is free.
+ * The budget is not at the zone because matching a header in a
+ * rate-limiting rule needs Advanced Rate Limiting - full reasoning there.
  *
  * **The recommend kill switch IS applied here**, read on the real request
  * and handed to the document, for the same reason `mcp.post.ts` reads it
@@ -69,7 +66,7 @@ import { getSiteFlags } from '../utils/siteFlags'
 
 /**
  * The one method of the assets binding this uses, hand-declared for the same
- * reason `rateLimit.ts` and `siteFlags.ts` declare theirs: pulling in
+ * reason `01.rate-limit.ts` and `siteFlags.ts` declare theirs: pulling in
  * `@cloudflare/workers-types` for it would drag that package's ambient
  * globals into a codebase typed against Node everywhere else.
  */

@@ -98,39 +98,47 @@ of reader, so a fix to either lands in both. The one piece deliberately not
 reused is the pagination line - it tells an MCP client to "call again with a
 higher `offset`", and a document has no call to make.
 
-## Cost, and the rate limit this needs at the edge
+## Cost, and the rate limit
 
 Rendering a ranking document runs the recommend pipeline, which is the
 expensive thing on this site - so a markdown page request costs what an
 `/api/recommend/**` request costs, while the HTML at the same URL costs
 nothing, having been computed at build time.
 
-**Neither existing rate limit sees that traffic.** The binding in
-`server/middleware/rate-limit.ts` and a zone rule matched on
-`/api/recommend` both key on the request path, and a markdown request
-arrives as `GET /routes/x`; the ranking it runs goes out over Nitro's
+**Neither rate limit caught that traffic as this feature was first written.**
+A zone rule matched on `/api/recommend`, and the path check in the
+Workers-binding middleware, both key on the request path - and a markdown
+request arrives as `GET /routes/x`. The pipeline run it triggers is invisible
+to the zone for a second and independent reason: it goes out over Nitro's
 in-process `$fetch`, which never crosses the edge and carries no platform
-context (that exemption is deliberate - it is what stops one MCP call
-costing one count per internal fetch).
+context (that exemption is deliberate - it is what stops one MCP call costing
+one count per internal fetch it fans out into).
 
-This is covered by a **zone rate-limiting rule matched on the header**, not
-in application code - one implementation of the site's rate limiting, in the
-place the rest of it already lives. It is a **deploy prerequisite**: until
-the rule exists, these paths are unmetered. The expression:
+Telling an agent from a reader needs the `Accept` header, and the path cannot
+stand in for it, because the same URL serves free prerendered HTML to
+browsers. A zone rate-limiting rule can read that header only under
+**Advanced Rate Limiting** (Business/Enterprise) - on a lower plan an
+expression using `http.request.headers` is rejected outright, `not entitled`.
 
-```
-(http.request.headers["accept"][0] contains "text/markdown"
-  and (http.request.uri.path eq "/"
-    or http.request.uri.path eq "/segments"
-    or starts_with(http.request.uri.path, "/routes/")
-    or starts_with(http.request.uri.path, "/segments/")
-    or starts_with(http.request.uri.path, "/events/")))
-```
+So the budget is taken in the Worker, by
+[`server/middleware/01.rate-limit.ts`](../server/middleware/01.rate-limit.ts),
+which is where the rest of the site's rate limiting already lives. Still one
+implementation, now covering three shapes of expensive request:
+`/api/recommend/**`, `/api/mcp`, and a page URL that asked for markdown. It
+reuses `markdownDocumentFor` and `prefersMarkdown`, so it meters exactly the
+requests that will do work - a season page under the `/events/*` rule has no
+document and is never counted.
 
-with the same counter as `/api/recommend` (30 requests / 60 s, by IP). A 429
-carries `Retry-After`, which a well-behaved crawler backs off on; discovery
-itself is never blocked, because `/llms.txt` runs no physics and is not
-covered by the rule.
+**The numbering is load-bearing, not cosmetic.** Nitro orders middleware by
+filename, and the markdown middleware returns a response that ends the chain,
+so a limiter ordered after it would never run for the traffic it exists to
+meter. `01.rate-limit.ts` before `02.markdown.ts` is what makes the budget
+reachable at all.
+
+The counter is the existing one (30 requests / 60 s per client IP, per
+Cloudflare location). A 429 carries `Retry-After`, which a well-behaved
+crawler backs off on; discovery itself is never blocked, because `/llms.txt`
+is not a negotiated page and runs no physics.
 
 **The recommend kill switch IS applied in app code.**
 `killSwitches.recommend` (see [site flags](site-flags.md)) is read on the
@@ -173,8 +181,8 @@ already answered `text/markdown`.
    `scripts/site-smoke/smoke.mjs` - `documents.test.ts` fails if a rule has no
    smoke page, because the smoke run is the only place the deployed routing is
    ever checked.
-4. Extend the zone rate-limiting rule above if the new path is not already
-   under one of its prefixes.
+4. Rate limiting needs nothing: `01.rate-limit.ts` asks the same resolver,
+   so a new document is metered the moment `markdownDocumentFor` knows it.
 5. Cover it in `documents.test.ts` - at minimum that the ranking it fetches is
    the one the prerendered HTML was rendered with.
 

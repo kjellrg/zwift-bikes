@@ -39,7 +39,7 @@ vi.stubGlobal('useRuntimeConfig', () => ({ siteUrl: 'https://zwiftbikes.com' }))
 // function, but its declared type is still h3's `EventHandler`, which a
 // `TestEvent` deliberately does not implement - the handler only ever
 // touches the four fields above.
-const handler = (await import('./01.markdown')).default as unknown as (event: TestEvent) => Promise<unknown>
+const handler = (await import('./02.markdown')).default as unknown as (event: TestEvent) => Promise<unknown>
 
 /** The assets binding, standing in for the prerendered file it would serve. */
 function assetsReturning(response: Response) {
