@@ -31,11 +31,13 @@ Watopia Hilly Route: **17:42** (~32.9 km/h), under the assumptions below.
 
 ## Why it exists
 
-An assistant answering "what's the fastest bike on Alpe du Zwift?" has three
-ways in. The [MCP server](mcp-server.md) is the best of them and needs the
-rider's numbers. The [JSON API](../README.md) is the best for a program. This
-is the third: the one that works when something simply fetched the URL, which
-is what a search-grounded assistant does. Scraping the answer back out of a
+An assistant answering "what's the fastest bike on Alpe du Zwift?" has two
+ways in without credentials. The [JSON API](../README.md) is the best for a
+program and needs the rider's numbers. This is the other: the one that works
+when something simply fetched the URL, which is what a search-grounded
+assistant does. (The [MCP server](mcp-server.md) is the best of the three for
+a conversation, but it is gated at the edge, so nothing a document or
+`/llms.txt` is read by can reach it - which is why neither links to it.) Scraping the answer back out of a
 Nuxt page - charts, drawers, hydration payload - costs a lot of tokens to
 recover a table that the server already has in hand.
 
@@ -83,8 +85,8 @@ the numbers are the answer.
 Three things are said out loud that the page can leave to its UI:
 
 - **Whose time this is.** Nobody chose 75 kg / 175 cm / 225 W, so every
-  document names the default rider and points at the API and MCP server for
-  the reader's own.
+  document names the default rider and points at the open JSON API for the
+  reader's own.
 - **What narrowed "fastest".** Road frames only, verified equipment only,
   upgrade stage 5, Halo frames excluded, one wheelset per frame - and, on a
   race, what the organiser's format bars outright.
@@ -123,11 +125,12 @@ expression using `http.request.headers` is rejected outright, `not entitled`.
 So the budget is taken in the Worker, by
 [`server/middleware/01.rate-limit.ts`](../server/middleware/01.rate-limit.ts),
 which is where the rest of the site's rate limiting already lives. Still one
-implementation, now covering three shapes of expensive request:
-`/api/recommend/**`, `/api/mcp`, and a page URL that asked for markdown. It
+implementation, covering the two expensive requests anyone can make without
+credentials: `/api/recommend/**` and a page URL that asked for markdown. It
 reuses `markdownDocumentFor` and `prefersMarkdown`, so it meters exactly the
 requests that will do work - a season page under the `/events/*` rule has no
-document and is never counted.
+document and is never counted. `/api/mcp` is gated at the edge and left out
+deliberately; `01.rate-limit.ts` records the dependency.
 
 **The numbering is load-bearing, not cosmetic.** Nitro orders middleware by
 filename, and the markdown middleware returns a response that ends the chain,

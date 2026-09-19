@@ -124,7 +124,10 @@ describe('the route document', () => {
     expect(markdown).toContain('Our model puts the **Tron with Tron wheels** fastest on Hilly Route: **15:00**')
     expect(markdown).toContain('Canonical page: <https://zwiftbikes.com/routes/watopia-hilly-route>')
     // Links stay on the host that served it, the way the HTML's are relative.
-    expect(markdown).toContain('https://zwift-bikes-pr-1.workers.dev/api/mcp')
+    expect(markdown).toContain('https://zwift-bikes-pr-1.workers.dev/api/recommend/')
+    // The MCP endpoint is gated at the edge, so a document must never send
+    // an anonymous reader to it - the open JSON API is the only way in.
+    expect(markdown).not.toContain('/api/mcp')
   })
 
   it('ranks the rider the prerendered HTML was rendered for', async () => {

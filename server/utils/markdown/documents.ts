@@ -143,7 +143,7 @@ function defaultRankingQuery(powerW: number): RankingQuery {
 function defaultRiderNote(powerW: number): string {
   const wkg = (powerW / DEFAULT_WEIGHT_KG).toFixed(2)
   return `Ranked for the site's default rider - ${DEFAULT_WEIGHT_KG} kg, ${DEFAULT_HEIGHT_CM} cm, ${powerW} W (${wkg} W/kg), riding solo - because a request carries no profile. `
-    + 'Every time below scales with those three numbers, so quote them alongside any time you repeat, and rank the reader\'s own with the API or MCP server described at the end.'
+    + 'Every time below scales with those three numbers, so quote them alongside any time you repeat, and rank the reader\'s own with the API described at the end.'
 }
 
 /** `12.4 km/h`, the same one-decimal readout the pages show beside a time. */
@@ -177,8 +177,7 @@ function nextSteps(origin: string): string[] {
   return [
     '## Rank this for your own weight, height and power',
     '',
-    `- **HTTP API** (open, best for a one-off answer): \`GET ${origin}/api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=\`, and \`${origin}/api/recommend/segments/{segmentSlug}\` for a climb or sprint. JSON.`,
-    `- **MCP server** (best for a conversation, requires access): \`${origin}/api/mcp\` - streamable HTTP, gated at the edge. Call \`set_rider_profile\`, then \`recommend_for_route\` or \`recommend_for_segment\`.`,
+    `- **HTTP API**: \`GET ${origin}/api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=\`, and \`${origin}/api/recommend/segments/{segmentSlug}\` for a climb or sprint. JSON.`,
     `- **Site index for agents**: \`${origin}/llms.txt\`.`,
     `- Every route, segment and race page answers in markdown when the request sends \`Accept: text/markdown\`, as this one did - as do \`${origin}/\` and \`${origin}/segments\`.`
   ]
@@ -194,7 +193,7 @@ function nextSteps(origin: string): string[] {
 function rankingUnavailable(rankingAnswered: boolean, recommendPaused: boolean): string {
   if (recommendPaused) return '_Rankings are temporarily paused for maintenance. The facts below are current; try again shortly._'
   if (rankingAnswered) return '_No verified frame and wheel combination matched. Gravel and fun bikes have no bot-test data, so a verified-only ranking excludes them._'
-  return '_The ranking could not be computed for this request. Try again shortly, or use the API or MCP server below._'
+  return '_The ranking could not be computed for this request. Try again shortly, or use the API below._'
 }
 
 /**
@@ -322,7 +321,7 @@ async function renderRouteDocument(slug: string, { origin, siteUrl, recommendPau
     '## The route',
     '',
     ...facts([
-      `- **Slug**: \`${route.slug}\` (the id the API and MCP tools take)`,
+      `- **Slug**: \`${route.slug}\` (the id the API takes)`,
       `- **World**: ${route.worldName}`,
       `- **One lap**: ${route.distance.toFixed(1)} km, ${Math.round(route.elevation)} m`,
       route.leadInDistance ? `- **Lead-in** (ridden once): ${route.leadInDistance.toFixed(1)} km, ${Math.round(route.leadInElevation ?? 0)} m` : undefined,
@@ -391,7 +390,7 @@ async function renderSegmentDocument(slug: string, { origin, siteUrl, recommendP
     '## The segment',
     '',
     ...facts([
-      `- **Slug**: \`${segment.slug}\` (the id the API and MCP tools take)`,
+      `- **Slug**: \`${segment.slug}\` (the id the API takes)`,
       `- **Type**: ${segment.type}${segment.climbType ? `, climb category ${segment.climbType}` : ''}`,
       `- **World**: ${segment.worldName}`,
       `- **Length**: ${segment.lengthKm.toFixed(1)} km`,
@@ -553,7 +552,7 @@ async function renderHomeDocument({ origin, siteUrl }: MarkdownRenderContext): P
     '',
     `- **One route**: fetch \`${origin}/routes/{slug}\` with \`Accept: text/markdown\` for that route's ranking, or take the slug from the table below.`,
     `- **One climb or sprint**: \`${origin}/segments/{slug}\`, and \`${origin}/segments\` for the index of all of them.`,
-    `- **For a named rider**: the MCP server at \`${origin}/api/mcp\`, or the JSON API at \`${origin}/api/recommend/{slug}?weightKg=&heightCm=&powerW=\`. Both take the rider's weight, height and sustained power, which every predicted time scales with.`,
+    `- **For a named rider**: the JSON API at \`${origin}/api/recommend/{slug}?weightKg=&heightCm=&powerW=\`. It takes the rider's weight, height and sustained power, which every predicted time scales with.`,
     `- **Everything at once**: \`${origin}/llms.txt\`.`,
     '',
     '## What the answer rests on',
