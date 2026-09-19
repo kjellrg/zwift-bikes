@@ -6,6 +6,15 @@
 # SAME set from server/middleware/00.security-headers.ts - keep the two in
 # sync.
 #
+# The `assets.run_worker_first` paths are the one place both files apply at
+# once: there the Worker runs first and passes the request back to the assets
+# binding (server/middleware/01.markdown.ts), which applies these rules to a
+# binding fetch exactly as it does to a direct one - undocumented by
+# Cloudflare, measured against wrangler's asset worker - while
+# 00.security-headers.ts has already set the same values on the event. Same
+# headers from both sides, so those pages stay covered whichever of the two
+# is changed.
+#
 # No full script CSP on purpose: Nuxt hydration relies on inline scripts, so
 # anything stronger than frame-ancestors would need 'unsafe-inline' and
 # protect nothing. frame-ancestors 'none' (+ the X-Frame-Options fallback)

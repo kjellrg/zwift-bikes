@@ -1,11 +1,10 @@
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
-import { clampPowerW, clampSprintPowerW, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, storedPowerW } from '#shared/utils/riderBounds'
+import { clampPowerW, clampSprintPowerW, DEFAULT_HEIGHT_CM, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, DEFAULT_WEIGHT_KG, storedPowerW } from '#shared/utils/riderBounds'
 import { DEFAULT_UNOWNED_LEVEL, toUpgradeStage } from '#shared/utils/upgradeStage'
 
 const STORAGE_KEY = 'zwift-bikes:rider-profile'
 
-const DEFAULT_WEIGHT_KG = 75
 /**
  * Weight bounds, matching the sliders on the route/segment pages. Kept wide
  * enough to cover any realistic Zwift rider but not so wide that a stray digit
@@ -14,7 +13,9 @@ const DEFAULT_WEIGHT_KG = 75
 const MIN_WEIGHT_KG = 40
 const MAX_WEIGHT_KG = 130
 const clampWeightKg = (value: number) => Math.min(MAX_WEIGHT_KG, Math.max(MIN_WEIGHT_KG, Math.round(value)))
-const DEFAULT_HEIGHT_CM = 175
+// The seeds below come from `shared/utils/riderBounds.ts`, alongside the
+// power defaults: the Worker renders the markdown twin of a prerendered page
+// for this same phantom rider, so the numbers cannot live only here.
 // `DEFAULT_UNOWNED_LEVEL` and the stage clamp deliberately aren't defined
 // here: the recommend endpoints and the MCP tools have to assume the same
 // stage and hold it to the same bounds, so both live in

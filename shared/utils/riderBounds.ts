@@ -33,6 +33,17 @@ export const RIDER_BOUNDS = {
 export const POWER_W_RANGE = { min: 100, max: 500, step: 5 } as const
 export const SPRINT_POWER_W_RANGE = { min: 100, max: 1500, step: 10 } as const
 
+/**
+ * The rider every page starts from before a profile is loaded: the values
+ * `useRiderProfile` seeds its state with, which are therefore the values the
+ * prerendered HTML - and the markdown twin `server/utils/markdown/` serves
+ * beside it - is rendered for. Here rather than in the composable because
+ * the Worker has to rank the same phantom rider the prerender pass did, and
+ * a second copy of the numbers is a second place for the two to disagree.
+ */
+export const DEFAULT_WEIGHT_KG = 75
+export const DEFAULT_HEIGHT_CM = 175
+
 /** Same watts as the old default of 3.0 W/kg at the 75 kg default weight. */
 export const DEFAULT_POWER_W = 225
 /**

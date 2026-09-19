@@ -22,7 +22,28 @@
     // the sitemap and the in-page canonical tag all use the bare form.
     // "drop-trailing-slash" serves index.html at the bare path and redirects
     // the slashed form back onto it, matching that policy.
-    "html_handling": "drop-trailing-slash"
+    "html_handling": "drop-trailing-slash",
+    // Markdown content negotiation (server/middleware/01.markdown.ts). These
+    // paths are prerendered, so by default the asset worker answers them
+    // before this Worker runs and an `Accept: text/markdown` header is
+    // simply never seen. Listing them here inverts that for these paths
+    // only: the Worker runs first, hands every request that did NOT ask for
+    // markdown straight back to the ASSETS binding (same bytes, no SSR), and
+    // renders markdown for the ones that did.
+    //
+    // Deliberately a rule list and not `true`: at `true` every /_nuxt/*
+    // chunk, image and OG card would pay a Worker invocation for nothing.
+    // Rules are an exact path or a `*`-terminated prefix; the list is
+    // mirrored by MARKDOWN_WORKER_FIRST_RULES in
+    // server/utils/markdown/documents.ts, which documents.test.ts diffs
+    // against this file - a page the resolver knows and this list misses
+    // fails silently, serving HTML forever.
+    "run_worker_first": [
+      "/",
+      "/routes/*",
+      "/segments",
+      "/segments/*"
+    ]
   },
   "limits": {
     // Runaway guard, not a throttle: past this the request is killed
