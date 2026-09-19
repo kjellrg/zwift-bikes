@@ -1,5 +1,19 @@
 import type { ComboScore, RouteSummary, RouteWithMeta, SegmentSummary } from '../../../shared/types/catalog'
 import { formatDuration } from '../../../shared/utils/duration'
+import {
+  categoryGroup,
+  draftingAllowed,
+  formatCategoryGroup,
+  getRaceBySlug,
+  getRoundForRace,
+  getSeasonBySlug,
+  isRacePublishable,
+  RACE_FORMAT_LABELS,
+  lapsForCategoryGroup,
+  raceContextLabel,
+  raceDisplayName,
+  ttBikesAllowed
+} from '../../../shared/utils/events'
 import { RECOMMEND_MAX_LIMIT } from '../../../shared/utils/recommendLimits'
 import { DEFAULT_HEIGHT_CM, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, DEFAULT_WEIGHT_KG } from '../../../shared/utils/riderBounds'
 import { computeRouteTotals, maxLapsForRoute } from '../../../shared/utils/routeLaps'
@@ -7,6 +21,7 @@ import { DEFAULT_UNOWNED_LEVEL, MAX_UPGRADE_STAGE } from '../../../shared/utils/
 import {
   CONFIDENCE_NOTE,
   formatComboTable,
+  formatRaceFormatAssumption,
   formatSurface,
   type RecommendPagination,
   type RecommendRouteResponse,
@@ -67,12 +82,12 @@ export interface MarkdownRenderContext {
   recommendPaused: boolean
 }
 
-/** One page's markdown twin, resolved from a request path. */
-export interface MarkdownDocument {
-  /** The canonical site path, for the `Link: rel=canonical` header. */
-  path: string
-  render: (context: MarkdownRenderContext) => Promise<string>
-}
+/**
+ * One page's markdown twin. Just the renderer: the path it was resolved from
+ * is the caller's already, and handing it back would only invite the two to
+ * disagree.
+ */
+export type MarkdownDocument = (context: MarkdownRenderContext) => Promise<string>
 
 /**
  * The query the prerendered HTML of a ranking page was rendered with:
@@ -86,7 +101,24 @@ export interface MarkdownDocument {
  * `limit` are what one page of results is, and a change to any of them on
  * the client silently makes this document a ranking no rider is shown.
  */
-function defaultRankingQuery(powerW: number): Record<string, unknown> {
+interface RankingQuery {
+  category: string
+  limit: number
+  maxWheelsetsPerFrame: number
+  offset: number
+  verifiedOnly: 'true' | 'false'
+  includeHalo: 'true' | 'false'
+  defaultUnownedLevel: number
+  weightKg: number
+  heightCm: number
+  powerW: number
+  /** Routes and races only; a segment is ridden once from its timed start. */
+  laps?: number
+  /** A LEGALITY filter a race format fixes, never a display trim - see `ttBikesAllowed`. */
+  excludeTT?: 'true'
+}
+
+function defaultRankingQuery(powerW: number): RankingQuery {
   return {
     category: 'standard',
     limit: RECOMMEND_MAX_LIMIT,
@@ -148,7 +180,7 @@ function nextSteps(origin: string): string[] {
     `- **MCP server** (best for a conversation): \`${origin}/api/mcp\` - streamable HTTP, no auth. Call \`set_rider_profile\`, then \`recommend_for_route\` or \`recommend_for_segment\`.`,
     `- **HTTP API**: \`GET ${origin}/api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=\`, and \`${origin}/api/recommend/segments/{segmentSlug}\` for a climb or sprint. JSON.`,
     `- **Site index for agents**: \`${origin}/llms.txt\`.`,
-    `- Every page on this site answers in markdown when the request sends \`Accept: text/markdown\`.`
+    `- Every route, segment and race page answers in markdown when the request sends \`Accept: text/markdown\`, as this one did - as do \`${origin}/\` and \`${origin}/segments\`.`
   ]
 }
 
@@ -159,9 +191,9 @@ function nextSteps(origin: string): string[] {
  * be simulated (a rider who cannot hold the grade at that power), and an
  * agent that cannot distinguish them will retry the wrong one.
  */
-function rankingUnavailable(ranked: boolean, recommendPaused: boolean): string {
+function rankingUnavailable(rankingAnswered: boolean, recommendPaused: boolean): string {
   if (recommendPaused) return '_Rankings are temporarily paused for maintenance. The facts below are current; try again shortly._'
-  if (ranked) return '_No verified frame and wheel combination matched. Gravel and fun bikes have no bot-test data, so a verified-only ranking excludes them._'
+  if (rankingAnswered) return '_No verified frame and wheel combination matched. Gravel and fun bikes have no bot-test data, so a verified-only ranking excludes them._'
   return '_The ranking could not be computed for this request. Try again shortly, or use the API or MCP server below._'
 }
 
@@ -218,6 +250,42 @@ function facts(entries: (string | undefined)[]): string[] {
   return entries.filter((entry): entry is string => Boolean(entry))
 }
 
+/**
+ * The ranking itself, identical on every ranking document - which is the
+ * point: a rider who learns to read one of these can read all three, the
+ * same bargain `RideResults` strikes for the pages (see **Ranking results**
+ * in CONTEXT.md). Only the extra assumption lines differ, because only the
+ * ride does.
+ */
+function rankingSection(
+  ranking: { combos: ComboScore[], pagination: RecommendPagination } | undefined,
+  unavailable: string,
+  powerW: number,
+  extraAssumptions: (string | undefined)[],
+  origin: string
+): string[] {
+  const heading = '## Fastest bike and wheel combinations'
+  if (!ranking) return [heading, '', unavailable, '']
+  return [
+    heading,
+    ...rankingAssumptions(powerW, facts(extraAssumptions)),
+    '',
+    formatComboTable(ranking.combos, ranking.pagination.offset + 1),
+    '',
+    depthNote(ranking.pagination, origin),
+    CONFIDENCE_NOTE,
+    ''
+  ]
+}
+
+/**
+ * What the times rest on, in the endpoint's own words. Absent with no
+ * ranking, because a note explaining a computation nobody made is noise.
+ */
+function physicsSection(ranking: { physics?: { note: string } } | undefined): string[] {
+  return ranking?.physics ? ['## How these times were computed', '', ranking.physics.note, ''] : []
+}
+
 async function renderRouteDocument(slug: string, { origin, siteUrl, recommendPaused }: MarkdownRenderContext): Promise<string> {
   const route = await $fetch<RouteWithMeta>(`/api/routes/${encodeURIComponent(slug)}`)
   const canonical = `${siteUrl}/routes/${route.slug}`
@@ -248,20 +316,7 @@ async function renderRouteDocument(slug: string, { origin, siteUrl, recommendPau
     ''
   ]
 
-  if (ranking) {
-    lines.push(
-      '## Fastest bike and wheel combinations',
-      ...rankingAssumptions(DEFAULT_POWER_W, ['- One lap, including the lead-in once.']),
-      '',
-      formatComboTable(ranking.combos, ranking.pagination.offset + 1),
-      '',
-      depthNote(ranking.pagination, origin),
-      CONFIDENCE_NOTE,
-      ''
-    )
-  } else {
-    lines.push('## Fastest bike and wheel combinations', '', unavailable, '')
-  }
+  lines.push(...rankingSection(ranking, unavailable, DEFAULT_POWER_W, ['- One lap, including the lead-in once.'], origin))
 
   lines.push(
     '## The route',
@@ -294,9 +349,7 @@ async function renderRouteDocument(slug: string, { origin, siteUrl, recommendPau
     )
   }
 
-  if (ranking?.physics) {
-    lines.push('## How these times were computed', '', ranking.physics.note, '')
-  }
+  lines.push(...physicsSection(ranking))
 
   return [...lines, ...nextSteps(origin), ''].join('\n')
 }
@@ -329,23 +382,10 @@ async function renderSegmentDocument(slug: string, { origin, siteUrl, recommendP
     ''
   ]
 
-  if (ranking) {
-    lines.push(
-      '## Fastest bike and wheel combinations',
-      ...rankingAssumptions(powerW, [
-        '- The timed segment only, excluding any warm-up: it is simulated after a flat run-up so it is entered at racing speed rather than from a standstill, which is how a Zwift or Strava segment is actually ridden.',
-        segment.type === 'sprint' ? '- Ridden at sprint power, not race pace - a sprint is a different effort from a route.' : undefined
-      ].filter((line): line is string => Boolean(line))),
-      '',
-      formatComboTable(ranking.combos, ranking.pagination.offset + 1),
-      '',
-      depthNote(ranking.pagination, origin),
-      CONFIDENCE_NOTE,
-      ''
-    )
-  } else {
-    lines.push('## Fastest bike and wheel combinations', '', unavailable, '')
-  }
+  lines.push(...rankingSection(ranking, unavailable, powerW, [
+    '- The timed segment only, excluding any warm-up: it is simulated after a flat run-up so it is entered at racing speed rather than from a standstill, which is how a Zwift or Strava segment is actually ridden.',
+    segment.type === 'sprint' ? '- Ridden at sprint power, not race pace - a sprint is a different effort from a route.' : undefined
+  ], origin))
 
   lines.push(
     '## The segment',
@@ -377,9 +417,113 @@ async function renderSegmentDocument(slug: string, { origin, siteUrl, recommendP
     )
   }
 
-  if (ranking?.physics) {
-    lines.push('## How these times were computed', '', ranking.physics.note, '')
+  lines.push(...physicsSection(ranking))
+
+  return [...lines, ...nextSteps(origin), ''].join('\n')
+}
+
+/**
+ * One race, which is the ranking page a route page cannot stand in for: the
+ * organiser's format decides what may be STARTED on, and a recommendation
+ * that ignored it would put an illegal bike at the top of the list. That is
+ * also why this document exists at all - "what bike for ZRL round 1 week 3"
+ * is exactly the question the site is trying to be the answer to, and it is
+ * not answerable from `/routes/{slug}`.
+ *
+ * Ranked for the FIRST Category group, which is the page's own default
+ * (`categoryGroup`, and the `?group=` a clean link omits). A group is the
+ * race's, never the rider's, and the laps come with it - so a document for
+ * one group is a complete answer for the riders in it, and the others are
+ * listed beside it with their own courses and lap counts.
+ */
+async function renderRaceDocument(seasonSlug: string, raceSlug: string, { origin, siteUrl, recommendPaused }: MarkdownRenderContext): Promise<string> {
+  const season = getSeasonBySlug(seasonSlug)
+  const race = season ? getRaceBySlug(seasonSlug, raceSlug) : undefined
+  // The same gate the prerender list and the sitemap use: a race the
+  // organiser has not published details for has no page, so it has no twin.
+  if (!season || !race || !isRacePublishable(race)) {
+    throw createError({ statusCode: 404, statusMessage: `Race "${raceSlug}" not found in season "${seasonSlug}"` })
   }
+
+  const round = getRoundForRace(season, race)
+  const title = `${raceContextLabel(season, round)} ${raceDisplayName(race)}`
+  const canonical = `${siteUrl}/events/${season.slug}/${race.slug}`
+  // The page's own question, not the route pages' - a rider reaching a race
+  // is asking what they may start on as much as what is quickest.
+  const question = `What bike should I ride for ${title}?`
+
+  const group = categoryGroup(race)
+  const laps = lapsForCategoryGroup(race)
+  const courseSlug = group?.routeSlug
+  // A group whose course the catalog does not have (ZRL runs C/D on an
+  // unlisted "exclusive" route in week 6) can still be described, just not
+  // ranked - the page makes the same distinction.
+  const course = courseSlug
+    ? await $fetch<RouteWithMeta>(`/api/routes/${encodeURIComponent(courseSlug)}`).catch(() => undefined)
+    : undefined
+
+  const ranking = recommendPaused || !course
+    ? undefined
+    : await $fetch<RecommendRouteResponse>(`/api/recommend/${encodeURIComponent(course.slug)}`, {
+        query: {
+          ...defaultRankingQuery(DEFAULT_POWER_W),
+          laps,
+          // Not a display trim: `category` cannot express "road AND gravel
+          // but never TT", which is what a points or scratch race allows.
+          excludeTT: ttBikesAllowed(race.format) ? undefined : 'true'
+        }
+      }).catch(() => undefined)
+
+  const totals = course ? computeRouteTotals(course, laps) : undefined
+  const rideName = course ? `${laps} lap${laps === 1 ? '' : 's'} of ${course.name}` : (group?.routeName ?? 'this race')
+  const unavailable = course
+    ? rankingUnavailable(ranking !== undefined, recommendPaused)
+    : '_This group races a route the catalog does not carry, so no ranking can be computed for it._'
+
+  const lines = [
+    ...rankingHeader(question, (ranking && answerLine(ranking.combos, rideName, totals?.distanceKm)) ?? unavailable, canonical),
+    '',
+    `${title} is a ${RACE_FORMAT_LABELS[race.format].toLowerCase()} on ${race.date}${course ? `, over ${rideName} in ${course.worldName}` : ''}.`,
+    ''
+  ]
+
+  lines.push(...rankingSection(ranking, unavailable, DEFAULT_POWER_W, [
+    `- ${formatCategoryGroup(group ?? { cats: [], label: 'the first group' })}: ${laps} lap${laps === 1 ? '' : 's'}${totals ? `, ${totals.distanceKm.toFixed(1)} km and ${Math.round(totals.elevationM)} m` : ''}.`,
+    // The format's consequence spelled out, from the same wording the MCP
+    // tools give a model - an override a reader cannot see is one they will
+    // confidently misreport (issue #225).
+    formatRaceFormatAssumption(race.format, undefined)
+  ], origin))
+
+  lines.push(
+    '## The race',
+    '',
+    ...facts([
+      `- **Series**: ${raceContextLabel(season, round)}`,
+      `- **Date**: ${race.date}${race.endDate && race.endDate !== race.date ? ` to ${race.endDate}` : ''}`,
+      `- **Format**: ${RACE_FORMAT_LABELS[race.format]}`,
+      `- **TT frames**: ${ttBikesAllowed(race.format) ? 'allowed - Zwift enables them, with draft, for a team time trial' : 'barred - none are ranked above'}`,
+      `- **Drafting**: ${draftingAllowed(race.format) ? 'yes' : 'no - ridden solo'}`
+    ]),
+    '',
+    '### Category groups',
+    '',
+    '| Group | Laps | Course |',
+    '| --- | --- | --- |',
+    ...race.categories.map((entry, index) =>
+      `| ${formatCategoryGroup(entry)}${index === 0 ? ' (ranked above)' : ''} | ${entry.laps} | ${entry.routeSlug ? `[${entry.routeName ?? entry.routeSlug}](${origin}/routes/${entry.routeSlug})` : (entry.routeName ?? 'to be confirmed')} |`),
+    ''
+  )
+
+  if (race.categories.length > 1) {
+    lines.push(
+      `The ranking above is for ${formatCategoryGroup(race.categories[0]!)}. `
+      + 'Another group racing a different course or lap count gets a different answer - rank it from the route it rides, or with the API below.',
+      ''
+    )
+  }
+
+  lines.push(...physicsSection(ranking))
 
   return [...lines, ...nextSteps(origin), ''].join('\n')
 }
@@ -428,7 +572,7 @@ async function renderHomeDocument({ origin, siteUrl }: MarkdownRenderContext): P
   ].join('\n')
 }
 
-async function renderSegmentIndexDocument({ origin, siteUrl }: MarkdownRenderContext): Promise<string> {
+async function renderSegmentsDiscoveryDocument({ origin, siteUrl }: MarkdownRenderContext): Promise<string> {
   const { segments } = await $fetch<{ segments: SegmentSummary[] }>('/api/segments')
   return [
     '# Zwift climbs and sprints',
@@ -453,12 +597,14 @@ async function renderSegmentIndexDocument({ origin, siteUrl }: MarkdownRenderCon
 /**
  * Which pages have a markdown twin, and how a request path maps onto one.
  *
- * The ranking pages and the two indexes that lead to them, and nothing else.
- * A page whose whole content is hand-written prose (`/about`) would need its
- * text copied into a second place to gain one, and the two copies would
- * drift; a page that renders only from the rider's own browser (`/profile`,
- * `/garage`) has no content to serve at all. Both are `noindex`-adjacent
- * concerns for an agent, so they simply stay HTML.
+ * Every Ranking page - route, segment and race, the three that show an
+ * Applied Ranking - plus the two Discovery pages that lead to them (see both
+ * terms in CONTEXT.md). Nothing else: a page whose whole content is
+ * hand-written prose (`/about`) would need its text copied into a second
+ * place, and the two copies would drift; a page that renders only from the
+ * rider's own browser (`/profile`, `/garage`) has no content to serve at
+ * all. The season page (`/events/{season}`) is a Discovery page whose races
+ * each carry their own document, so it is the one gap left on purpose.
  *
  * Deliberately exact matching, with no trailing-slash tolerance: the site's
  * canonical form is the bare path (`trailingSlash: 'never'`), and the assets
@@ -466,21 +612,23 @@ async function renderSegmentIndexDocument({ origin, siteUrl }: MarkdownRenderCon
  * happen keeps one canonical URL per document instead of two that answer.
  */
 export function markdownDocumentFor(path: string): MarkdownDocument | undefined {
-  if (path === '/') {
-    return { path, render: renderHomeDocument }
-  }
-  if (path === '/segments') {
-    return { path, render: renderSegmentIndexDocument }
-  }
+  if (path === '/') return renderHomeDocument
+  if (path === '/segments') return renderSegmentsDiscoveryDocument
+
   const route = /^\/routes\/([^/]+)$/.exec(path)
   if (route?.[1]) {
     const slug = decodeURIComponent(route[1])
-    return { path, render: context => renderRouteDocument(slug, context) }
+    return context => renderRouteDocument(slug, context)
   }
   const segment = /^\/segments\/([^/]+)$/.exec(path)
   if (segment?.[1]) {
     const slug = decodeURIComponent(segment[1])
-    return { path, render: context => renderSegmentDocument(slug, context) }
+    return context => renderSegmentDocument(slug, context)
+  }
+  const race = /^\/events\/([^/]+)\/([^/]+)$/.exec(path)
+  if (race?.[1] && race[2]) {
+    const [, season, raceSlug] = race
+    return context => renderRaceDocument(decodeURIComponent(season), decodeURIComponent(raceSlug), context)
   }
   return undefined
 }
@@ -499,4 +647,23 @@ export function markdownDocumentFor(path: string): MarkdownDocument | undefined 
  *
  * A rule is an exact path, or a prefix ending in `*`.
  */
-export const MARKDOWN_WORKER_FIRST_RULES = ['/', '/routes/*', '/segments', '/segments/*'] as const
+export const MARKDOWN_WORKER_FIRST_RULES = ['/', '/events/*', '/routes/*', '/segments', '/segments/*'] as const
+
+/**
+ * Whether Cloudflare hands this path to the Worker ahead of the asset, under
+ * the rules above - evaluated the way the asset router evaluates them: an
+ * exact path, or a prefix where the rule ends in `*`.
+ *
+ * The middleware needs this as well as `markdownDocumentFor`, because the
+ * two sets are NOT the same. `/events/*` has to cover
+ * `/events/{season}/{race}`, and a prefix rule is the only shape available,
+ * so it sweeps in `/events/{season}` - a season page with no twin. Those
+ * still arrive at the Worker and still have to be handed back to the asset
+ * binding; letting them fall into Nitro instead would re-render a
+ * prerendered page on every request, which is the one cost this whole
+ * arrangement exists to avoid.
+ */
+export function isWorkerFirstPath(path: string): boolean {
+  return MARKDOWN_WORKER_FIRST_RULES.some(rule =>
+    rule.endsWith('*') ? path.startsWith(rule.slice(0, -1)) : path === rule)
+}

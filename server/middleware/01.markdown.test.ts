@@ -33,7 +33,7 @@ vi.stubGlobal('appendResponseHeader', (event: TestEvent, name: string, value: st
 })
 // The public site URL, which is deliberately NOT the host under test - see
 // the canonical assertions below.
-vi.stubGlobal('getSiteConfig', () => ({ url: 'https://zwiftbikes.com' }))
+vi.stubGlobal('useRuntimeConfig', () => ({ siteUrl: 'https://zwiftbikes.com' }))
 
 // `as unknown` first: the stubbed `defineEventHandler` hands back the raw
 // function, but its declared type is still h3's `EventHandler`, which a
@@ -62,16 +62,32 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('a page with no markdown twin', () => {
+describe('a page the Worker never sees', () => {
   it('is left entirely alone', async () => {
     const { spy, binding } = assetsReturning(new Response('page', { status: 200 }))
     const event = eventFor('/about', 'text/markdown', { cloudflare: binding })
 
+    // `/about` is not in run_worker_first, so in production this middleware
+    // never runs for it at all - it must behave the same way when it does.
     expect(await handler(event)).toBeUndefined()
-    // Not even a Vary: this middleware has no opinion about /about, and
-    // adding one would tell caches to split a page that never varies.
     expect(event.responseHeaders).toEqual({})
     expect(spy).not.toHaveBeenCalled()
+  })
+})
+
+describe('a page routed to the Worker that has no twin', () => {
+  it('is handed back to the assets, and does not claim to vary', async () => {
+    // `/events/*` must be a prefix rule to reach a race page, so it sweeps
+    // in season pages too. Letting one fall into Nitro would re-render a
+    // prerendered page on every request.
+    const { spy, binding } = assetsReturning(new Response('<!doctype html>', { status: 200 }))
+    const event = eventFor('/events/zrl-2026-27', 'text/markdown', { cloudflare: binding })
+
+    const response = await handler(event) as Response
+    expect(response.status).toBe(200)
+    expect(spy).toHaveBeenCalledTimes(1)
+    // No twin, so nothing varies - a Vary here would only fragment caches.
+    expect(event.responseHeaders.Vary).toBeUndefined()
   })
 })
 

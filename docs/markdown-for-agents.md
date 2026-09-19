@@ -1,7 +1,9 @@
 # Markdown for agents
 
-Every ranking page on the site answers in markdown when the request asks for
-it, at the same URL a browser uses.
+Every Ranking page on the site - route, segment and race - answers in
+markdown when the request asks for it, at the same URL a browser uses, as do
+the two Discovery pages that list them (both terms are defined in
+[CONTEXT.md](../CONTEXT.md)).
 
 ```
 $ curl -H 'Accept: text/markdown' https://zwiftbikes.com/routes/hilly-route
@@ -13,8 +15,8 @@ Watopia Hilly Route: **17:42** (~32.9 km/h), under the assumptions below.
 ...
 ```
 
-- **Negotiated pages:** `/`, `/routes/{slug}`, `/segments`,
-  `/segments/{slug}`
+- **Negotiated pages:** `/routes/{slug}`, `/segments/{slug}`,
+  `/events/{season}/{race}`, plus `/` and `/segments`
 - **Response:** `Content-Type: text/markdown; charset=utf-8`, `Vary: Accept`,
   `x-markdown-tokens`, and a `Link: <...>; rel="canonical"` back to the page.
   The canonical is built from the configured site URL and never from the host
@@ -84,7 +86,8 @@ Three things are said out loud that the page can leave to its UI:
   document names the default rider and points at the API and MCP server for
   the reader's own.
 - **What narrowed "fastest".** Road frames only, verified equipment only,
-  upgrade stage 5, Halo frames excluded, one wheelset per frame.
+  upgrade stage 5, Halo frames excluded, one wheelset per frame - and, on a
+  race, what the organiser's format bars outright.
 - **What the number rests on.** The `Data` column carries `measured` or
   `estimated` per row, with the confidence note from the MCP formatter.
 
@@ -95,22 +98,49 @@ of reader, so a fix to either lands in both. The one piece deliberately not
 reused is the pagination line - it tells an MCP client to "call again with a
 higher `offset`", and a document has no call to make.
 
-## Cost, and the two gates the middleware answers for
+## Cost, and the rate limit this needs at the edge
 
 Rendering a ranking document runs the recommend pipeline, which is the
-expensive thing on this site. Two consequences, both handled in the
-middleware, because returning a response there means the later middleware
-never runs:
+expensive thing on this site - so a markdown page request costs what an
+`/api/recommend/**` request costs, while the HTML at the same URL costs
+nothing, having been computed at build time.
 
-- **Rate limiting.** Markdown page requests are counted against the same
-  30/60s per-IP budget as `/api/recommend/**`, through the shared
-  `enforceRateLimit`. Without it `GET /routes/x` with an `Accept` header would
-  be an unmetered door to a metered endpoint.
-- **The recommend kill switch.** `killSwitches.recommend` (see
-  [site flags](site-flags.md)) is read on the real request and handed to the
-  document, which then skips the ranking and says so. The gate itself cannot
-  see these calls: they go out over Nitro's in-process `$fetch`, which carries
-  no KV binding - the same hole `mcp.post.ts` closes the same way.
+**Neither existing rate limit sees that traffic.** The binding in
+`server/middleware/rate-limit.ts` and a zone rule matched on
+`/api/recommend` both key on the request path, and a markdown request
+arrives as `GET /routes/x`; the ranking it runs goes out over Nitro's
+in-process `$fetch`, which never crosses the edge and carries no platform
+context (that exemption is deliberate - it is what stops one MCP call
+costing one count per internal fetch).
+
+This is covered by a **zone rate-limiting rule matched on the header**, not
+in application code - one implementation of the site's rate limiting, in the
+place the rest of it already lives. It is a **deploy prerequisite**: until
+the rule exists, these paths are unmetered. The expression:
+
+```
+(http.request.headers["accept"][0] contains "text/markdown"
+  and (http.request.uri.path eq "/"
+    or http.request.uri.path eq "/segments"
+    or starts_with(http.request.uri.path, "/routes/")
+    or starts_with(http.request.uri.path, "/segments/")
+    or starts_with(http.request.uri.path, "/events/")))
+```
+
+with the same counter as `/api/recommend` (30 requests / 60 s, by IP). A 429
+carries `Retry-After`, which a well-behaved crawler backs off on; discovery
+itself is never blocked, because `/llms.txt` runs no physics and is not
+covered by the rule.
+
+**The recommend kill switch IS applied in app code.**
+`killSwitches.recommend` (see [site flags](site-flags.md)) is read on the
+real request and handed to the document, which then skips the ranking and
+says so — the gate cannot see the in-process `$fetch` either, the same hole
+`mcp.post.ts` closes the same way. Note this makes a paused ranking diverge
+from the prerendered HTML at the same URL, which still shows the ranking it
+was built with. That is accepted deliberately: the switch exists to stop
+*live* computation during an incident, and of the two representations only
+the markdown does any.
 
 Beyond that, the ranking rides the recommend endpoint's own edge cache
 (`server/utils/recommendCache.ts`), so the pipeline runs once per route per
@@ -139,13 +169,22 @@ already answered `text/markdown`.
    `assets.run_worker_first` in wrangler.jsonc. `documents.test.ts` fails if
    the two disagree, which is the only thing standing between a new page and a
    silent no-op.
-3. Cover it in `documents.test.ts` - at minimum that the ranking it fetches is
+3. Add a page under that rule to `MARKDOWN_PAGES` in
+   `scripts/site-smoke/smoke.mjs` - `documents.test.ts` fails if a rule has no
+   smoke page, because the smoke run is the only place the deployed routing is
+   ever checked.
+4. Extend the zone rate-limiting rule above if the new path is not already
+   under one of its prefixes.
+5. Cover it in `documents.test.ts` - at minimum that the ranking it fetches is
    the one the prerendered HTML was rendered with.
 
 `/about` has no twin on purpose: its content is hand-written prose in a Vue
 file, and a markdown copy would be a second one to keep in step. `/profile`
 and `/garage` render only from the rider's own browser and have nothing to
-serve. The event pages are ranking pages and are the obvious next candidates.
+serve. A season page (`/events/{season}`) is a Discovery page whose races each
+carry their own document, so it is the one gap left deliberately - it is
+routed to the Worker anyway (the `/events/*` prefix is the only shape
+available for reaching a race page) and handed straight back to the assets.
 
 ## Verifying it
 

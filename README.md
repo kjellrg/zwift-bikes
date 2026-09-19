@@ -40,8 +40,8 @@ by verified test data or an estimate.*
 - **Set a rider profile once** (weight, height, sustained power) and every estimate uses
   it. It's stored only in your browser — nothing is sent to a server.
 - **Ask an assistant instead.** The site talks to LLM clients directly over
-  [MCP](docs/mcp-server.md), and every ranking page also answers in plain
-  markdown to anything that asks for it — see
+  [MCP](docs/mcp-server.md), and every route, segment and race page also
+  answers in plain markdown to anything that asks for it — see
   [Markdown for agents](docs/markdown-for-agents.md).
 
 ![Speed and surface chart for a route, showing estimated speed over the elevation profile, surface segments and their watt penalties](docs/assets/screenshots/terrain-light.png#gh-light-mode-only)
@@ -73,8 +73,9 @@ profile, where the surface changes, and what each surface costs you in watts.*
 - **MCP server** — `https://zwiftbikes.com/api/mcp`, streamable HTTP, no
   auth. Set a rider profile, then ask for a route or a segment. Details and
   design notes in [docs/mcp-server.md](docs/mcp-server.md).
-- **Markdown** — any ranking page returns markdown instead of HTML when the
-  request sends `Accept: text/markdown`, and
+- **Markdown** — every route, segment and race page (plus the two pages that
+  list them) returns markdown instead of HTML when the request sends
+  `Accept: text/markdown`, and
   [`/llms.txt`](https://zwiftbikes.com/llms.txt) indexes the whole catalog.
   See [docs/markdown-for-agents.md](docs/markdown-for-agents.md).
 - **JSON** — `GET /api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=`,

@@ -185,11 +185,14 @@ async function checkPage({ kind, path, sampleSegments, noindex }) {
 }
 
 /**
- * The four pages that negotiate markdown, and one that must not. Rendering
- * a ranking document runs the recommend pipeline, so these count against the
- * 30/60 s per-IP rate limit - hence one request per path and no sweep.
+ * One page per `assets.run_worker_first` rule in wrangler.jsonc - which is
+ * what makes this list load-bearing rather than illustrative: a rule nobody
+ * smokes is a rule nobody verifies, since no local test can see the asset
+ * routing. `documents.test.ts` fails when a rule has no page here, so keep
+ * adding to it. Rendering a ranking document runs the recommend pipeline, so
+ * it stays one request per path and never a sweep.
  */
-const MARKDOWN_PAGES = ['/', '/segments', '/routes/hilly-route', '/segments/alpe-du-zwift']
+const MARKDOWN_PAGES = ['/', '/segments', '/routes/hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']
 
 async function checkMarkdownNegotiation() {
   for (const path of MARKDOWN_PAGES) {

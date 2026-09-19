@@ -1,6 +1,5 @@
-import { markdownDocumentFor } from '../utils/markdown/documents'
+import { isWorkerFirstPath, markdownDocumentFor } from '../utils/markdown/documents'
 import { estimateTokens, MARKDOWN_CONTENT_TYPE, prefersMarkdown } from '../utils/markdown/negotiate'
-import { enforceRateLimit } from '../utils/rateLimit'
 import { getSiteFlags } from '../utils/siteFlags'
 
 /**
@@ -43,17 +42,29 @@ import { getSiteFlags } from '../utils/siteFlags'
  * sides, so the page is covered whichever of the two ever changes.
  *
  * It runs BEFORE `rate-limit.ts` and `site-flags-gate.ts`, and returning a
- * response here means neither of them ever runs for this request. Both are
- * keyed on `/api/**` paths and a page URL would slip past them regardless,
- * so this middleware applies them itself for the markdown it renders -
- * which is the only branch that reaches the recommend pipeline:
+ * response here means neither of them ever runs. Both are keyed on `/api/**`
+ * paths, so a page URL would slip past them either way, and the two gates
+ * are handled differently:
  *
- * - the rate limiter, through the shared `enforceRateLimit`, because
- *   rendering a ranking page costs what `/api/recommend/**` costs;
- * - the recommend kill switch, read here and handed to the document, for
- *   the same reason `mcp.post.ts` reads it (issue #154): the in-process
- *   `$fetch` those documents use carries no KV binding, so the gate itself
- *   is blind to them.
+ * **Rate limiting is deliberately NOT done here.** Rendering a ranking
+ * document runs the recommend pipeline behind a page URL, so it does need a
+ * budget - but metering it in app code would put a second, divergent
+ * implementation beside the zone's own rule. The zone rule covers it
+ * instead, matched on the header rather than the path; docs/markdown-for-
+ * agents.md carries the expression and flags it as a deploy prerequisite.
+ * Note neither the binding in `rate-limit.ts` nor a path-matched zone rule
+ * on `/api/recommend` sees this traffic on its own: the ranking goes out
+ * over Nitro's in-process `$fetch`, which never crosses the edge and
+ * carries no platform context.
+ *
+ * **The recommend kill switch IS applied here**, read on the real request
+ * and handed to the document, for the same reason `mcp.post.ts` reads it
+ * (issue #154): that same in-process `$fetch` carries no KV binding, so
+ * `site-flags-gate.ts` is blind to it. This does mean a paused ranking
+ * diverges from the prerendered HTML at the same URL, which still shows the
+ * ranking it was built with - accepted on purpose. The switch exists to
+ * stop LIVE computation during an incident, and the markdown is the only
+ * one of the two representations doing any.
  */
 
 /**
@@ -84,17 +95,22 @@ export default defineEventHandler(async (event) => {
   if (event.method !== 'GET' && event.method !== 'HEAD') return
 
   const path = event.path.split('?')[0] ?? ''
-  const document = markdownDocumentFor(path)
-  if (!document) return
+  // Keyed on the ROUTING rules, not on whether a twin exists: `/events/*`
+  // has to be a prefix to reach a race page, so it also sweeps in season
+  // pages, and those arrive here needing the passthrough just as much.
+  if (!isWorkerFirstPath(path)) return
 
+  const render = markdownDocumentFor(path)
   const cloudflare = event.context.cloudflare as CloudflareContext | undefined
 
-  if (!prefersMarkdown(getRequestHeader(event, 'accept'))) {
-    // `Vary` on the HTML too, not only on the markdown: without it a shared
-    // cache holding one representation would serve it to callers who asked
-    // for the other. Appended rather than set, so a `Vary` the asset layer
-    // or a later handler adds survives.
-    appendResponseHeader(event, 'Vary', 'Accept')
+  // `Vary` on the HTML too, not only on the markdown: without it a shared
+  // cache holding one representation would serve it to callers who asked for
+  // the other. Only where a twin actually exists, though - telling caches to
+  // split a page that never varies just fragments the cache. Appended rather
+  // than set, so a `Vary` the asset layer or a later handler adds survives.
+  if (render) appendResponseHeader(event, 'Vary', 'Accept')
+
+  if (!render || !prefersMarkdown(getRequestHeader(event, 'accept'))) {
     // `nuxt dev` is excluded rather than left to the binding check below.
     // The cloudflare-dev emulation DOES expose an `ASSETS` binding, but it
     // is a wrangler proxy whose `request` is a Node-realm `Request` it
@@ -108,7 +124,6 @@ export default defineEventHandler(async (event) => {
     return response.status === 404 ? undefined : response
   }
 
-  await enforceRateLimit(event)
   const { killSwitches } = await getSiteFlags(event)
 
   const origin = getRequestURL(event).origin
@@ -118,8 +133,14 @@ export default defineEventHandler(async (event) => {
   // must not nominate itself as the canonical copy of a page. Every other
   // link in the document stays on `origin`, the way the HTML's own links
   // are relative.
-  const siteUrl = getSiteConfig(event).url.replace(/\/+$/, '')
-  const markdown = await document.render({ origin, siteUrl, recommendPaused: killSwitches.recommend })
+  //
+  // Read from `runtimeConfig.siteUrl` rather than `getSiteConfig(event)`:
+  // nuxt-site-config resolves its stack in a plugin that has not run by the
+  // time a middleware does, and the composable returns an empty stack there
+  // (it warns about exactly this in dev). nuxt.config.ts feeds both from one
+  // literal, so they cannot drift.
+  const siteUrl = useRuntimeConfig(event).siteUrl.replace(/\/+$/, '')
+  const markdown = await render({ origin, siteUrl, recommendPaused: killSwitches.recommend })
 
   setResponseHeaders(event, {
     'Content-Type': MARKDOWN_CONTENT_TYPE,
@@ -133,7 +154,7 @@ export default defineEventHandler(async (event) => {
     // markdown body has nowhere to put a `<link rel="canonical">`, and an
     // agent that indexes this needs to attribute it to the URL a person
     // would be sent to.
-    'Link': `<${siteUrl}${document.path}>; rel="canonical"`
+    'Link': `<${siteUrl}${path}>; rel="canonical"`
   })
   return markdown
 })

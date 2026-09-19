@@ -1,4 +1,5 @@
 import type { RouteSummary, SegmentSummary } from '../../shared/types/catalog'
+import { getPublishableRaces, RACE_FORMAT_LABELS, raceContextLabel, raceDisplayName } from '../../shared/utils/events'
 
 /**
  * `/llms.txt` - the site index written for a model rather than a crawler
@@ -47,6 +48,11 @@ export default defineEventHandler(async (event) => {
     $fetch<{ segments: SegmentSummary[] }>('/api/segments')
   ])
 
+  // Straight from the curated calendar rather than over HTTP: the same
+  // `getPublishableRaces()` the sitemap and the prerender list read, so this
+  // index cannot advertise a race page that does not exist.
+  const races = getPublishableRaces()
+
   const exampleRoute = exampleSlug(routes.map(route => route.slug), 'hilly-route')
   const exampleSegment = exampleSlug(segments.map(segment => segment.slug), 'alpe-du-zwift')
 
@@ -58,13 +64,14 @@ export default defineEventHandler(async (event) => {
     'Frame and wheel performance is solved from ZwiftInsider\'s published bot-test data and fed to a physics model that simulates the ride over the route\'s real elevation profile, '
     + 'so a recommendation is a predicted time rather than a reputation. Every predicted time scales with the rider\'s weight, height and sustained power, so ask for those before quoting one.',
     '',
-    'Every page listed below also answers in markdown: send `Accept: text/markdown` and the same URL returns `text/markdown` instead of HTML, with an `x-markdown-tokens` header estimating what it costs to read.',
+    'Send `Accept: text/markdown` to any route, segment or race page - and to the two pages that list them - and the same URL returns `text/markdown` instead of HTML, '
+    + 'with an `x-markdown-tokens` header estimating what it costs to read. That is every page below except the season and About links under "Start here", which answer in HTML only.',
     '',
     '## Start here',
     '',
     `- [All routes](${origin}/): the route catalog, and what the site is.`,
     `- [Climbs and sprints](${origin}/segments): the named segments that can be ranked on their own.`,
-    `- [Races](${origin}/events): organiser calendars, with the format rules each race fixes.`,
+    `- [Races](${origin}/events): organiser calendars. Each race page under it is rankable, and carries the format rules that decide what may be started on.`,
     `- [About](${origin}/about): where the data comes from, and what the model does and does not claim.`,
     '',
     '## Ranking for a named rider',
@@ -85,6 +92,13 @@ export default defineEventHandler(async (event) => {
     '',
     ...routes.map(route =>
       `- [${route.name}](${origin}/routes/${route.slug}): ${route.worldName}, ${route.distance.toFixed(1)} km, ${Math.round(route.elevation)} m, ${route.terrain.category}.`),
+    '',
+    `## Races (${races.length})`,
+    '',
+    'Each is ranked under its own format rules - which decide whether TT frames may be started on, and whether there is a draft at all.',
+    '',
+    ...races.map(({ season, round, race, path }) =>
+      `- [${raceContextLabel(season, round)} ${raceDisplayName(race)}](${origin}${path}): ${RACE_FORMAT_LABELS[race.format!].toLowerCase()}, ${race.date}.`),
     '',
     `## Climbs and sprints (${segments.length})`,
     '',

@@ -65,9 +65,9 @@ function parseAccept(header: string): MediaRange[] {
     .filter(range => range.type.length > 0)
 }
 
-/** The best quality value any of `types` was offered at; 0 when none were. */
-function bestQuality(ranges: MediaRange[], types: (type: string) => boolean): number {
-  return Math.max(0, ...ranges.filter(range => types(range.type)).map(range => range.q))
+/** The best quality value any range `matches` accepts was offered at; 0 when none were. */
+function bestQuality(ranges: MediaRange[], matches: (type: string) => boolean): number {
+  return Math.max(0, ...ranges.filter(range => matches(range.type)).map(range => range.q))
 }
 
 /**
