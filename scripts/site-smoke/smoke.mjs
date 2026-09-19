@@ -21,6 +21,14 @@
 // only, which touches prerendered HTML and never a recommend endpoint, so
 // the 30/60 s rate limit on those is never in play.
 //
+// Markdown negotiation (docs/markdown-for-agents.md) is checked here and
+// effectively only here: it depends on `assets.run_worker_first` routing the
+// page to the Worker ahead of the prerendered asset, which is a property of
+// the DEPLOYMENT, not of the code - no unit test and no local dev server can
+// see it, and getting it wrong fails silently by serving HTML forever. The
+// HTML half of the same paths is checked too, because that routing change is
+// also the one thing that could quietly break the pages themselves.
+//
 // For a deployment behind Cloudflare Access (the PR preview workers), pass
 // either the Access JWT of a logged-in user, sent as the CF_Authorization
 // cookie on every request:
@@ -176,6 +184,66 @@ async function checkPage({ kind, path, sampleSegments, noindex }) {
   }
 }
 
+/**
+ * One page per `assets.run_worker_first` rule in wrangler.jsonc - which is
+ * what makes this list load-bearing rather than illustrative: a rule nobody
+ * smokes is a rule nobody verifies, since no local test can see the asset
+ * routing. `documents.test.ts` fails when a rule has no page here, so keep
+ * adding to it. Rendering a ranking document runs the recommend pipeline, so
+ * it stays one request per path and never a sweep.
+ */
+const MARKDOWN_PAGES = ['/', '/segments', '/routes/hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']
+
+async function checkMarkdownNegotiation() {
+  for (const path of MARKDOWN_PAGES) {
+    const response = await get(path, { headers: { ...headers, accept: 'text/markdown' } })
+    const type = response.headers.get('content-type') ?? ''
+    const ok = response.status === 200 && type.startsWith('text/markdown')
+    report(ok, `markdown ${path}: answers text/markdown`, `got ${response.status} ${type || '(no content-type)'}`)
+    if (!ok) {
+      await response.arrayBuffer()
+      continue
+    }
+
+    // Without `Vary` a shared cache serves whichever representation it
+    // happened to store to whoever asks next.
+    report((response.headers.get('vary') ?? '').toLowerCase().includes('accept'),
+      `markdown ${path}: varies on Accept`, `vary is ${response.headers.get('vary') ?? '(none)'}`)
+
+    const tokens = Number(response.headers.get('x-markdown-tokens'))
+    report(Number.isFinite(tokens) && tokens > 0, `markdown ${path}: reports a token estimate`,
+      `x-markdown-tokens is ${response.headers.get('x-markdown-tokens') ?? '(none)'}`)
+
+    const link = response.headers.get('link') ?? ''
+    report(link.includes(`<https://zwiftbikes.com${path === '/' ? '/' : path}>`) && link.includes('rel="canonical"'),
+      `markdown ${path}: links its canonical page`, `link is ${link || '(none)'}`)
+
+    const body = await response.text()
+    report(body.startsWith('# '), `markdown ${path}: is a markdown document`, `starts with ${JSON.stringify(body.slice(0, 40))}`)
+  }
+
+  // The same paths under a browser's Accept. This is the passthrough back to
+  // the assets binding; a regression here is the whole site, not a feature.
+  for (const path of MARKDOWN_PAGES) {
+    const response = await get(path, { headers: { ...headers, accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' } })
+    const type = response.headers.get('content-type') ?? ''
+    report(response.status === 200 && type.startsWith('text/html'), `markdown ${path}: a browser still gets HTML`, `got ${response.status} ${type}`)
+    await response.arrayBuffer()
+  }
+
+  // A page with no twin must fall through to HTML rather than 404 or leak an
+  // empty document - it is not routed to the Worker at all.
+  const about = await get('/about', { headers: { ...headers, accept: 'text/markdown' } })
+  report((about.headers.get('content-type') ?? '').startsWith('text/html'),
+    'markdown /about: stays HTML (no twin)', `got ${about.status} ${about.headers.get('content-type')}`)
+  await about.arrayBuffer()
+
+  const llms = await get('/llms.txt', { headers: { ...headers, accept: 'text/plain' } })
+  const llmsBody = llms.status === 200 ? await llms.text() : ''
+  report(llms.status === 200 && llmsBody.startsWith('# ZwiftBikes'), '/llms.txt: served', `got ${llms.status}`)
+  report(llmsBody.includes('Accept: text/markdown'), '/llms.txt: advertises the negotiation', 'no mention of the Accept header')
+}
+
 async function checkEdges() {
   const missing = await get('/segments/not-a-segment')
   report(missing.status === 404, 'unknown segment answers 404', `got ${missing.status}`)
@@ -222,6 +290,7 @@ async function sweepSitemap() {
 console.log(`smoke: ${BASE}\n`)
 try {
   for (const page of PAGES) await checkPage(page)
+  await checkMarkdownNegotiation()
   await checkEdges()
   if (!args['skip-sitemap']) await sweepSitemap()
 } catch (error) {

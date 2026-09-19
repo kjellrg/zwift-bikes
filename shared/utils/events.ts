@@ -380,6 +380,21 @@ export function getPublishableRaces(): PublishableRace[] {
 }
 
 /**
+ * How a format is named wherever one is shown or written out. Here beside
+ * `RaceFormat` rather than in `app/utils/labels.ts`, where it used to live,
+ * for the reason `formatDuration` moved to `shared/utils/duration.ts`: the
+ * server writes formats out too - the markdown race document names one in
+ * its opening sentence - and server code cannot import from `app/`. The
+ * colour map stays behind; a badge colour is the UI's business alone.
+ */
+export const RACE_FORMAT_LABELS: Record<RaceFormat, string> = {
+  ttt: 'Team time trial',
+  points: 'Points race',
+  scratch: 'Scratch race',
+  rot: 'Race of Truth'
+}
+
+/**
  * Zwift disables TT frames for points and scratch races and enables them
  * (with draft) for team time trials, so the format alone decides this - see
  * WTRL's ZRL rules. Unknown format is treated as "not allowed", matching the

@@ -6,7 +6,8 @@ answer "which bike is fastest for me on this route?" directly.
 
 - **Endpoint:** `POST https://zwiftbikes.com/api/mcp`
 - **Transport:** Streamable HTTP, JSON responses only (no SSE)
-- **Auth:** none - the same public, read-only data the website serves
+- **Auth:** enforced at the Cloudflare edge, in front of the Worker - the
+  data behind it is the same public, read-only data the website serves
 
 ## Why this shape
 
@@ -258,13 +259,18 @@ curl -s localhost:3000/api/mcp \
   `localStorage`, which an MCP server has no access to, so the tools always
   rank the full catalog. `search` narrows to a named frame or wheelset, which
   covers "how fast would my bike be?".
-- **Rate limiting is best-effort.** `/api/mcp` and `/api/recommend/**` (the
-  simulator, the expensive path) are limited per client IP - generous enough
-  that normal use never sees it; past it, requests get a 429 with a
-  `Retry-After` header. Counting is done by the Workers rate limiting
-  binding (see `server/middleware/rate-limit.ts` and `ratelimits` in
-  wrangler.jsonc): per Cloudflare location and eventually consistent, so the
-  effective global ceiling is looser than the configured number.
+- **Rate limiting is best-effort, and `/api/mcp` is outside it.** The
+  endpoint is gated at the edge, so the budget in
+  `server/middleware/01.rate-limit.ts` deliberately skips it; what that
+  middleware meters is `/api/recommend/**` and the markdown pages, per
+  client IP. Note the tools reach the pipeline over Nitro's in-process
+  `$fetch`, which is exempt by construction, so an authenticated MCP client
+  is not metered by the Worker at all - the edge is the only thing standing
+  in front of it. Where the budget does apply, past it a request gets a 429
+  with a `Retry-After` header; counting is done by the Workers rate limiting
+  binding (`ratelimits` in wrangler.jsonc), per Cloudflare location and
+  eventually consistent, so the effective global ceiling is looser than the
+  configured number.
 - **Sessions are best-effort**, for the reasons above.
 - **The recommend kill switch applies.** When `killSwitches.recommend` is
   set in the runtime site flags (see `docs/site-flags.md`), the two

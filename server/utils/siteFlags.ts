@@ -15,7 +15,7 @@ import { DEFAULT_SITE_FLAGS, parseSiteFlags } from '../../shared/utils/siteFlags
 
 /**
  * The one KV method this feature uses - hand-declared instead of pulling in
- * `@cloudflare/workers-types`, for the same reason `rate-limit.ts` declares
+ * `@cloudflare/workers-types`, for the same reason `01.rate-limit.ts` declares
  * its binding locally: that package's ambient globals would fight the Node
  * types everywhere else.
  */

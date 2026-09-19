@@ -1,5 +1,6 @@
 import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
 import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
+import { RACE_FORMAT_LABELS } from '#shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
 import { formatDuration, formatDurationGap } from '#shared/utils/duration'
@@ -218,12 +219,11 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
     : `A typical mass-start bunch is ~${formatted} slower here than riding alone at the same average power - this route is too steep for the draft to be worth anything.`
 }
 
-export const RACE_FORMAT_LABELS: Record<RaceFormat, string> = {
-  ttt: 'Team time trial',
-  points: 'Points race',
-  scratch: 'Scratch race',
-  rot: 'Race of Truth'
-}
+// `RACE_FORMAT_LABELS` now lives in `shared/utils/events.ts`, beside the
+// `RaceFormat` it names, so the markdown race document can write a format
+// out too - server code cannot import from `app/`. Re-exported here because
+// this module is where every page already reaches for a label.
+export { RACE_FORMAT_LABELS }
 
 export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warning' | 'error'> = {
   ttt: 'warning',

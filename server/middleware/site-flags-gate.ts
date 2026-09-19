@@ -15,7 +15,7 @@ import { getSiteFlags } from '../utils/siteFlags'
  * operational states, and a 503 tells crawlers and the refetch composable
  * alike to come back later, not to forget the URL.
  *
- * Runs after `rate-limit.ts` (Nitro orders middleware by filename), so a
+ * Runs after `01.rate-limit.ts` (Nitro orders middleware by filename), so a
  * kill-switched endpoint still counts against an abuser's rate budget.
  * Prerender crawls and dev carry no KV binding, so `getSiteFlags` resolves
  * to defaults there and this middleware never blocks a build.
