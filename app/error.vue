@@ -29,7 +29,11 @@ useHead({
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
     { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+    // The one font file, fetched before the stylesheet that names it is
+    // parsed, so the first paint is already in Archivo rather than a
+    // fallback that reflows when it swaps.
+    { rel: 'preload', as: 'font', type: 'font/woff2', href: '/fonts/archivo-variable.woff2', crossorigin: 'anonymous' }
   ],
   htmlAttrs: { lang: 'en' }
 })
