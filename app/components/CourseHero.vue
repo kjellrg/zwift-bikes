@@ -61,6 +61,8 @@ const lapStarts = computed(() => {
  * labelled - three laps of the same KOM need one name, not three - longest
  * first, so where two would collide the bigger climb keeps its name; the
  * band itself stays either way, and the course section lists every pass.
+ * A name can be dropped, so it never carries the scoring star: that is
+ * `stars`, one per scoring pass at every width.
  */
 const labels = computed(() => {
   if (!shape.value) return []
@@ -244,11 +246,11 @@ function leave(event: PointerEvent) {
         :class="label.scoring ? 'text-highlighted' : 'text-muted'"
         :style="{ left: `${(label.at * 100).toFixed(2)}%` }"
         aria-hidden="true"
-      >{{ label.scoring ? '★ ' : '' }}{{ label.name }}</span>
+      >{{ label.name }}</span>
       <span
         v-for="star in stars"
         :key="star.key"
-        class="absolute top-4 -translate-x-1/2 text-sm text-highlighted md:hidden"
+        class="absolute top-4 -translate-x-1/2 text-sm text-highlighted"
         :style="{ left: `${(star.at * 100).toFixed(2)}%` }"
         aria-hidden="true"
       >★</span>
