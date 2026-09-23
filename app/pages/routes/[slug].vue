@@ -3,6 +3,7 @@ import type { PublishableRace } from '../../../shared/utils/events'
 import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
+import { routeSilhouette } from '#shared/utils/silhouette'
 import { breadcrumbScript, faqScript } from '../../utils/rankingResults'
 import { climbCountFact, surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
 
@@ -91,7 +92,7 @@ if (routeData.value) {
     elevation: formatElevation(totals.elevationM),
     frameName: ogTopCombo?.frame.name,
     wheelName: ogTopCombo?.wheelset?.name,
-    profile: ogProfileFromPoints(rideForRoute(routeData.value, 1).planGeometry().points)
+    profile: ogProfile(routeSilhouette(routeData.value, 1, { samples: 120 }))
   }, {
     alt: `Fastest bike for ${routeData.value.name} in ${routeData.value.worldName}: the route's profile and its fastest bike and wheel setup`
   })

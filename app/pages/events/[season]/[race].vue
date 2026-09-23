@@ -2,6 +2,7 @@
 import type { Ride } from '../../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
+import { routeSilhouette } from '#shared/utils/silhouette'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
 import { breadcrumbScript, faqScript } from '../../../utils/rankingResults'
 import { climbCountFact, surfaceShareFacts, type RideFact } from '../../../utils/rideFacts'
@@ -469,7 +470,10 @@ defineOgImage('EventCard', {
   course: `${routeNamesLabel.value} · ${formatLabel.value}`,
   date: formatRaceDate(race!.date),
   frameName: ogTopCombo?.frame.name,
-  wheelName: ogTopCombo?.wheelset?.name
+  wheelName: ogTopCombo?.wheelset?.name,
+  // The first Category group's course - the one selected at setup - as its
+  // Silhouette, for its lap count with the lead-in once.
+  profile: routeInfo.value ? ogProfile(routeSilhouette(routeInfo.value, laps.value, { samples: 120 })) : undefined
 }, {
   alt: `${raceTitle.value} on ${routeNamesLabel.value}: date, format and the fastest legal bike and wheel setup`
 })

@@ -4,6 +4,7 @@ import type { Ride, RideCourse } from '../../utils/recommendRequest'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/events'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForSegment } from '#shared/utils/recommendRide'
+import { routeSilhouette } from '#shared/utils/silhouette'
 import { rideRulesForFormat } from '../../utils/recommendRequest'
 import { breadcrumbScript, faqScript } from '../../utils/rankingResults'
 import { surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
@@ -163,9 +164,10 @@ useSeoMeta({
 if (segmentData.value) {
   const ogTopCombo = recommendData.value?.combos?.[0]
   const measuredProfile = segmentRoute.value?.terrain.elevationProfile
-  const kind = segmentData.value.type === 'climb'
-    ? `${segmentData.value.climbType ? (segmentData.value.climbType === 'HC' ? 'HC ' : `CAT ${segmentData.value.climbType} `) : ''}CLIMB`
-    : 'SPRINT'
+  const climbType = segmentData.value.climbType
+  const kind = segmentData.value.type === 'sprint'
+    ? 'sprint'
+    : climbType ? `${climbType === 'HC' ? 'HC' : `category ${climbType}`} climb` : 'climb'
   defineOgImage('SegmentCard', {
     title: segmentData.value.name,
     kind,
@@ -176,7 +178,7 @@ if (segmentData.value) {
     frameName: ogTopCombo?.frame.name,
     wheelName: ogTopCombo?.wheelset?.name,
     profile: measuredProfile && measuredProfile.length > 1
-      ? ogProfileFromPoints(resolvedRide.value!.planGeometry().points)
+      ? ogProfile(routeSilhouette(segmentRoute.value!, 1, { samples: 120 }))
       : undefined
   }, {
     alt: `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
