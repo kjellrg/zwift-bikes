@@ -184,7 +184,7 @@ Absolute times stay rounded to the second, because hundredths on an hour-long
 ride are noise.
 
 Every ranked row carries a `measured` / `estimated` flag, mirroring the
-"verified" badge in the web UI. This is not decoration: `measured` means the
+"bot-tested" mark in the web UI. This is not decoration: `measured` means the
 frame's or wheel's performance was solved from real ZwiftInsider bot-test data,
 and `estimated` means it came from a name/style heuristic. A model relaying a
 prediction to a rider needs to be able to say which it has, so the distinction
