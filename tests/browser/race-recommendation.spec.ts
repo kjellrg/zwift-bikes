@@ -140,7 +140,7 @@ test.describe('race recommendation', () => {
     await expect(answer(page)).toContainText('/ solo;')
 
     // A rule, not a nudge: stated in the notes, with nothing to switch to.
-    await expect(rideNotes(page)).toContainText('WTRL turns the draft off for a Race of Truth')
+    await expect(rideNotes(page)).toContainText('No draft in a Race of Truth, so the ranking is ridden solo')
     await expect(page.getByRole('button', { name: 'Dismiss draft mode hint' })).toHaveCount(0)
     await expect(page.getByRole('group', { name: 'Rider' })).toContainText('Solo')
     // The card shows the draft as fixed, with its reason: a live-looking
