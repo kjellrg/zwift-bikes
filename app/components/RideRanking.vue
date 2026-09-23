@@ -168,75 +168,100 @@ const headingId = useId()
       class="mt-3"
       :class="allColumns ? 'overflow-x-auto' : 'md:overflow-x-auto'"
     >
+      <!-- On a phone the table is laid out as blocks and grids, which costs
+           a table its semantics in some browsers (Safari's among them), so
+           every part states its role; and the header row is visually hidden
+           rather than removed, so each cell keeps a column name to be read
+           with. The two headers over columns a phone drops go with them. -->
       <table
+        role="table"
         class="w-full border-collapse text-md"
         :class="allColumns ? 'min-w-[60rem]' : 'max-md:block'"
         aria-label="Ranked setups"
       >
-        <thead :class="!allColumns && 'max-md:hidden'">
-          <tr class="border-b border-accented text-left text-xs text-muted">
+        <thead
+          role="rowgroup"
+          :class="!allColumns && 'max-md:sr-only'"
+        >
+          <tr
+            role="row"
+            class="border-b border-accented text-left text-xs text-muted"
+          >
             <th
+              role="columnheader"
               scope="col"
               class="px-2.5 pb-2 text-right font-medium"
             >
               #
             </th>
             <th
+              role="columnheader"
               scope="col"
               class="px-2.5 pb-2 font-medium"
             >
               Frame and wheels
             </th>
             <th
+              role="columnheader"
               scope="col"
               class="px-2.5 pb-2 text-right font-medium"
             >
               Time
             </th>
             <th
+              role="columnheader"
               scope="col"
               class="px-2.5 pb-2 text-right font-medium"
             >
               Gap
             </th>
             <th
+              role="columnheader"
               scope="col"
               class="px-2.5 pb-2 font-medium"
             >
               <span class="sr-only">Gap bar</span>
             </th>
             <th
+              role="columnheader"
               scope="col"
               class="px-2.5 pb-2 font-medium"
+              :class="!allColumns && 'max-md:hidden'"
             >
               Aero / climb
             </th>
             <th
+              role="columnheader"
               scope="col"
               class="px-2.5 pb-2 font-medium"
+              :class="!allColumns && 'max-md:hidden'"
             >
               Style
             </th>
             <template v-if="allColumns">
               <th
+                role="columnheader"
                 scope="col"
                 class="px-2.5 pb-2 text-right font-medium"
               >
                 Drag area Δ
               </th>
               <th
+                role="columnheader"
                 scope="col"
                 class="px-2.5 pb-2 text-right font-medium"
               >
                 Mass Δ
               </th>
               <th
+                role="columnheader"
                 scope="col"
                 class="px-2.5 pb-2 font-medium"
               >
                 Wheels
               </th>
               <th
+                role="columnheader"
                 scope="col"
                 class="px-2.5 pb-2 font-medium"
               >
@@ -244,6 +269,7 @@ const headingId = useId()
               </th>
             </template>
             <th
+              role="columnheader"
               scope="col"
               class="px-1.5 pb-2 font-medium"
             >

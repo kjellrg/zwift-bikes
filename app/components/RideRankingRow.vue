@@ -71,10 +71,12 @@ function onRowClick(event: MouseEvent) {
 
 <template>
   <tbody
+    role="rowgroup"
     class="border-b border-default"
     :class="!allColumns && 'max-md:block'"
   >
     <tr
+      role="row"
       class="cursor-pointer align-top transition-colors hover:bg-elevated"
       :class="[
         open ? 'bg-elevated' : '',
@@ -83,12 +85,14 @@ function onRowClick(event: MouseEvent) {
       @click="onRowClick"
     >
       <td
+        role="cell"
         class="w-11 px-2.5 pt-4 text-right text-sm"
         :class="[rank === 1 ? 'font-semibold text-primary' : 'text-muted', !allColumns && 'max-md:row-span-3 max-md:p-0 max-md:pt-1']"
       >
         {{ rankMarker(rank) }}
       </td>
       <td
+        role="cell"
         class="min-w-0 px-2.5 py-3"
         :class="!allColumns && 'max-md:p-0'"
       >
@@ -108,18 +112,21 @@ function onRowClick(event: MouseEvent) {
         </p>
       </td>
       <td
+        role="cell"
         class="whitespace-nowrap px-2.5 py-3 text-right text-lg font-semibold font-heading text-highlighted"
         :class="!allColumns && 'max-md:p-0'"
       >
         {{ combo.finishTimeSec !== undefined ? formatDuration(combo.finishTimeSec) : `score ${combo.score}` }}
       </td>
       <td
+        role="cell"
         class="whitespace-nowrap px-2.5 pt-4 text-right text-toned"
         :class="!allColumns && 'max-md:col-start-2 max-md:p-0 max-md:pt-1 max-md:text-left max-md:text-sm'"
       >
         {{ isFastest || gapSec === undefined ? 'fastest' : formatDurationGap(gapSec) }}
       </td>
       <td
+        role="cell"
         class="w-[22%] min-w-28 px-2.5 pt-[1.3rem]"
         :class="!allColumns && 'max-md:col-span-2 max-md:col-start-2 max-md:row-start-3 max-md:w-auto max-md:min-w-0 max-md:p-0 max-md:pt-2'"
       >
@@ -143,28 +150,40 @@ function onRowClick(event: MouseEvent) {
         </div>
       </td>
       <td
+        role="cell"
         class="whitespace-nowrap px-2.5 pt-4 text-sm text-muted"
         :class="!allColumns && 'max-md:hidden'"
       >
         <span class="text-toned">{{ combo.frame.scores.aero }}</span> / <span class="text-toned">{{ combo.frame.scores.climb }}</span>
       </td>
       <td
+        role="cell"
         class="whitespace-nowrap px-2.5 pt-4 text-sm text-muted"
         :class="!allColumns && 'max-md:hidden'"
       >
         {{ style ?? '-' }}
       </td>
       <template v-if="allColumns">
-        <td class="whitespace-nowrap px-2.5 pt-4 text-right text-sm text-toned">
+        <td
+          role="cell"
+          class="whitespace-nowrap px-2.5 pt-4 text-right text-sm text-toned"
+        >
           {{ delta ? `${formatSignedDelta(delta.cdaDeltaM2, 4)} m²` : '-' }}
         </td>
-        <td class="whitespace-nowrap px-2.5 pt-4 text-right text-sm text-toned">
+        <td
+          role="cell"
+          class="whitespace-nowrap px-2.5 pt-4 text-right text-sm text-toned"
+        >
           {{ delta ? `${formatSignedDelta(delta.bikeMassDeltaKg, 2)} kg` : '-' }}
         </td>
-        <td class="whitespace-nowrap px-2.5 pt-4 text-sm text-toned">
+        <td
+          role="cell"
+          class="whitespace-nowrap px-2.5 pt-4 text-sm text-toned"
+        >
           {{ wheelType }}
         </td>
         <td
+          role="cell"
           class="whitespace-nowrap px-2.5 pt-4 text-sm"
           :class="botTested ? 'text-success' : 'text-warning'"
         >
@@ -172,6 +191,7 @@ function onRowClick(event: MouseEvent) {
         </td>
       </template>
       <td
+        role="cell"
         class="w-10 px-1.5 pt-3"
         :class="!allColumns && 'max-md:col-start-3 max-md:row-start-2 max-md:p-0 max-md:text-right'"
       >
@@ -194,10 +214,12 @@ function onRowClick(event: MouseEvent) {
     <tr
       v-if="open"
       :id="detailId"
+      role="row"
       class="bg-elevated"
       :class="!allColumns && 'max-md:block'"
     >
       <td
+        role="cell"
         :colspan="columns"
         class="px-2.5 pt-1 pb-5 md:pl-14"
         :class="!allColumns && 'max-md:block max-md:pl-9'"
