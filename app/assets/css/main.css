@@ -111,6 +111,19 @@
   --color-dirt: var(--ui-surface-dirt);
   --color-rough: var(--ui-surface-rough);
   --color-tarmac: var(--ui-border-accented);
+
+  /* The neutral inks and rules as colours too, for what Nuxt UI's text- and
+     border-only names cannot reach: an SVG stroke or fill, an underline. */
+  --color-ink: var(--ui-text-highlighted);
+  --color-ink-toned: var(--ui-text-toned);
+  --color-ink-muted: var(--ui-text-muted);
+  --color-rule: var(--ui-border);
+  --color-rule-strong: var(--ui-border-accented);
+}
+
+/* The content width every page and the header share: 1160 px. */
+:root {
+  --ui-container: 72.5rem;
 }
 
 /* Nuxt UI defines its tokens inside @layer theme, so unlayered rules here

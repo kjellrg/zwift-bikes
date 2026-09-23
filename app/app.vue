@@ -71,6 +71,14 @@ const section = computed(() => {
 const { load: loadSiteFlags, eventsVisible } = useSiteFlags()
 onMounted(loadSiteFlags)
 
+// The three section entries, in the order the header and the mobile menu
+// both list them. Events hides with its section.
+const sectionEntries = computed(() => [
+  { key: 'routes', label: 'Routes', to: '/' },
+  { key: 'segments', label: 'Segments', to: '/segments' },
+  ...(eventsVisible.value ? [{ key: 'events', label: 'Events', to: '/events' }] : [])
+])
+
 // UHeader's mobile menu closes itself when an entry navigates. These
 // entries deliberately don't navigate any more, so close it by hand - but
 // only when an overlay actually opened: a modifier-click falls through to
@@ -182,7 +190,7 @@ useHead({
 <template>
   <UApp>
     <!-- First focusable element in the document; visible only while focused.
-         Targets the main region, never the results: the rider strip above
+         Targets the main region, never the results: the Rider card beside
          them is what explains the numbers. -->
     <a
       href="#main"
@@ -191,82 +199,54 @@ useHead({
 
     <NuxtLoadingIndicator color="var(--ui-primary)" />
 
-    <UHeader v-model:open="isMenuOpen">
+    <!-- Quiet on purpose: section entries in the secondary ink, the current
+         one in the ink with the primary underline - the one place in the
+         shell the primary is spent. -->
+    <UHeader
+      v-model:open="isMenuOpen"
+      :ui="{ root: 'bg-default/90 backdrop-blur', left: 'gap-6' }"
+    >
       <template #left>
-        <NuxtLink to="/">
+        <NuxtLink
+          to="/"
+          aria-label="ZwiftBikes home"
+        >
           <AppLogo />
         </NuxtLink>
+        <nav
+          aria-label="Sections"
+          class="hidden items-center gap-1 lg:flex"
+        >
+          <NuxtLink
+            v-for="entry in sectionEntries"
+            :key="entry.key"
+            :to="entry.to"
+            class="px-3 py-2 text-md transition-colors"
+            :class="section === entry.key ? 'text-highlighted shadow-[inset_0_-2px_0_var(--ui-primary)]' : 'text-toned hover:text-highlighted'"
+            :aria-current="section === entry.key ? 'page' : undefined"
+          >
+            {{ entry.label }}
+          </NuxtLink>
+        </nav>
       </template>
 
       <template #right>
-        <div class="hidden items-center gap-1.5 lg:flex">
-          <UButton
-            to="/"
-            icon="i-lucide-route"
-            label="Routes"
-            color="neutral"
-            variant="ghost"
-            active-color="primary"
-            :active="section === 'routes'"
-            :aria-current="section === 'routes' ? 'page' : undefined"
-          />
-
-          <UButton
-            to="/segments"
-            icon="i-lucide-mountain"
-            label="Segments"
-            color="neutral"
-            variant="ghost"
-            active-color="primary"
-            :active="section === 'segments'"
-            :aria-current="section === 'segments' ? 'page' : undefined"
-          />
-
-          <UButton
-            v-if="eventsVisible"
-            to="/events"
-            icon="i-lucide-calendar-days"
-            label="Events"
-            color="neutral"
-            variant="ghost"
-            active-color="primary"
-            :active="section === 'events'"
-            :aria-current="section === 'events' ? 'page' : undefined"
-          />
-
-          <UButton
-            as="a"
-            href="/profile"
-            aria-haspopup="dialog"
-            icon="i-lucide-user"
-            label="My Profile"
-            color="neutral"
-            variant="ghost"
-            @click="openProfile"
-          />
-
-          <UButton
-            as="a"
+        <nav
+          aria-label="Your data"
+          class="hidden items-center gap-1 lg:flex"
+        >
+          <a
             href="/garage"
             aria-haspopup="dialog"
-            icon="i-lucide-warehouse"
-            label="My Garage"
-            color="neutral"
-            variant="ghost"
+            class="rounded-md px-3 py-2 text-md text-toned transition-colors hover:text-highlighted"
             @click="openGarage"
-          />
-
-          <UButton
-            as="a"
-            href="/about"
+          >Garage</a>
+          <a
+            href="/profile"
             aria-haspopup="dialog"
-            icon="i-lucide-info"
-            label="About"
-            color="neutral"
-            variant="ghost"
-            @click="openAbout"
-          />
-
+            class="rounded-md px-3 py-2 text-md text-toned transition-colors hover:text-highlighted"
+            @click="openProfile"
+          >Profile</a>
           <UButton
             to="https://github.com/kjellrg/zwift-bikes"
             target="_blank"
@@ -275,97 +255,59 @@ useHead({
             color="neutral"
             variant="ghost"
           />
-        </div>
+        </nav>
 
-        <UColorModeButton />
+        <UColorModeButton
+          color="neutral"
+          variant="outline"
+        />
       </template>
 
       <template #body>
-        <div class="flex flex-col gap-1.5">
-          <UButton
-            to="/"
-            icon="i-lucide-route"
-            label="Routes"
-            color="neutral"
-            variant="ghost"
-            active-color="primary"
-            :active="section === 'routes'"
-            :aria-current="section === 'routes' ? 'page' : undefined"
-            block
-          />
-
-          <UButton
-            to="/segments"
-            icon="i-lucide-mountain"
-            label="Segments"
-            color="neutral"
-            variant="ghost"
-            active-color="primary"
-            :active="section === 'segments'"
-            :aria-current="section === 'segments' ? 'page' : undefined"
-            block
-          />
-
-          <UButton
-            v-if="eventsVisible"
-            to="/events"
-            icon="i-lucide-calendar-days"
-            label="Events"
-            color="neutral"
-            variant="ghost"
-            active-color="primary"
-            :active="section === 'events'"
-            :aria-current="section === 'events' ? 'page' : undefined"
-            block
-          />
-
-          <UButton
-            as="a"
-            href="/profile"
-            aria-haspopup="dialog"
-            icon="i-lucide-user"
-            label="My Profile"
-            color="neutral"
-            variant="ghost"
-            block
-            @click="openProfileFromMenu"
-          />
-
-          <UButton
-            as="a"
+        <nav
+          aria-label="Sections"
+          class="flex flex-col"
+        >
+          <NuxtLink
+            v-for="entry in sectionEntries"
+            :key="entry.key"
+            :to="entry.to"
+            class="border-b border-default py-3 text-lg font-semibold font-heading"
+            :class="section === entry.key ? 'text-highlighted underline decoration-primary decoration-2 underline-offset-8' : 'text-toned'"
+            :aria-current="section === entry.key ? 'page' : undefined"
+          >
+            {{ entry.label }}
+          </NuxtLink>
+        </nav>
+        <nav
+          aria-label="Your data"
+          class="mt-6 flex flex-col gap-1"
+        >
+          <a
             href="/garage"
             aria-haspopup="dialog"
-            icon="i-lucide-warehouse"
-            label="My Garage"
-            color="neutral"
-            variant="ghost"
-            block
+            class="py-2 text-md text-toned"
             @click="openGarageFromMenu"
-          />
-
-          <UButton
-            as="a"
+          >Garage</a>
+          <a
+            href="/profile"
+            aria-haspopup="dialog"
+            class="py-2 text-md text-toned"
+            @click="openProfileFromMenu"
+          >Profile</a>
+          <a
             href="/about"
             aria-haspopup="dialog"
-            icon="i-lucide-info"
-            label="About"
-            color="neutral"
-            variant="ghost"
-            block
+            class="py-2 text-md text-toned"
             @click="openAboutFromMenu"
-          />
-
-          <UButton
-            to="https://github.com/kjellrg/zwift-bikes"
+          >About</a>
+          <a
+            href="https://github.com/kjellrg/zwift-bikes"
             target="_blank"
-            icon="i-simple-icons-github"
-            label="zwift-bikes on GitHub"
-            aria-label="zwift-bikes on GitHub"
-            color="neutral"
-            variant="ghost"
-            block
-          />
-        </div>
+            rel="noopener"
+            class="py-2 text-md text-toned"
+          >zwift-bikes on GitHub</a>
+        </nav>
       </template>
     </UHeader>
 
@@ -403,49 +345,47 @@ useHead({
       <NuxtPage />
     </UMain>
 
-    <USeparator icon="i-lucide-bike" />
-
-    <UFooter>
-      <template #left>
-        <p class="text-sm text-muted">
+    <!-- One quiet line: where the data comes from, the two pages about the
+         site itself, and the disclaimer. -->
+    <footer class="mt-16 border-t border-default">
+      <UContainer class="flex flex-wrap justify-between gap-x-6 gap-y-2 pt-6 pb-10 text-sm text-muted">
+        <p>
           Data from
-          <ULink
-            to="https://zwiftinsider.com/"
+          <a
+            href="https://zwiftinsider.com/"
             target="_blank"
-            class="underline"
-          >ZwiftInsider</ULink>,
-          <ULink
-            to="https://www.npmjs.com/package/zwift-data"
+            rel="noopener"
+            class="underline decoration-rule-strong hover:text-highlighted"
+          >ZwiftInsider</a>,
+          <a
+            href="https://www.npmjs.com/package/zwift-data"
             target="_blank"
-            class="underline"
-          >zwift-data</ULink>
+            rel="noopener"
+            class="underline decoration-rule-strong hover:text-highlighted"
+          >zwift-data</a>
           and
-          <ULink
-            to="https://zwiftmap.com"
+          <a
+            href="https://zwiftmap.com"
             target="_blank"
-            class="underline"
-          >zwiftmap</ULink>.
+            rel="noopener"
+            class="underline decoration-rule-strong hover:text-highlighted"
+          >zwiftmap</a>.
           <a
             href="/about"
             aria-haspopup="dialog"
-            class="underline transition-colors hover:text-default"
+            class="underline decoration-rule-strong hover:text-highlighted"
             @click="openAbout"
           >About this project</a>
-          <span aria-hidden="true"> • </span>
+          <span aria-hidden="true"> · </span>
           <a
             href="/report"
             aria-haspopup="dialog"
-            class="underline transition-colors hover:text-default"
+            class="underline decoration-rule-strong hover:text-highlighted"
             @click="openReport"
           >Report an issue</a>
         </p>
-      </template>
-
-      <template #right>
-        <p class="text-sm text-muted">
-          Unofficial fan project • not affiliated with Zwift
-        </p>
-      </template>
-    </UFooter>
+        <p>Unofficial fan project, not affiliated with Zwift.</p>
+      </UContainer>
+    </footer>
   </UApp>
 </template>
