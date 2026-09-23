@@ -134,9 +134,13 @@ onMounted(async () => {
     href = next.path
   } else {
     const slug = curatedExampleRoute(today)
-    // Nothing to ask again: the prerendered answer is already today's route
-    // for the default rider.
-    if (slug === buildDateSlug.value && !stored) return
+    // Nothing to ask again when the card on screen is already today's route
+    // for the default rider. Asked of the card itself, not of
+    // `buildDateSlug`: a client-side visit reads the card from the
+    // prerendered payload, which carries `useAsyncData` results but not
+    // `useState`, so there the slug is the visitor's today while the card
+    // is still the build date's.
+    if (prerendered.value?.href === `/routes/${slug}` && !stored) return
     ride = { course: { kind: 'route', slug }, laps: 1 }
     label = { context: 'Today\'s example' }
     href = `/routes/${slug}`
