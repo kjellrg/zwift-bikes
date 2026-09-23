@@ -1,6 +1,6 @@
 import type { BikeCategory, BikeStyle, TerrainCategory, TerrainWeights } from '../../shared/types/catalog'
 import type { DraftMode } from '../../shared/utils/physics/draft'
-import { BIKE_STYLE_LABELS, TERRAIN_LABELS } from './labels'
+import { BIKE_STYLE_LABELS, formatGapSeconds, TERRAIN_LABELS } from './labels'
 
 /**
  * The sentences under "Why this bike wins here", assembled from fixed
@@ -28,6 +28,22 @@ export interface RideWhyInputs {
   frameCategory: BikeCategory
   /** The draft mode the times were computed under. */
   draftMode: DraftMode
+  /** Rank 1's finish time, which the Wheel close call is measured against. */
+  finishTimeSec?: number
+  /** Rank 1's own wheels against the other kind's fastest, from the recommend endpoint. */
+  wheelChoice?: WheelChoice
+}
+
+/**
+ * The recommend endpoint's `wheelChoice`, as the pages read it. Mirrors
+ * `WheelChoice` in `server/utils/recommendPipeline.ts`; `RecommendResponse`
+ * holds the two together.
+ */
+export interface WheelChoice {
+  own: { wheelsetName: string, kind: 'disc' | 'regular' }
+  other: { wheelsetName: string, kind: 'disc' | 'regular' }
+  gapSec: number
+  massDeltaKg: number
 }
 
 /** Aerodynamics' share of the aero-versus-weight split, 0..1. */
@@ -73,12 +89,46 @@ const DRAFT_SENTENCES: Partial<Record<DraftMode, string>> = {
   ttt: 'In a team time trial you share the pulls, and aero equipment still counts most when you are on the front.'
 }
 
+/**
+ * How close the two kinds of wheel have to finish, as a share of rank 1's
+ * finish time, to be a close call. Measured on 2026-09-23 over 27 routes,
+ * solo and race: 50 of the 54 rides fall inside it, which is the point - a
+ * disc is rarely the clear win riders expect (issue #261).
+ */
+export const WHEEL_CLOSE_CALL_SHARE = 0.003
+
+/**
+ * The Wheel close call (see `CONTEXT.md`): rank 1's own wheels against the
+ * other kind's fastest, when they finish within `WHEEL_CLOSE_CALL_SHARE` of
+ * each other. The fact is the sentence; advice is added in one case only - a
+ * disc winning a race on flat terrain, where its extra weight rarely costs
+ * the bunch. A race with climbing leaves the climbs to the Climb trade, which
+ * has numbers for them; solo and TTT times are what decide those rides. Every
+ * wording here was scored with a judgement model for faithfulness to the
+ * simulation, which never says where on the course time is won, so no
+ * sentence may claim it.
+ */
+function wheelCloseCallSentence(inputs: RideWhyInputs): string | undefined {
+  const { wheelChoice: choice, finishTimeSec } = inputs
+  if (!choice || !finishTimeSec || choice.gapSec > finishTimeSec * WHEEL_CLOSE_CALL_SHARE) return undefined
+  const kg = `${Math.abs(choice.massDeltaKg).toFixed(2)} kg`
+  const weight = Math.abs(choice.massDeltaKg) < 0.005
+    ? ''
+    : choice.massDeltaKg > 0 ? `, but ${kg} heavier` : ` here, and ${kg} lighter`
+  const fact = `Disc or regular wheels is a close call: the ${choice.own.wheelsetName} is ${formatGapSeconds(choice.gapSec)} faster than the ${choice.other.wheelsetName}${weight}.`
+  if (inputs.draftMode === 'race' && inputs.category === 'flat' && choice.own.kind === 'disc') {
+    return `${fact} With this little climbing, the extra weight rarely costs you the group, so the disc is the pick as long as you stay in the draft, as these times assume.`
+  }
+  return fact
+}
+
 export function whyThisWins(inputs: RideWhyInputs): string {
   const share = aeroShare(inputs.weights)
   const terrain = TERRAIN_LABELS[inputs.category].toLowerCase()
   return [
     `${inputs.rideName} is ${terrain}, with ${inputs.climbRatio.toFixed(1)} m of climbing per kilometre, the kind of course where ${rewardPhrase(share)}.`,
     frameSentence(inputs, share),
-    DRAFT_SENTENCES[inputs.draftMode]
+    DRAFT_SENTENCES[inputs.draftMode],
+    wheelCloseCallSentence(inputs)
   ].filter(Boolean).join(' ')
 }

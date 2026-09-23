@@ -88,15 +88,27 @@ Every eligible setup for a Ride, ordered by the finish time the Applied rider ge
 _Avoid_: results list, alternatives list, the field, matches
 
 **Recommendation**:
-Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, the evidence lines that say what the time rests on, and the paths deeper into it (the Equipment drawer, the Garage, the note on a quicker setup the rules exclude). It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. The controls that belong to a row - comparison, disclosure, Wheel alternatives - are on rank 1's row in the table, not repeated here.
+Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, the evidence lines that say what the time rests on, and the paths deeper into it (the Equipment drawer, the Garage, the note on a quicker setup the rules exclude, the Climb trade). It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. The controls that belong to a row - comparison, disclosure, Wheel alternatives - are on rank 1's row in the table, not repeated here.
 _Avoid_: top combo, hero card, winner, best bike
+
+**Climb time**:
+How long one setup takes over one pass of a named climb on a Ride, cut from the same timing that gives its finish time rather than timed on its own. A climb ridden on every lap has one per lap, and a climb in the lead-in has one more.
+_Avoid_: climb split (a split is the field breaking up), segment time, KOM time
+
+**Climb trade**:
+The note beside the Recommendation that names one setup slower over the whole Ride but quicker over a named climb's last pass, with both numbers, and hands the choice to the rider. It exists only under race drafting, where staying with the bunch is what the times assume and a climb is where a rider loses it. It never reorders the Ranking or changes a finish time. The setups it may name are the frames in the rider's Garage if it holds any, otherwise the ranked rows, and in either case rank 1's own frame on the lighter kind of wheels. It names one setup at most.
+_Avoid_: climb check, climb bike, climbing alternative
+
+**Wheel close call**:
+The sentence in "Why this bike wins here" saying that rank 1's own wheels and the fastest wheels of the other kind - disc against regular - finish the Ride within a whisker of each other on rank 1's frame, with the gap and the difference in weight. On most road rides they do, which is the news: a disc is rarely the clear win riders expect. It states the fact; the numbers behind any advice about the climbs belong to the Climb trade.
+_Avoid_: disc note, wheel tip, disc or regular
 
 **Ranking results**:
 Everything a page shows about its Applied Ranking: the Recommendation, the evidence lines that say what its time rests on, the answer the page's title asks for, the ranking beneath it, and what all of that looks like while it is refreshing or when nothing matched. It is one thing, shown the same way wherever a ride is ranked, so what a rider learns on a route page is true on a segment or a race page. What a page states on its own is not part of it - its header, its selection control, its fact row, its course hero, its course analysis, and the decision of whether there is a ranking to show at all.
 _Avoid_: the results column, results section, results area, recommendation block
 
 **Wheel alternatives**:
-The wheelsets a frame could be ridden with on the Ride, ranked fastest first under the Applied Ranking's own request, so their times come out of the same pipeline, rider, laps, draft mode and rules as the row that asked. A row's disclosure shows them; the Equipment drawer takes its upgrade curve from the fastest of them. They answer for one Ranking: once that Ranking is replaced they describe nothing on screen and are not shown.
+The wheelsets a frame could be ridden with on the Ride, ranked fastest first under the Applied Ranking's own request, so their times come out of the same pipeline, rider, laps, draft mode and rules as the row that asked. They always include the fastest disc and the fastest regular wheels the frame takes, so any wheel a Wheel close call names can be found on the row. A row's disclosure shows them; the Equipment drawer takes its upgrade curve from the fastest of them. They answer for one Ranking: once that Ranking is replaced they describe nothing on screen and are not shown.
 _Avoid_: drill-down, wheel options, wheel list, frame combos
 
 **Equipment drawer**:

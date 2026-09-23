@@ -25,7 +25,7 @@ const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }
 const request = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, appliedRestrictions, appliedRide,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRestrictions, appliedRide,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 
@@ -301,6 +301,7 @@ useHead(() => {
         :ride-name="routeData.name"
         :physics-mode="physicsInfo?.mode"
         :draft-mode="appliedInputs.draftMode"
+        :wheel-choice="wheelChoice"
         :refreshing="isRefreshing"
       />
       <!-- The Ride-only tabs follow the picker `laps` like the hero; the

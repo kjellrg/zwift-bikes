@@ -15,7 +15,7 @@ import { UPGRADE_STAGES, toUpgradeStage } from '../../shared/utils/upgradeStage'
  * gains 13.7 s from a full upgrade on Tempus Fugit and 73.9 s on Road to Sky
  * for the same rider. This makes that guess for them.
  *
- * The pipeline calls this with the ride's own `simulateSec`, because a route
+ * The pipeline calls this with the ride's own `time`, because a route
  * and a segment measure a ride differently (a segment's time is a warmed run
  * minus its warm-up). Sharing the stage walk is what keeps them from drifting
  * apart on which stages exist and which one the rider is on.

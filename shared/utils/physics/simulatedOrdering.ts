@@ -73,6 +73,11 @@ export const FASTEST_OVERALL_ORDER_MARGIN = 15
  * It also has to stay small because this cost is paid interactively, on a
  * click, rather than at build time: 6 rows plus this margin is ~21 route
  * integrations, against the 54 a first page already costs.
+ *
+ * "Very nearly" is not "exactly". Until #261 the drill-down capped its pool
+ * to the page BEFORE ordering it, so this margin never took effect and six
+ * wheels were all it ever simulated - and on Duchy Estate, ridden solo, that
+ * left both of the frame's two fastest discs (true 3rd and 4th) off the list.
  */
 export const WHEEL_OPTIONS_ORDER_MARGIN = 15
 
@@ -99,6 +104,63 @@ export const WHEEL_OPTIONS_ORDER_MARGIN = 15
  * wheels are fixed or whose candidates tie.
  */
 export const WHEEL_PICK_CONFIRM_DEPTH = 5
+
+/**
+ * How many wheels of each kind - disc and regular - are simulated to find
+ * that kind's fastest on one frame. Measured over 54 rides (27 routes, solo
+ * and race), the top two of each kind by the estimate held the simulator's
+ * fastest in all 54, for 0 to 2 integrations beyond what a page already
+ * spends (issue #261).
+ */
+export const WHEEL_KIND_DEPTH = 2
+
+/** Disc or regular. A set's disc-ness is its rear wheel's (see `Wheelset.rear`). */
+export type WheelKind = 'disc' | 'regular'
+
+export function wheelKind(wheelset: Wheelset): WheelKind {
+  return wheelset.rear.category === 'disc' ? 'disc' : 'regular'
+}
+
+/**
+ * The fastest disc and the fastest regular wheels on one frame, by the
+ * simulator: the first `WHEEL_KIND_DEPTH` distinct-value candidates of each
+ * kind in the estimate-ordered `pool` are timed (reusing `alreadySimulated`
+ * wherever something got there first) and the quickest of each kind wins.
+ * Ties collapse as they do in `confirmWheelPicks`. A kind the frame cannot
+ * take - a fixed-wheel frame takes neither - is simply absent.
+ *
+ * Shared by the Wheel close call and the Wheel alternatives list, so a wheel
+ * the close call names is always one the list can show.
+ */
+export function fastestWheelOfEachKind<T extends OrderableCombo>(options: {
+  pool: T[]
+  frameId: number
+  valueOf: (combo: T) => number
+  simulate: (combo: T) => number
+  alreadySimulated?: Map<T, number>
+}): Map<WheelKind, { combo: T, seconds: number }> {
+  const { pool, frameId, valueOf, simulate, alreadySimulated } = options
+  const candidates = new Map<WheelKind, T[]>()
+  for (const combo of pool) {
+    if (combo.frame.id !== frameId || !combo.wheelset) continue
+    const kind = wheelKind(combo.wheelset)
+    const listed = candidates.get(kind) ?? []
+    if (listed.length >= WHEEL_KIND_DEPTH) continue
+    if (listed.some(other => valueOf(other) === valueOf(combo))) continue
+    listed.push(combo)
+    candidates.set(kind, listed)
+  }
+
+  const fastest = new Map<WheelKind, { combo: T, seconds: number }>()
+  for (const [kind, combos] of candidates) {
+    for (const combo of combos) {
+      const seconds = alreadySimulated?.get(combo) ?? simulate(combo)
+      const best = fastest.get(kind)
+      if (!best || seconds < best.seconds) fastest.set(kind, { combo, seconds })
+    }
+  }
+  return fastest
+}
 
 /**
  * Which wheel should actually represent each frame on a one-row-per-frame

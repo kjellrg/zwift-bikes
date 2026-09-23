@@ -1,6 +1,7 @@
 import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from './catalog'
 import type { PhysicsRider, RouteGeometry } from './physics'
 import type { RideDraft, simulateRoute } from '../utils/physics'
+import type { RouteClimbOccurrence } from '../utils/routeOccurrences'
 
 export type TimingMetaValue = string | number | boolean | undefined
 
@@ -18,12 +19,23 @@ export interface SimulateComboOptions {
   draft: RideDraft
 }
 
+/** What one timing of a combo on a ride measures. */
+export interface ComboTiming {
+  finishSec: number
+  /**
+     * The Climb time of each of the ride's `climbs` (see `CONTEXT.md`), in the
+     * same order, cut from the simulation that gave `finishSec`. Empty on a
+     * ride with no named climbs.
+     */
+  climbSec: number[]
+}
+
 export interface RidePhysics {
   /**
      * Times one combo on this ride. Present exactly when `prepare` was given a
      * rider, i.e. when this request simulates at all.
      */
-  simulateSec?: (options: SimulateComboOptions) => number
+  time?: (options: SimulateComboOptions) => ComboTiming
 }
 
 /** The ride being ranked: a whole route, or one segment. */
@@ -34,6 +46,12 @@ export interface RecommendRide {
   laps: number
   /** Drop TT frames from the pool entirely; always false for a segment. */
   excludeTT: boolean
+  /**
+     * Every pass of a named climb on the ride, in ride order - the passes each
+     * `ComboTiming.climbSec` is timed over. Empty for a segment: a segment is
+     * one climb or sprint already, and its finish time is its Climb time.
+     */
+  climbs: RouteClimbOccurrence[]
   /**
      * Ride-specific fields for the timing log line, spread in FIRST so its key
      * order is unchanged (route: `route`, `distanceKm`, `laps`; segment:

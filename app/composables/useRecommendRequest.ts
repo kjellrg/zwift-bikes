@@ -1,5 +1,7 @@
 import type { InternalApi } from 'nitropack/types'
 import type { ComboScore } from '../../shared/types/catalog'
+import type { ClimbTrade } from '../utils/climbTrade'
+import type { WheelChoice } from '../utils/rideWhy'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import {
   buildRecommendQuery,
@@ -35,6 +37,10 @@ export interface RecommendResponse {
     /** Absent when the filters left no rank 1 to measure the gap against - see `FastestOverall`. */
     deltaSec?: number
   }
+  /** The numbers behind the Wheel close call - see `WheelChoice` in `server/utils/recommendPipeline.ts`. */
+  wheelChoice?: WheelChoice
+  /** The Climb trade - see `ClimbTrade` in `server/utils/climbTrade.ts`. Route and race pages only. */
+  climbTrade?: ClimbTrade
   /**
    * Mirrored, deliberately, by `RankingPhysics` in `app/utils/rankingResults.ts`,
    * which derives the evidence lines from it and must stay plain node. A field
@@ -558,6 +564,10 @@ export function useRecommendRequest(ride: () => Ride | undefined, options: Recom
     physics: computed(() => recommendData.value?.physics),
     /** Present only when the category or Halo filter is hiding a faster combo - see `FastestOverallNote`. */
     fastestOverall: computed(() => recommendData.value?.fastestOverall),
+    /** Rank 1's wheels against the other kind's fastest, for the Wheel close call in `RideWhy`. */
+    wheelChoice: computed(() => recommendData.value?.wheelChoice),
+    /** Present only when a setup is worth naming beside the Recommendation - see `ClimbTradeNote`. */
+    climbTrade: computed(() => recommendData.value?.climbTrade),
     /** What is on screen: the loaded pages in the browser, the fetched page on the server. */
     combos,
     topCombo,

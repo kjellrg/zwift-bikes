@@ -2,14 +2,15 @@
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { comboPhysicsDelta, formatSignedDelta, isDynamicPhysics } from '../utils/rankingResults'
-import { aeroShare, whyThisWins } from '../utils/rideWhy'
+import { aeroShare, whyThisWins, type WheelChoice } from '../utils/rideWhy'
 
 /**
  * "Why this bike wins here": the reason behind the Recommendation's number,
  * from data the response already carries and nothing else - a few templated
- * sentences (`whyThisWins`), what the terrain rewards drawn as a two-part
- * aero-against-weight bar, and rank 1's own figures: its physics against the
- * stock bike, what rough surfaces cost it, and which physics model timed it.
+ * sentences (`whyThisWins`, the Wheel close call among them), what the
+ * terrain rewards drawn as a two-part aero-against-weight bar, and rank 1's
+ * own figures: its physics against the stock bike, what rough surfaces cost
+ * it, and which physics model timed it.
  *
  * Equipment-dependent, so it reads the APPLIED Ranking - its course and its
  * rank 1 - and dims through a refresh like the answer it explains.
@@ -24,6 +25,8 @@ const props = defineProps<{
   physicsMode: string | undefined
   /** The draft mode the times were computed under - `appliedInputs.draftMode`. */
   draftMode: DraftMode
+  /** Rank 1's wheels against the other kind's fastest, for the Wheel close call - the response's `wheelChoice`. */
+  wheelChoice?: WheelChoice
   refreshing: boolean
 }>()
 
@@ -37,7 +40,9 @@ const sentence = computed(() => props.course && props.combo
       frameName: props.combo.frame.name,
       frameStyle: props.combo.frame.style,
       frameCategory: props.combo.frame.category,
-      draftMode: props.draftMode
+      draftMode: props.draftMode,
+      finishTimeSec: props.combo.finishTimeSec,
+      wheelChoice: props.wheelChoice
     })
   : undefined)
 const delta = computed(() => props.combo ? comboPhysicsDelta(props.combo) : undefined)

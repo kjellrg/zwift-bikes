@@ -28,6 +28,7 @@ export default defineCachedRecommendHandler(async (event) => {
     segment: summary,
     combos: result.combos,
     fastestOverall: result.fastestOverall,
+    wheelChoice: result.wheelChoice,
     physics: physics && {
       ...physics,
       summary: (physics.mode === 'legacy'

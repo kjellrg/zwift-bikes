@@ -40,6 +40,42 @@ describe('expandClimbsForLaps / expandSprintsForLaps', () => {
     expect(sprints[0]!.lapNumber).toBeUndefined()
   })
 
+  it('puts measured-trace placements in official km, so a climb that ends at the line ends on it', () => {
+    // Innsbruck KOM After Party's shape: the KOM's placement ends past the
+    // official lap, because zwift-data measured it on a trace 0.5% longer.
+    const traced = {
+      ...route,
+      distance: 36.971,
+      leadInDistance: 0.222,
+      surface: { traceScale: 0.9951040161064142 },
+      terrain: { climbs: [{ name: 'Innsbruck KOM', slug: 'innsbruck-kom', fromKm: 29.709, toKm: 37.137, lengthKm: 7.428, elevationM: 445.68, avgGradePercent: 6, perLap: true }], sprints: [] }
+    } as unknown as RouteWithMeta
+    const [kom] = expandClimbsForLaps(traced, 1)
+    expect(kom!.rideFromKm).toBeCloseTo(0.222 + 29.5635, 3)
+    expect(kom!.rideToKm).toBeCloseTo(0.222 + 36.9552, 3)
+    expect(kom!.rideToKm).toBeLessThanOrEqual(0.222 + 36.971)
+  })
+
+  it('clamps an occurrence to the finish and drops one that starts past it', () => {
+    const overhanging = {
+      ...route,
+      terrain: {
+        climbs: [
+          { name: 'Finish climb', slug: 'finish-climb', fromKm: 9, toKm: 10.4, lengthKm: 1.4, elevationM: 70, avgGradePercent: 5, perLap: true },
+          { name: 'Beyond', slug: 'beyond', fromKm: 10.2, toKm: 10.5, lengthKm: 0.3, elevationM: 15, avgGradePercent: 5, perLap: true }
+        ],
+        sprints: []
+      }
+    } as unknown as RouteWithMeta
+    const climbs = expandClimbsForLaps(overhanging, 2)
+    // Lap 1's overhang is the next lap's road, so only the last lap is cut at the line.
+    expect(climbs.map(c => [c.slug, c.rideFromKm, c.rideToKm, c.lapNumber])).toEqual([
+      ['finish-climb', 11, 12.4, 1],
+      ['beyond', 12.2, 12.5, 1],
+      ['finish-climb', 21, 22, 2]
+    ])
+  })
+
   it('treats a fractional or sub-1 lap count as whole laps, never zero', () => {
     expect(expandSprintsForLaps(route, 2.9)).toHaveLength(2)
     expect(expandSprintsForLaps(route, 0)).toHaveLength(1)

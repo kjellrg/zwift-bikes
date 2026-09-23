@@ -19,6 +19,66 @@ describe('rideForRoute', () => {
     expect(rideForRoute(route, Number.NaN).laps).toBe(1)
     expect(rideForRoute(route, Number.POSITIVE_INFINITY).laps).toBe(1)
   })
+
+  const rider = { weightKg: 75, heightCm: 175, powerW: 225 }
+  const carbon = () => ({
+    frame: getFrames().find(frame => frame.name === 'Zwift Carbon')!,
+    wheelset: getWheelsets().find(wheelset => wheelset.name === 'Zwift 32mm Carbon')!
+  })
+
+  it('times every pass of a named climb - lead-in and each lap - inside the one simulation that times the finish', () => {
+    // Lutscher rides the Innsbruck KOM once in its lead-in and once per lap.
+    const ride = rideForRoute(getRouteBySlug('lutscher')!, 2)
+    expect(ride.climbs.map(climb => [climb.slug, climb.lapNumber])).toEqual([
+      ['innsbruck-kom', undefined],
+      ['innsbruck-kom', 1],
+      ['innsbruck-kom', 2]
+    ])
+    const calls: Parameters<typeof simulateRoute>[0][] = []
+    const recordingSimulate: typeof simulateRoute = (options) => {
+      calls.push(options)
+      return simulateRoute(options)
+    }
+    const draft = resolveDraft({ mode: 'race' }, ride.planGeometry(), rider)
+    const timing = ride.prepare(recordingSimulate, rider).time!({ ...carbon(), draft })
+    expect(calls).toHaveLength(1)
+    expect(timing.climbSec).toHaveLength(3)
+    // The same 7.4 km at 6%, ridden three times by one rider: about 25
+    // minutes each, and the laps within a few seconds of each other.
+    for (const seconds of timing.climbSec) expect(seconds).toBeGreaterThan(20 * 60)
+    for (const seconds of timing.climbSec) expect(seconds).toBeLessThan(32 * 60)
+    expect(Math.abs(timing.climbSec[1]! - timing.climbSec[2]!)).toBeLessThan(5)
+  })
+
+  it('leaves the finish time exactly as it is without the climb boundaries', () => {
+    for (const [slug, laps] of [['lutscher', 2], ['innsbruck-kom-after-party', 1], ['road-to-sky', 1]] as const) {
+      const ride = rideForRoute(getRouteBySlug(slug)!, laps)
+      const draft = resolveDraft({ mode: 'race' }, ride.planGeometry(), rider)
+      const timing = ride.prepare(simulateRoute, rider).time!({ ...carbon(), draft })
+      const plain = simulateRoute({ rider, ...carbon(), geometry: ride.planGeometry(), powerSegmentsW: draft.plan?.powerSegmentsW, powerScaleAtSpeed: draft.powerScaleAtSpeed })
+      expect(timing.finishSec).toBe(plain.elapsedSec)
+    }
+  })
+
+  it('times a climb that runs to the line, and one that straddles a lap boundary', () => {
+    const base = getRouteBySlug('innsbruck-kom-after-party')!
+    const kom = base.terrain.climbs[0]!
+    // The same road, reshaped so the KOM starts in one lap and ends in the next.
+    const straddling = { ...base, lap: true, terrain: { ...base.terrain, climbs: [{ ...kom, fromKm: base.distance - 1, toKm: base.distance + 0.5, lengthKm: 1.5 }] } }
+    const ride = rideForRoute(straddling, 2)
+    const draft = resolveDraft({ mode: 'solo' }, ride.planGeometry(), rider)
+    const timing = ride.prepare(simulateRoute, rider).time!({ ...carbon(), draft })
+    expect(ride.climbs).toHaveLength(2)
+    // Lap 1's pass crosses into lap 2; lap 2's is cut at the finish, 1 km long.
+    expect(timing.climbSec[0]).toBeGreaterThan(timing.climbSec[1]!)
+    expect(timing.climbSec[1]).toBeGreaterThan(0)
+
+    const toTheLine = rideForRoute(base, 1)
+    const whole = toTheLine.prepare(simulateRoute, rider).time!({ ...carbon(), draft: resolveDraft({ mode: 'solo' }, toTheLine.planGeometry(), rider) })
+    expect(whole.climbSec).toHaveLength(1)
+    expect(whole.climbSec[0]).toBeGreaterThan(20 * 60)
+    expect(whole.climbSec[0]).toBeLessThan(whole.finishSec)
+  })
 })
 
 describe('rideForSegment', () => {
@@ -41,7 +101,7 @@ describe('rideForSegment', () => {
       calls.push({ options, result })
       return result
     }
-    const elapsedSec = ride.prepare(recordingSimulate, rider).simulateSec!({
+    const timing = ride.prepare(recordingSimulate, rider).time!({
       frame: getFrames().find(frame => frame.name === 'Zwift Carbon')!,
       wheelset: getWheelsets().find(wheelset => wheelset.name === 'Zwift 32mm Carbon')!,
       draft
@@ -58,7 +118,7 @@ describe('rideForSegment', () => {
     expect(timed!.options.geometry).toBe(geometry)
     expect(timed!.options.powerSegmentsW).toBe(draft.plan!.powerSegmentsW)
     expect(timed!.options.powerScaleAtSpeed).toBe(draft.powerScaleAtSpeed)
-    expect(elapsedSec).toBe(timed!.result.elapsedSec)
+    expect(timing).toEqual({ finishSec: timed!.result.elapsedSec, climbSec: [] })
   })
 
   it.each(['alley-sprint', 'alpe-du-zwift', 'the-clyde-kicker', '23rd-st'])('keeps %s timing invariant to warm-up distance within 0.1 seconds', (slug) => {
@@ -71,11 +131,11 @@ describe('rideForSegment', () => {
     for (const setting of [{ mode: 'solo' as const }, { mode: 'ttt' as const, riders: 6, climbWkg: 3.5 }]) {
       const times = [2000, 3000, 4000].map((warmup) => {
         const ride = rideForSegment(route, false, warmup)
-        return ride.prepare(simulateRoute, rider).simulateSec!({
+        return ride.prepare(simulateRoute, rider).time!({
           frame,
           wheelset,
           draft: resolveDraft(setting, ride.planGeometry(), rider)
-        })
+        }).finishSec
       })
       expect(Math.max(...times) - Math.min(...times)).toBeLessThan(0.1)
     }
@@ -88,7 +148,7 @@ describe('rideForSegment', () => {
     expect(geometry.points.length).toBeGreaterThan(2)
     expect(ride.prepare(simulateRoute)).toEqual({})
     expect(ride.planGeometry()).toBe(geometry)
-    expect(ride.prepare(simulateRoute, { weightKg: 75, heightCm: 175, powerW: 225 }).simulateSec).toBeTypeOf('function')
+    expect(ride.prepare(simulateRoute, { weightKg: 75, heightCm: 175, powerW: 225 }).time).toBeTypeOf('function')
     expect(ride.planGeometry()).toBe(geometry)
   })
 })

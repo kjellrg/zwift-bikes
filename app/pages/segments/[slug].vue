@@ -102,7 +102,7 @@ const ride = computed<Ride>(() => ({
 const request = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, appliedRide, appliedRestrictions,
+  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRide, appliedRestrictions,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 await recommendReady
@@ -378,6 +378,7 @@ useHead(() => {
         :ride-name="segmentData.name"
         :physics-mode="physicsInfo?.mode"
         :draft-mode="appliedInputs.draftMode"
+        :wheel-choice="wheelChoice"
         :refreshing="isRefreshing"
       />
       <RideCourseAnalysis
