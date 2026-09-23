@@ -9,8 +9,9 @@ export const COURSE_ANALYSIS_ID = 'course-analysis'
  * it never persists. It survives a lap refresh, the bike drawer opening and
  * closing, and a navigation from one ride to another (a page-local ref would
  * not survive a route -> segment -> route trip), and `RideCourseAnalysis`
- * falls back to its first tab whenever the selected one leaves the tab set -
- * the TTT plan when draft mode leaves ttt, the climbs on a segment page.
+ * shows its first tab whenever the selected one leaves the tab set - the TTT
+ * plan when draft mode leaves ttt, the climbs on a segment page - without
+ * writing that fallback back here, so the trip keeps the rider's own tab.
  */
 export function useCourseAnalysisTab() {
   const selected = useState<CourseAnalysisTab>('course-analysis-tab', () => 'segments')

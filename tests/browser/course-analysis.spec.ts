@@ -145,6 +145,22 @@ test.describe('course analysis tabs', () => {
     await expect(segmentRows(page)).toHaveCount(4)
   })
 
+  test('keeps the route tab through a segment page, which has no climbs tab to show', async ({ page }) => {
+    await visit(page, HILLY)
+    await expect(tab(page, 'Climbs and sprints')).toHaveAttribute('aria-selected', 'true')
+    await panel(page, 'Climbs and sprints').getByRole('link', { name: 'Fastest bike for Zwift KOM' }).click()
+    await page.waitForURL(/\/segments\/zwift-kom/)
+    await ready(page)
+    // The segment page shows its first tab in place of the remembered one...
+    await expect(tab(page, 'Climbs and sprints')).toHaveCount(0)
+    await expect(tab(page, 'Surfaces')).toHaveAttribute('aria-selected', 'true')
+    // ...without storing it, so the route page opens where the rider left it.
+    await page.goBack()
+    await page.waitForURL(new RegExp(`${HILLY}$`))
+    await ready(page)
+    await expect(tab(page, 'Climbs and sprints')).toHaveAttribute('aria-selected', 'true')
+  })
+
   test('explains a route with nothing mapped', async ({ page }) => {
     await visit(page, VOLCANO)
     await tab(page, 'Climbs and sprints').click()

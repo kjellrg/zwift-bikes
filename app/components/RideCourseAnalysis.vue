@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { CourseAnalysisTab } from '../composables/useCourseAnalysisTab'
 import type { TttPlan } from '../composables/useTttPlan'
 import type { AppliedRiderInputs } from '../utils/recommendRequest'
 import { MIN_ROUTE_KM } from '#shared/utils/physics/racePlan'
@@ -76,10 +77,16 @@ const items = computed(() => [
 ])
 // The remembered tab may have left the set: the plan when draft mode leaves
 // ttt, the climbs on a segment page, the scoring of a race whose group has
-// none. The first tab is always there.
-watch(items, (list) => {
-  if (!list.some(item => item.value === selected.value)) selected.value = list[0]!.value
-}, { immediate: true })
+// none. The first tab is always there, and it is shown in place of the
+// remembered one without being written back - a segment page would
+// otherwise overwrite the rider's route tab with Surfaces for the next
+// route page.
+const shown = computed<CourseAnalysisTab>({
+  get: () => items.value.some(item => item.value === selected.value) ? selected.value : items.value[0]!.value,
+  set: (tab) => {
+    selected.value = tab
+  }
+})
 
 const lapsLabel = (count: number) => `${count} lap${count === 1 ? '' : 's'}`
 
@@ -148,8 +155,8 @@ function computeExtraWatts() {
   extraWatts.value = Object.fromEntries(Object.entries(totals).map(([surface, total]) => [surface, total.km > 0 ? Math.round(total.watts / total.km) : 0]))
 }
 onMounted(() => {
-  watch([() => selected.value === 'surface', () => props.combo, () => props.resultsRoute, () => props.rider], ([shown]) => {
-    if (shown) computeExtraWatts()
+  watch([() => shown.value === 'surface', () => props.route.slug, () => props.combo, () => props.resultsRoute, () => props.rider], ([surfaceShown]) => {
+    if (surfaceShown) computeExtraWatts()
   }, { immediate: true })
 })
 
@@ -199,7 +206,7 @@ const planScope = computed(() => {
          smaller and tighter on a phone, so a route's three tabs fit one row
          and only a race's longer set wraps. -->
     <UTabs
-      v-model="selected"
+      v-model="shown"
       :items="items"
       variant="link"
       color="neutral"
@@ -389,7 +396,7 @@ const planScope = computed(() => {
                 :ttt-riders="rider.tttRiders"
                 :ttt-climb-wkg="rider.tttClimbWkg"
                 flat
-                :active="selected === 'speed'"
+                :active="shown === 'speed'"
               />
             </div>
           </template>
