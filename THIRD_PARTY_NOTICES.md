@@ -92,3 +92,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Archivo
+
+`public/fonts/archivo-variable.woff2` is the Latin subset of
+[Archivo](https://github.com/Omnibus-Type/Archivo) (Omnibus-Type), the
+variable build with its width and weight axes, as packaged by
+[Fontsource](https://fontsource.org/fonts/archivo). It is the site's one
+typeface, on the pages and the generated share cards alike.
+
+Copyright 2020 The Archivo Project Authors
+(https://github.com/Omnibus-Type/Archivo). Licensed under the SIL Open Font
+License, Version 1.1, available with a FAQ at https://openfontlicense.org.
+The font is redistributed unmodified and is not sold by itself.

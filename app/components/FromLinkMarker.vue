@@ -18,7 +18,7 @@ defineEmits<{ restore: [] }>()
 <template>
   <button
     type="button"
-    class="inline-flex items-center gap-0.5 rounded-full border border-default px-1.5 text-xs text-muted hover:text-highlighted"
+    class="inline-flex items-center gap-0.5 rounded-full border border-accented px-2 text-xs text-toned hover:border-ink hover:text-highlighted"
     :aria-label="restoreLabel"
     :title="restoreLabel"
     @click="$emit('restore')"

@@ -179,7 +179,7 @@ ridden. Switching the draft mode to **TTT paceline** models a rotating team:
 - **The "saves X vs riding alone" line** simulates the identical rider, power
   and pacing with the draft switched off, so the gap is purely what the
   paceline buys.
-- **The TTT plan** (every ranking page's plan tab and briefing line, from the
+- **The TTT plan** (every ranking page's plan tab and Fact-row line, from the
   one `useTttPlan` result) lists the sectors where the paceline may
   split or slow: long climbs and sustained rough-surface sectors (extra
   rolling resistance and reduced draft), ignoring stretches too short to

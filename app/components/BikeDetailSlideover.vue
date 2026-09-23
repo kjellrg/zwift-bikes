@@ -41,7 +41,7 @@ watch(view, (current) => {
     side="right"
     :title="view?.record.combo.frame.name ?? 'Bike details'"
     :description="view?.record.combo.wheelset?.name ?? (view ? 'Fixed disc wheels (not swappable)' : undefined)"
-    :ui="{ content: 'sm:max-w-xl' }"
+    :ui="{ content: 'sm:max-w-xl', title: 'text-xl font-semibold font-heading', description: 'text-toned' }"
   >
     <template #body>
       <BikeDetailContent

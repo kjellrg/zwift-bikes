@@ -39,6 +39,11 @@ const equipment = computed(() => props.fastestOverall.wheelsetName
   ? `${props.fastestOverall.frameName} with ${props.fastestOverall.wheelsetName}`
   : props.fastestOverall.frameName)
 
+/** The question the note answers, in the rider's words. */
+const lead = computed(() => props.fastestOverall.reason === 'halo'
+  ? 'Halo bikes allowed?'
+  : props.fastestOverall.category === 'tt' ? 'Time-trial bikes allowed?' : 'Other categories allowed?')
+
 // Same shape as the TTT saving line (see `formatTttTimeSaving`): whole
 // seconds under a minute, `m:ss` above it. Hundredths are noise at the scale
 // this gap lives at, and it's a headline, not a ranking key.
@@ -50,36 +55,38 @@ const gapText = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg border border-default bg-elevated/50 px-4 py-3 mb-6 text-sm">
-    <UIcon
-      name="i-lucide-zap"
-      class="size-4 text-primary self-center"
-    />
-    <span>
-      <span class="font-medium text-highlighted">Fastest overall:</span>
-      {{ equipment }}
-      <BikeCategoryBadge
-        :category="fastestOverall.category"
-        class="align-middle"
-      />
-      <template v-if="gapText">
-        &mdash; {{ gapText }} quicker.
-      </template>
-      <template v-else>
-        &mdash; not shown under your current filters.
-      </template>
-      <template v-if="fastestOverall.reason === 'halo'">A Halo bike - unlocking it takes three fully upgraded frames of one brand plus ~20 million Drops.</template>
-      <template v-else-if="fastestOverall.category === 'tt'">TT bikes are restricted in many events.</template>
-    </span>
-    <ULink
+  <!-- A note, not an alert: it explains what the filters withheld, and the
+       one action puts it on screen. -->
+  <p class="mt-5 border-l-2 border-accented py-2 pl-3.5 text-sm text-toned">
+    <span class="font-semibold text-highlighted">{{ lead }}</span>
+    The {{ equipment }} ({{ BIKE_CATEGORY_LABELS[fastestOverall.category] }})
+    <template v-if="gapText">
+      is {{ gapText }} quicker.
+    </template>
+    <template v-else>
+      is not shown under your current filters.
+    </template>
+    <template v-if="fastestOverall.reason === 'halo'">
+      A Halo bike - unlocking it takes three fully upgraded frames of one brand plus ~20 million Drops.
+    </template>
+    <template v-else-if="fastestOverall.category === 'tt'">
+      TT frames are barred in many races.
+    </template>
+    <button
       v-if="fastestOverall.reason === 'halo'"
-      class="text-primary underline cursor-pointer"
+      type="button"
+      class="ml-1 font-medium text-primary hover:underline"
       @click="$emit('includeHalo')"
-    >Include Halo bikes</ULink>
-    <ULink
+    >
+      Include Halo bikes
+    </button>
+    <button
       v-else
-      class="text-primary underline cursor-pointer"
+      type="button"
+      class="ml-1 font-medium text-primary hover:underline"
       @click="$emit('showAll')"
-    >Show all categories</ULink>
-  </div>
+    >
+      {{ fastestOverall.category === 'tt' ? 'Include TT frames' : 'Show all categories' }}
+    </button>
+  </p>
 </template>

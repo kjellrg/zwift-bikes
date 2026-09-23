@@ -1,52 +1,43 @@
 <script setup lang="ts">
 import type { ComboScore } from '../../shared/types/catalog'
 import type { AppliedRanking } from '../utils/recommendRequest'
+import { activeFiltersLabel } from '../utils/rankingResults'
 
 /**
- * The Recommendation: rank 1 of the Ranking, shown large. The setup, its
- * estimated finish time, and the one-click paths deeper - the bike drawer
- * (ownership, upgrades, curves), the wheel alternatives for this frame, the
- * comparison, and the ranking it came first in. Everything equipment-specific
- * the old top card carried is still reachable from here; the badges and score
- * bar moved into the drawer and the comparison so the time is what the eye
- * lands on.
+ * The Recommendation: rank 1 of the Ranking, shown as the page's answer.
+ * The setup, its estimated finish time set large, the evidence lines that
+ * say what the time rests on (bot-tested or not, the stage it was ranked
+ * at, what rough surfaces or the draft did to it), and the paths deeper:
+ * the Equipment drawer - the page's one primary button - the Garage, and
+ * the Ranking it is rank 1 of.
  *
- * It carries what a ranked row carries, because it IS one: the `01` marker in
- * the rows' own style, and the same Compare checkbox, so nothing about rank 1
- * has to be looked for further down the page.
+ * The controls that belong to a row - the comparison pick, the disclosure,
+ * the Wheel alternatives - are on rank 1's row in the table, not repeated
+ * here (see **Recommendation** in `CONTEXT.md`). The label claims "fastest
+ * of every eligible setup" and names the filters that made the pool beside
+ * it, rather than a count of setups the response does not carry.
  */
 const props = defineProps<{
   combo: ComboScore
   /**
    * The Applied Ranking this setup is rank 1 of - the course and laps behind
-   * the km/h, the drill-down its wheel alternatives come from, and what the
-   * Equipment drawer is opened under. One name rather than five, so a new
-   * fact about the Ranking reaches this card without a new prop.
+   * the km/h, the filters the claim is made within, and what the Equipment
+   * drawer is opened under.
    */
   ranking: AppliedRanking
   /** The one-line "limited route data" warning, when the course inputs are partial - see `limitedCourseDataNote`. */
   limitedDataNote?: string
-  /** Small evidence lines that qualify this time: the rough-surface cost, the paceline or bunch saving. */
+  /** Evidence lines that qualify this time: the rough-surface cost, the paceline or bunch saving. */
   notes?: string[]
-  /** Whether rank 1 is in the comparison - the page holds the picks, the same ones the rows toggle. */
-  compared: boolean
-  /** Whether the comparison is full and rank 1 is not in it - the checkbox is then disabled rather than evicting a pick. */
-  compareDisabled: boolean
-  /** How many setups are picked; 0 hides the jump to the comparison, which has nothing to show yet. */
-  compareCount: number
 }>()
-
-const emit = defineEmits<{ toggleCompare: [] }>()
 
 // The combo alone: everything else the drawer needs is the Applied Ranking,
 // which it reads for itself - see `openBikeDetail`.
 const { openBikeDetail } = useOverlays()
 
 // Quick-adds start at the rider's chosen default stage for unowned bikes -
-// the stage unowned bikes are scored and displayed at everywhere else - so
-// adding a bike never moves it in the ranking. The garage modal's own add
-// uses the same default; the two must agree, or the same action persists a
-// different stage depending on where it was clicked (see `GarageContent`).
+// the stage unowned bikes are ranked at everywhere else - so adding a bike
+// never moves it in the ranking (see `GarageContent`).
 const { owned, setOwned } = useGarage()
 const { defaultUnownedLevel } = useRiderProfile()
 const isOwned = computed(() => owned.value[props.combo.frame.id] !== undefined)
@@ -54,78 +45,86 @@ function toggleOwned() {
   setOwned(props.combo.frame.id, isOwned.value ? null : defaultUnownedLevel.value)
 }
 
+const laps = computed(() => props.ranking.ride?.laps)
 const distanceKm = computed(() => props.ranking.course
-  ? computeRouteTotals(props.ranking.course, props.ranking.ride?.laps ?? 1).distanceKm
+  ? computeRouteTotals(props.ranking.course, laps.value ?? 1).distanceKm
   : undefined)
+/** What the time covers, in a few words: the laps and the lead-in on a route, the timed stretch on a segment. */
+const scope = computed(() => {
+  if (laps.value === undefined) return 'the timed segment'
+  const leadIn = (props.ranking.course?.leadInDistance ?? 0) > 0
+  return `${laps.value} lap${laps.value === 1 ? '' : 's'}${leadIn ? ' with the lead-in' : ''}`
+})
 const botTested = computed(() => isBotTested(props.combo))
+const stageLine = computed(() => {
+  if (props.combo.frame.confidence !== 'measured') return undefined
+  return isOwned.value
+    ? `Ranked at your garage's upgrade stage ${props.combo.frame.level}`
+    : `Ranked at upgrade stage ${props.combo.frame.level}, assumed for bikes you don't own`
+})
+const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, props.ranking.rider.category))
 </script>
 
 <template>
   <section
     aria-labelledby="ride-recommendation-heading"
-    class="min-w-0 space-y-4"
+    class="min-w-0"
   >
-    <p class="text-xs font-semibold uppercase tracking-wide text-primary">
-      <span class="tabular-nums">{{ rankMarker(1) }}</span> &middot; Fastest in current results
+    <p class="text-sm font-semibold text-primary">
+      Fastest of every eligible setup
     </p>
-    <div>
-      <h2
-        id="ride-recommendation-heading"
-        class="text-3xl font-semibold text-highlighted break-words"
+    <p class="text-sm text-muted">
+      {{ filters }}
+    </p>
+    <h2
+      id="ride-recommendation-heading"
+      class="mt-3 text-balance text-[clamp(1.625rem,3.4vw,2.25rem)] leading-tight font-semibold font-heading text-highlighted break-words"
+    >
+      <button
+        type="button"
+        class="text-left hover:underline decoration-rule-strong"
+        :aria-label="`Details for ${combo.frame.name}`"
+        @click="openBikeDetail(combo)"
       >
-        <button
-          type="button"
-          class="text-left hover:underline focus-visible:underline"
-          :aria-label="`Details for ${combo.frame.name}`"
-          @click="openBikeDetail(combo)"
-        >
-          {{ combo.frame.name }}
-        </button>
-      </h2>
-      <p class="mt-1 text-muted break-words">
-        {{ combo.wheelset?.name ?? 'Fixed disc wheels (not swappable)' }}
-      </p>
-    </div>
-    <div class="flex flex-wrap items-baseline gap-x-3">
+        {{ combo.frame.name }}
+      </button>
+    </h2>
+    <p class="mt-1 text-lg text-toned break-words">
+      {{ combo.wheelset ? `with ${combo.wheelset.name} wheels` : 'with its own fixed disc wheels' }}
+    </p>
+    <div class="mt-5 flex flex-wrap items-baseline gap-x-5 gap-y-1.5">
       <p
-        v-if="combo.finishTimeSec !== undefined"
-        class="text-5xl font-bold tabular-nums text-highlighted"
+        id="ride-finish-time"
+        class="text-[clamp(4rem,9vw,6rem)] leading-[0.95] font-semibold font-timing tracking-[-0.01em] text-highlighted"
       >
-        {{ formatDuration(combo.finishTimeSec) }}
+        {{ combo.finishTimeSec !== undefined ? formatDuration(combo.finishTimeSec) : combo.score }}
       </p>
-      <p
-        v-else
-        class="text-5xl font-bold tabular-nums text-highlighted"
-      >
-        {{ combo.score }}
-      </p>
-      <p class="text-sm text-muted">
-        {{ combo.finishTimeSec !== undefined ? 'estimated finish' : 'match score' }}<template v-if="combo.finishTimeSec !== undefined && distanceKm !== undefined">
-          · {{ formatSpeedKmh(distanceKm, combo.finishTimeSec) }}
+      <p class="text-md text-muted">
+        <template v-if="combo.finishTimeSec !== undefined">
+          <span
+            v-if="distanceKm !== undefined"
+            class="font-medium text-toned"
+          >{{ formatSpeedKmh(distanceKm, combo.finishTimeSec) }} average</span>
+          · estimated for {{ scope }}
+        </template>
+        <template v-else>
+          match score
         </template>
       </p>
     </div>
-    <slot name="fastest-overall" />
-    <p
-      v-if="limitedDataNote"
-      class="flex items-start gap-2 text-sm text-warning"
-    >
-      <UIcon
-        name="i-lucide-circle-alert"
-        class="mt-0.5 size-4 shrink-0"
-      />{{ limitedDataNote }}
-    </p>
-    <ul class="space-y-1 text-sm text-muted">
-      <li class="flex items-center gap-2">
+
+    <ul class="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-toned">
+      <li
+        class="inline-flex items-center gap-1.5"
+        :class="botTested ? 'text-success' : 'text-warning'"
+      >
         <UIcon
-          :name="botTested ? 'i-lucide-badge-check' : 'i-lucide-circle-help'"
+          :name="botTested ? 'i-lucide-check' : 'i-lucide-circle-help'"
           class="size-4 shrink-0"
-          :class="botTested ? 'text-success' : ''"
-        />{{ botTested ? 'Bot-tested equipment' : 'Includes estimated data' }}
-        <RideStageControl
-          :combo="combo"
-          class="border-l border-default pl-2"
-        />
+        />{{ botTested ? 'Frame and wheels bot-tested' : 'Includes estimated data' }}
+      </li>
+      <li v-if="stageLine">
+        {{ stageLine }}
       </li>
       <li
         v-for="note in notes"
@@ -133,62 +132,38 @@ const botTested = computed(() => isBotTested(props.combo))
       >
         {{ note }}
       </li>
+      <li
+        v-if="limitedDataNote"
+        class="text-warning"
+      >
+        {{ limitedDataNote }}
+      </li>
     </ul>
-    <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+
+    <div class="mt-5 flex flex-wrap items-center gap-2.5">
       <UButton
-        icon="i-lucide-chart-no-axes-combined"
-        size="sm"
-        color="primary"
-        variant="link"
-        class="px-0"
+        size="lg"
         @click="openBikeDetail(combo)"
       >
         Details &amp; upgrades
       </UButton>
       <UButton
-        :icon="isOwned ? 'i-lucide-circle-check' : 'i-lucide-circle-plus'"
-        size="sm"
-        :color="isOwned ? 'success' : 'neutral'"
-        variant="link"
-        class="px-0"
+        size="lg"
+        color="neutral"
+        variant="outline"
+        :icon="isOwned ? 'i-lucide-check' : undefined"
         :aria-label="`${isOwned ? 'Remove' : 'Quick-add'} ${combo.frame.name} ${isOwned ? 'from' : 'to'} garage`"
         @click="toggleOwned"
       >
         {{ isOwned ? 'In your garage' : 'Add to garage' }}
       </UButton>
-      <UCheckbox
-        :model-value="compared"
-        :disabled="compareDisabled"
-        label="Compare"
-        :aria-label="`Compare ${combo.frame.name}`"
-        @update:model-value="emit('toggleCompare')"
-      />
-      <UButton
-        v-if="compareCount"
-        icon="i-lucide-columns-3"
-        size="sm"
-        color="primary"
-        variant="link"
-        class="px-0"
-        @click="showComparison()"
-      >
-        Show comparison &middot; {{ compareCount }} of {{ COMPARISON_LIMIT }}
-      </UButton>
-      <!-- The ranking is one list and this is its rank 1, so the way to the
-           rest of it belongs here rather than only at the top of that list. -->
+      <!-- The Recommendation is rank 1 of the table below, so the way to the
+           rest of it is part of the answer. -->
       <a
         href="#ride-ranking"
-        class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-      >
-        <UIcon
-          name="i-lucide-list-ordered"
-          class="size-4"
-        />See the full ranking
-      </a>
+        class="px-2 text-sm font-medium text-toned underline decoration-rule-strong hover:text-highlighted"
+      >See the full ranking</a>
     </div>
-    <ComboWheelAlternatives
-      :combo="combo"
-      :load-wheel-options="ranking.loadWheelOptions"
-    />
+    <slot name="fastest-overall" />
   </section>
 </template>

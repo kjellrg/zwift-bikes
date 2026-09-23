@@ -56,21 +56,15 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
   <div class="space-y-3">
     <p
       v-if="tbd"
-      class="text-muted"
+      class="text-toned"
     >
-      <UBadge
-        color="neutral"
-        variant="subtle"
-        class="mr-1.5"
-      >
-        TBD
-      </UBadge>
+      <span class="font-medium text-highlighted">To be announced.</span>
       {{ organizer }} hasn't published the scoring segments for this race yet. They're
       added here as soon as they appear.
     </p>
     <p
       v-else-if="!rows.length"
-      class="text-muted"
+      class="text-toned"
     >
       {{ organizer }} lists no intermediate scoring segments for this race.
     </p>
@@ -80,38 +74,38 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
         order riders cross the line, <span class="font-medium text-highlighted">FTS</span> by elapsed time
         across the segment.
         <template v-if="hasPositions">
-          Every scoring pass is starred on the elevation profile, in the order you meet it.
+          Every scoring pass is starred on the course profile, in the order you meet it.
         </template>
       </p>
-      <div class="overflow-x-auto rounded-lg border border-default">
-        <table class="w-full text-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-md">
           <caption class="sr-only">
             Scoring segments for {{ groupLabel }}, in the order they are ridden
           </caption>
-          <thead class="bg-elevated/50">
-            <tr class="text-left text-muted">
+          <thead>
+            <tr class="border-b border-accented text-left text-xs text-muted">
               <th
                 scope="col"
-                class="px-4 py-2 font-medium"
+                class="px-2 py-2 font-medium"
               >
                 Segment
               </th>
               <th
                 scope="col"
-                class="px-4 py-2 font-medium"
+                class="px-2 py-2 font-medium"
               >
                 FAL
               </th>
               <th
                 scope="col"
-                class="px-4 py-2 font-medium"
+                class="px-2 py-2 font-medium"
               >
                 FTS
               </th>
               <th
                 v-if="hasPositions"
                 scope="col"
-                class="px-4 py-2 font-medium"
+                class="px-2 py-2 font-medium"
               >
                 Comes at
               </th>
@@ -121,30 +115,30 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
             <tr
               v-for="segment in rows"
               :key="segment.name"
-              class="border-t border-default"
+              class="border-b border-default"
             >
-              <td class="px-4 py-2">
+              <td class="px-2 py-2.5">
                 <!-- Linked only when the segment has a page here. -->
                 <!-- `?rules=` carries the race's FORMAT, not its identity:
                      the segment page needs no events data to honour it, and
                      the link doesn't decay when this race retires (#224). -->
-                <ULink
+                <NuxtLink
                   v-if="segment.slug"
                   :to="`/segments/${segment.slug}?rules=${format}`"
-                  class="text-primary underline"
-                >{{ segment.name }}</ULink>
+                  class="font-semibold text-highlighted hover:underline"
+                >Fastest bike for {{ segment.name }}</NuxtLink>
                 <template v-else>
                   {{ segment.name }}
                 </template>
               </td>
-              <td class="px-4 py-2 whitespace-nowrap">
+              <td class="px-2 py-2.5 whitespace-nowrap">
                 <span v-if="segment.fal">{{ segment.fal }}x</span>
                 <span
                   v-else
                   class="text-muted"
                 >-</span>
               </td>
-              <td class="px-4 py-2 whitespace-nowrap">
+              <td class="px-2 py-2.5 whitespace-nowrap">
                 <span v-if="segment.fts">{{ segment.fts }}x</span>
                 <span
                   v-else
@@ -153,7 +147,7 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
               </td>
               <td
                 v-if="hasPositions"
-                class="px-4 py-2 whitespace-nowrap"
+                class="px-2 py-2.5 whitespace-nowrap"
               >
                 <span v-if="segment.positionsKm.length">{{ segment.positionsKm.map(km => formatDistance(km)).join(', ') }}</span>
                 <span

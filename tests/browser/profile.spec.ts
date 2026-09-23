@@ -21,7 +21,7 @@ const GARAGE_KEY = 'zwift-bikes:garage'
 
 const overlay = (page: Page) => page.getByRole('dialog', { name: 'My Profile' })
 const editProfile = (page: Page) => page.getByRole('link', { name: 'Edit profile' })
-const strip = (page: Page) => page.getByRole('group', { name: 'Rider' })
+const riderSummary = (page: Page) => page.getByRole('group', { name: 'Rider' })
 const weightSlider = (page: Page) => page.getByRole('slider', { name: 'Rider weight in kilograms' })
 const weightLabel = (page: Page) => page.getByText(/^Rider weight: \d+ kg$/)
 const draftSelect = (page: Page) => page.getByRole('button', { name: 'Default draft mode', exact: true })
@@ -56,15 +56,15 @@ test.describe('rider profile', () => {
     // that they are ranking a phantom rider is gone with it.
     await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
     await ready(page)
-    await expect(strip(page)).toContainText(`${committed} kg`)
-    await expect(strip(page)).not.toContainText('Using default rider')
+    await expect(riderSummary(page)).toContainText(`${committed} kg`)
+    await expect(riderSummary(page)).not.toContainText('Using default rider')
   })
 
   test('reranks the page underneath from the Overlay, then hands focus back to the link that opened it', async ({ page }) => {
     await seedProfile(page, { weightKg: 80, heightCm: 180, powerW: 250, sprintPowerW: 700, draftMode: 'solo' })
     await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
     await ready(page)
-    await expect(strip(page)).toContainText('Solo')
+    await expect(riderSummary(page)).toContainText('Solo')
 
     await editProfile(page).click()
     await expect(overlay(page)).toBeVisible()
@@ -76,7 +76,7 @@ test.describe('rider profile', () => {
     await page.keyboard.press('Escape')
     await expect(overlay(page)).toHaveCount(0)
     await expect(editProfile(page)).toBeFocused()
-    await expect(strip(page)).toContainText('TTT paceline')
+    await expect(riderSummary(page)).toContainText('TTT paceline')
   })
 
   test('names every control, on the page and in the Overlay alike', async ({ page }) => {

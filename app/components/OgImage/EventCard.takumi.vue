@@ -1,8 +1,15 @@
 <script setup lang="ts">
-// Social-share card for an event race page (issue #59). Same build-time
-// Takumi constraints as RouteCard: flexbox-only CSS, Inter 400/700.
+import type { OgProfile } from '../../utils/ogProfile'
+import { OG_COLORS, OG_MARK_IMAGE, ogProfileImage } from '../../utils/ogProfile'
+
+// Social-share card for a race page (issue #59), repainted in the night
+// Palette and Archivo (#257). Rendered to a static 1200x630 PNG at build
+// time by nuxt-og-image (zeroRuntime) - never in the browser or the Worker.
+// Takumi supports a flexbox-only CSS subset, hence the inline styles and the
+// absence of grid/UApp/Nuxt UI components; its colours are `OG_COLORS`,
+// because it reads no CSS variables.
 const props = defineProps<{
-  /** Series + season, shown as the eyebrow (e.g. "DIRT Racing Series"). */
+  /** Series and round, as the line under the title ("ZRacing 2026 - August: Makuri Madness"). */
   series: string
   /** Race heading (e.g. "Week 3 - Mountain Mash"). */
   title: string
@@ -11,46 +18,64 @@ const props = defineProps<{
   date: string
   frameName?: string
   wheelName?: string
+  /** The first Category group's route, as its Silhouette - see `ogProfile`. */
+  profile?: OgProfile
 }>()
 
-const titleSize = computed(() => props.title.length > 24 ? '52px' : '64px')
+// Long race headings step down instead of
+// clipping - Takumi has no line-clamp, so the size must guarantee a fit.
+const titleSize = computed(() => props.title.length > 24 ? '60px' : '80px')
 
 const setupLabel = computed(() => {
   if (!props.frameName) return undefined
-  return props.wheelName ? `${props.frameName} + ${props.wheelName}` : props.frameName
+  return props.wheelName ? `${props.frameName} with ${props.wheelName}` : props.frameName
 })
-const setupSize = computed(() => (setupLabel.value?.length ?? 0) > 44 ? '30px' : '38px')
+const setupSize = computed(() => (setupLabel.value?.length ?? 0) > 44 ? '28px' : '34px')
+
+const profileImage = computed(() => props.profile && props.profile.heights.length > 1 ? ogProfileImage(props.profile, 1072, 150) : undefined)
 </script>
 
 <template>
   <div
-    class="flex h-full w-full flex-col justify-between"
-    style="background: linear-gradient(160deg, #0D1C19 0%, #071412 100%); padding: 56px 64px;"
+    class="flex h-full w-full flex-col"
+    :style="{ background: OG_COLORS.ground, padding: '52px 64px 48px', fontFamily: 'Archivo' }"
   >
     <div
       class="flex items-center"
-      style="gap: 16px;"
+      style="gap: 14px;"
     >
-      <div style="width: 14px; height: 34px; background: #FF6AA8; border-radius: 4px;" />
-      <span style="font-size: 34px; font-weight: 700; color: #ffffff;">ZwiftBikes</span>
+      <img
+        :src="OG_MARK_IMAGE"
+        alt=""
+        style="width: 45px; height: 30px;"
+      >
+      <span :style="{ fontSize: '32px', fontWeight: 700, color: OG_COLORS.ink }">ZwiftBikes</span>
     </div>
 
     <div
       class="flex flex-col"
-      style="gap: 12px;"
+      style="gap: 6px; margin-top: 26px;"
     >
-      <span style="font-size: 26px; font-weight: 700; color: #FF6AA8; letter-spacing: 4px;">{{ series.toUpperCase() }}</span>
-      <span :style="{ fontSize: titleSize, fontWeight: 700, color: '#ffffff', lineHeight: 1.05 }">{{ title }}</span>
-      <span style="font-size: 30px; color: #8FA79F;">{{ course }} · {{ date }}</span>
+      <span :style="{ fontSize: '30px', color: OG_COLORS.toned }">The fastest bike for</span>
+      <span :style="{ fontSize: titleSize, fontWeight: 700, color: OG_COLORS.ink, lineHeight: 1.02, fontStretch: '78%' }">{{ title }}</span>
+      <span :style="{ fontSize: '26px', color: OG_COLORS.muted, marginTop: '6px' }">{{ course }} · {{ date }}</span>
+      <span :style="{ fontSize: '22px', color: OG_COLORS.muted }">{{ series }}</span>
     </div>
+
+    <img
+      v-if="profileImage"
+      :src="profileImage"
+      alt=""
+      style="width: 1072px; height: 150px; margin-top: auto; flex-shrink: 0;"
+    >
 
     <div
       v-if="setupLabel"
-      class="flex flex-col"
-      style="gap: 8px;"
+      class="flex items-baseline"
+      :style="{ gap: '14px', marginTop: profileImage ? '18px' : 'auto' }"
     >
-      <span style="font-size: 22px; font-weight: 700; color: #8FA79F; letter-spacing: 3px;">FASTEST LEGAL SETUP</span>
-      <span :style="{ fontSize: setupSize, fontWeight: 700, color: '#ffffff' }">{{ setupLabel }}</span>
+      <span :style="{ fontSize: '22px', fontWeight: 600, color: OG_COLORS.primary }">Fastest legal setup</span>
+      <span :style="{ fontSize: setupSize, fontWeight: 600, color: OG_COLORS.ink }">{{ setupLabel }}</span>
     </div>
   </div>
 </template>

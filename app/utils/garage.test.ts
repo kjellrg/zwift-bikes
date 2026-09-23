@@ -18,13 +18,20 @@ describe('garageFallback', () => {
 })
 
 describe('garageListStatus', () => {
-  const list = { status: 'success' as const, ownedOnly: false, ownsCollection: false, visible: 12 }
+  const list = { status: 'success' as const, shown: true, ownedOnly: false, ownsCollection: false, visible: 12 }
 
   it('is loading until the first request has settled, idle included', () => {
     // `GarageContent`'s fetches are unawaited, so `status` starts at 'idle'
     // rather than going straight to a settled value.
-    expect(garageListStatus({ ...list, status: 'idle', visible: 0 })).toBe('loading')
-    expect(garageListStatus({ ...list, status: 'pending', visible: 0 })).toBe('loading')
+    expect(garageListStatus({ ...list, status: 'idle', shown: false, visible: 0 })).toBe('loading')
+    expect(garageListStatus({ ...list, status: 'pending', shown: false, visible: 0 })).toBe('loading')
+  })
+
+  it('keeps the rows already on screen while a search asks again', () => {
+    // Skeletons on every keystroke closed a stage menu under the pointer and
+    // read as the garage starting over.
+    expect(garageListStatus({ ...list, status: 'pending' })).toBe('list')
+    expect(garageListStatus({ ...list, status: 'pending', visible: 0 })).toBe('noMatch')
   })
 
   it('reports a failed catalog fetch ahead of everything it emptied', () => {

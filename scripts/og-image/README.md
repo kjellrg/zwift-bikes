@@ -1,38 +1,36 @@
 # og-image
 
-Source for `public/og-image.png`, the default social-share (Open Graph /
-Twitter card) image used by pages that don't set their own — garage,
-profile and report. Home, about, route, segment and event pages define
-generated nuxt-og-image cards instead (issue #59).
+How the static brand images in `public/` are made: `og-image.png`, the
+default social-share (Open Graph / Twitter card) image for the pages that
+set none of their own (garage, profile, report), and the favicon and touch
+icon. Home, about, route, segment and event pages define generated
+nuxt-og-image cards instead (issue #59), and all of them are drawn in the
+night Palette with the profile-shaped mark (issue #257).
 
-1200x630 (the standard `summary_large_image` ratio), styled after the app:
-slate-900 background, the lucide `bike` header icon, and the raspberry primary
-(`#FF6AA8`) from `app/assets/css/main.css`.
+## `og-image.png`
 
-## Regenerating
-
-`og-image.svg` is the source of truth for the layout, but ImageMagick's
-fallback MSVG renderer (used when `rsvg-convert` isn't installed, as in the
-devcontainer) silently drops `<circle>`/`<path>` elements and group
-transforms - only `<rect>` and `<text>` survive. The icon and corner arcs
-are therefore drawn twice: once in the SVG (for renderers that can handle
-it) and once as `-draw` primitives layered on top, with the same
-coordinates. Keep the two in sync when editing.
+It is the generated site card (`app/components/OgImage/SiteCard.takumi.vue`)
+rendered once and kept as a file, so the fallback and the generated cards
+cannot drift apart. With the dev server running (`npm run dev`), take the
+card URL the about page advertises and save what it serves:
 
 ```sh
-magick scripts/og-image/og-image.svg -depth 8 \
-  -fill none -stroke '#1B2F2A' -strokewidth 4 \
-  -draw "circle -40,640 -40,310" \
-  -draw "circle -40,640 -40,380" \
-  -draw "circle 1240,-10 1240,320" \
-  -draw "circle 1240,-10 1240,250" \
-  -fill none -stroke '#FF6AA8' -strokewidth 16 \
-  -draw "stroke-linecap round stroke-linejoin round circle 652,212 652,184" \
-  -draw "stroke-linecap round stroke-linejoin round circle 548,212 548,184" \
-  -draw "stroke-linecap round stroke-linejoin round circle 624,112 624,104" \
-  -draw "stroke-linecap round stroke-linejoin round path 'M 600,212 L 600,184 L 576,160 L 608,136 L 624,160 L 640,160'" \
-  public/og-image.png
+url=$(curl -s http://localhost:3000/about | grep -o 'property="og:image" content="[^"]*"' \
+  | sed 's/.*content="//; s/"$//; s#^https\?://[^/]*##; s/&amp;/\&/g')
+curl -s "http://localhost:3000$url" -o public/og-image.png
 ```
 
-(With a proper SVG renderer installed the `-draw` layers are harmless - they
-paint the same shapes over themselves.)
+## `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`
+
+`public/favicon.svg` is the source: the wordmark's profile-shaped mark in
+the primary on the dark ground. The ICO (16 and 32 px) and the 180 px touch
+icon are rasterised from it - the touch icon square-cornered, since iOS
+applies its own mask. ImageMagick's fallback SVG renderer is enough for
+these shapes:
+
+```sh
+magick -density 1200 -background none public/favicon.svg -resize 16x16 /tmp/fav16.png
+magick -density 1200 -background none public/favicon.svg -resize 32x32 /tmp/fav32.png
+magick /tmp/fav16.png /tmp/fav32.png public/favicon.ico
+sed 's/rx="7"/rx="0"/' public/favicon.svg | magick -density 1200 -background none - -resize 180x180 public/apple-touch-icon.png
+```

@@ -24,9 +24,9 @@ const reportOverlay = (page: Page) => page.getByRole('dialog', { name: 'Report a
 /** The contextual opener under a ranking - one per list, see `ReportDataLink`. */
 const reportLink = (page: Page) => page.getByRole('link', { name: 'Report it' })
 
-/** The About entry, wherever this viewport keeps it - the header, or the menu opened for it. */
+/** The About entry, wherever this viewport keeps it - the footer on a desktop, or the menu opened for it. */
 async function aboutEntry(page: Page, isMobile: boolean): Promise<Locator> {
-  if (!isMobile) return header(page).getByRole('link', { name: 'About', exact: true })
+  if (!isMobile) return page.getByRole('contentinfo').getByRole('link', { name: 'About this project' })
   if (!(await menu(page).isVisible())) await menuToggle(page).click()
   await expect(menu(page)).toBeVisible()
   return menu(page).getByRole('link', { name: 'About', exact: true })

@@ -15,10 +15,9 @@ const props = defineProps<{
   tttRiders?: number
   tttClimbWkg?: number
   /**
-   * Render the chart alone, without the card, the collapsible header, its
-   * badge or tooltip - for a tab panel that already names and scopes the
-   * chart (`RideCourseAnalysis`). Every ranking page
-   * shows it this way; the card is what a caller outside the tabs would get.
+   * Kept for its callers: the chart is always drawn alone now, for the tab
+   * panel that names and scopes it (`RideCourseAnalysis`) - the card it
+   * once had outside the tabs has no page left to live on.
    */
   flat?: boolean
   /**
@@ -28,8 +27,6 @@ const props = defineProps<{
    */
   active?: boolean
 }>()
-
-const UCard = resolveComponent('UCard')
 
 const VIEW_WIDTH = 800
 const PAD_LEFT = 56
@@ -119,8 +116,7 @@ function scaleX(distanceM: number) {
   if (totalDistanceM.value === 0) return PAD_LEFT
   return PAD_LEFT + (distanceM / totalDistanceM.value) * PLOT_WIDTH
 }
-/** Zooms into the route's own [min, max] speed range (headroom above the peak only, same convention as
- * RouteElevationProfile's `scaleY`) rather than anchoring to an absolute 0 km/h baseline - anchoring to
+/** Zooms into the route's own [min, max] speed range (headroom above the peak only) rather than anchoring to an absolute 0 km/h baseline - anchoring to
  * zero wasted most of the chart's height on speeds well below anything a route ever produces, which
  * compressed the real, physically-accurate variation between segments into a thin sliver and made the
  * curve read as far flatter/subtler than the underlying simulation actually is. */
@@ -142,8 +138,7 @@ interface CurveSegment {
 }
 
 /**
- * Monotone cubic Hermite interpolation (Fritsch-Carlson) between already pixel-scaled points - same
- * technique/implementation as RouteElevationProfile.vue's `monotoneCubicSegments`, kept local rather
+ * Monotone cubic Hermite interpolation (Fritsch-Carlson) between already pixel-scaled points, kept local rather
  * than shared since it's a small, self-contained piece of SVG path math with no other dependents.
  * Turns the underlying step data (one average speed per real surface segment) into a smoothly-varying
  * curve instead of a bar chart with sudden vertical jumps at every segment boundary - the surface
@@ -221,10 +216,9 @@ function scaleYElevation(elevationM: number) {
   return PAD_TOP + CURVE_HEIGHT - ((elevationM - elevationMin.value) / paddedRange) * CURVE_HEIGHT
 }
 
-/** A very subtle, single-tone (not color-coded by grade) elevation silhouette drawn behind the speed
- * curve - purely a visual reference so a dip in the speed curve can be read against the climb that
- * caused it. Deliberately flat-colored (`text-muted`, low opacity) rather than the grade-banded colors
- * RouteElevationProfile.vue uses, since here it's just backdrop, not the primary subject. */
+/** A very subtle, single-tone elevation silhouette drawn behind the speed curve - purely a visual
+ * reference so a dip in the speed curve can be read against the climb that caused it, in the muted
+ * ink at low opacity, since here it's backdrop, not the subject. */
 const elevationAreaPath = computed(() => {
   const segs = monotoneCubicSegments(elevationPoints.value.map(p => ({ x: scaleX(p.distanceM), y: scaleYElevation(p.elevationM) })))
   if (!segs.length) return ''
@@ -286,21 +280,17 @@ const soloLinePath = computed(() => {
   return `M${first.x0},${first.y0} ` + segs.map(s => `C${s.cp1x},${s.cp1y} ${s.cp2x},${s.cp2y} ${s.x1},${s.y1}`).join(' ')
 })
 
-/** The strip below the curve marks each real surface segment's exact position/color - tarmac uses the
- * app's theme-adaptive `text-muted` token (via `currentColor`) rather than a fixed gray Tailwind shade,
- * so it recedes into the background in both themes instead of standing out as a bright, "in your face"
- * block against a dark theme. Non-tarmac surfaces keep their normal distinct colors, since they're the
- * point of the strip. */
+/** The strip below the curve marks each real surface segment's exact position in the site's two
+ * surface colours, tarmac in the strong rule - the same strip the Course hero draws, so a surface
+ * reads the same in both pictures. */
 const stripBars = computed(() => (segments.value ?? []).map((segment) => {
   const x0 = scaleX(segment.fromKm * 1000)
   const x1 = scaleX(segment.toKm * 1000)
-  const isTarmac = segment.surface === 'tarmac'
   return {
     ...segment,
     x: x0,
     width: Math.max(1, x1 - x0),
-    fillClass: isTarmac ? 'text-muted' : SURFACE_TYPE_FILL_COLORS[segment.surface],
-    useCurrentColor: isTarmac,
+    fillClass: SURFACE_TYPE_FILL_COLORS[segment.surface],
     title: `${segment.fromKm.toFixed(1)}-${segment.toKm.toFixed(1)} km · ${SURFACE_TYPE_LABELS[segment.surface]} · ${segment.avgSpeedKmh.toFixed(1)} km/h`
       + (segment.extraWattsVsTarmac > 0 ? ` · +${segment.extraWattsVsTarmac} W vs. tarmac` : '')
   }
@@ -319,227 +309,139 @@ const summaryText = computed(() => {
 </script>
 
 <template>
-  <!-- `flat`: a plain wrapper and the collapsible held open with no trigger,
-       so the one chart template serves both the card and a tab panel. -->
-  <component
-    :is="flat ? 'div' : UCard"
-    v-if="hasSurfaceData"
-  >
-    <UCollapsible
-      :open="flat || undefined"
-      :ui="{ content: flat ? '' : 'mt-3' }"
-      @update:open="handleOpenChange"
+  <div v-if="hasSurfaceData">
+    <div
+      v-if="isComputing"
+      class="flex justify-center py-10"
     >
-      <template
-        v-if="!flat"
-        #default="{ open }"
+      <UIcon
+        name="i-lucide-loader-circle"
+        class="size-5 animate-spin text-muted"
+      />
+    </div>
+    <template v-else-if="profile">
+      <!-- The header badge's number, for the header-less mode. -->
+      <p
+        v-if="flat"
+        class="mb-2 text-sm text-muted"
       >
-        <button
-          type="button"
-          class="flex w-full items-center justify-between gap-2 text-left"
+        <span class="font-medium text-highlighted">{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h</span> average over the whole simulated ride
+      </p>
+      <svg
+        :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
+        class="w-full h-auto"
+        role="img"
+        aria-label="Average speed by surface segment"
+      >
+        <path
+          :d="elevationAreaPath"
+          fill="currentColor"
+          class="text-muted"
+          opacity="0.1"
+        />
+        <line
+          v-if="profile"
+          :x1="PAD_LEFT"
+          :x2="VIEW_WIDTH - PAD_RIGHT"
+          :y1="avgSpeedY"
+          :y2="avgSpeedY"
+          stroke="currentColor"
+          class="text-muted"
+          stroke-width="1"
+          stroke-dasharray="1 3"
+          opacity="0.6"
         >
-          <span class="flex items-center gap-2">
-            <p class="font-semibold text-highlighted">
-              Speed &amp; surface effort<span
-                v-if="route.lap"
-                class="font-normal text-muted"
-              > (per lap)</span>
-            </p>
-            <UBadge
-              v-if="profile"
-              color="neutral"
-              variant="subtle"
-            >
-              {{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h avg
-            </UBadge>
-            <UTooltip text="Overall average speed is this bike/rider's simulated pace for the whole route (distance ÷ total time) - the fairest single number, since a route can mix short fast stretches with one long slow climb. The curve below tracks that same simulation's pace at every real grade AND surface change, not just where the surface changes, so climbs/descents show up even inside a long tarmac stretch - shown against a faint, uncolored elevation backdrop for reference; the strip beneath it marks the real surface behind each dip.">
-              <UIcon
-                name="i-lucide-info"
-                class="size-4 text-muted"
-                @click.stop
-              />
-            </UTooltip>
-          </span>
-          <UIcon
-            :name="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-            class="size-4 text-muted shrink-0"
-          />
-        </button>
-      </template>
+          <title>{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h average</title>
+        </line>
+        <path
+          :d="areaPath"
+          fill="currentColor"
+          class="text-highlighted"
+          opacity="0.1"
+        />
+        <path
+          :d="linePath"
+          fill="none"
+          stroke="currentColor"
+          class="text-highlighted"
+          stroke-width="1.75"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+        <path
+          v-if="soloLinePath"
+          :d="soloLinePath"
+          fill="none"
+          stroke="currentColor"
+          class="text-muted"
+          stroke-width="1.5"
+          stroke-dasharray="5 4"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          opacity="0.8"
+        >
+          <title>Solo at equivalent average power</title>
+        </path>
+        <rect
+          v-for="bar in stripBars"
+          :key="`${bar.fromKm}-${bar.toKm}`"
+          :x="bar.x"
+          :y="STRIP_Y"
+          :width="bar.width"
+          :height="STRIP_HEIGHT"
 
-      <template #content>
+          :class="bar.fillClass"
+        >
+          <title>{{ bar.title }}</title>
+        </rect>
+      </svg>
+      <p class="mt-1 flex justify-between text-xs text-muted">
+        <span>0 km</span>
+        <span>{{ minSpeedKmh.toFixed(0) }} to {{ maxSpeedKmh.toFixed(0) }} km/h</span>
+        <span>{{ formatDistance(totalDistanceM / 1000) }}</span>
+      </p>
+
+      <div
+        v-if="soloComparison"
+        class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted"
+      >
+        <span class="inline-flex items-center gap-1.5">
+          <span class="inline-block w-5 border-t-2 border-ink" /><template v-if="soloComparison.frontPullPowerW">In the paceline (~{{ soloComparison.frontPullPowerW }} W on your pulls)</template><template v-else>In a typical race bunch</template>
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <span class="inline-block w-5 border-t-2 border-dashed border-current" />Same effort solo, no draft ({{ soloComparison.overallAvgSpeedKmh.toFixed(1) }} km/h avg)
+        </span>
+      </div>
+
+      <p
+        v-if="summaryText"
+        class="mt-3 text-sm text-muted"
+      >
+        {{ summaryText }}
+      </p>
+
+      <div class="mt-4 border-t border-default">
         <div
-          v-if="isComputing"
-          class="flex justify-center py-10"
+          v-for="segment in segments"
+          :key="`${segment.fromKm}-${segment.toKm}-row`"
+          class="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 border-b border-default py-1.5 text-sm"
         >
-          <UIcon
-            name="i-lucide-loader-circle"
-            class="size-5 animate-spin text-muted"
-          />
+          <span class="inline-flex items-center gap-1.5 font-medium">
+            <span
+              class="inline-block size-2.5 rounded-[2px]"
+              :class="SURFACE_TYPE_COLORS[segment.surface]"
+              aria-hidden="true"
+            />
+            {{ SURFACE_TYPE_LABELS[segment.surface] }}
+            <span class="text-muted font-normal">{{ segment.fromKm.toFixed(1) }}-{{ segment.toKm.toFixed(1) }} km</span>
+          </span>
+          <span class="flex gap-x-3 text-toned">
+            <span>{{ segment.avgSpeedKmh.toFixed(1) }} km/h</span>
+            <span>{{ formatGrade(segment.avgGradePercent) }}</span>
+            <span v-if="segment.extraWattsVsTarmac > 0">+{{ segment.extraWattsVsTarmac }} W vs. tarmac</span>
+          </span>
         </div>
-        <template v-else-if="profile">
-          <!-- The header badge's number, for the header-less mode. -->
-          <p
-            v-if="flat"
-            class="mb-2 text-sm text-muted"
-          >
-            <span class="font-medium text-highlighted">{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h</span> average over the whole simulated ride
-          </p>
-          <svg
-            :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
-            class="w-full h-auto"
-            role="img"
-            aria-label="Average speed by surface segment"
-          >
-            <path
-              :d="elevationAreaPath"
-              fill="currentColor"
-              class="text-muted"
-              opacity="0.1"
-            />
-            <line
-              v-if="profile"
-              :x1="PAD_LEFT"
-              :x2="VIEW_WIDTH - PAD_RIGHT"
-              :y1="avgSpeedY"
-              :y2="avgSpeedY"
-              stroke="currentColor"
-              class="text-muted"
-              stroke-width="1"
-              stroke-dasharray="1 3"
-              opacity="0.6"
-            >
-              <title>{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h average</title>
-            </line>
-            <path
-              :d="areaPath"
-              fill="currentColor"
-              class="text-primary"
-              opacity="0.18"
-            />
-            <path
-              :d="linePath"
-              fill="none"
-              stroke="currentColor"
-              class="text-primary"
-              stroke-width="1.5"
-              stroke-linejoin="round"
-              stroke-linecap="round"
-            />
-            <path
-              v-if="soloLinePath"
-              :d="soloLinePath"
-              fill="none"
-              stroke="currentColor"
-              class="text-muted"
-              stroke-width="1.5"
-              stroke-dasharray="5 4"
-              stroke-linejoin="round"
-              stroke-linecap="round"
-              opacity="0.8"
-            >
-              <title>Solo at equivalent average power</title>
-            </path>
-            <rect
-              v-for="bar in stripBars"
-              :key="`${bar.fromKm}-${bar.toKm}`"
-              :x="bar.x"
-              :y="STRIP_Y"
-              :width="bar.width"
-              :height="STRIP_HEIGHT"
-              :fill="bar.useCurrentColor ? 'currentColor' : undefined"
-              :class="bar.fillClass"
-            >
-              <title>{{ bar.title }}</title>
-            </rect>
-            <text
-              :x="PAD_LEFT - 6"
-              :y="PAD_TOP + 4"
-              text-anchor="end"
-              fill="currentColor"
-              class="text-muted"
-              font-size="10"
-            >
-              {{ maxSpeedKmh.toFixed(0) }} km/h
-            </text>
-            <text
-              :x="PAD_LEFT - 6"
-              :y="BASELINE_Y"
-              text-anchor="end"
-              fill="currentColor"
-              class="text-muted"
-              font-size="10"
-            >
-              {{ minSpeedKmh.toFixed(0) }}
-            </text>
-            <text
-              :x="PAD_LEFT"
-              :y="VIEW_HEIGHT - 6"
-              text-anchor="start"
-              fill="currentColor"
-              class="text-muted"
-              font-size="10"
-            >
-              0 km
-            </text>
-            <text
-              :x="VIEW_WIDTH - PAD_RIGHT"
-              :y="VIEW_HEIGHT - 6"
-              text-anchor="end"
-              fill="currentColor"
-              class="text-muted"
-              font-size="10"
-            >
-              {{ formatDistance(totalDistanceM / 1000) }}
-            </text>
-          </svg>
-
-          <div
-            v-if="soloComparison"
-            class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted"
-          >
-            <span class="inline-flex items-center gap-1.5">
-              <span class="inline-block w-5 border-t-2 border-primary" /><template v-if="soloComparison.frontPullPowerW">In the paceline (~{{ soloComparison.frontPullPowerW }} W on your pulls)</template><template v-else>In a typical race bunch</template>
-            </span>
-            <span class="inline-flex items-center gap-1.5">
-              <span class="inline-block w-5 border-t-2 border-dashed border-current" />Same effort solo, no draft ({{ soloComparison.overallAvgSpeedKmh.toFixed(1) }} km/h avg)
-            </span>
-          </div>
-
-          <p
-            v-if="summaryText"
-            class="mt-3 text-sm text-muted"
-          >
-            {{ summaryText }}
-          </p>
-
-          <div class="mt-4 space-y-1.5">
-            <div
-              v-for="segment in segments"
-              :key="`${segment.fromKm}-${segment.toKm}-row`"
-              class="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 text-sm"
-            >
-              <span class="inline-flex items-center gap-1.5 font-medium">
-                <span
-                  class="size-2 rounded-full inline-block"
-                  :class="SURFACE_TYPE_COLORS[segment.surface]"
-                />
-                <UIcon
-                  :name="SURFACE_TYPE_ICONS[segment.surface]"
-                  class="size-3.5 text-muted"
-                />
-                {{ SURFACE_TYPE_LABELS[segment.surface] }}
-                <span class="text-muted font-normal">{{ segment.fromKm.toFixed(1) }}-{{ segment.toKm.toFixed(1) }} km</span>
-              </span>
-              <span class="flex gap-x-3 text-xs text-muted">
-                <span>{{ segment.avgSpeedKmh.toFixed(1) }} km/h</span>
-                <span>{{ formatGrade(segment.avgGradePercent) }}</span>
-                <span v-if="segment.extraWattsVsTarmac > 0">+{{ segment.extraWattsVsTarmac }} W vs. tarmac</span>
-              </span>
-            </div>
-          </div>
-        </template>
-      </template>
-    </UCollapsible>
-  </component>
+      </div>
+    </template>
+  </div>
 </template>

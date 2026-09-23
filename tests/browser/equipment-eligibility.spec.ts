@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { rerank, visit } from './support'
+import { rerank, resolvedColor, seedRiderProfile, visit } from './support'
 
 /**
  * Equipment eligibility and recovery (issue #205): what the ranking is
@@ -30,15 +30,19 @@ const ROAD_WHEEL = 'Roval Alpinist CLX'
 /** Gravel-class, so a standard frame cannot take it - `isWheelsetCompatible`. */
 const GRAVEL_WHEEL = 'Zipp ZIPP 303 XPLR SW'
 
-const rankedList = (page: Page) => page.getByRole('list', { name: 'Ranked setups' })
-const rows = (page: Page) => rankedList(page).getByRole('listitem')
+const rankedTable = (page: Page) => page.getByRole('table', { name: 'Ranked setups' })
+/** One group per setup, rank 1 included. */
+const rows = (page: Page) => rankedTable(page).locator('tbody')
 const recommendation = (page: Page) => page.locator('section:has(#ride-recommendation-heading)')
 const garageSwitch = (page: Page) => page.getByRole('switch', { name: 'My garage only' })
 const garageScope = (page: Page) => page.getByText(/Other filters and compatibility still apply\./)
-const filterSummary = (page: Page) => page.getByText(/^(All categories|Standard \(Road\)|Time Trial|Gravel|Hand Cycle|Fun Bike) \/ (Verified only|Includes estimates)$/)
+/** The category chip above the table, named for the category it shows. */
+const categoryChip = (page: Page) => page.getByRole('button', { name: /^Category: / })
+const verifiedChip = (page: Page) => page.getByRole('switch', { name: 'Verified data only' })
 const noMatches = (page: Page) => page.getByText('No bikes match your filters.')
 /** The "a bike your filters are hiding is faster" line, which an empty ranking gets too (issue #221). */
-const fastestOverall = (page: Page) => page.locator('div').filter({ hasText: /^Fastest overall:/ }).last()
+/** The note on a quicker setup the filters are withholding, with its one reveal. */
+const fastestOverall = (page: Page) => page.locator('p').filter({ hasText: /^\s*(Time-trial bikes|Halo bikes|Other categories) allowed\?/ })
 const haloSwitch = (page: Page) => page.getByRole('switch', { name: 'Include Halo bikes' })
 
 interface Garage { frames?: Record<number, number>, wheels?: string[] }
@@ -80,10 +84,8 @@ test.describe('equipment eligibility', () => {
     // every-compatible-wheel half shows up inside the row's own wheel
     // disclosure - it is pinned in the unit mirror of this case instead.
     expect(await frameNames(page)).toEqual([TARMAC.name])
-    // A ranking of one: the recommendation is the whole of it, and the
-    // section beneath says so rather than vanishing (issue #227).
-    await expect(rows(page)).toHaveCount(0)
-    await expect(page.getByText('Nothing else matches under the current filters.')).toBeVisible()
+    // A ranking of one: the answer, and its own row in the table beneath.
+    await expect(rows(page)).toHaveCount(1)
 
     await seed(page, { myBikesOnly: true }, { wheels: [ROAD_WHEEL] })
     await visit(page, ROUTE)
@@ -92,13 +94,13 @@ test.describe('equipment eligibility', () => {
     // The one owned wheel is what the ranked frames are on. Not asserted row
     // by row: a fixed-wheel frame has no wheel to name and stays eligible
     // regardless of the garage, which the unit mirror of this case pins.
-    await expect(rankedList(page)).toContainText(ROAD_WHEEL)
+    await expect(rankedTable(page)).toContainText(ROAD_WHEEL)
 
     await seed(page, { myBikesOnly: true }, { frames: { [TARMAC.id]: 3 }, wheels: [ROAD_WHEEL] })
     await visit(page, ROUTE)
     await expect(garageScope(page)).toContainText('Your frames / your wheels')
     expect(await frameNames(page)).toEqual([TARMAC.name])
-    await expect(rows(page)).toHaveCount(0)
+    await expect(rows(page)).toHaveCount(1)
     // The only pairing this garage can make.
     await expect(recommendation(page)).toContainText(ROAD_WHEEL)
 
@@ -163,7 +165,10 @@ test.describe('equipment eligibility', () => {
     await expect(fastestOverall(page)).toContainText('not shown under your current filters')
     await expect(fastestOverall(page)).not.toContainText('quicker')
 
-    const { data, query } = await rerank(page, () => page.getByText('Show all categories').click())
+    // An empty table offers its one widening action too.
+    await expect(page.locator('#ride-ranking').getByRole('button', { name: 'Show all categories' })).toBeVisible()
+
+    const { data, query } = await rerank(page, () => fastestOverall(page).getByRole('button').click())
     expect(query.has('category')).toBe(false)
     expect(data.combos.length).toBeGreaterThan(0)
     await expect(noMatches(page)).toHaveCount(0)
@@ -174,47 +179,49 @@ test.describe('equipment eligibility', () => {
     test.skip(isMobile, 'the desktop journey covers the reveal actions')
     await visit(page, ROUTE)
     // The default category hides the faster TT bike, and says so.
-    await expect(filterSummary(page)).toHaveText('Standard (Road) / Verified only')
-    const note = page.getByText('Fastest overall:')
+    await expect(categoryChip(page)).toHaveText('Standard (Road)')
+    await expect(verifiedChip(page)).toHaveAttribute('aria-checked', 'true')
+    const note = fastestOverall(page)
     await expect(note).toBeVisible()
 
     // Only this reveal is reachable: the note's other action appears when a
     // purchasable Halo bike is the fastest overall, and none of the three is
     // - not on any route in the catalog, at any rider profile. Pressing it
     // would need a stubbed response, which would test the stub.
-    const { query } = await rerank(page, () => page.getByText('Show all categories').click())
+    const { query } = await rerank(page, () => note.getByRole('button', { name: 'Include TT frames' }).click())
     expect(query.has('category')).toBe(false)
-    await expect(filterSummary(page)).toHaveText('All categories / Verified only')
+    await expect(categoryChip(page)).toHaveText('All categories')
 
     // A rider pressing a control is a preference: it survives a visit that
     // carries no query at all. (The press wrote `?category=all` into the URL
     // as a shared view; this reload deliberately drops it.)
     await visit(page, ROUTE)
-    await expect(filterSummary(page)).toHaveText('All categories / Verified only')
+    await expect(categoryChip(page)).toHaveText('All categories')
     await expect(note).toHaveCount(0)
 
     // A link is the other half of that contract: it shows the sender's view
-    // for the visit and leaves the rider's own saved category alone - also
-    // when something unrelated is stored during the visit. The next persist
-    // used to write the link's category along with it (issue #198), so the
-    // whole stored object is compared, not just the field the link carried.
+    // for the visit, marked, and leaves the rider's own saved category alone -
+    // also when something unrelated is stored during the visit. The next
+    // persist used to write the link's category along with it (issue #198),
+    // so the whole stored object is compared, not just the field the link
+    // carried.
     const before = await storedPreferences(page)
     await visit(page, `${ROUTE}?category=tt`)
-    await expect(filterSummary(page)).toHaveText('Time Trial / Verified only')
+    await expect(categoryChip(page)).toHaveText('Time Trial')
+    await expect(page.getByRole('button', { name: 'Restore my saved category' }).first()).toBeVisible()
     await rerank(page, () => haloSwitch(page).click())
     expect(await storedPreferences(page)).toEqual({ ...before, includeHaloBikes: true })
     await visit(page, ROUTE)
-    await expect(filterSummary(page)).toHaveText('All categories / Verified only')
+    await expect(categoryChip(page)).toHaveText('All categories')
 
-    // Choosing a category through the control during a link visit is still
-    // the rider's own choice, and is stored like any other.
+    // Choosing a category through the chip's menu during a link visit is
+    // still the rider's own choice, and is stored like any other.
     await visit(page, `${ROUTE}?category=tt`)
-    await page.getByRole('button', { name: 'More filters' }).click()
-    await page.getByRole('combobox', { name: 'Bike category' }).click()
-    await rerank(page, () => page.getByRole('option', { name: 'Standard (Road)' }).click())
+    await categoryChip(page).click()
+    await rerank(page, () => page.getByRole('menuitemcheckbox', { name: 'Standard (Road)' }).click())
     expect((await storedPreferences(page)).bikeCategory).toBe('standard')
     await visit(page, ROUTE)
-    await expect(filterSummary(page)).toHaveText('Standard (Road) / Verified only')
+    await expect(categoryChip(page)).toHaveText('Standard (Road)')
   })
 
   test('leaves the filters usable when a verified category has nothing in it', async ({ page, isMobile }) => {
@@ -225,15 +232,41 @@ test.describe('equipment eligibility', () => {
     await seed(page, { verifiedOnly: true, bikeCategory: 'gravel' })
     await visit(page, ROUTE)
     await expect(noMatches(page)).toBeVisible()
-    await expect(filterSummary(page)).toHaveText('Gravel / Verified only')
+    await expect(categoryChip(page)).toHaveText('Gravel')
+    await expect(verifiedChip(page)).toHaveAttribute('aria-checked', 'true')
 
-    await page.getByRole('button', { name: 'More filters' }).click()
-    const verifiedSwitch = page.getByRole('switch', { name: 'Verified frames and wheels only' })
-    await expect(verifiedSwitch).toBeEnabled()
-    const { data } = await rerank(page, () => verifiedSwitch.click())
+    await expect(verifiedChip(page)).toBeEnabled()
+    const { data } = await rerank(page, () => verifiedChip(page).click())
     expect(data.combos.length).toBeGreaterThan(0)
     await expect(noMatches(page)).toHaveCount(0)
-    await expect(filterSummary(page)).toHaveText('Gravel / Includes estimates')
+    await expect(categoryChip(page)).toHaveText('Gravel')
+    await expect(verifiedChip(page)).toHaveAttribute('aria-checked', 'false')
+    expect((await storedPreferences(page)).verifiedOnly).toBe(false)
+  })
+
+  test('reads everything a rider stored before the redesign, unchanged, on the first load', async ({ page }) => {
+    // Written in the shapes the old site wrote: the whole profile record,
+    // the preferences with no "all columns" field, the garage maps and the
+    // Colour mode module's own key.
+    await seedRiderProfile(page, { weightKg: 68, heightCm: 181, powerW: 260, sprintPowerW: 800, defaultUnownedLevel: 5, draftMode: 'solo', tttRiders: 6 })
+    await seed(page, { verifiedOnly: false, myBikesOnly: true, bikeCategory: 'all', showUpcomingRaces: true, includeHaloBikes: true }, { frames: { [TARMAC.id]: 3 } })
+    await page.addInitScript(() => localStorage.setItem('nuxt-color-mode', 'light'))
+    await visit(page, ROUTE)
+
+    const rider = page.getByRole('group', { name: 'Rider' })
+    await expect(rider).toContainText('68 kg · 181 cm')
+    await expect(rider).toContainText('260 W')
+    await expect(page.getByRole('link', { name: 'Edit profile' })).toBeVisible()
+    await expect(categoryChip(page)).toHaveText('All categories')
+    await expect(verifiedChip(page)).toHaveAttribute('aria-checked', 'false')
+    await expect(garageSwitch(page)).toHaveAttribute('aria-checked', 'true')
+    await expect(haloSwitch(page)).toHaveAttribute('aria-checked', 'true')
+    await expect(garageScope(page)).toContainText('Your frames / all wheels')
+    await expect(page.getByRole('switch', { name: 'All columns' })).not.toBeChecked()
+    await expect(page.locator('html')).toHaveClass(/\blight\b/)
+    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(await resolvedColor(page, 'var(--ui-color-neutral-50)'))
+    // Reading it rewrote nothing.
+    expect(await storedPreferences(page)).toEqual({ verifiedOnly: false, myBikesOnly: true, bikeCategory: 'all', showUpcomingRaces: true, includeHaloBikes: true })
   })
 })
 
@@ -242,15 +275,8 @@ async function storedPreferences(page: Page): Promise<Record<string, unknown>> {
   return page.evaluate(() => JSON.parse(localStorage.getItem('zwift-bikes:preferences') ?? '{}'))
 }
 
-/**
- * The frame name of every loaded setup, in rank order: the recommendation is
- * rank 1 (issue #227) and the rows continue from rank 2, so the pool a filter
- * left behind is only visible in the two of them together.
- */
+/** The frame name of every loaded setup, in rank order - rank 1 is the table's first row. */
 async function frameNames(page: Page) {
-  const names = [
-    ...await recommendation(page).getByRole('button', { name: /^Details for / }).allInnerTexts(),
-    ...await rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
-  ]
+  const names = await rows(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
   return names.map(name => name.replace(/\s+/g, ' ').trim())
 }

@@ -31,7 +31,7 @@ const organizerLabel = computed(() => {
       :to="organizerUrl"
       target="_blank"
       rel="noopener"
-      class="text-primary underline"
+      class="underline decoration-rule-strong hover:text-highlighted"
     >the official event listing</ULink>
     <template v-else>
       the official event listing

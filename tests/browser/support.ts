@@ -138,6 +138,9 @@ export async function tabTo(page: Page, target: Locator, limit = 25) {
  * after each move, while the pointer is still down.
  */
 export async function dragThumb(page: Page, thumb: Locator, dx: number, during?: () => Promise<void>) {
+  // A real pointer only reaches what is on screen, and the Rider card's
+  // paceline levers can sit below the fold.
+  await thumb.scrollIntoViewIfNeeded()
   const box = await thumb.boundingBox()
   expect(box).toBeTruthy()
   const x = box!.x + box!.width / 2

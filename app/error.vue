@@ -29,7 +29,11 @@ useHead({
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
     { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+    // The one font file, fetched before the stylesheet that names it is
+    // parsed, so the first paint is already in Archivo rather than a
+    // fallback that reflows when it swaps.
+    { rel: 'preload', as: 'font', type: 'font/woff2', href: '/fonts/archivo-variable.woff2', crossorigin: 'anonymous' }
   ],
   htmlAttrs: { lang: 'en' }
 })
@@ -41,11 +45,38 @@ useRobotsRule('noindex, follow')
 <template>
   <UApp>
     <div class="flex min-h-screen flex-col">
-      <header class="border-b border-default">
-        <UContainer class="flex h-16 items-center">
-          <a href="/">
+      <!-- The shell's own header, minus what needs the app's overlays: the
+           wordmark, the three sections and the Colour mode toggle. -->
+      <header class="border-b border-default bg-default/90">
+        <UContainer class="flex h-(--ui-header-height) items-center gap-6">
+          <a
+            href="/"
+            aria-label="ZwiftBikes home"
+          >
             <AppLogo />
           </a>
+          <nav
+            aria-label="Sections"
+            class="hidden items-center gap-1 sm:flex"
+          >
+            <a
+              href="/"
+              class="px-3 py-2 text-md text-toned hover:text-highlighted"
+            >Routes</a>
+            <a
+              href="/segments"
+              class="px-3 py-2 text-md text-toned hover:text-highlighted"
+            >Segments</a>
+            <a
+              href="/events"
+              class="px-3 py-2 text-md text-toned hover:text-highlighted"
+            >Events</a>
+          </nav>
+          <UColorModeButton
+            color="neutral"
+            variant="outline"
+            class="ml-auto"
+          />
         </UContainer>
       </header>
 
@@ -53,29 +84,27 @@ useRobotsRule('noindex, follow')
         id="main"
         class="flex flex-1 items-center"
       >
-        <UContainer class="max-w-2xl py-10 space-y-6">
-          <p class="text-sm font-semibold uppercase tracking-wide text-muted">
-            {{ status }}
+        <UContainer class="max-w-2xl py-10 space-y-5">
+          <p class="text-sm text-muted">
+            Error {{ status }}
           </p>
-          <h1 class="text-3xl font-bold text-highlighted">
+          <h1 class="text-3xl font-bold font-display text-highlighted">
             {{ heading }}
           </h1>
-          <p class="text-muted">
+          <p class="text-toned">
             {{ explanation }}
           </p>
           <div class="flex flex-wrap gap-2">
             <UButton
               to="/"
               external
-              icon="i-lucide-route"
-              label="Routes"
+              label="Browse routes"
             />
             <UButton
               to="/segments"
               external
               color="neutral"
               variant="outline"
-              icon="i-lucide-mountain"
               label="Segments"
             />
             <UButton
@@ -83,7 +112,6 @@ useRobotsRule('noindex, follow')
               external
               color="neutral"
               variant="outline"
-              icon="i-lucide-calendar-days"
               label="Events"
             />
           </div>

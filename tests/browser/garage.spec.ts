@@ -27,14 +27,14 @@ const WHEEL = 'Roval Alpinist CLX'
 const overlay = (page: Page) => page.getByRole('dialog', { name: 'My Garage' })
 const editGarage = (page: Page) => page.getByRole('link', { name: 'Edit garage' })
 const garageScope = (page: Page) => page.getByText(/Other filters and compatibility still apply\./)
-const rows = (page: Page) => page.getByRole('list', { name: 'Ranked setups' }).getByRole('listitem')
+const rows = (page: Page) => page.getByRole('table', { name: 'Ranked setups' }).locator('tbody')
 /**
  * The same rows read by CSS rather than by role: an open Overlay marks the
  * page behind it `aria-hidden`, and a role query skips what the
  * accessibility tree hides - which is exactly where a journey wants to count
  * the rows the ranking underneath still has.
  */
-const rowsBehindOverlay = (page: Page) => page.locator('ol[aria-label="Ranked setups"] > li')
+const rowsBehindOverlay = (page: Page) => page.locator('table[aria-label="Ranked setups"] > tbody')
 const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search all frames and wheels' })
 
 const tab = (within: Locator | Page, name: string) => within.getByRole('tab', { name, exact: true })
@@ -50,7 +50,7 @@ test.describe('garage', () => {
     await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
     await ready(page)
     const nextPage = page.waitForResponse(response => isListingResponse(response) && response.url().includes('offset='))
-    await page.getByRole('button', { name: 'Show more matches' }).click()
+    await page.getByRole('button', { name: /^Show the next \d+$/ }).click()
     expect((await nextPage).ok()).toBe(true)
     await expect.poll(() => rows(page).count()).toBeGreaterThan(0)
     const expanded = await rows(page).count()
@@ -76,10 +76,10 @@ test.describe('garage', () => {
   test('sets a bike\'s stage from its ranked setup, and the garage keeps it', async ({ page }) => {
     await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
     await ready(page)
-    // The recommendation is rank 1 of the ranking, so the frame may sit
-    // there rather than in a row; both carry the same stage control.
-    const setup = page.locator('section:has(#ride-recommendation-heading), ol[aria-label="Ranked setups"] > li').filter({ hasText: FRAME }).first()
+    // The stage control is the row's, behind its disclosure - rank 1's row included.
+    const setup = rows(page).filter({ hasText: FRAME }).first()
     await expect(setup).toBeVisible()
+    await setup.getByRole('button', { name: /^Show details for / }).click()
     // Not owned: the stage is the profile's default for unowned bikes, as
     // text - there is nothing to edit here until the bike is in the garage.
     await expect(setup.getByText(/^Stage \d, assumed$/)).toBeVisible()
@@ -140,8 +140,7 @@ test.describe('garage', () => {
 
     await rerank(page, () => searchBox(page).fill(FRAME))
     // Wherever the search leaves it in the ranking: with both halves of the
-    // garage owned this is often a ranking of one, and rank 1 is the
-    // recommendation, not a row (issue #227).
+    // garage owned this is often a ranking of one.
     await page.getByRole('button', { name: `Details for ${FRAME}` }).first().click()
     const drawer = page.getByRole('dialog')
     await expect(drawer.getByRole('button', { name: `Set upgrade stage 2 for ${FRAME}`, pressed: true })).toBeVisible()

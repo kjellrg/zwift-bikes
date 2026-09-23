@@ -17,13 +17,10 @@ onMounted(loadSiteFlags)
 </script>
 
 <template>
-  <UAlert
+  <SiteNotice
     v-if="recommendNotice"
-    color="warning"
-    variant="subtle"
-    icon="i-lucide-flask-conical"
     title="Take today's rankings with a pinch of salt"
-    :description="recommendNotice"
-    class="mb-6"
-  />
+  >
+    <p>{{ recommendNotice }}</p>
+  </SiteNotice>
 </template>

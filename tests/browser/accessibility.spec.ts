@@ -17,8 +17,7 @@ import { hydrated, visit, visitPage } from './support'
  * Every target is scanned dark first, because dark is the Colour mode a
  * first visit gets, then light through the header's own toggle - the
  * contrast rules are the ones a palette change can break, and they answer
- * differently per mode. The not-found page has no header, so it takes its
- * light mode from storage instead. The journeys behind each opener live in
+ * differently per mode. The journeys behind each opener live in
  * the other specs; this one only needs the Overlay open.
  */
 
@@ -58,7 +57,7 @@ const OVERLAYS: { kind: string, dialog: (page: Page) => Locator, opener: (page: 
   {
     kind: 'profile overlay',
     dialog: page => page.getByRole('dialog', { name: 'My Profile' }),
-    // A fresh context has no stored profile, so the rider strip offers to set one.
+    // A fresh context has no stored profile, so the Rider card offers to set one.
     opener: page => page.getByRole('link', { name: 'Set your profile' }).click()
   },
   {
@@ -69,15 +68,10 @@ const OVERLAYS: { kind: string, dialog: (page: Page) => Locator, opener: (page: 
   {
     kind: 'about overlay',
     dialog: page => page.getByRole('dialog', { name: 'About ZwiftBikes' }),
-    opener: async (page, isMobile) => {
-      if (isMobile) {
-        await menuToggle(page).click()
-        await expect(menu(page)).toBeVisible()
-        await menu(page).getByRole('link', { name: 'About', exact: true }).click()
-        return
-      }
-      await header(page).getByRole('link', { name: 'About', exact: true }).click()
-    }
+    // About lives in the footer on every viewport (and in the mobile menu,
+    // which `shell.spec.ts` covers); the header keeps the sections and the
+    // Garage and Profile openers only.
+    opener: page => page.getByRole('contentinfo').getByRole('link', { name: 'About this project' }).click()
   },
   {
     kind: 'report overlay',
@@ -183,14 +177,10 @@ test.describe('accessibility', () => {
     const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
     expect(response?.status()).toBe(404)
     await hydrated(page)
+    await expect(page.locator('html')).toHaveClass(/\bdark\b/)
     await audit(page, 'not found (dark)')
-
-    // No header on the error page, so light mode comes from the stored
-    // preference the toggle would have written.
-    await page.evaluate(() => localStorage.setItem('nuxt-color-mode', 'light'))
-    await page.reload({ waitUntil: 'domcontentloaded' })
-    await hydrated(page)
-    await expect(page.locator('html')).toHaveClass(/\blight\b/)
+    // The error page carries the shell's header and its toggle.
+    await switchToLight(page)
     await audit(page, 'not found (light)')
   })
 })

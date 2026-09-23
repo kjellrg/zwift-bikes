@@ -18,18 +18,18 @@ defineOgImage('SiteCard', {}, {
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-8">
-    <div class="max-w-2xl">
-      <h1 class="text-3xl font-bold text-highlighted">
+  <UContainer class="max-w-3xl py-10 space-y-8">
+    <div>
+      <h1 class="text-3xl font-bold font-display text-highlighted">
         About ZwiftBikes
       </h1>
-      <p class="text-muted mt-1">
+      <p class="mt-2 text-toned">
         What this project is, where its numbers come from, and what it does
         with your data.
       </p>
     </div>
 
-    <div class="max-w-2xl">
+    <div>
       <AboutContent />
     </div>
   </UContainer>

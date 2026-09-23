@@ -33,30 +33,30 @@
     "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs"
   },
   "dependencies": {
-    "@iconify-json/lucide": "^1.2.131",
-    "@iconify-json/simple-icons": "^1.2.95",
+    "@iconify-json/lucide": "^1.2.132",
+    "@iconify-json/simple-icons": "^1.2.96",
     "@nuxt/ui": "^4.11.1",
-    "@nuxtjs/robots": "^6.2.2",
-    "@nuxtjs/sitemap": "^8.5.0",
-    "@takumi-rs/core": "^2.13.7",
+    "@nuxtjs/robots": "^6.2.3",
+    "@nuxtjs/sitemap": "^8.5.1",
+    "@takumi-rs/core": "^2.14.0",
     "nuxt": "^4.5.2",
-    "nuxt-og-image": "^6.7.8",
+    "nuxt-og-image": "^6.8.0",
     "tailwindcss": "^4.3.3",
-    "zod": "^4.6.2",
+    "zod": "^4.6.5",
     "zwift-data": "^1.50.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@nuxt/eslint": "^1.17.0",
     "@playwright/test": "1.63.0",
-    "@types/node": "^22.20.2",
-    "cspell": "^10.3.0",
+    "@types/node": "^22.20.3",
+    "cspell": "^10.3.2",
     "esbuild": "^0.27.7",
     "eslint": "^10.10.0",
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11",
     "vue-tsc": "^3.3.11",
-    "wrangler": "^4.131.0"
+    "wrangler": "^4.132.0"
   }
 }

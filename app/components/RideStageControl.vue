@@ -31,16 +31,15 @@ const isOwned = computed(() => owned.value[props.combo.frame.id] !== undefined)
       value-key="value"
       :items="UPGRADE_STAGE_OPTIONS"
       :search-input="false"
-      size="xs"
-      variant="ghost"
+      size="sm"
+      variant="outline"
       :aria-label="`Upgrade stage for ${combo.frame.name}`"
       @update:model-value="(level: number) => setOwned(combo.frame.id, level)"
     />
-    <UTooltip
+    <span
       v-else
-      text="The stage bikes you don't own are ranked at - change the default in your profile, or add the bike to your garage to set its own"
-    >
-      <span class="text-muted">Stage {{ combo.frame.level }}, assumed</span>
-    </UTooltip>
+      class="text-toned"
+      title="The stage bikes you don't own are ranked at - change the default in your profile, or add the bike to your garage to set its own"
+    >Stage {{ combo.frame.level }}, assumed</span>
   </span>
 </template>

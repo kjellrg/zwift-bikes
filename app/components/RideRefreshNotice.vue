@@ -37,20 +37,18 @@ const description = computed(() => props.hasResults
   <!-- `alert` rather than the polite region the acceptance announcement
        uses: this appears in place of the update the rider asked for, and
        the ranking underneath it is now telling them something untrue. -->
-  <UAlert
+  <SiteNotice
     v-if="failed"
     id="ride-refresh-notice"
-    color="warning"
-    variant="subtle"
-    icon="i-lucide-refresh-cw-off"
+    tone="error"
     role="alert"
     :title="hasResults ? 'Couldn\'t update the results' : 'Couldn\'t load the results'"
-    :description="description"
   >
+    <p>{{ description }}</p>
     <template #actions>
       <UButton
-        color="warning"
-        variant="solid"
+        color="neutral"
+        variant="outline"
         size="xs"
         icon="i-lucide-rotate-cw"
         @click="$emit('retry')"
@@ -58,5 +56,5 @@ const description = computed(() => props.hasResults
         Try again
       </UButton>
     </template>
-  </UAlert>
+  </SiteNotice>
 </template>

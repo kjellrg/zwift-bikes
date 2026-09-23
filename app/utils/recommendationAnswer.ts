@@ -72,7 +72,9 @@ export function buildRecommendationAnswer(inputs: RecommendationAnswerInputs): R
         ? 'among all eligible frames with your wheels, within the current filters'
         : 'within the current filters'
   const speed = inputs.distanceKm ? ` (~${formatSpeedKmh(inputs.distanceKm, inputs.finishTimeSec)})` : ''
-  const verdict = `Our model puts ${equipment} fastest ${pool} for ${inputs.rideName}: ${formatDuration(inputs.finishTimeSec)}${speed}.`
+  // "Best bike" once, here and in the page description: the phrase riders
+  // search for beside "fastest bike", which the title and H1 carry.
+  const verdict = `Our model puts ${equipment} fastest ${pool} for ${inputs.rideName}, the best bike for it at ${formatDuration(inputs.finishTimeSec)}${speed}.`
   const summary = inputs.rideRules ? `${inputs.rideRules} ${verdict}` : verdict
 
   const rider = inputs.rider

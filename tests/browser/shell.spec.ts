@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { expectNoHorizontalOverflow, resolvedColor, visit, visitPage } from './support'
 
 /**
- * The shared shell (issue #212): the header and its section entries, the
+ * The shared shell (issues #212, #257): the header and its section entries, the
  * mobile menu, the Overlays the shell opens (see `CONTEXT.md`), the skip
  * link and the theme toggle - what every page gets before it renders a
  * thing of its own. Journeys assert what a keyboard rider or a crawler
@@ -57,14 +57,20 @@ test.describe('shell', () => {
     await expect(entry(entries, 'Routes')).toHaveAttribute('href', '/')
     await expect(entry(entries, 'Segments')).toHaveAttribute('href', '/segments')
     await expect(entry(entries, 'Events')).toHaveAttribute('href', '/events')
-    await expect(entry(entries, 'My Profile')).toHaveAttribute('href', '/profile')
-    await expect(entry(entries, 'My Garage')).toHaveAttribute('href', '/garage')
+    await expect(entry(entries, 'Profile')).toHaveAttribute('href', '/profile')
+    await expect(entry(entries, 'Garage')).toHaveAttribute('href', '/garage')
     await expectMarked(entries, 'Routes')
 
-    // The mark is the primary colour, nothing else: no pill, no underline.
+    // The mark is a primary underline under the ink: the entry itself is not
+    // coloured primary, and the other entries carry no underline at all.
     const primary = await resolvedColor(page, 'var(--ui-primary)')
-    expect(await entry(entries, 'Routes').evaluate(element => getComputedStyle(element).color)).toBe(primary)
-    expect(await entry(entries, 'Segments').evaluate(element => getComputedStyle(element).color)).not.toBe(primary)
+    const underline = (name: string) => entry(entries, name).evaluate((element) => {
+      const style = getComputedStyle(element)
+      return `${style.boxShadow} ${style.textDecorationLine} ${style.textDecorationColor}`
+    })
+    expect(await entry(entries, 'Routes').evaluate(element => getComputedStyle(element).color)).not.toBe(primary)
+    expect(await underline('Routes')).toContain(primary)
+    expect(await underline('Segments')).not.toContain(primary)
 
     await entry(entries, 'Segments').click()
     await page.waitForURL('**/segments')
@@ -96,15 +102,17 @@ test.describe('shell', () => {
 
   // Every entry whose content is also a real page: a plain click shows the
   // Overlay, a modifier click opens the page. About was a button with no
-  // href until #215, so a modifier click on it did nothing at all.
+  // href until #215, so a modifier click on it did nothing at all; since
+  // #257 it sits in the footer rather than the header.
   for (const [name, path, dialogName] of [
-    ['My Profile', '/profile', 'My Profile'],
-    ['About', '/about', 'About ZwiftBikes']
+    ['Profile', '/profile', 'My Profile'],
+    ['About this project', '/about', 'About ZwiftBikes']
   ] as const) {
     test(`opens the ${name} overlay on a plain click and its page on a modifier click`, async ({ page, context, isMobile }) => {
       const overlay = page.getByRole('dialog', { name: dialogName })
+      const within = async () => name === 'Profile' ? nav(page, isMobile) : page.getByRole('contentinfo')
       await visit(page, ROUTE)
-      let entries = await nav(page, isMobile)
+      let entries = await within()
       await expect(entry(entries, name)).toHaveAttribute('href', path)
       await entry(entries, name).click()
       await expect(overlay).toBeVisible()
@@ -112,7 +120,7 @@ test.describe('shell', () => {
       await page.keyboard.press('Escape')
       await expect(overlay).toHaveCount(0)
 
-      entries = await nav(page, isMobile)
+      entries = await within()
       const popupPromise = context.waitForEvent('page')
       await entry(entries, name).click({ modifiers: ['ControlOrMeta'] })
       const popup = await popupPromise
@@ -135,7 +143,7 @@ test.describe('shell', () => {
 
     await page.keyboard.press('Enter')
     await expect(menu(page)).toBeVisible()
-    for (const [name, dialogName] of [['My Profile', 'My Profile'], ['About', 'About ZwiftBikes']] as const) {
+    for (const [name, dialogName] of [['Profile', 'My Profile'], ['About', 'About ZwiftBikes']] as const) {
       if (!(await menu(page).isVisible())) await menuToggle(page).click()
       const overlay = page.getByRole('dialog', { name: dialogName })
       await entry(menu(page), name).focus()
@@ -165,7 +173,7 @@ test.describe('shell', () => {
     const lightGround = await bodyBackground()
     expect(lightGround).not.toBe(darkGround)
 
-    await entry(await nav(page, isMobile), 'My Profile').click()
+    await entry(await nav(page, isMobile), 'Profile').click()
     await expect(profileOverlay(page)).toBeVisible()
     expect(await profileOverlay(page).evaluate(element => getComputedStyle(element).backgroundColor)).toBe(lightGround)
   })

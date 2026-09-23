@@ -15,7 +15,7 @@ const open = defineModel<boolean>('open', { default: false })
     v-model:open="open"
     :content="content"
     title="My Garage"
-    :ui="{ content: 'sm:max-w-3xl' }"
+    :ui="{ content: 'sm:max-w-3xl', title: 'text-xl font-semibold font-heading', description: 'text-toned' }"
   >
     <template #body>
       <GarageContent />

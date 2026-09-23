@@ -155,6 +155,18 @@ export default defineNuxtConfig({
     }
   },
 
+  // Archivo, self-hosted: one variable woff2 in `public/fonts`, so no page
+  // or share card asks a third party for a font. Global because the
+  // share-card renderer (nuxt-og-image) reads only the faces @nuxt/fonts
+  // emits globally - without it every card fell back to the renderer's
+  // bundled Inter. The pages read the same file through the face in
+  // `main.css`, which carries the width axis this declaration cannot.
+  fonts: {
+    families: [
+      { name: 'Archivo', src: '/fonts/archivo-variable.woff2', weight: [100, 900], global: true }
+    ]
+  },
+
   icon: {
     clientBundle: {
       // `scan` defaults to `false`, so without this the client bundle only
@@ -167,24 +179,7 @@ export default defineNuxtConfig({
       // (the sitemap's zeroRuntime prerender crawl hits nearly every icon
       // in the app back-to-back). Scanning bundles every icon reachable as
       // a literal string across app/shared source.
-      scan: true,
-      // Icons only ever reached via a Record/object lookup (e.g.
-      // `SURFACE_TYPE_ICONS[surface]` in app/utils/labels.ts, consumed by
-      // RouteSurfaceComposition.vue, RouteSurfaceSpeedProfile.vue and
-      // SurfaceBadges.vue) aren't literal strings in the source, so `scan`
-      // can't find them either - list them explicitly.
-      icons: [
-        'lucide:road',
-        'lucide:brick-wall',
-        'lucide:fence',
-        'lucide:grip',
-        'lucide:snowflake',
-        'lucide:footprints',
-        'lucide:sprout',
-        'lucide:waves',
-        'lucide:stone',
-        'lucide:mountain-snow'
-      ]
+      scan: true
     }
   },
 

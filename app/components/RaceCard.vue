@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ULink } from '#components'
 import type { EventRaceWithRoute } from '../../shared/types/events'
+import type { Silhouette } from '#shared/utils/silhouette'
 
 /**
- * A Race as a season page lists it (see `CONTEXT.md`): what it is, when it
- * runs, what it is run on, and whether it is the next one or already done.
- * The box, the stat row and the whole-card link are `RouteCard`'s and
- * `SegmentCard`'s, so a season page reads as the same discovery page the
- * homepage and the segments page are.
+ * A Race as a season page schedules it (see `CONTEXT.md`): one row with its
+ * date, its primary route's Silhouette, what it is and what it is run on,
+ * its format as text, and "Fastest bike for it" - a schedule reads as a
+ * schedule, and a race with several Category groups still fits, one course
+ * line per distinct course.
  *
  * One card shape for upcoming and completed races. They used to be two
  * tables with different columns, so a race quietly lost its distance and
@@ -26,13 +26,11 @@ const props = defineProps<{
   next?: boolean
   /** Already run. Both flags are resolved post-mount; see the season page. */
   past?: boolean
+  /** The primary route's Silhouette, when the route has a measured shape. */
+  shape?: Silhouette
 }>()
 
 const href = computed(() => isRacePublishable(props.race) ? `/events/${props.seasonSlug}/${props.race.slug}` : undefined)
-// The component itself, not its name: auto-imported components are resolved
-// when the template is compiled, so a `:is` naming one as a string renders a
-// literal `<ULink>` element that no browser and no crawler understands.
-const wrapper = computed(() => href.value ? ULink : 'div')
 
 /**
  * Why a race has no page, in a rider's terms. The two reasons read
@@ -87,97 +85,58 @@ const courses = computed(() => {
 </script>
 
 <template>
-  <component
-    :is="wrapper"
-    :to="href"
-    class="h-full"
-  >
-    <UCard
-      class="h-full"
-      :class="href ? 'transition hover:ring-primary/50' : undefined"
-      :ui="{ body: 'space-y-3' }"
-    >
-      <div class="flex items-start justify-between gap-2">
-        <!-- `min-w-0` so a long race or round name wraps inside its own
-             column instead of widening the card past its grid cell. -->
-        <div class="min-w-0">
-          <p class="font-semibold text-highlighted">
-            {{ raceDisplayName(race) }}
-          </p>
-          <p class="text-sm text-muted">
-            {{ formatRaceDateRange(race.date, race.endDate) }}
-          </p>
-        </div>
-        <div class="flex shrink-0 flex-col items-end gap-1.5">
-          <UBadge
-            v-if="next"
-            color="primary"
-            variant="subtle"
-            icon="i-lucide-flag"
-          >
-            Next
-          </UBadge>
-          <UBadge
-            v-else-if="past"
-            color="neutral"
-            variant="subtle"
-          >
-            Completed
-          </UBadge>
-          <UBadge
-            v-if="race.format"
-            :color="RACE_FORMAT_COLORS[race.format]"
-            variant="subtle"
-          >
-            {{ RACE_FORMAT_LABELS[race.format] }}
-          </UBadge>
-          <UBadge
-            v-else
-            color="neutral"
-            variant="subtle"
-          >
-            Format TBC
-          </UBadge>
-        </div>
-      </div>
-
-      <div class="space-y-1.5 text-sm">
-        <div
-          v-for="course in courses"
-          :key="course.key"
-          class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5"
-        >
-          <span
-            v-if="course.label"
-            class="text-xs font-medium uppercase tracking-wide text-muted"
-          >{{ course.label }}</span>
-          <span class="text-highlighted">{{ course.name ?? 'Route TBC' }}</span>
-          <span
-            v-if="course.worldName"
-            class="text-muted"
-          >{{ course.worldName }}</span>
-          <span
-            v-if="course.distanceKm"
-            class="inline-flex items-center gap-1.5 text-muted tabular-nums"
-          ><UIcon
-            name="i-lucide-ruler"
-            class="size-4 shrink-0"
-          />{{ formatDistance(course.distanceKm) }}</span>
-        </div>
-        <p
-          v-if="!courses.length"
-          class="text-muted"
-        >
-          Route TBC
-        </p>
-      </div>
-
-      <p
-        v-if="!href"
-        class="text-xs text-muted"
-      >
-        Details to come - {{ noPageReason }}.
+  <li class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-4 gap-y-2 border-b border-default py-4 sm:grid-cols-[5.5rem_7rem_minmax(0,1fr)_auto] sm:items-center">
+    <p class="text-sm text-toned">
+      {{ formatRaceDateRange(race.date, race.endDate) }}
+      <span
+        v-if="next || past"
+        class="block text-xs text-muted"
+      >{{ next ? 'Next race' : 'Completed' }}</span>
+    </p>
+    <!-- No route yet, no drawing: an empty slot keeps the schedule's columns. -->
+    <RouteSilhouette
+      v-if="shape"
+      :shape="shape"
+      class="hidden h-10 sm:block"
+    />
+    <span
+      v-else
+      class="hidden sm:block"
+    />
+    <div class="min-w-0">
+      <p class="font-semibold text-highlighted">
+        {{ raceDisplayName(race) }}
+        <span class="ml-1 text-sm font-normal text-muted">{{ race.format ? RACE_FORMAT_LABELS[race.format] : 'Format to come' }}</span>
       </p>
-    </UCard>
-  </component>
+      <p
+        v-for="course in courses"
+        :key="course.key"
+        class="text-sm text-toned"
+      >
+        <span
+          v-if="course.label"
+          class="text-muted"
+        >{{ course.label }}: </span>{{ [course.name ?? 'Route to come', course.worldName].filter(Boolean).join(', ') }}{{ course.distanceKm ? ` · ${formatDistance(course.distanceKm)}` : '' }}
+      </p>
+      <p
+        v-if="!courses.length"
+        class="text-sm text-muted"
+      >
+        Route to come
+      </p>
+    </div>
+    <p class="col-start-2 text-sm sm:col-start-auto sm:text-right">
+      <NuxtLink
+        v-if="href"
+        :to="href"
+        class="font-medium whitespace-nowrap text-primary hover:underline"
+      >
+        Fastest bike for it
+      </NuxtLink>
+      <span
+        v-else
+        class="text-muted"
+      >Details to come - {{ noPageReason }}.</span>
+    </p>
+  </li>
 </template>
