@@ -158,6 +158,17 @@ export function formatDurationDelta(seconds: number): string {
   return gap === 'fastest' ? gap : `${gap} slower`
 }
 
+/**
+ * A gap between two setups as a sentence says it - `0.33 s`, `4.1 s`, `22 s`,
+ * `1:05` - with as many decimals as the gap needs to be told apart from
+ * nothing and no more, since a sentence is read, not compared down a column.
+ */
+export function formatGapSeconds(seconds: number): string {
+  const magnitude = Math.abs(seconds)
+  if (magnitude >= 59.5) return formatDuration(magnitude)
+  return `${magnitude < 1 ? magnitude.toFixed(2) : magnitude < 10 ? magnitude.toFixed(1) : Math.round(magnitude)} s`
+}
+
 /** Formats an average speed (route distance in km over a finish time in seconds), e.g. `32.4 km/h`. */
 export function formatSpeedKmh(distanceKm: number, seconds: number): string {
   if (seconds <= 0) return '-'

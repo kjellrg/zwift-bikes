@@ -53,7 +53,7 @@ const props = defineProps<{
 }>()
 
 const {
-  topCombo, appliedRanking, appliedRestrictions, physics, fastestOverall,
+  topCombo, appliedRanking, appliedRestrictions, physics, fastestOverall, climbTrade,
   isFirstLoad, isRefreshing, refreshFailed, hasRanking, retry,
   bikeSearch, hasMore, canShowMore, loadingMore, expansionFailed, showMore
 } = props.request
@@ -109,7 +109,7 @@ const evidence = computed(() => rankingEvidence({
             :limited-data-note="evidence.limitedDataNote"
             :notes="evidence.notes"
           >
-            <template #fastest-overall>
+            <template #answer-notes>
               <!-- `pointer-events-auto`: the reveal is a filter change, not a
                    stale result, and stays usable through a refresh. -->
               <FastestOverallNote
@@ -118,6 +118,10 @@ const evidence = computed(() => rankingEvidence({
                 class="pointer-events-auto"
                 @show-all="setBikeCategory('all')"
                 @include-halo="setIncludeHaloBikes(true)"
+              />
+              <ClimbTradeNote
+                v-if="climbTrade"
+                :trade="climbTrade"
               />
             </template>
           </RideRecommendation>

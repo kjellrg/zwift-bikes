@@ -30,6 +30,8 @@ export default defineCachedRecommendHandler(async (event) => {
     route: toRouteSummary(route),
     combos: result.combos,
     fastestOverall: result.fastestOverall,
+    wheelChoice: result.wheelChoice,
+    climbTrade: result.climbTrade,
     physics: physics && {
       mode: physics.mode,
       ttt: physics.ttt,

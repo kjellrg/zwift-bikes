@@ -34,6 +34,17 @@ export interface RouteClimbOccurrence extends RouteClimb, SegmentOccurrence {}
  * at its real km on each lap, so riders can see e.g. "Innsbruck KOM" three
  * times on a 3-lap ride rather than just once. Shared by `expandClimbsForLaps`
  * and `expandSprintsForLaps`.
+ *
+ * Positions come out in OFFICIAL km, the coordinates the simulator and the
+ * Course hero ride in. zwift-data's placements are measured on the route's
+ * community trace, not its published distance (see `SurfaceEstimate.traceScale`),
+ * so a lap placement is multiplied by the same factor the measured profile
+ * was: unscaled, Innsbruck KOM After Party's KOM ended 166 m past the finish,
+ * and a Climb time cut there would have timed road nobody rides. The one
+ * remaining overhang - a placement that still runs a few metres past the
+ * line - is clamped to the finish, and anything starting past it is dropped.
+ * Lead-in placements are left as they are: they are measured on the lead-in,
+ * which the lap's factor does not describe.
  */
 export function expandOccurrencesForLaps<T extends { fromKm: number, toKm: number, perLap: boolean }>(
   items: T[],
@@ -42,11 +53,17 @@ export function expandOccurrencesForLaps<T extends { fromKm: number, toKm: numbe
 ): (T & SegmentOccurrence)[] {
   const leadInKm = route.leadInDistance ?? 0
   const lapCount = Math.max(1, Math.floor(laps))
+  const traceScale = route.surface?.traceScale ?? 1
+  const finishKm = leadInKm + lapCount * route.distance
 
   const occurrences: (T & SegmentOccurrence)[] = []
+  const push = (occurrence: T & SegmentOccurrence) => {
+    if (occurrence.rideFromKm >= finishKm) return
+    occurrences.push({ ...occurrence, rideToKm: Math.min(occurrence.rideToKm, finishKm) })
+  }
   for (const item of items) {
     if (!item.perLap) {
-      occurrences.push({ ...item, rideFromKm: item.fromKm, rideToKm: item.toKm })
+      push({ ...item, rideFromKm: item.fromKm, rideToKm: item.toKm })
       continue
     }
     for (let lap = 0; lap < lapCount; lap++) {
@@ -54,7 +71,7 @@ export function expandOccurrencesForLaps<T extends { fromKm: number, toKm: numbe
       // Only label which lap when more than one is actually being ridden -
       // "lap 1" of 1 is just noise.
       const lapNumber = lapCount > 1 ? lap + 1 : undefined
-      occurrences.push({ ...item, lapNumber, rideFromKm: offsetKm + item.fromKm, rideToKm: offsetKm + item.toKm })
+      push({ ...item, lapNumber, rideFromKm: offsetKm + item.fromKm * traceScale, rideToKm: offsetKm + item.toKm * traceScale })
     }
   }
 
