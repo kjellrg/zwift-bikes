@@ -45,9 +45,17 @@ const query = computed(() => ({
 // flight.
 const { data, status, refresh } = useFetch('/api/bikes', { query })
 
+// The last catalog the list drew, kept through the next search's request
+// rather than read straight off `data`: the rows stay mounted, so a stage
+// menu opened while the rider is still typing is not closed under them.
+const shownFrames = shallowRef<ClassifiedBikeFrame[]>()
+watch(data, (value) => {
+  if (value) shownFrames.value = value.frames
+}, { immediate: true })
+
 const ownedFramesOnly = ref(false)
 const frames = computed<ClassifiedBikeFrame[]>(() => {
-  const all = data.value?.frames ?? []
+  const all = shownFrames.value ?? []
   return ownedFramesOnly.value ? all.filter(f => isOwned(f.id)) : all
 })
 
@@ -87,9 +95,15 @@ const { data: wheelData, status: wheelStatus, refresh: refreshWheels } = useFetc
   { query: wheelQuery }
 )
 
+// Kept through a search's request, as the frames are.
+const shownWheelsets = shallowRef<Wheelset[]>()
+watch(wheelData, (value) => {
+  if (value) shownWheelsets.value = value.wheelsets
+}, { immediate: true })
+
 const ownedWheelsetsOnly = ref(false)
 const wheelsets = computed<Wheelset[]>(() => {
-  const all = wheelData.value?.wheelsets ?? []
+  const all = shownWheelsets.value ?? []
   return ownedWheelsetsOnly.value
     ? all.filter(w => isWheelOwned(w.key))
     : all
@@ -106,12 +120,14 @@ const ownedWheelCount = computed(() => Object.keys(ownedWheels.value).length)
 // something else on the other.
 const frameListStatus = computed(() => garageListStatus({
   status: status.value,
+  shown: shownFrames.value !== undefined,
   ownedOnly: ownedFramesOnly.value,
   ownsCollection: ownedCount.value > 0,
   visible: frames.value.length
 }))
 const wheelListStatus = computed(() => garageListStatus({
   status: wheelStatus.value,
+  shown: shownWheelsets.value !== undefined,
   ownedOnly: ownedWheelsetsOnly.value,
   ownsCollection: ownedWheelCount.value > 0,
   visible: wheelsets.value.length

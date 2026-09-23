@@ -35,7 +35,9 @@ export const GARAGE_FALLBACK_SCOPES: Record<GarageFallback, string> = {
  * `GarageContent`), so `'idle'` is still loading - the first request is not
  * even in flight yet - and a failed fetch empties the data it would have
  * filled, which is why the failure is read before anything that would
- * otherwise call the emptied list "no match".
+ * otherwise call the emptied list "no match". Only the first request
+ * loads: once a list is `shown`, a search's request keeps it on screen until
+ * the answer replaces it, as a ranking page keeps its rows through a refresh.
  *
  * `emptyCollection` is the rider's own doing rather than the search's: "only
  * show what I own" with nothing owned in this tab. Saying so is what
@@ -47,6 +49,8 @@ export type GarageListStatus = 'loading' | 'failed' | 'emptyCollection' | 'noMat
 export function garageListStatus(list: {
   /** The tab's own catalog fetch. */
   status: AsyncDataRequestStatus
+  /** Whether an earlier answer's rows are on screen to keep. */
+  shown: boolean
   /** Whether the tab's "only show what I own" switch is on. */
   ownedOnly: boolean
   /** Whether the rider owns anything in THIS collection - frames on the bikes tab, wheels on the wheels tab. */
@@ -55,7 +59,7 @@ export function garageListStatus(list: {
   visible: number
 }): GarageListStatus {
   if (list.status === 'error') return 'failed'
-  if (list.status === 'idle' || list.status === 'pending') return 'loading'
+  if (!list.shown && (list.status === 'idle' || list.status === 'pending')) return 'loading'
   if (list.ownedOnly && !list.ownsCollection) return 'emptyCollection'
   return list.visible === 0 ? 'noMatch' : 'list'
 }
