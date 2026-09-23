@@ -4,41 +4,37 @@ import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
 import type { RiderInputs } from '../utils/recommendRequest'
 
 /**
- * The equipment eligibility controls for a ranking page, in two tiers: the
- * garage and Halo switches stay visible, the category and verified-only
- * controls sit behind "More filters" with their current values always shown
- * beside the button - a restriction the rider cannot see is a restriction
- * they will blame the ranking for.
+ * The equipment filters above the Ranking, as chips that show their state
+ * with the list they produced: one category chip that opens a menu of the
+ * six values, and on/off chips for verified data only, the garage and the
+ * purchasable Halo bikes. A restriction the rider cannot see is one they
+ * will blame the ranking for, so every value is on screen, never folded
+ * away. There is no TT chip: TT is a category.
  *
- * Every control binds `usePreferences()` directly through its setter: the
- * category is one persisted value shared with the profile page, and a
- * page-local mirror of it is where a spurious refetch loop would come from.
- * Search is deliberately not here - it sits on the ranked list it filters.
+ * Every chip binds `usePreferences()` through its setter, the same stored
+ * values and Shared-view overrides as ever - the category is one persisted
+ * value shared with the Rider card and the profile, and a page-local mirror
+ * of it is where a spurious refetch loop would come from. "On" is drawn in
+ * the ink, not the primary, which is spent on the answer.
  *
- * `loadPreferences()`/`loadGarage()` run here because a child's `onMounted`
- * fires before its parent's, so the stored values are in state before the
- * page reads them - the same reason `RiderProfileControls` loads its own.
+ * `load()` runs here because a child's `onMounted` fires before its
+ * parent's, so the stored values are in state before the page reads them.
  */
 const props = defineProps<{
   appliedRestrictions: RiderInputs
   /**
-   * Whether this ride outlaws TT frames - a points or scratch race, or a
-   * Race of Truth. The TT option is dropped rather than disabled, because
-   * the ranking beneath could not honour it: a filter must never offer a
-   * category the results would refuse to show. A rider whose stored category
-   * IS `tt` reads "All categories" here instead, WITHOUT that being written
-   * back - which is exactly the substitution `rideCategory` makes on the
-   * request side, so the control and the ranking say the same thing, and
-   * their saved choice survives for the pages where TT is legal.
+   * Whether this ride outlaws TT frames. The TT value is dropped from the
+   * menu rather than disabled, because the ranking beneath could not honour
+   * it, and a stored `tt` reads as "All categories" WITHOUT being written
+   * back - the substitution `rideCategory` makes on the request side.
    */
   hideTtCategory?: boolean
 }>()
 
 const { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, includeHaloBikes, load: loadPreferences, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setIncludeHaloBikes } = usePreferences()
 const { load: loadGarage } = useGarage()
-// The profile and garage links keep a real `href` for deep links and
-// modifier-clicks, and are plain `<a>`s rather than ULinks: vue-router's own
-// click handler would run before `preventDefault` - see `useOverlays`.
+// A real href for deep links and modifier-clicks; a plain click opens the
+// garage Overlay - see `useOverlays`.
 const { openGarage } = useOverlays()
 
 onMounted(() => {
@@ -46,21 +42,20 @@ onMounted(() => {
   loadGarage()
 })
 
-const categoryOptions = computed(() => BIKE_CATEGORY_FILTERS
-  .filter(value => !(props.hideTtCategory && value === 'tt'))
-  .map(value => ({ label: value === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[value], value })))
-// What the select points at and what the summary line beside the button
-// reads - see `hideTtCategory`. Both go through it, or the select would
-// point at an option that is not in its list.
 const displayCategory = computed(() => props.hideTtCategory && bikeCategory.value === 'tt' ? 'all' : bikeCategory.value)
-const categoryLabel = computed(() => displayCategory.value === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[displayCategory.value])
+const categoryLabel = (value: BikeCategory | 'all') => value === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[value]
+const categoryItems = computed(() => BIKE_CATEGORY_FILTERS
+  .filter(value => !(props.hideTtCategory && value === 'tt'))
+  .map(value => ({
+    label: categoryLabel(value),
+    type: 'checkbox' as const,
+    checked: displayCategory.value === value,
+    onSelect: () => setBikeCategory(value)
+  })))
 
-// The server falls back independently per collection when "my garage" is on:
-// no owned frames means every frame, no owned wheels means every compatible
-// wheel. The switch alone can't show which of the four cases applies, so
-// this line does - and says that the other filters still narrow the pool.
-// The four cases themselves are `garageFallback`, shared with the garage,
-// which explains an empty tab with the same rule (see `CONTEXT.md`).
+// Which of the four Garage fallback cases the ranking is under - the switch
+// alone can't say, so this line does, and that the other filters still
+// narrow the pool (see `garageFallback` and `CONTEXT.md`).
 const garageScope = computed(() => {
   if (!props.appliedRestrictions.myBikesOnly) return undefined
   return GARAGE_FALLBACK_SCOPES[garageFallback({
@@ -69,98 +64,90 @@ const garageScope = computed(() => {
   })]
 })
 
-const moreFilters = ref(false)
-const moreFiltersId = useId()
-const categoryId = useId()
+const CHIP = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors'
+const chipState = (on: boolean) => on ? 'border-ink bg-accented text-highlighted' : 'border-accented bg-elevated text-toned hover:text-highlighted'
 </script>
 
 <template>
-  <div
-    class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-default py-4 text-sm"
-    aria-label="Equipment filters"
-    role="group"
-  >
-    <USwitch
-      :model-value="myBikesOnly"
-      label="My garage only"
-      @update:model-value="(value: boolean) => setMyBikesOnly(value)"
-    />
-    <a
-      href="/garage"
-      class="inline-flex items-center gap-1.5 text-primary hover:underline"
-      aria-haspopup="dialog"
-      @click="openGarage"
-    ><UIcon
-      name="i-lucide-pencil"
-      class="size-4 shrink-0"
-    />Edit garage</a>
-    <USwitch
-      :model-value="includeHaloBikes"
-      label="Include Halo bikes"
-      @update:model-value="(value: boolean) => setIncludeHaloBikes(value)"
-    />
-    <UTooltip text="The three purchasable Halo bikes are hidden by default - each takes three fully upgraded frames of one brand plus ~20 million Drops. Owned Halo bikes always stay eligible, and a search finds them regardless.">
-      <UButton
-        icon="i-lucide-circle-help"
-        size="xs"
-        color="neutral"
-        variant="ghost"
-        aria-label="About Halo bike filtering"
-      />
-    </UTooltip>
-    <UButton
-      icon="i-lucide-list-filter"
-      size="sm"
-      color="primary"
-      variant="link"
-      class="px-0"
-      :aria-expanded="moreFilters"
-      :aria-controls="moreFiltersId"
-      @click="moreFilters = !moreFilters"
-    >
-      More filters
-    </UButton>
-    <span class="text-xs text-muted">{{ categoryLabel }} / {{ verifiedOnly ? 'Verified only' : 'Includes estimates' }}</span>
-    <!-- A category a link supplied for the visit, and the way out of it:
-         restoring stores nothing, the refetch and the URL follow from the
-         ref moving. A sibling of the summary rather than inside it, so the
-         summary's text stays the two values it names. -->
-    <FromLinkMarker
-      v-if="categoryFromLink"
-      class="-ml-3"
-      restore-label="Restore my saved category"
-      @restore="restoreBikeCategory"
-    />
+  <div class="mt-4 space-y-2">
     <div
-      v-if="moreFilters"
-      :id="moreFiltersId"
-      class="flex w-full flex-wrap items-end gap-6 border-t border-default pt-4"
+      role="group"
+      aria-label="Equipment filters"
+      class="flex flex-wrap items-center gap-2"
     >
-      <div class="w-56 max-w-full">
-        <label
-          :for="categoryId"
-          class="mb-1 block text-xs font-medium text-muted"
-        >Bike category</label>
-        <USelect
-          :id="categoryId"
-          :model-value="displayCategory"
-          :items="categoryOptions"
-          value-key="value"
-          aria-label="Bike category"
-          class="w-full"
-          @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)"
-        />
-      </div>
-      <USwitch
-        :model-value="verifiedOnly"
-        label="Verified frames and wheels only"
-        class="pb-2"
-        @update:model-value="(value: boolean) => setVerifiedOnly(value)"
+      <UDropdownMenu
+        :items="categoryItems"
+        :content="{ align: 'start' }"
+      >
+        <button
+          type="button"
+          :class="[CHIP, chipState(true)]"
+          :aria-label="`Category: ${categoryLabel(displayCategory)}`"
+        >
+          {{ categoryLabel(displayCategory) }}
+          <UIcon
+            name="i-lucide-chevron-down"
+            class="size-3.5 text-muted"
+          />
+        </button>
+      </UDropdownMenu>
+      <!-- A category a link supplied for the visit, and the way out of it:
+           restoring stores nothing; the refetch and the URL follow the ref. -->
+      <FromLinkMarker
+        v-if="categoryFromLink"
+        restore-label="Restore my saved category"
+        @restore="restoreBikeCategory"
       />
+      <button
+        type="button"
+        role="switch"
+        :aria-checked="verifiedOnly"
+        :class="[CHIP, chipState(verifiedOnly)]"
+        @click="setVerifiedOnly(!verifiedOnly)"
+      >
+        <UIcon
+          v-if="verifiedOnly"
+          name="i-lucide-check"
+          class="size-3.5"
+        />Verified data only
+      </button>
+      <button
+        type="button"
+        role="switch"
+        :aria-checked="myBikesOnly"
+        :class="[CHIP, chipState(myBikesOnly)]"
+        @click="setMyBikesOnly(!myBikesOnly)"
+      >
+        <UIcon
+          v-if="myBikesOnly"
+          name="i-lucide-check"
+          class="size-3.5"
+        />My garage only
+      </button>
+      <button
+        type="button"
+        role="switch"
+        :aria-checked="includeHaloBikes"
+        :class="[CHIP, chipState(includeHaloBikes)]"
+        title="The three purchasable Halo bikes are hidden by default - each takes three fully upgraded frames of one brand plus ~20 million Drops. Owned Halo bikes always stay eligible, and a search finds them regardless."
+        @click="setIncludeHaloBikes(!includeHaloBikes)"
+      >
+        <UIcon
+          v-if="includeHaloBikes"
+          name="i-lucide-check"
+          class="size-3.5"
+        />Include Halo bikes
+      </button>
+      <a
+        href="/garage"
+        aria-haspopup="dialog"
+        class="px-1 text-sm text-primary hover:underline"
+        @click="openGarage"
+      >Edit garage</a>
     </div>
     <p
       v-if="garageScope"
-      class="w-full text-xs text-muted"
+      class="text-sm text-muted"
       role="status"
     >
       {{ garageScope }}. Other filters and compatibility still apply.

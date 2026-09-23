@@ -1,9 +1,10 @@
-import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import type { BikeCategory, BikeStyle, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
 import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
 import { RACE_FORMAT_LABELS } from '#shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
 import { formatDuration, formatDurationGap } from '#shared/utils/duration'
+import { surfaceFamily, type SurfaceFamily } from '#shared/utils/silhouette'
 
 /**
  * A rank as the Ranking prints it: `01`, `02`, ... The Recommendation is rank
@@ -32,6 +33,14 @@ export const BIKE_CATEGORY_COLORS: Record<BikeCategory, 'primary' | 'info' | 'wa
   gravel: 'warning',
   handbike: 'neutral',
   funbike: 'success'
+}
+
+/** A frame's style, as the Ranking's style column and the "why" sentence name it. */
+export const BIKE_STYLE_LABELS: Record<BikeStyle, string> = {
+  aero: 'aero',
+  climb: 'climbing',
+  endurance: 'endurance',
+  allrounder: 'all-round'
 }
 
 export const WHEEL_CATEGORY_LABELS: Record<WheelCategory, string> = {
@@ -77,30 +86,33 @@ export const SURFACE_TYPE_LABELS: Record<ZwiftSurfaceType, string> = {
   gravel: 'Gravel'
 }
 
-export const SURFACE_TYPE_COLORS: Record<ZwiftSurfaceType, string> = {
-  tarmac: 'bg-slate-400',
-  brick: 'bg-orange-600',
-  wood: 'bg-amber-700',
-  cobbles: 'bg-stone-500',
-  snow: 'bg-sky-300',
-  dirt: 'bg-yellow-800',
-  grass: 'bg-green-500',
-  sand: 'bg-yellow-300',
-  gravel: 'bg-amber-500'
+/**
+ * A surface's colour, by family (see `surfaceFamily`): tarmac in the strong
+ * rule, the loose surfaces in dirt ochre, cobbles, brick and wood in
+ * grey-blue. Two surface colours and no more, so the hero's strip, the
+ * surface table, the speed chart and the Discovery cards all mean the same
+ * thing by one - and a surface never borrows a status colour.
+ */
+export const SURFACE_FAMILY_BG: Record<SurfaceFamily, string> = {
+  tarmac: 'bg-tarmac',
+  dirt: 'bg-dirt',
+  rough: 'bg-rough'
 }
 
-/** Same palette as `SURFACE_TYPE_COLORS`, as SVG `fill-*` utilities instead of `bg-*` - Tailwind's `background-color` utilities have no effect on SVG shapes, which paint via the `fill` property instead (see `RouteSurfaceSpeedProfile.vue`'s chart, `RouteElevationProfile.vue`'s `GRADE_BANDS.fillClass` for the existing precedent). */
-export const SURFACE_TYPE_FILL_COLORS: Record<ZwiftSurfaceType, string> = {
-  tarmac: 'fill-slate-400',
-  brick: 'fill-orange-600',
-  wood: 'fill-amber-700',
-  cobbles: 'fill-stone-500',
-  snow: 'fill-sky-300',
-  dirt: 'fill-yellow-800',
-  grass: 'fill-green-500',
-  sand: 'fill-yellow-300',
-  gravel: 'fill-amber-500'
+/** The same colours as SVG fills - `background-color` utilities do nothing to an SVG shape. */
+export const SURFACE_FAMILY_FILL: Record<SurfaceFamily, string> = {
+  tarmac: 'fill-tarmac',
+  dirt: 'fill-dirt',
+  rough: 'fill-rough'
 }
+
+export const SURFACE_TYPE_COLORS = Object.fromEntries(
+  (Object.keys(SURFACE_TYPE_LABELS) as ZwiftSurfaceType[]).map(type => [type, SURFACE_FAMILY_BG[surfaceFamily(type)]])
+) as Record<ZwiftSurfaceType, string>
+
+export const SURFACE_TYPE_FILL_COLORS = Object.fromEntries(
+  (Object.keys(SURFACE_TYPE_LABELS) as ZwiftSurfaceType[]).map(type => [type, SURFACE_FAMILY_FILL[surfaceFamily(type)]])
+) as Record<ZwiftSurfaceType, string>
 
 export const SURFACE_TYPE_ICONS: Record<ZwiftSurfaceType, string> = {
   tarmac: 'i-lucide-road',

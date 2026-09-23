@@ -3,7 +3,8 @@ import type { Ride } from '../../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
-import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../../utils/rankingResults'
+import { breadcrumbScript, faqScript } from '../../../utils/rankingResults'
+import { climbCountFact, surfaceShareFacts, type RideFact } from '../../../utils/rideFacts'
 
 /**
  * One race. Everything a route page can't know lives here: the date, the
@@ -27,8 +28,8 @@ if (!season || !race || !isRacePublishable(race)) {
 }
 const round = getRoundForRace(season, race)
 
-// Read-only plus `setDraftMode` (for the format hint below): the controls
-// themselves live in `RiderProfileControls` / `RideEquipmentFilters`, and
+// Read-only plus `setDraftMode` (for the format hint below): the levers
+// themselves live in `RiderCard` / `RideEquipmentFilters`, and
 // `useRecommendRequest` reads the rest of this state itself.
 const { weightKg, powerW, setDraftMode } = useRiderProfile()
 
@@ -349,8 +350,8 @@ const resolvedRide = computed(() => appliedRanking.value.course
   ? rideForRoute(appliedRanking.value.course, resultsLaps.value, appliedRide.value?.ttFramesAllowed === false)
   : undefined)
 
-// Whether the team climb pace control is worth showing - see the
-// `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
+// Whether the team climb pace lever is worth showing - see the
+// `hasLongClimb` prop on `RiderCard`. Keyed on the rider's NORMAL
 // power, never on `tttClimbWkg`, so the climb pace can't decide its own
 // slider's visibility.
 const hasLongClimb = computed(() => resolvedRide.value
@@ -362,7 +363,6 @@ const hasLongClimb = computed(() => resolvedRide.value
 // cost the recommended setup, and what the race's own draft is worth over
 // riding it alone. All fall away by themselves when the selected group has no
 // catalog route - there is no physics block without a ranking.
-const physicsIsDynamic = computed(() => isDynamicPhysics(physicsInfo.value))
 // One plan for the briefing's TTT line and the TTT plan tab, from the applied
 // results - see `useTttPlan`. Undefined outside TTT drafting, which for a TTT
 // race is exactly what the draft hint above offers to switch on.
@@ -391,6 +391,36 @@ onMounted(() => {
 // the same rule off.
 const rideRules = computed(() => rideRulesLine(race!.format!))
 
+// The Fact row follows the group selector, like the hero: both describe the
+// race the rider has picked a group for.
+const facts = computed<RideFact[]>(() => {
+  const group = selectedGroup.value
+  const route = routeInfo.value
+  const totals = routeTotals.value
+  const distanceKm = totals?.distanceKm ?? group?.officialDistanceKm
+  const elevationM = totals?.elevationM ?? group?.officialElevationM
+  const climbs = route ? climbCountFact(new Set(route.terrain.climbs.map(climb => climb.slug)).size, new Set(route.terrain.sprints.map(sprint => sprint.slug)).size) : undefined
+  return [
+    ...(distanceKm !== undefined ? [{ value: formatDistance(distanceKm), label: totals && totals.leadInDistanceKm > 0 ? 'with the lead-in' : 'distance' }] : []),
+    ...(elevationM !== undefined ? [{ value: formatElevation(elevationM), label: 'of climbing' }] : []),
+    { value: String(laps.value), label: laps.value === 1 ? 'lap' : 'laps' },
+    ...(route ? [{ value: `${route.terrain.climbRatio.toFixed(1)} m/km`, label: 'climb ratio' }] : []),
+    ...surfaceShareFacts(route?.surface.composition),
+    ...(climbs ? [climbs] : [])
+  ]
+})
+const raceDate = computed(() => race!.endDate ? formatRaceDateRange(race!.date, race!.endDate) : formatRaceDate(race!.date))
+
+/** The rules the Rider card shows as fixed, in its words. */
+const ttBarredReason = computed(() => ttAllowed
+  ? undefined
+  : race!.format === 'rot' ? 'WTRL bans TT frames from a Race of Truth.' : `Zwift disables TT frames for ${formatPhrase.value}s.`)
+const draftLockedReason = computed(() => draftAllowed ? undefined : 'WTRL turns the draft off for a Race of Truth.')
+const fixedLaps = computed(() => ({
+  label: `${laps.value} lap${laps.value === 1 ? '' : 's'}`,
+  reason: selectedGroup.value && categoryGroupOptions.length > 1 ? `Set by the ${formatCategoryGroup(selectedGroup.value)} race group` : 'Set by the race'
+}))
+
 const faqQuestion = computed(() => `What bike should I ride for ${raceTitle.value}?`)
 // The visible answer under the recommendation and the FAQ structured data are
 // one text (`answer.text`), built from the APPLIED ranking - the course, the
@@ -413,11 +443,11 @@ const siteConfig = useSiteConfig()
 const canonicalUrl = useCanonicalUrl()
 
 useSeoMeta({
-  title: () => `Best Bike for ${raceTitle.value} - ${routeNamesLabel.value} (${formatLabel.value}) - ZwiftBikes`,
+  title: () => `Fastest bike for ${raceTitle.value}: ${routeNamesLabel.value} (${formatLabel.value}) | ZwiftBikes`,
   description: () => hasSplitCourses(race!)
-    ? `${raceTitle.value}: ${formatLabel.value} on ${formatRaceDate(race!.date)} - ${routeNamesByCategory.value}. Lap counts per category, TT bike rules, and the fastest legal bike and wheel combo for each course.`
-    : `${raceTitle.value}: ${formatLabel.value} on ${routeNamesLabel.value}, ${formatRaceDate(race!.date)}. Lap counts per category, TT bike rules, and the fastest legal bike and wheel combo.`,
-  ogTitle: () => `${raceHeading.value} - ${routeNamesLabel.value}`,
+    ? `${raceTitle.value}: ${formatLabel.value} on ${formatRaceDate(race!.date)} - ${routeNamesByCategory.value}. Lap counts per category, TT bike rules, and the best legal bike and wheel combo for each course.`
+    : `${raceTitle.value}: ${formatLabel.value} on ${routeNamesLabel.value}, ${formatRaceDate(race!.date)}. Lap counts per category, TT bike rules, and the best legal bike and wheel combo.`,
+  ogTitle: () => `Fastest bike for ${raceHeading.value} - ${routeNamesLabel.value}`,
   ogDescription: () => hasSplitCourses(race!)
     ? `The fastest legal bike and wheel combo for ${raceTitle.value} - ${routeNamesByCategory.value}.`
     : `The fastest legal bike and wheel combo for ${raceTitle.value} on ${routeNamesLabel.value}.`
@@ -470,286 +500,151 @@ useHead(() => {
   />
   <UContainer
     v-else
-    class="py-8 space-y-8"
+    class="pb-8"
   >
-    <div class="space-y-6">
-      <div class="flex flex-wrap items-center gap-3 text-sm text-muted">
-        <UButton
-          :to="`/events/${season!.slug}`"
-          variant="link"
-          color="neutral"
-          icon="i-lucide-arrow-left"
-          class="px-0"
-        >
-          {{ season!.seriesName }} {{ season!.label }} schedule
-        </UButton>
-        <span class="border-l border-default pl-3"><template v-if="routeInfo">{{ routeInfo.worldName }} / </template>race</span>
-      </div>
-      <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-          <p class="text-xs font-semibold uppercase tracking-wide text-muted">
-            {{ raceContextLabel(season!, round) }}
-          </p>
-          <h1 class="mt-1 text-3xl font-bold text-highlighted break-words sm:text-4xl">
-            {{ raceHeading }}: {{ displayRouteName }}
-          </h1>
-          <p class="mt-1 text-muted">
-            <template v-if="race!.endDate">
-              {{ formatRaceDateRange(race!.date, race!.endDate) }}
-            </template>
-            <template v-else>
-              {{ formatRaceDate(race!.date) }}
-            </template>
-          </p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <UBadge
-              :color="RACE_FORMAT_COLORS[race!.format!]"
-              variant="subtle"
-            >
-              {{ formatLabel }}
-            </UBadge>
-            <UBadge
-              v-if="isPast"
-              color="neutral"
-              variant="subtle"
-            >
-              Completed
-            </UBadge>
-            <template v-if="routeInfo">
-              <TerrainBadge :terrain="routeInfo.terrain" /><SurfaceBadges :surface="routeInfo.surface" />
-            </template>
-            <UBadge
-              v-if="physicsIsDynamic"
-              color="primary"
-              variant="subtle"
-              icon="i-lucide-atom"
-            >
-              Dynamic physics
-            </UBadge>
-          </div>
-          <p
-            v-if="race!.sourceUrl || season!.organizerUrl"
-            class="mt-3 text-sm"
-          >
-            <ULink
-              :to="race!.sourceUrl ?? season!.organizerUrl"
-              target="_blank"
-              rel="noopener"
-              class="text-primary underline"
-            >Official event info</ULink>
-            <span class="text-muted"> - signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.</span>
-          </p>
-        </div>
-        <!-- `routeTotals` follows the group selector immediately; the finish
-             time below follows once the ranking for that group lands. -->
-        <dl class="grid shrink-0 grid-cols-3 gap-4 sm:gap-8">
-          <div>
-            <dt class="text-xs text-muted">
-              Total distance
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ formatDistance(routeTotals?.distanceKm ?? selectedGroup?.officialDistanceKm ?? 0) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-muted">
-              Elevation
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ formatElevation(routeTotals?.elevationM ?? selectedGroup?.officialElevationM ?? 0) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-muted">
-              Laps
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ laps }}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <p
-        v-if="officialDiffers"
-        class="text-xs text-muted"
-      >
-        {{ season!.organizer }} publishes this race as
-        <template v-if="selectedGroup?.officialDistanceKm">
-          {{ formatDistance(selectedGroup.officialDistanceKm) }}
-        </template>
-        <template v-if="selectedGroup?.officialDistanceKm && selectedGroup?.officialElevationM">
-          /
-        </template>
-        <template v-if="selectedGroup?.officialElevationM">
-          {{ formatElevation(selectedGroup.officialElevationM) }}
-        </template>.
-        The figures above are this site's own totals from the route's lead-in and lap data, which is
-        what the physics model below runs on.
-      </p>
-
-      <UAlert
-        :color="ttAllowed ? 'warning' : 'info'"
-        variant="subtle"
-        :icon="ttAllowed ? 'i-lucide-rocket' : 'i-lucide-ban'"
-        :title="ttAllowed ? 'TT bikes are allowed in this race' : 'TT bikes are disabled for this race'"
-        :description="ttAlertDescription"
-      />
-
-      <!--
-        Not a nudge like the draft hint below it, but a rule: the ranking is
-        already computed solo whatever the rider's saved draft mode says, so
-        this states what happened rather than offering to change it - and is
-        deliberately not dismissible for that reason.
-      -->
-      <UAlert
-        v-if="!draftAllowed"
-        color="error"
-        variant="subtle"
-        icon="i-lucide-wind"
-        title="Drafting is disabled in this race"
-        description="WTRL turns the draft off for a Race of Truth: there is no bunch to sit in, so every rider covers the course on their own power. The ranking below is computed solo for exactly that reason, and aerodynamics count for more here than in a normal road race. Your saved draft setting is untouched and still applies everywhere else."
-      />
-
-      <!-- Where a route page puts its lap picker: the one control that
-           changes what is being ranked. Laps are not offered beside it -
-           they come with the group, from the organiser. -->
+    <RideHeading
+      :crumbs="[
+        { label: 'Events', to: '/events' },
+        { label: `${season!.seriesName} ${season!.label}`, to: `/events/${season!.slug}` },
+        { label: formatLabel },
+        { label: raceDate },
+        ...(isPast ? [{ label: 'Completed' }] : [])
+      ]"
+      :name="`${raceHeading}: ${displayRouteName}`"
+    >
+      <!-- The Category group is the race's one selection, in the header so
+           choosing a group redraws the Fact row and the course before the
+           answer is read. Laps are not offered: they come with the group. -->
       <div
         v-if="categoryGroupOptions.length > 1"
-        class="flex flex-wrap items-end gap-4"
+        class="mt-4 flex flex-wrap items-center gap-3"
       >
-        <div class="w-64 max-w-full">
-          <label class="mb-1 block text-xs font-medium text-muted">Your race group</label><USelectMenu
-            v-model="categoryGroupIndex"
-            value-key="value"
-            :items="categoryGroupOptions"
-            :search-input="false"
-            aria-label="Your race group"
-          />
-        </div>
-        <p class="pb-2 text-sm text-muted">
-          The stats, the course analysis and the bike ranking below all follow this.
-        </p>
+        <label
+          for="race-group"
+          class="text-sm text-muted"
+        >Your race group</label>
+        <USelectMenu
+          id="race-group"
+          v-model="categoryGroupIndex"
+          value-key="value"
+          :items="categoryGroupOptions"
+          :search-input="false"
+          size="sm"
+          class="w-60 max-w-full"
+          aria-label="Your race group"
+        />
       </div>
+    </RideHeading>
 
-      <!-- The differences readable at a glance, without toggling the selector. -->
-      <div
-        v-if="coursesDiffer"
-        class="overflow-x-auto rounded-lg border border-default"
-      >
-        <table class="w-full text-sm">
-          <caption class="sr-only">
-            Course, laps and published figures for each category group in this race
-          </caption>
-          <thead class="bg-elevated/50">
-            <tr class="text-left text-muted">
-              <th
-                scope="col"
-                class="px-4 py-2 font-medium"
-              >
-                Category
-              </th>
-              <th
-                scope="col"
-                class="px-4 py-2 font-medium"
-              >
-                Course
-              </th>
-              <th
-                scope="col"
-                class="px-4 py-2 font-medium"
-              >
-                Laps
-              </th>
-              <th
-                scope="col"
-                class="px-4 py-2 font-medium"
-              >
-                Distance
-              </th>
-              <th
-                scope="col"
-                class="px-4 py-2 font-medium"
-              >
-                Elevation
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="group in race!.categories"
-              :key="formatCategoryGroup(group)"
-              class="border-t border-default"
+    <RideFactRow :facts="facts">
+      <li>{{ ttAlertDescription }}</li>
+      <!-- A rule, not a nudge: the ranking is computed solo whatever the
+           rider's saved draft mode says, so this states what happened. -->
+      <li v-if="!draftAllowed">
+        WTRL turns the draft off for a Race of Truth: every rider covers the course on their own power, so the ranking is computed solo and aerodynamics count for more than in a normal road race. Your saved draft setting still applies everywhere else.
+      </li>
+      <li v-if="routeTotals && routeTotals.leadInDistanceKm > 0">
+        {{ laps }} lap{{ laps === 1 ? '' : 's' }} plus a {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in, ridden once.
+      </li>
+      <li v-if="officialDiffers">
+        {{ season!.organizer }} publishes this race as {{ [selectedGroup?.officialDistanceKm ? formatDistance(selectedGroup.officialDistanceKm) : undefined, selectedGroup?.officialElevationM !== undefined ? formatElevation(selectedGroup.officialElevationM) : undefined].filter(Boolean).join(' / ') }}; the figures above are this site's own totals from the route's lead-in and lap data, which is what the physics runs on.
+      </li>
+      <!-- Curated fact only: absent powerup data renders no line at all. -->
+      <li v-if="powerupsLine">
+        PowerUps: {{ powerupsLine }}.
+      </li>
+      <TttBriefingLine
+        v-if="tttPlan"
+        :plan="tttPlan"
+      />
+      <li v-if="race!.sourceUrl || season!.organizerUrl">
+        <a
+          :href="race!.sourceUrl ?? season!.organizerUrl"
+          target="_blank"
+          rel="noopener"
+          class="text-toned underline decoration-rule-strong hover:text-highlighted"
+        >Official event info</a> - signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.
+      </li>
+    </RideFactRow>
+
+    <!-- The differences readable at a glance, without moving the selector. -->
+    <div
+      v-if="coursesDiffer"
+      class="mt-5 overflow-x-auto"
+    >
+      <table class="w-full border-collapse text-sm">
+        <caption class="sr-only">
+          Course, laps and published figures for each category group in this race
+        </caption>
+        <thead>
+          <tr class="border-b border-accented text-left text-xs text-muted">
+            <th
+              scope="col"
+              class="px-2 py-2 font-medium"
             >
-              <td class="px-4 py-2 whitespace-nowrap font-medium text-highlighted">
-                {{ formatCategoryGroup(group) }}
-              </td>
-              <td class="px-4 py-2">
-                {{ group.routeName ?? 'TBC' }}
-              </td>
-              <td class="px-4 py-2 whitespace-nowrap">
-                {{ group.laps }}
-              </td>
-              <td class="px-4 py-2 whitespace-nowrap">
-                <template v-if="group.officialDistanceKm">
-                  {{ formatDistance(group.officialDistanceKm) }}
-                </template>
-                <span
-                  v-else
-                  class="text-muted"
-                >-</span>
-              </td>
-              <td class="px-4 py-2 whitespace-nowrap">
-                <template v-if="group.officialElevationM !== undefined">
-                  {{ formatElevation(group.officialElevationM) }}
-                </template>
-                <span
-                  v-else
-                  class="text-muted"
-                >-</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Curated race context, not a property of any ranking: it belongs
-           with the rules above rather than below results a group may not
-           even have. -->
-      <div
-        v-if="race!.note"
-        class="rounded-lg border border-default p-4"
-      >
-        <h2 class="text-lg font-semibold text-highlighted mb-2">
-          How this race tends to play out
-        </h2>
-        <p class="text-muted">
-          {{ race!.note }}
-        </p>
-        <p
-          v-if="race!.sourceUrl"
-          class="text-xs text-muted mt-2"
-        >
-          Race details from
-          <ULink
-            :to="race!.sourceUrl"
-            target="_blank"
-            rel="noopener"
-            class="text-primary underline"
-          >the published round guide</ULink>.
-        </p>
-      </div>
-
-      <RideRiderSummary
-        :rider="appliedInputs"
-        :refreshing="isRefreshing"
-        :has-long-climb="hasLongClimb"
-        :draft-locked="!draftAllowed"
-      />
-      <RideEquipmentFilters
-        :hide-tt-category="!ttAllowed"
-        :applied-restrictions="appliedRestrictions"
-      />
+              Group
+            </th>
+            <th
+              scope="col"
+              class="px-2 py-2 font-medium"
+            >
+              Course
+            </th>
+            <th
+              scope="col"
+              class="px-2 py-2 text-right font-medium"
+            >
+              Laps
+            </th>
+            <th
+              scope="col"
+              class="px-2 py-2 text-right font-medium"
+            >
+              Distance
+            </th>
+            <th
+              scope="col"
+              class="px-2 py-2 text-right font-medium"
+            >
+              Elevation
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="group in race!.categories"
+            :key="formatCategoryGroup(group)"
+            class="border-b border-default"
+          >
+            <td class="px-2 py-2 whitespace-nowrap font-medium text-highlighted">
+              {{ formatCategoryGroup(group) }}
+            </td>
+            <td class="px-2 py-2">
+              {{ group.routeName ?? 'TBC' }}
+            </td>
+            <td class="px-2 py-2 text-right">
+              {{ group.laps }}
+            </td>
+            <td class="px-2 py-2 text-right whitespace-nowrap">
+              {{ group.officialDistanceKm ? formatDistance(group.officialDistanceKm) : '-' }}
+            </td>
+            <td class="px-2 py-2 text-right whitespace-nowrap">
+              {{ group.officialElevationM !== undefined ? formatElevation(group.officialElevationM) : '-' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <RecommendDataNotice />
+    <CourseHero
+      v-if="routeInfo"
+      :route="routeInfo"
+      :laps="laps"
+      :name="displayRouteName"
+      :scoring-slugs="scoringSlugs"
+    />
+
+    <RecommendDataNotice class="mt-6" />
     <p
       class="sr-only"
       role="status"
@@ -758,30 +653,27 @@ useHead(() => {
       {{ resultsAnnouncement }}
     </p>
 
-    <UAlert
-      v-if="groupHasNoRoute"
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-map-pin-off"
-      :title="`${displayRouteName} isn't in the public route catalog`"
-      :description="`${season!.organizer} runs ${formatCategoryGroup(selectedGroup ?? { cats: [] })} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against - and a ranking computed from a guess would be worse than none. The published figures above are ${season!.organizer}'s own.${categoryGroupOptions.length > 1 ? ' Pick another race group above to see recommendations for the routes we do have.' : ''}`"
-    />
-
-    <!-- Everything the organiser published that needs no catalog route. With
-         a course the briefing and the Scoring tab carry these; without one
-         there is neither, and they are not the ranking's to take away. -->
-    <div
-      v-if="groupHasNoRoute"
-      class="space-y-4"
-    >
-      <p
-        v-if="powerupsLine"
-        class="text-sm text-muted"
+    <template v-if="groupHasNoRoute">
+      <SiteNotice
+        class="mt-8"
+        :title="`${displayRouteName} isn't in the public route catalog`"
       >
-        <span class="font-medium text-highlighted">PowerUps:</span> {{ powerupsLine }}
-      </p>
-      <div v-if="hasScoring">
-        <h2 class="text-lg font-semibold text-highlighted mb-2">
+        <p>
+          {{ season!.organizer }} runs {{ formatCategoryGroup(selectedGroup ?? { cats: [] }) }} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against - and a ranking computed from a guess would be worse than none. The published figures above are {{ season!.organizer }}'s own.<template v-if="categoryGroupOptions.length > 1">
+            Pick another race group above to see recommendations for the routes we do have.
+          </template>
+        </p>
+      </SiteNotice>
+      <!-- Everything the organiser published that needs no catalog route. -->
+      <section
+        v-if="hasScoring"
+        class="mt-10"
+        aria-labelledby="race-scoring-heading"
+      >
+        <h2
+          id="race-scoring-heading"
+          class="mb-3 text-2xl font-semibold font-heading text-highlighted"
+        >
           Where the points are
         </h2>
         <RaceScoringSegments
@@ -791,8 +683,8 @@ useHead(() => {
           :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
           :format="race!.format!"
         />
-      </div>
-    </div>
+      </section>
+    </template>
 
     <template v-else>
       <RideResults
@@ -800,73 +692,44 @@ useHead(() => {
         :comparison="comparison"
         :answer="answer"
         :faq-question="faqQuestion"
+        :hide-tt-category="!ttAllowed"
       >
         <template #page-block>
-          <div
+          <SiteNotice
             v-if="draftHint"
-            class="flex flex-wrap items-center gap-3 rounded-lg border border-default p-4"
+            class="mt-6"
           >
-            <UIcon
-              name="i-lucide-users"
-              class="size-5 text-warning shrink-0"
-            />
-            <p class="flex-1 min-w-64 text-sm text-muted">
-              {{ draftHint.text }}
-            </p>
-            <UButton
-              size="xs"
-              color="warning"
-              variant="subtle"
-              @click="setDraftMode(draftHint.mode)"
-            >
-              {{ draftHint.action }}
-            </UButton>
-            <UButton
-              size="xs"
-              color="neutral"
-              variant="ghost"
-              icon="i-lucide-x"
-              aria-label="Dismiss draft mode hint"
-              @click="draftHintDismissed = true"
-            />
-          </div>
+            <p>{{ draftHint.text }}</p>
+            <template #actions>
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="outline"
+                @click="setDraftMode(draftHint.mode)"
+              >
+                {{ draftHint.action }}
+              </UButton>
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-x"
+                aria-label="Dismiss draft mode hint"
+                @click="draftHintDismissed = true"
+              />
+            </template>
+          </SiteNotice>
         </template>
 
-        <template #briefing>
-          <!-- The selector's route and lap count, not the applied ones: the
-               briefing describes the race the rider has picked a group for. -->
-          <RideBriefing
-            v-if="routeInfo && routeTotals"
-            :route="routeInfo"
-            :kind="formatLabel"
-            per-lap
-            class="lg:col-start-1 lg:row-start-1"
-          >
-            <li v-if="selectedGroup && categoryGroupOptions.length > 1">
-              Ridden by {{ formatCategoryGroup(selectedGroup) }} in this race.
-            </li>
-            <li v-if="climbOccurrences[0]">
-              {{ climbOccurrences.length }} mapped climb occurrence{{ climbOccurrences.length === 1 ? '' : 's' }}. First: {{ climbOccurrences[0].name }} at km {{ climbOccurrences[0].rideFromKm.toFixed(1) }}.
-            </li>
-            <li v-else>
-              No mapped climbs on this ride.
-            </li>
-            <TttBriefingLine
-              v-if="tttPlan"
-              :plan="tttPlan"
-            />
-            <li>
-              {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
-                + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
-                  / {{ formatElevation(routeTotals.leadInElevationM) }}
-                </template>, ridden once
-              </template>
-            </li>
-            <!-- Curated fact only: absent powerup data renders no line at all. -->
-            <li v-if="powerupsLine">
-              <span class="font-medium text-highlighted">PowerUps:</span> {{ powerupsLine }}
-            </li>
-          </RideBriefing>
+        <template #rider>
+          <RiderCard
+            :rider="appliedInputs"
+            :refreshing="isRefreshing"
+            :has-long-climb="hasLongClimb"
+            :draft-locked="draftLockedReason"
+            :tt-barred="ttBarredReason"
+            :fixed-laps="fixedLaps"
+          />
         </template>
 
         <template #report-link>
@@ -877,70 +740,109 @@ useHead(() => {
         </template>
       </RideResults>
 
-      <!-- Ride-only tabs follow the selector, like the briefing; the
-           equipment tabs follow the applied results, like the
-           recommendation - and on this page those can be different courses. -->
-      <RideCourseAnalysis
+      <!-- The Ride-only tabs follow the selector, like the hero; the
+           equipment views follow the applied results, like the answer - and
+           on this page those can be different courses. -->
+      <div
         v-if="routeInfo"
-        :route="routeInfo"
-        :results-route="appliedRanking.course"
-        kind="route"
-        :laps="laps"
-        :results-laps="resultsLaps"
-        :combo="topCombo"
-        :rider="appliedInputs"
-        :refreshing="isRefreshing"
-        :loading="isFirstLoad"
-        :plan="tttPlan"
-        :scoring="hasScoring"
-        :scoring-slugs="scoringSlugs"
+        class="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-2"
       >
-        <template #scoring>
-          <RaceScoringSegments
-            :rows="scoringRows"
-            :tbd="scoringSegmentsTbd"
-            :organizer="season!.organizer"
-            :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
-            :format="race!.format!"
-          />
-        </template>
-      </RideCourseAnalysis>
+        <RideWhy
+          :course="appliedRanking.course"
+          :combo="topCombo"
+          :ride-name="appliedRanking.course?.name ?? displayRouteName"
+          :physics-mode="physicsInfo?.mode"
+          :refreshing="isRefreshing"
+        />
+        <RideCourseAnalysis
+          :route="routeInfo"
+          :results-route="appliedRanking.course"
+          kind="route"
+          :laps="laps"
+          :results-laps="resultsLaps"
+          :combo="topCombo"
+          :rider="appliedInputs"
+          :refreshing="isRefreshing"
+          :loading="isFirstLoad"
+          :plan="tttPlan"
+          :scoring="hasScoring"
+        >
+          <template #scoring>
+            <RaceScoringSegments
+              :rows="scoringRows"
+              :tbd="scoringSegmentsTbd"
+              :organizer="season!.organizer"
+              :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
+              :format="race!.format!"
+            />
+          </template>
+        </RideCourseAnalysis>
+      </div>
 
       <RideComparison
+        class="mt-16"
         :combos="comparedCombos"
         :fastest-time-sec="fastestTimeSec"
         @clear="clearComparison"
         @remove="removeFromComparison"
       />
 
+      <!-- Curated race context, not a property of any ranking. -->
+      <section
+        v-if="race!.note"
+        class="mt-16"
+        aria-labelledby="race-note-heading"
+      >
+        <h2
+          id="race-note-heading"
+          class="text-2xl font-semibold font-heading text-highlighted"
+        >
+          How this race tends to play out
+        </h2>
+        <p class="mt-3 max-w-[72ch] text-toned">
+          {{ race!.note }}
+        </p>
+        <p
+          v-if="race!.sourceUrl"
+          class="mt-2 text-xs text-muted"
+        >
+          Race details from
+          <a
+            :href="race!.sourceUrl"
+            target="_blank"
+            rel="noopener"
+            class="underline decoration-rule-strong hover:text-highlighted"
+          >the published round guide</a>.
+        </p>
+      </section>
+
       <PhysicsNote
         v-if="physicsInfo"
+        class="mt-12"
         :mode="physicsInfo.mode"
         :summary="physicsInfo.summary"
         :note="physicsInfo.note"
       />
 
-      <div
+      <p
         v-if="routeInfo"
-        class="rounded-lg border border-default p-4"
+        class="mt-8 text-sm text-muted"
       >
-        <p class="text-sm text-muted">
-          Racing a different number of laps, or want this route outside the event?
-          <ULink
-            :to="`/routes/${routeInfo.slug}`"
-            class="text-primary underline"
-          >See the full {{ routeInfo.name }} route analysis</ULink>.
-          <!-- The route page knows nothing of this race, so it ranks the TT
-               frames this race bars. Better said than silently contradicted. -->
-          <template v-if="!ttAllowed">
-            It ranks every bike in the game, TT frames included - this race's rule is the race's,
-            not the route's.
-          </template>
-        </p>
-      </div>
+        Racing a different number of laps, or riding this route outside the event?
+        <NuxtLink
+          :to="`/routes/${routeInfo.slug}`"
+          class="text-toned underline decoration-rule-strong hover:text-highlighted"
+        >Fastest bike for {{ routeInfo.name }}</NuxtLink>.
+        <!-- The route page knows nothing of this race, so it ranks the TT
+             frames this race bars. Better said than silently contradicted. -->
+        <template v-if="!ttAllowed">
+          It ranks every bike in the game, TT frames included - this race's rule is the race's, not the route's.
+        </template>
+      </p>
     </template>
 
     <EventsDisclaimer
+      class="mt-10"
       :organizer="season!.organizer"
       :organizer-url="season!.organizerUrl"
     />

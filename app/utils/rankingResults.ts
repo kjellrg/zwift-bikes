@@ -1,5 +1,6 @@
-import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
-import { formatRaceTimeSaving, formatSurfaceTimePenalty, formatTttTimeSaving } from './labels'
+import type { ComboScore, EquipmentPhysicsDelta, RouteWithMeta } from '../../shared/types/catalog'
+import { BIKE_CATEGORY_LABELS, formatRaceTimeSaving, formatSurfaceTimePenalty, formatTttTimeSaving } from './labels'
+import type { RiderInputs } from './recommendRequest'
 import { limitedCourseDataNote } from './rideBriefing'
 
 /**
@@ -174,4 +175,55 @@ export function faqScript(question: string | undefined, answer: string | undefin
       'acceptedAnswer': { '@type': 'Answer', 'text': answer }
     }]
   })
+}
+
+/**
+ * A ranked setup's physics against the stock bike, frame and wheels
+ * together: the solved drag-area, mass and rolling-resistance deltas are
+ * each relative to the same reference (the Zwift Carbon on 32mm Carbon
+ * wheels for road frames and every wheel; the Zwift TT for TT frames - see
+ * `physics/equipment.ts`), so a setup's delta is the sum of its parts.
+ *
+ * Undefined unless every part has one: only bot-tested equipment is solved,
+ * and a half-known sum would read as a whole one. A fixed-wheel frame's
+ * delta already includes its wheels.
+ */
+export function comboPhysicsDelta(combo: Pick<ComboScore, 'frame' | 'wheelset'>): EquipmentPhysicsDelta | undefined {
+  const frame = combo.frame.physics
+  if (!frame) return undefined
+  if (combo.frame.hasFixedWheels || !combo.wheelset) return frame
+  const wheels = combo.wheelset.physics
+  if (!wheels) return undefined
+  return {
+    cdaDeltaM2: frame.cdaDeltaM2 + wheels.cdaDeltaM2,
+    bikeMassDeltaKg: frame.bikeMassDeltaKg + wheels.bikeMassDeltaKg,
+    crrDelta: frame.crrDelta + wheels.crrDelta
+  }
+}
+
+/** A delta as the table and the "why" section print it: always signed, `−` rather than `-`. */
+export function formatSignedDelta(value: number, digits: number): string {
+  const rounded = Number(value.toFixed(digits))
+  if (rounded === 0) return (0).toFixed(digits)
+  return `${rounded > 0 ? '+' : '\u2212'}${Math.abs(rounded).toFixed(digits)}`
+}
+
+/**
+ * The filters that produced a Ranking, named beside the Recommendation's
+ * "Fastest of every eligible setup" - the claim is only as true as the pool
+ * it was made in, and the response carries no count of that pool to quote,
+ * so the pool is described instead. Read off the APPLIED restrictions, like
+ * everything that explains a time.
+ */
+export function activeFiltersLabel(restrictions: Pick<RiderInputs, 'verifiedOnly' | 'includeHaloBikes' | 'myBikesOnly' | 'search'>, category: RiderInputs['bikeCategory']): string {
+  const parts = [
+    category === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[category],
+    restrictions.verifiedOnly ? 'verified data only' : 'estimates included'
+  ]
+  if (restrictions.myBikesOnly) parts.push('your garage')
+  // A directed search lifts the Halo rule server-side, so a search says so
+  // rather than claiming the Halo bikes are hidden.
+  if (restrictions.search.trim()) parts.push(`search "${restrictions.search.trim()}"`)
+  else if (!restrictions.includeHaloBikes) parts.push('Halo bikes hidden')
+  return parts.join(' · ')
 }

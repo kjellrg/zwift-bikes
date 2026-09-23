@@ -80,22 +80,24 @@ describe('silhouette', () => {
     expect(shape.sprints.map(band => [band.slug, band.from, band.to])).toEqual([['banner', 0.95, 1]])
   })
 
-  it('maps surface stretches to fractions and merges neighbours of one family', () => {
+  it('maps surface stretches to fractions with their family, merging only neighbours of the same surface', () => {
     const shape = silhouette({
       points: [{ distanceM: 0, elevationM: 0 }, { distanceM: 10000, elevationM: 0 }],
       surfaceSegments: [
         { fromM: 0, toM: 2000, surface: 'tarmac' },
         { fromM: 2000, toM: 3000, surface: 'dirt' },
         { fromM: 3000, toM: 4000, surface: 'gravel' },
-        { fromM: 4000, toM: 5000, surface: 'wood' },
+        { fromM: 4000, toM: 4500, surface: 'wood' },
+        { fromM: 4500, toM: 5000, surface: 'wood' },
         { fromM: 5000, toM: 10000, surface: 'tarmac' }
       ]
     })
     expect(shape.surfaces).toEqual([
-      { from: 0, to: 0.2, family: 'tarmac' },
-      { from: 0.2, to: 0.4, family: 'dirt' },
-      { from: 0.4, to: 0.5, family: 'rough' },
-      { from: 0.5, to: 1, family: 'tarmac' }
+      { from: 0, to: 0.2, surface: 'tarmac', family: 'tarmac' },
+      { from: 0.2, to: 0.3, surface: 'dirt', family: 'dirt' },
+      { from: 0.3, to: 0.4, surface: 'gravel', family: 'dirt' },
+      { from: 0.4, to: 0.5, surface: 'wood', family: 'rough' },
+      { from: 0.5, to: 1, surface: 'tarmac', family: 'tarmac' }
     ])
   })
 

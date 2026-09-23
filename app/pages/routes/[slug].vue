@@ -3,15 +3,15 @@ import type { PublishableRace } from '../../../shared/utils/events'
 import type { Ride } from '../../utils/recommendRequest'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForRoute } from '#shared/utils/recommendRide'
-import { expandClimbsForLaps } from '#shared/utils/routeOccurrences'
-import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../utils/rankingResults'
+import { breadcrumbScript, faqScript } from '../../utils/rankingResults'
+import { climbCountFact, surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-// Read-only here: the controls that write them live in
-// `RiderProfileControls` / `RideEquipmentFilters`, which bind and persist this
-// same `useState`-backed state. `useRecommendRequest` reads it too, and owns
+// Read-only here: the levers that write them live in `RiderCard` and
+// `RideEquipmentFilters`, which bind and persist this same `useState`-backed
+// state. `useRecommendRequest` reads it too, and owns
 // every refetch it triggers.
 const { weightKg, powerW } = useRiderProfile()
 const { showUpcomingRaces } = usePreferences()
@@ -20,7 +20,7 @@ const laps = ref(1)
 const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }, laps: laps.value }))
 // Handed whole to `RideResults`, which renders everything this page shows
 // about the Ranking; what is destructured here is what the page itself is
-// still about - its header, its lap picker, its briefing and its analysis.
+// still about - its header, its lap count, its Fact row and its course.
 const request = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
@@ -62,14 +62,16 @@ const metaStats = computed(() => {
   return `${formatDistance(totals.distanceKm)} with ${formatElevation(totals.elevationM)} of climbing`
 })
 
+// Titles and the H1 carry the phrase riders search for; "best bike" is kept
+// once, in the description, as it is in the answer.
 useSeoMeta({
-  title: () => routeData.value ? `Best Bike for ${routeData.value.name} - ZwiftBikes` : 'ZwiftBikes',
+  title: () => routeData.value ? `Fastest bike for ${routeData.value.name} in ${routeData.value.worldName} | ZwiftBikes` : 'ZwiftBikes',
   description: () => routeData.value
-    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}. Surface-aware recommendations.`
+    ? `The best bike and wheels for ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value} - ranked by predicted finish time for your weight and power.`
     : undefined,
-  ogTitle: () => routeData.value ? routeData.value.name : undefined,
+  ogTitle: () => routeData.value ? `Fastest bike for ${routeData.value.name}` : undefined,
   ogDescription: () => routeData.value
-    ? `Find the fastest bike and wheel combo for ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}.`
+    ? `Every Zwift frame and wheelset ranked by finish time on ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}.`
     : undefined
 })
 
@@ -91,7 +93,7 @@ if (routeData.value) {
     wheelName: ogTopCombo?.wheelset?.name,
     profile: ogProfileFromPoints(rideForRoute(routeData.value, 1).planGeometry().points)
   }, {
-    alt: `Best bike for ${routeData.value.name} in ${routeData.value.worldName}: route profile and the fastest bike and wheel setup`
+    alt: `Fastest bike for ${routeData.value.name} in ${routeData.value.worldName}: the route's profile and its fastest bike and wheel setup`
   })
 }
 
@@ -108,7 +110,23 @@ onMounted(() => {
 })
 
 const routeTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, laps.value) : undefined)
-const climbOccurrences = computed(() => routeData.value ? expandClimbsForLaps(routeData.value, laps.value) : [])
+
+// The Fact row follows the lap count the rider has picked, like the hero:
+// both describe the ride chosen, and the finish time catches up with them.
+const facts = computed<RideFact[]>(() => {
+  const data = routeData.value
+  const totals = routeTotals.value
+  if (!data || !totals) return []
+  const climbs = climbCountFact(new Set(data.terrain.climbs.map(climb => climb.slug)).size, new Set(data.terrain.sprints.map(sprint => sprint.slug)).size)
+  return [
+    { value: formatDistance(totals.distanceKm), label: totals.leadInDistanceKm > 0 ? 'with the lead-in' : 'distance' },
+    { value: formatElevation(totals.elevationM), label: 'of climbing' },
+    { value: `${data.terrain.climbRatio.toFixed(1)} m/km`, label: 'climb ratio' },
+    ...surfaceShareFacts(data.surface.composition),
+    ...(climbs ? [climbs] : [])
+  ]
+})
+const surfaceCoverage = computed(() => routeData.value ? surfaceCoverageLine(routeData.value.surface) : undefined)
 
 // The lap count the currently displayed combos were computed for - `laps`
 // itself moves the header stats immediately, but a speed readout must divide
@@ -121,8 +139,8 @@ const reportRideLine = computed(() => formatRideLine({ ride: appliedRide.value, 
 const resolvedRide = computed(() => routeData.value ? rideForRoute(routeData.value, resultsLaps.value) : undefined)
 const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
 
-// Whether the team climb pace control is worth showing at all - see the
-// `hasLongClimb` prop on `RiderProfileControls`. Deliberately keyed on the
+// Whether the team climb pace lever is worth showing at all - see the
+// `hasLongClimb` prop on `RiderCard`. Deliberately keyed on the
 // rider's NORMAL power, never on `tttClimbWkg`: the climb pace must not
 // decide its own slider's visibility, or the control vanishes under the
 // user's cursor as they drag it.
@@ -130,8 +148,7 @@ const hasLongClimb = computed(() => resolvedRide.value
   ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
   : true)
 
-const physicsIsDynamic = computed(() => isDynamicPhysics(physicsInfo.value))
-// One plan for the briefing's TTT line and the TTT plan tab, from the
+// One plan for the Fact row's TTT line and the TTT plan tab, from the
 // applied results - see `useTttPlan`. Undefined outside TTT drafting.
 const tttPlan = useTttPlan({
   route: () => routeData.value,
@@ -185,111 +202,59 @@ useHead(() => {
 <template>
   <UContainer
     v-if="routeData"
-    class="py-8 space-y-8"
+    class="pb-8"
   >
-    <div class="space-y-6">
-      <div class="flex flex-wrap items-center gap-3 text-sm text-muted">
-        <UButton
-          to="/"
-          variant="link"
-          color="neutral"
-          icon="i-lucide-arrow-left"
-          class="px-0"
-        >
-          All routes
-        </UButton>
-        <span class="border-l border-default pl-3">{{ routeData.worldName }} / route</span>
-      </div>
-      <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-          <p class="text-xs font-semibold uppercase tracking-wide text-muted">
-            Your next ride
-          </p>
-          <h1 class="mt-1 text-3xl font-bold text-highlighted break-words sm:text-4xl">
-            {{ routeData.name }}
-          </h1>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <TerrainBadge :terrain="routeData.terrain" /><SurfaceBadges :surface="routeData.surface" />
-            <UBadge
-              v-if="physicsIsDynamic"
-              color="primary"
-              variant="subtle"
-              icon="i-lucide-atom"
-            >
-              Dynamic physics
-            </UBadge>
-            <UBadge
-              v-if="routeData.eventOnly"
-              color="error"
-              variant="subtle"
-              icon="i-lucide-calendar-clock"
-            >
-              Event only
-            </UBadge>
-          </div>
-        </div>
-        <!-- `routeTotals` follows the lap picker immediately; the finish time
-             below follows once the refetch for that lap count lands. -->
-        <dl class="grid shrink-0 grid-cols-3 gap-4 sm:gap-8">
-          <div>
-            <dt class="text-xs text-muted">
-              Total distance
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ formatDistance(routeTotals?.distanceKm ?? routeData.distance) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-muted">
-              Elevation
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ formatElevation(routeTotals?.elevationM ?? routeData.elevation) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-muted">
-              <UTooltip text="Metres of climbing per kilometre ridden - the route's average steepness. Under 5 is flat, 10-20 rolling to hilly, above 20 a proper climb.">
-                <span class="underline decoration-dotted">Climb ratio</span>
-              </UTooltip>
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ routeData.terrain.climbRatio.toFixed(1) }} m/km
-            </dd>
-          </div>
-        </dl>
-      </div>
-      <div
-        v-if="routeData.lap || routeData.leadInDistance"
-        class="flex flex-wrap items-end gap-4"
-      >
-        <div
-          v-if="routeData.lap"
-          class="w-40"
-        >
-          <label class="block text-xs font-medium text-muted mb-1">Laps</label><USelectMenu
-            v-model="laps"
-            value-key="value"
-            :items="lapOptions"
-            :search-input="false"
-            aria-label="Laps"
-          />
-        </div>
-        <p
-          v-if="routeTotals && routeTotals.leadInDistanceKm > 0"
-          class="pb-2 text-sm text-muted"
-        >
-          <span class="font-medium text-highlighted">Lead-in:</span> {{ formatDistance(routeTotals.leadInDistanceKm) }}<template v-if="routeTotals.leadInElevationM > 0">
-            / {{ formatElevation(routeTotals.leadInElevationM) }}
-          </template> (ridden once, not repeated per lap)
-        </p>
-      </div>
-      <RideRiderSummary
-        :rider="appliedInputs"
-        :refreshing="isRefreshing"
-        :has-long-climb="hasLongClimb"
-      />
-      <RideEquipmentFilters :applied-restrictions="appliedRestrictions" />
-    </div>
+    <RideHeading
+      :crumbs="[
+        { label: 'All routes', to: '/' },
+        { label: routeData.worldName },
+        { label: TERRAIN_LABELS[routeData.terrain.category] },
+        ...(routeData.eventOnly ? [{ label: 'Event only' }] : [])
+      ]"
+      :name="routeData.name"
+    />
 
-    <RecommendDataNotice />
+    <!-- `laps` (the picker), not the applied lap count: the Fact row and the
+         hero describe the ride the rider has chosen, and are Ride-only. -->
+    <RideFactRow :facts="facts">
+      <li v-if="routeTotals && (routeData.lap || routeTotals.leadInDistanceKm > 0)">
+        {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
+          plus a {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
+            with {{ formatElevation(routeTotals.leadInElevationM) }} of climbing
+          </template>, ridden once
+        </template>.
+      </li>
+      <li v-if="surfaceCoverage && surfaceCoverage !== 'Mapped surfaces'">
+        {{ surfaceCoverage }}.
+      </li>
+      <!-- Client-only: this page is prerendered, so "upcoming" resolved at
+           render time would bake the build date into the HTML. -->
+      <li v-if="showUpcomingRaces && upcomingEvents.length">
+        Features in upcoming races:
+        <template
+          v-for="(entry, index) in upcomingEvents"
+          :key="entry.path"
+        >
+          <NuxtLink
+            :to="entry.path"
+            class="text-toned underline decoration-rule-strong hover:text-highlighted"
+          >{{ raceContextLabel(entry.season, entry.round) }} {{ raceDisplayName(entry.race) }}</NuxtLink>
+          ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
+        </template>
+      </li>
+      <TttBriefingLine
+        v-if="tttPlan"
+        :plan="tttPlan"
+      />
+    </RideFactRow>
+
+    <CourseHero
+      :route="routeData"
+      :laps="laps"
+      :name="routeData.name"
+    />
+
+    <RecommendDataNotice class="mt-6" />
     <p
       class="sr-only"
       role="status"
@@ -304,57 +269,14 @@ useHead(() => {
       :answer="answer"
       :faq-question="faqQuestion"
     >
-      <template #page-block>
-        <UAlert
-          v-if="showUpcomingRaces && upcomingEvents.length"
-          color="info"
-          variant="subtle"
-          icon="i-lucide-calendar-days"
-          title="This route features in upcoming races"
-        >
-          <template #description>
-            <span
-              v-for="(entry, index) in upcomingEvents"
-              :key="entry.path"
-            >
-              <ULink
-                :to="entry.path"
-                class="text-primary underline"
-              >{{ raceContextLabel(entry.season, entry.round) }} {{ raceDisplayName(entry.race) }}</ULink>
-              ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
-            </span>
-          </template>
-        </UAlert>
-      </template>
-
-      <template #briefing>
-        <!-- `laps` (the picker), not `resultsLaps`: the briefing describes the
-             ride the rider has chosen, and the climbs are expanded for it. -->
-        <RideBriefing
-          v-if="routeTotals"
-          :route="routeData"
-          :kind="TERRAIN_LABELS[routeData.terrain.category]"
-          per-lap
-          class="lg:col-start-1 lg:row-start-1"
-        >
-          <li v-if="climbOccurrences[0]">
-            {{ climbOccurrences.length }} mapped climb occurrence{{ climbOccurrences.length === 1 ? '' : 's' }}. First: {{ climbOccurrences[0].name }} at km {{ climbOccurrences[0].rideFromKm.toFixed(1) }}.
-          </li>
-          <li v-else>
-            No mapped climbs on this ride.
-          </li>
-          <TttBriefingLine
-            v-if="tttPlan"
-            :plan="tttPlan"
-          />
-          <li>
-            {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
-              + {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
-                / {{ formatElevation(routeTotals.leadInElevationM) }}
-              </template>, ridden once
-            </template>
-          </li>
-        </RideBriefing>
+      <template #rider>
+        <RiderCard
+          v-model:laps="laps"
+          :rider="appliedInputs"
+          :refreshing="isRefreshing"
+          :has-long-climb="hasLongClimb"
+          :lap-options="routeData.lap ? lapOptions : undefined"
+        />
       </template>
 
       <template #report-link>
@@ -365,30 +287,47 @@ useHead(() => {
       </template>
     </RideResults>
 
-    <!-- Ride-only tabs follow the picker `laps` like the briefing; the
-         equipment tabs follow the applied results, like the recommendation. -->
-    <RideCourseAnalysis
-      :route="routeData"
-      :results-route="appliedRanking.course"
-      kind="route"
-      :laps="laps"
-      :results-laps="resultsLaps"
-      :combo="topCombo"
-      :rider="appliedInputs"
-      :refreshing="isRefreshing"
-      :loading="isFirstLoad"
-      :plan="tttPlan"
-    />
+    <div class="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-2">
+      <RideWhy
+        :course="appliedRanking.course"
+        :combo="topCombo"
+        :ride-name="routeData.name"
+        :physics-mode="physicsInfo?.mode"
+        :refreshing="isRefreshing"
+      />
+      <!-- The Ride-only tabs follow the picker `laps` like the hero; the
+           equipment views follow the applied results, like the answer. -->
+      <RideCourseAnalysis
+        :route="routeData"
+        :results-route="appliedRanking.course"
+        kind="route"
+        :laps="laps"
+        :results-laps="resultsLaps"
+        :combo="topCombo"
+        :rider="appliedInputs"
+        :refreshing="isRefreshing"
+        :loading="isFirstLoad"
+        :plan="tttPlan"
+      />
+    </div>
 
     <RideComparison
+      class="mt-16"
       :combos="comparedCombos"
       :fastest-time-sec="fastestTimeSec"
       @clear="clearComparison"
       @remove="removeFromComparison"
     />
 
+    <RelatedRoutes
+      :key="routeData.slug"
+      class="mt-16"
+      :route="routeData"
+    />
+
     <PhysicsNote
       v-if="physicsInfo"
+      class="mt-12"
       :mode="physicsInfo.mode"
       :summary="physicsInfo.summary"
       :note="physicsInfo.note"

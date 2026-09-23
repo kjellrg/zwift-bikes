@@ -5,7 +5,8 @@ import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/eve
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { rideForSegment } from '#shared/utils/recommendRide'
 import { rideRulesForFormat } from '../../utils/recommendRequest'
-import { breadcrumbScript, faqScript, isDynamicPhysics } from '../../utils/rankingResults'
+import { breadcrumbScript, faqScript } from '../../utils/rankingResults'
+import { surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -121,9 +122,8 @@ const reportRideLine = computed(() => formatRideLine({
 // page's one selection, and "not a race" is the clean URL its link keeps.
 useSharedView({ bikeSearch, bikeSearchDebounced }, { key: 'rules', value: raceFormat, values: RACE_FORMATS })
 
-// Read-only here: the controls that write them live in
-// `RiderProfileControls` / `RideEquipmentFilters` - see the equivalent
-// comment in `routes/[slug].vue`.
+// Read-only here: the levers that write them live in `RiderCard` and
+// `RideEquipmentFilters` - see the equivalent comment in `routes/[slug].vue`.
 const { weightKg, powerW } = useRiderProfile()
 
 // Stat-rich for SERP snippets: "12.2 km at 8.5%" is what long-tail queries
@@ -140,13 +140,13 @@ const metaDescription = computed(() => {
   if (!segmentData.value) return undefined
   const s = segmentData.value
   const stats = `${formatDistance(s.lengthKm)}${displayGradePercent.value ? ` at ${formatGrade(displayGradePercent.value)}` : ', flat'}${displayElevationM.value >= 10 ? `, ${formatElevation(displayElevationM.value)} of climbing` : ''}`
-  return `Find the fastest bike and wheel combo for the ${s.name} ${s.type} in ${s.worldName} - ${stats}.`
+  return `The best bike and wheels for the ${s.name} ${s.type} in ${s.worldName} - ${stats} - ranked by predicted time for your weight and power.`
 })
 
 useSeoMeta({
-  title: () => segmentData.value ? `Best Bike for the ${segmentData.value.name} ${segmentData.value.type} - ZwiftBikes` : 'ZwiftBikes',
+  title: () => segmentData.value ? `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type} | ZwiftBikes` : 'ZwiftBikes',
   description: metaDescription,
-  ogTitle: () => segmentData.value ? segmentData.value.name : undefined,
+  ogTitle: () => segmentData.value ? `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type}` : undefined,
   ogDescription: metaDescription
   // No ogImage/twitterImage here: `defineOgImage` below emits og:image (with
   // width/height/alt) and the twitter:image set itself, same as the route page.
@@ -179,20 +179,19 @@ if (segmentData.value) {
       ? ogProfileFromPoints(resolvedRide.value!.planGeometry().points)
       : undefined
   }, {
-    alt: `Best bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
+    alt: `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
   })
 }
 
-// Whether the team climb pace control is worth showing - see the
-// `hasLongClimb` prop on `RiderProfileControls`. Keyed on the rider's NORMAL
+// Whether the team climb pace lever is worth showing - see the
+// `hasLongClimb` prop on `RiderCard`. Keyed on the rider's NORMAL
 // power, never on `tttClimbWkg`, so the climb pace can't decide its own
 // slider's visibility.
 const hasLongClimb = computed(() => resolvedRide.value
   ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
   : true)
 
-const physicsIsDynamic = computed(() => isDynamicPhysics(physicsInfo.value))
-// One plan for the briefing's TTT line and the TTT plan tab - see
+// One plan for the Fact row's TTT line and the TTT plan tab - see
 // `useTttPlan`. One lap: the timed segment, with no lead-in.
 const tttPlan = useTttPlan({
   route: () => segmentRoute.value,
@@ -207,6 +206,25 @@ const tttPlan = useTttPlan({
 // below, in this page's own flow, which is where "Show comparison" scrolls.
 const comparison = useComparison(() => combos.value)
 const { picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = comparison
+
+/** The segment in the breadcrumb's words: "Climb, category 2", "Sprint". */
+const segmentKind = computed(() => {
+  const data = segmentData.value
+  if (!data) return ''
+  if (data.type === 'sprint') return 'Sprint'
+  return data.climbType ? `Climb, ${data.climbType === 'HC' ? 'HC' : `category ${data.climbType}`}` : 'Climb'
+})
+const facts = computed<RideFact[]>(() => segmentData.value && segmentRoute.value
+  ? [
+      { value: formatDistance(segmentData.value.lengthKm), label: 'long' },
+      { value: formatElevation(displayElevationM.value), label: 'of climbing' },
+      { value: displayGradePercent.value ? formatGrade(displayGradePercent.value) : 'Flat', label: 'average grade' },
+      ...surfaceShareFacts(segmentRoute.value.surface.composition)
+    ]
+  : [])
+/** Why a lever the Rider card would otherwise offer is fixed here - the format's own rules, in the card's words. */
+const ttBarredReason = computed(() => ttAllowed.value || !raceFormat.value ? undefined : `TT frames are barred when this is ridden as a ${raceFormatPhrase(raceFormat.value)}.`)
+const draftLockedReason = computed(() => draftAllowed.value ? undefined : 'There is no draft in a Race of Truth.')
 
 const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
 // The visible answer under the recommendation and the FAQ structured data
@@ -251,108 +269,68 @@ useHead(() => {
 <template>
   <UContainer
     v-if="segmentData && segmentRoute"
-    class="py-8 space-y-8"
+    class="pb-8"
   >
-    <div class="space-y-6">
-      <div class="flex flex-wrap items-center gap-3 text-sm text-muted">
-        <UButton
-          to="/segments"
-          variant="link"
-          color="neutral"
-          icon="i-lucide-arrow-left"
-          class="px-0"
+    <RideHeading
+      :crumbs="[
+        { label: 'All segments', to: '/segments' },
+        { label: segmentData.worldName },
+        { label: segmentKind }
+      ]"
+      :name="segmentData.name"
+    />
+
+    <RideFactRow :facts="facts">
+      <li>Timed from the segment's start and ridden once; the flying-start warm-up is not counted.</li>
+      <!-- The host routes: how a rider moves on from one stretch to a whole ride. -->
+      <li v-if="segmentData.hostRoutes.length">
+        Also on
+        <template
+          v-for="(host, index) in segmentData.hostRoutes"
+          :key="host.slug"
         >
-          All segments
-        </UButton>
-        <span class="border-l border-default pl-3">{{ segmentData.worldName }} / {{ segmentData.type }}</span>
-      </div>
-      <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-          <p class="text-xs font-semibold uppercase tracking-wide text-muted">
-            Your next ride
-          </p>
-          <h1 class="mt-1 text-3xl font-bold text-highlighted break-words sm:text-4xl">
-            {{ segmentData.name }}
-          </h1>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <UBadge
-              :color="segmentData.type === 'climb' ? 'success' : 'warning'"
-              variant="subtle"
-              :icon="segmentData.type === 'climb' ? 'i-lucide-mountain' : 'i-lucide-zap'"
-            >
-              {{ segmentData.type === "climb" ? "Climb" : "Sprint" }}
-            </UBadge>
-            <UBadge
-              v-if="segmentData.climbType"
-              :color="CLIMB_TYPE_COLORS[segmentData.climbType]"
-              variant="subtle"
-            >
-              {{ segmentData.climbType === "HC" ? "HC" : `Cat ${segmentData.climbType}` }}
-            </UBadge>
-            <SurfaceBadges :surface="segmentRoute.surface" />
-            <UBadge
-              v-if="physicsIsDynamic"
-              color="primary"
-              variant="subtle"
-              icon="i-lucide-atom"
-            >
-              Dynamic physics
-            </UBadge>
-          </div>
-        </div>
-        <dl class="grid shrink-0 grid-cols-3 gap-4 sm:gap-8">
-          <div>
-            <dt class="text-xs text-muted">
-              Length
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ formatDistance(segmentData.lengthKm) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-muted">
-              Elevation
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ formatElevation(displayElevationM) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-muted">
-              Avg grade
-            </dt><dd class="text-xl font-bold tabular-nums text-highlighted sm:text-2xl">
-              {{ displayGradePercent ? formatGrade(displayGradePercent) : "Flat" }}
-            </dd>
-          </div>
-        </dl>
-      </div>
-      <!-- The page's own selection, with the Ride and above the results the
-           way a route page's lap picker is - and deliberately NOT in
-           `RideEquipmentFilters`, whose contract is stored rider preferences.
-           No alert banner goes with it: a control naming the format sits
-           directly over the ranking it changes, which is exactly what a race
-           page hasn't got. -->
-      <div class="w-56">
-        <label class="block text-xs font-medium text-muted mb-1">Ridden as</label><USelectMenu
-          v-model="rideRulesSelection"
-          value-key="value"
-          :items="rideRulesOptions"
-          :search-input="false"
-          aria-label="Ridden as"
-        />
-      </div>
-      <RideRiderSummary
-        :rider="appliedInputs"
-        :refreshing="isRefreshing"
-        :has-long-climb="hasLongClimb"
-        :sprint-power="isSprint"
-        :draft-locked="!draftAllowed"
+          <NuxtLink
+            :to="`/routes/${host.slug}`"
+            class="text-toned underline decoration-rule-strong hover:text-highlighted"
+          >{{ host.name }}</NuxtLink><span v-if="index < segmentData.hostRoutes.length - 1">, </span>
+        </template>.
+      </li>
+      <li v-if="segmentData.placement === 'membership'">
+        The exact position of this segment along its host routes isn't in our route data, so length and grade come from the segment's own record, and the surface estimate is borrowed from the host route's overall mix.
+      </li>
+      <TttBriefingLine
+        v-if="tttPlan"
+        :plan="tttPlan"
       />
-      <RideEquipmentFilters
-        :hide-tt-category="!ttAllowed"
-        :applied-restrictions="appliedRestrictions"
+    </RideFactRow>
+
+    <!-- The page's own selection, with the Ride and above the answer the way
+         a route page's lap count is - deliberately not with the equipment
+         chips, whose contract is stored rider preferences. -->
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+      <label
+        for="segment-ridden-as"
+        class="text-sm text-muted"
+      >Ridden as</label>
+      <USelectMenu
+        id="segment-ridden-as"
+        v-model="rideRulesSelection"
+        value-key="value"
+        :items="rideRulesOptions"
+        :search-input="false"
+        size="sm"
+        class="w-44"
+        aria-label="Ridden as"
       />
     </div>
 
-    <RecommendDataNotice />
+    <CourseHero
+      :route="segmentRoute"
+      :laps="1"
+      :name="segmentData.name"
+    />
+
+    <RecommendDataNotice class="mt-6" />
     <p
       class="sr-only"
       role="status"
@@ -366,42 +344,18 @@ useHead(() => {
       :comparison="comparison"
       :answer="answer"
       :faq-question="faqQuestion"
+      :hide-tt-category="!ttAllowed"
     >
-      <template #briefing>
-        <!-- The host-route links live here rather than under the header: they
-             are how a rider moves on to a whole ride, and the briefing is the
-             part of the page that describes the ride they are on. -->
-        <RideBriefing
-          :route="segmentRoute"
-          :kind="isSprint ? 'Sprint segment' : 'Climbing segment'"
-          class="lg:col-start-1 lg:row-start-1"
-        >
-          <li>
-            Timed from the segment's start, ridden once; the flying-start warm-up is not counted.
-          </li>
-          <li v-if="segmentData.hostRoutes.length">
-            <span class="font-medium text-highlighted">Also appears on:</span>
-            <template
-              v-for="(host, index) in segmentData.hostRoutes"
-              :key="host.slug"
-            >
-              <ULink
-                :to="`/routes/${host.slug}`"
-                class="text-primary underline"
-              >{{ host.name }}</ULink><span v-if="index < segmentData.hostRoutes.length - 1">, </span>
-            </template>
-          </li>
-          <TttBriefingLine
-            v-if="tttPlan"
-            :plan="tttPlan"
-          />
-          <li
-            v-if="segmentData.placement === 'membership'"
-            class="text-xs"
-          >
-            The exact position of this segment along its host routes isn't in our route data, so length and grade come from the segment's own record, and the surface estimate is borrowed from the host route's overall mix.
-          </li>
-        </RideBriefing>
+      <template #rider>
+        <RiderCard
+          :rider="appliedInputs"
+          :refreshing="isRefreshing"
+          :has-long-climb="hasLongClimb"
+          :sprint-power="isSprint"
+          :draft-locked="draftLockedReason"
+          :tt-barred="ttBarredReason"
+          :fixed-laps="{ label: 'Once', reason: 'A segment is timed once, from its start' }"
+        />
       </template>
 
       <template #report-link>
@@ -413,22 +367,32 @@ useHead(() => {
     </RideResults>
 
     <!-- A segment is ridden once, so both lap counts are 1 and there is no
-         Segments tab. The speed chart and TTT plan simulate the segment
+         climbs tab. The speed chart and TTT plan simulate the segment
          route-style, from a standing start, and their scope lines say so. -->
-    <RideCourseAnalysis
-      :route="segmentRoute"
-      :results-route="appliedRanking.course"
-      :kind="segmentData.type"
-      :laps="1"
-      :results-laps="1"
-      :combo="topCombo"
-      :rider="appliedInputs"
-      :refreshing="isRefreshing"
-      :loading="isFirstLoad"
-      :plan="tttPlan"
-    />
+    <div class="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-2">
+      <RideWhy
+        :course="appliedRanking.course"
+        :combo="topCombo"
+        :ride-name="segmentData.name"
+        :physics-mode="physicsInfo?.mode"
+        :refreshing="isRefreshing"
+      />
+      <RideCourseAnalysis
+        :route="segmentRoute"
+        :results-route="appliedRanking.course"
+        :kind="segmentData.type"
+        :laps="1"
+        :results-laps="1"
+        :combo="topCombo"
+        :rider="appliedInputs"
+        :refreshing="isRefreshing"
+        :loading="isFirstLoad"
+        :plan="tttPlan"
+      />
+    </div>
 
     <RideComparison
+      class="mt-16"
       :combos="comparedCombos"
       :fastest-time-sec="fastestTimeSec"
       @clear="clearComparison"
@@ -437,6 +401,7 @@ useHead(() => {
 
     <PhysicsNote
       v-if="physicsInfo"
+      class="mt-12"
       :mode="physicsInfo.mode"
       :summary="physicsInfo.summary"
       :note="physicsInfo.note"

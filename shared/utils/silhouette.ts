@@ -62,6 +62,9 @@ export interface SilhouetteBand extends SilhouetteSpan {
 }
 
 export interface SilhouetteSurfaceSpan extends SilhouetteSpan {
+  /** The surface itself, for a readout that names it. */
+  surface: PhysicsSurface
+  /** Its family, which is all a drawing colours by. */
   family: SurfaceFamily
 }
 
@@ -71,7 +74,7 @@ export interface Silhouette {
   climbs: SilhouetteBand[]
   /** Named sprints, in ride order. */
   sprints: SilhouetteBand[]
-  /** Where each surface family begins and ends; empty when the positions are not known. */
+  /** Where each surface begins and ends, in ride order; empty when the positions are not known. */
   surfaces: SilhouetteSurfaceSpan[]
   totalDistanceM: number
   minElevationM: number
@@ -135,10 +138,9 @@ function surfaceSpans(segments: readonly RouteSurfaceSegment[] | undefined, tota
     const from = clampFraction(segment.fromM / totalM)
     const to = clampFraction(segment.toM / totalM)
     if (to <= from) continue
-    const family = surfaceFamily(segment.surface)
     const previous = spans.at(-1)
-    if (previous && previous.family === family && Math.abs(previous.to - from) < 1e-9) previous.to = to
-    else spans.push({ from, to, family })
+    if (previous && previous.surface === segment.surface && Math.abs(previous.to - from) < 1e-9) previous.to = to
+    else spans.push({ from, to, surface: segment.surface, family: surfaceFamily(segment.surface) })
   }
   return spans
 }
@@ -171,6 +173,15 @@ export function silhouette(input: SilhouetteInput, options: SilhouetteOptions = 
 }
 
 /**
+ * What a Silhouette is drawn from: a whole route, or the listing's summary
+ * of one (`RouteSummary`), which carries the terrain and surfaces but not
+ * the lead-in - a card's Silhouette is then the lap alone, which is what a
+ * listing describes.
+ */
+export type SilhouetteRoute = Pick<RouteWithMeta, 'slug' | 'distance' | 'elevation' | 'terrain' | 'surface'>
+  & Partial<Pick<RouteWithMeta, 'leadInDistance' | 'leadInElevation'>>
+
+/**
  * A route's (or a segment-as-route's) Silhouette for `laps` laps, the
  * lead-in once: the very geometry the simulator rides (`geometryForRouteLaps`)
  * with its climbs and sprints expanded per lap by the same functions the
@@ -183,13 +194,16 @@ export function silhouette(input: SilhouetteInput, options: SilhouetteOptions = 
  * follows the same rule - drawn only where the surfaces' positions were
  * measured, never from a mix laid out in share order.
  */
-export function routeSilhouette(route: RouteWithMeta, laps = 1, options: SilhouetteOptions = {}): Silhouette | undefined {
+export function routeSilhouette(route: SilhouetteRoute, laps = 1, options: SilhouetteOptions = {}): Silhouette | undefined {
   if ((route.terrain.elevationProfile?.length ?? 0) < 2) return undefined
-  const geometry = geometryForRouteLaps(route, laps)
+  // Every field the geometry builder reads is on a `SilhouetteRoute`; the
+  // lead-in ones it treats as absent when they are.
+  const full = route as RouteWithMeta
+  const geometry = geometryForRouteLaps(full, laps)
   return silhouette({
     points: geometry.points,
     surfaceSegments: route.surface.segments?.length ? geometry.surfaceSegments : undefined,
-    climbs: expandClimbsForLaps(route, laps),
-    sprints: expandSprintsForLaps(route, laps)
+    climbs: expandClimbsForLaps(full, laps),
+    sprints: expandSprintsForLaps(full, laps)
   }, options)
 }
