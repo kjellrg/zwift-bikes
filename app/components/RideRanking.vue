@@ -39,7 +39,7 @@ defineEmits<{ showMore: [] }>()
 const search = defineModel<string>('search', { default: '' })
 const selected = defineModel<string[]>('selected', { default: () => [] })
 
-const { allColumns, setAllColumns, bikeCategory, verifiedOnly, myBikesOnly, setBikeCategory, setVerifiedOnly, setMyBikesOnly } = usePreferences()
+const { allColumns, setAllColumns, verifiedOnly, myBikesOnly, setBikeCategory, setVerifiedOnly, setMyBikesOnly } = usePreferences()
 
 const compareFull = computed(() => selected.value.length >= COMPARISON_LIMIT)
 function toggleCompare(combo: ComboScore) {
@@ -75,11 +75,15 @@ function clearSearch() {
 
 /**
  * The one widening action an empty Ranking offers: the narrowest thing the
- * rider did last, in the order they are most likely to have done it.
+ * rider did last, in the order they are most likely to have done it. The
+ * category is the one the Ranking was made under, not the stored one: on a
+ * ride that bars TT frames a stored `tt` already ranks as all categories,
+ * so offering to widen it would change nothing and overwrite the rider's
+ * `tt` for every other page.
  */
 const widening = computed<{ label: string, run: () => void } | undefined>(() => {
   if (props.appliedSearch) return { label: 'Clear the search', run: clearSearch }
-  if (bikeCategory.value !== 'all') return { label: 'Show all categories', run: () => setBikeCategory('all') }
+  if (props.ranking.rider.category !== 'all') return { label: 'Show all categories', run: () => setBikeCategory('all') }
   if (verifiedOnly.value) return { label: 'Include estimated data', run: () => setVerifiedOnly(false) }
   if (myBikesOnly.value) return { label: 'Rank beyond my garage', run: () => setMyBikesOnly(false) }
   return undefined
