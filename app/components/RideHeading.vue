@@ -39,7 +39,7 @@ defineProps<{
       </ol>
     </nav>
     <h1 class="mt-3 text-balance text-highlighted">
-      <span class="block text-lg text-toned sm:text-xl">{{ lead ?? 'The fastest bike for' }}</span>
+      <span class="block text-lg text-toned sm:text-xl">{{ lead ?? 'The fastest bike for' }}</span>{{ ' ' }}
       <span class="mt-1 block break-words text-[clamp(2.25rem,7vw,4.5rem)] font-bold leading-none font-display tracking-[-0.01em]">{{ name }}</span>
     </h1>
     <slot />
