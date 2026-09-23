@@ -20,14 +20,21 @@ import { curatedExampleRoute, exampleRiderInputs, exampleRiderLabel, type Exampl
  *
  * The payload carries only what the card draws, never the route or the
  * ranking whole.
+ *
+ * For a race the card is the homepage's whole announcement of it - there is
+ * no separate next-race strip on this page - so it carries the dates and
+ * the season and round the race belongs to as well as its stage and group.
+ * Either way the card is three single lines above the Silhouette, so the
+ * swap from the prerendered route to the race never changes its height.
  */
 
 interface ExampleCard {
   href: string
-  /** What the example is: "Today's example", or the race and group it is for. */
+  /** What the example is: "Today's example", or the race and group it is for and its world. */
   context: string
   routeName: string
-  worldName: string
+  /** The line under the route's name: the world, or the race's dates and season. */
+  detail: string
   distanceKm: number
   elevationM: number
   frameName: string
@@ -59,7 +66,17 @@ function currentRider(): ExampleRider {
   }
 }
 
-async function answer(ride: Ride, context: string, href: string, rider: ExampleRider, stored: boolean): Promise<ExampleCard | undefined> {
+/**
+ * What the card says around the route's name. With no `detail` the world is
+ * the line under the name; a race puts its dates and season there, so its
+ * world moves up beside the race's own name.
+ */
+interface ExampleLabel {
+  context: string
+  detail?: string
+}
+
+async function answer(ride: Ride, label: ExampleLabel, href: string, rider: ExampleRider, stored: boolean): Promise<ExampleCard | undefined> {
   const laps = ride.laps ?? 1
   const [route, ranking] = await Promise.all([
     $fetch<RouteWithMeta>(`/api/routes/${ride.course.slug}`),
@@ -70,9 +87,9 @@ async function answer(ride: Ride, context: string, href: string, rider: ExampleR
   const totals = computeRouteTotals(route, laps)
   return {
     href,
-    context,
+    context: label.detail ? `${label.context} · ${route.worldName}` : label.context,
     routeName: route.name,
-    worldName: route.worldName,
+    detail: label.detail ?? route.worldName,
     distanceKm: totals.distanceKm,
     elevationM: totals.elevationM,
     frameName: top.frame.name,
@@ -88,7 +105,7 @@ async function answer(ride: Ride, context: string, href: string, rider: ExampleR
 const buildDateSlug = useState('home-example-slug', () => curatedExampleRoute(new Date().toISOString().slice(0, 10)))
 const { data: prerendered } = await useAsyncData('home-example', () => answer(
   { course: { kind: 'route', slug: buildDateSlug.value }, laps: 1 },
-  'Today\'s example',
+  { context: 'Today\'s example' },
   `/routes/${buildDateSlug.value}`,
   currentRider(),
   false
@@ -106,11 +123,14 @@ onMounted(async () => {
   const next = preferences.showUpcomingRaces.value && eventsVisible.value ? getNextUpcomingRace(today) : undefined
   const group = next?.race.categories.find(candidate => candidate.routeSlug)
   let ride: Ride
-  let context: string
+  let label: ExampleLabel
   let href: string
   if (next && group?.routeSlug) {
     ride = { course: { kind: 'route', slug: group.routeSlug }, laps: group.laps, ...rideRulesForFormat(next.race.format) }
-    context = `Next race: ${raceDisplayName(next.race)}, ${formatCategoryGroup(group)}`
+    label = {
+      context: `Next race: ${raceDisplayName(next.race)}, ${formatCategoryGroup(group)}`,
+      detail: `${formatRaceDateRange(next.race.date, next.race.endDate)} · ${raceContextLabel(next.season, next.round)}`
+    }
     href = next.path
   } else {
     const slug = curatedExampleRoute(today)
@@ -118,11 +138,11 @@ onMounted(async () => {
     // for the default rider.
     if (slug === buildDateSlug.value && !stored) return
     ride = { course: { kind: 'route', slug }, laps: 1 }
-    context = 'Today\'s example'
+    label = { context: 'Today\'s example' }
     href = `/routes/${slug}`
   }
   try {
-    current.value = await answer(ride, context, href, currentRider(), stored) ?? current.value
+    current.value = await answer(ride, label, href, currentRider(), stored) ?? current.value
   } catch {
     // The prerendered answer stays: a teaser that failed to refresh is
     // still a true answer for the route it names.
@@ -138,10 +158,14 @@ onMounted(async () => {
     class="block rounded-2xl border border-default bg-elevated px-5 pt-4.5 pb-5 shadow-card transition-colors hover:border-accented"
   >
     <span class="flex justify-between gap-3 text-sm text-muted">
-      <span class="min-w-0 truncate">{{ card.context }} · {{ card.worldName }}</span>
+      <span class="min-w-0 truncate">{{ card.context }}</span>
       <span class="shrink-0 text-primary">See the ranking</span>
     </span>
     <span class="mt-0.5 block text-xl font-semibold font-heading text-highlighted">{{ card.routeName }}</span>
+    <span
+      class="block truncate text-sm text-toned"
+      :title="card.detail"
+    >{{ card.detail }}</span>
     <RouteSilhouette
       :shape="card.shape"
       strip

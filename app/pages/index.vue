@@ -246,8 +246,6 @@ watch([query, terrainFilter], ([value]) => {
       <HomeExample />
     </div>
 
-    <NextRaceCard class="mt-4" />
-
     <section
       aria-labelledby="route-finder-heading"
       class="mt-12"
@@ -262,111 +260,120 @@ watch([query, terrainFilter], ([value]) => {
         Each card draws the route's elevation profile, so you can pick by terrain before you read a number.
       </p>
 
+      <!-- Two rows, one question each: what kind of route (world, terrain,
+           surface), then how big (distance, elevation), with the count and
+           Reset closing the second row as they close the segments page's.
+           One wrapping row put the elevation slider alone under the world
+           select at desktop widths. -->
       <div
-        class="mt-4 flex flex-wrap items-end gap-x-6 gap-y-4 border-y border-default py-4"
+        class="mt-4 space-y-4 border-y border-default py-4"
         role="group"
         aria-label="Route filters"
       >
-        <div>
-          <label class="mb-1 block text-xs text-muted">World</label>
-          <USelectMenu
-            v-model="worldFilter"
-            value-key="value"
-            :items="worldOptions"
-            :search-input="false"
-            aria-label="World"
-            class="w-44"
-          />
-        </div>
-        <div>
-          <p class="mb-1 text-xs text-muted">
-            Terrain
-          </p>
-          <div class="flex flex-wrap gap-1.5">
-            <button
-              v-for="chip in TERRAIN_CHIPS"
-              :key="chip.value"
-              type="button"
-              class="rounded-full border px-3 py-1 text-sm transition-colors"
-              :class="terrainFilter.includes(chip.value) ? 'border-ink bg-accented text-highlighted' : 'border-accented bg-elevated text-toned hover:text-highlighted'"
-              :aria-pressed="terrainFilter.includes(chip.value)"
-              @click="toggleTerrain(chip.value)"
-            >
-              {{ chip.label }}
-            </button>
+        <div class="flex flex-wrap items-end gap-x-6 gap-y-4">
+          <div>
+            <label class="mb-1 block text-xs text-muted">World</label>
+            <USelectMenu
+              v-model="worldFilter"
+              value-key="value"
+              :items="worldOptions"
+              :search-input="false"
+              aria-label="World"
+              class="w-44"
+            />
+          </div>
+          <div>
+            <p class="mb-1 text-xs text-muted">
+              Terrain
+            </p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="chip in TERRAIN_CHIPS"
+                :key="chip.value"
+                type="button"
+                class="rounded-full border px-3 py-1 text-sm transition-colors"
+                :class="terrainFilter.includes(chip.value) ? 'border-ink bg-accented text-highlighted' : 'border-accented bg-elevated text-toned hover:text-highlighted'"
+                :aria-pressed="terrainFilter.includes(chip.value)"
+                @click="toggleTerrain(chip.value)"
+              >
+                {{ chip.label }}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs text-muted">Surface</label>
+            <USelectMenu
+              v-model="surfaceFilter"
+              value-key="value"
+              :items="surfaceOptions"
+              :search-input="false"
+              aria-label="Surface"
+              class="w-44"
+            />
           </div>
         </div>
-        <div>
-          <label class="mb-1 block text-xs text-muted">Surface</label>
-          <USelectMenu
-            v-model="surfaceFilter"
-            value-key="value"
-            :items="surfaceOptions"
-            :search-input="false"
-            aria-label="Surface"
-            class="w-44"
-          />
-        </div>
-        <!-- The h-8 wrapper gives the thin slider track the same 32px control
+        <div class="flex flex-wrap items-end gap-x-6 gap-y-4">
+          <!-- The h-8 wrapper gives the thin slider track the same 32px control
              height as the selects, so the row's items-end alignment lines every
              cell up. -->
-        <div class="w-full sm:w-52">
-          <label class="mb-1 block text-xs text-muted">
-            Distance {{ pendingDistanceRange[0] }}–{{ pendingDistanceRange[1] }} km
-          </label>
-          <div class="flex h-8 items-center">
-            <USlider
-              :model-value="pendingDistanceRange"
-              :min="0"
-              :max="120"
-              :step="5"
-              size="sm"
-              aria-label="Distance range in kilometres"
-              @update:model-value="onDistanceRangeInput"
-              @change="commitDistanceRange"
-            />
+          <div class="w-full sm:w-52">
+            <label class="mb-1 block text-xs text-muted">
+              Distance {{ pendingDistanceRange[0] }}–{{ pendingDistanceRange[1] }} km
+            </label>
+            <div class="flex h-8 items-center">
+              <USlider
+                :model-value="pendingDistanceRange"
+                :min="0"
+                :max="120"
+                :step="5"
+                size="sm"
+                aria-label="Distance range in kilometres"
+                @update:model-value="onDistanceRangeInput"
+                @change="commitDistanceRange"
+              />
+            </div>
           </div>
-        </div>
-        <div class="w-full sm:w-52">
-          <label class="mb-1 block text-xs text-muted">
-            Elevation {{ pendingElevationRange[0] }}–{{ pendingElevationRange[1] }} m
-          </label>
-          <div class="flex h-8 items-center">
-            <USlider
-              :model-value="pendingElevationRange"
-              :min="0"
-              :max="2000"
-              :step="50"
-              size="sm"
-              aria-label="Elevation range in metres"
-              @update:model-value="onElevationRangeInput"
-              @change="commitElevationRange"
-            />
+          <div class="w-full sm:w-52">
+            <label class="mb-1 block text-xs text-muted">
+              Elevation {{ pendingElevationRange[0] }}–{{ pendingElevationRange[1] }} m
+            </label>
+            <div class="flex h-8 items-center">
+              <USlider
+                :model-value="pendingElevationRange"
+                :min="0"
+                :max="2000"
+                :step="50"
+                size="sm"
+                aria-label="Elevation range in metres"
+                @update:model-value="onElevationRangeInput"
+                @change="commitElevationRange"
+              />
+            </div>
           </div>
-        </div>
-        <div class="flex items-center gap-3 lg:ml-auto">
-          <!-- The count sits with the controls that produced it; the live
+          <div class="flex items-center gap-3 lg:ml-auto">
+            <!-- The count sits with the controls that produced it; the live
                region is always there, so a change is announced. -->
-          <p
-            class="text-sm text-muted"
-            aria-live="polite"
-          >
-            <template v-if="status === 'pending'">
-              Finding routes…
-            </template>
-            <template v-else-if="status !== 'error'">
-              {{ countLine }}
-            </template>
-          </p>
-          <UButton
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            icon="i-lucide-rotate-ccw"
-            @click="resetFilters"
-          >
-            Reset
-          </UButton>
+            <p
+              class="text-sm text-muted"
+              aria-live="polite"
+            >
+              <template v-if="status === 'pending'">
+                Finding routes…
+              </template>
+              <template v-else-if="status !== 'error'">
+                {{ countLine }}
+              </template>
+            </p>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-rotate-ccw"
+              @click="resetFilters"
+            >
+              Reset
+            </UButton>
+          </div>
         </div>
       </div>
 

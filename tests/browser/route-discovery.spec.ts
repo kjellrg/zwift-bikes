@@ -33,7 +33,7 @@ const resetButton = (page: Page) => page.getByRole('button', { name: 'Reset' })
 /** The live count line on the filter row - "Finding routes…", then "N routes found". */
 const statusLine = (page: Page) => filters(page).locator('p[aria-live="polite"]')
 const notice = (page: Page) => page.getByRole('alert')
-/** Every route card in the finder - the example card and the next-race strip link elsewhere on the page. */
+/** Every route card in the finder - the example card links to a route too, from outside the finder. */
 const cards = (page: Page) => page.locator('section:has(#route-finder-heading) a[href^="/routes/"]')
 const showMore = (page: Page) => page.getByRole('button', { name: /^Show more/ })
 const example = (page: Page) => page.locator('#home-example')

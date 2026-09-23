@@ -2,19 +2,20 @@
 import type { PublishableRace } from '../../shared/utils/events'
 
 /**
- * The "Next race" strip on the homepage and the events hub: the next
- * upcoming publishable race across every series, in one row - its name,
- * course, dates and format - with a link that reads as the question a rider
- * would ask of it. Not a card: nothing is a card that is not a thing to open.
+ * The "Next race" strip on the events hub: the next upcoming publishable
+ * race across every series, in one row - its name, course, dates and format
+ * - with a link that reads as the question a rider would ask of it. Not a
+ * card: nothing is a card that is not a thing to open. The homepage has no
+ * strip: its example card shows the same race, with the answer drawn.
  *
- * Resolved in `onMounted`, never at render time - the homepage is
- * prerendered, so "next" evaluated during the build would be frozen into the
- * shipped HTML. Hidden until mounted and whenever nothing is upcoming, so it
+ * Resolved in `onMounted`, never at render time - the hub is prerendered,
+ * so "next" evaluated during the build would be frozen into the shipped
+ * HTML. Hidden until mounted and whenever nothing is upcoming, so it
  * costs the page nothing when the calendars run dry.
  */
-// Loaded here rather than by the host page: the homepage has no other
-// reason to touch preferences, and this card hides itself when the rider
-// has switched the teasers off.
+// Loaded here rather than by the host page, which has no other reason to
+// touch preferences: this card hides itself when the rider has switched the
+// teasers off.
 const { showUpcomingRaces, load: loadPreferences } = usePreferences()
 
 // Hides with the events section (runtime site flags) - a teaser must not
@@ -26,7 +27,7 @@ const { eventsVisible, load: loadSiteFlags } = useSiteFlags()
 const nextRace = ref<PublishableRace>()
 // Until mounted the card's space is held by a same-height skeleton: the
 // real card cannot be server-rendered (see above), and letting it pop in
-// after hydration pushed the whole route grid down on the most-visited page.
+// after hydration pushed everything under it down.
 // The skeleton collapses only when there is nothing to show - teasers off,
 // events gated, or the calendars run dry - which is the rare case.
 const mounted = ref(false)
