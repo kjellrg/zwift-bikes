@@ -2,11 +2,12 @@ import { expect, test, type Page } from '@playwright/test'
 import { isListingResponse, ready, rerank, visit } from './support'
 
 /**
- * The course-analysis tabs under the route and segment pages (issue #207)
- * and the TTT briefing and plan that read one result (issue #208): the
- * Ride-only tabs (elevation, segments in ride order, surface details) that
- * exist with zero matches and through a refresh, the equipment tabs (speed
- * chart, TTT plan) that follow the applied results and say so, honest
+ * The course section under the route and segment pages (issues #207, #257)
+ * and the Fact row's TTT line and plan that read one result (issue #208):
+ * the Course hero that draws the profile once at the top of the page, the
+ * Ride-only tabs (climbs and sprints in ride order, surfaces) that exist
+ * with zero matches and through a refresh, the equipment tabs (speed by
+ * surface, TTT plan) that follow the applied results and say so, honest
  * unavailable states, the panels served in the HTML before any click, and
  * the selected tab surviving a lap refresh and the bike drawer. Waits come
  * from `support.ts` and are for real signals, never sleeps.
@@ -37,14 +38,15 @@ const tab = (page: Page, name: string) => page.getByRole('tab', { name, exact: t
 /** Only the active panel is visible; the others stay mounted but hidden, so a role query finds exactly one. */
 const panel = (page: Page, name: string) => page.getByRole('tabpanel', { name, exact: true })
 const recommendation = (page: Page) => page.locator('section:has(#ride-recommendation-heading)')
-const briefing = (page: Page) => page.getByRole('region', { name: 'Ride briefing' })
-const segmentRows = (page: Page) => panel(page, 'Segments').getByRole('list', { name: 'Segments in ride order' }).getByRole('listitem')
-const elevationChart = (page: Page) => page.getByLabel('Elevation profile chart')
+/** The Ride-only notes under the Fact row, where the TTT line lives. */
+const briefing = (page: Page) => page.getByRole('list', { name: 'About this ride' })
+const segmentRows = (page: Page) => panel(page, 'Climbs and sprints').getByRole('list', { name: 'Segments in ride order' }).getByRole('listitem')
+const hero = (page: Page) => page.locator('#course-hero')
 const speedChart = (page: Page) => page.getByLabel('Average speed by surface segment')
 
-/** The "km 1.4-2.3" range on a segment row, as numbers. */
+/** The "km 1.4 to 2.3" range on a segment row, as numbers. */
 async function kmRange(row: ReturnType<typeof segmentRows>) {
-  const match = (await row.innerText()).match(/km (\d+\.\d)-(\d+\.\d)/)
+  const match = (await row.innerText()).match(/km (\d+\.\d) to (\d+\.\d)/)
   expect(match, 'a segment row names its km range').toBeTruthy()
   return [Number(match![1]), Number(match![2])] as const
 }
@@ -59,12 +61,12 @@ async function visitInTtt(page: Page, path: string) {
 }
 
 const sectorRows = (page: Page) => panel(page, 'TTT plan').getByRole('list', { name: 'TTT sectors' }).getByRole('listitem')
-/** The briefing's sector count, or 0 when it says nothing is flagged. */
+/** The Fact row's sector count, or 0 when it says nothing is flagged. */
 async function briefedSectorCount(page: Page) {
   const text = await briefing(page).innerText()
   if (text.includes('No sectors flagged by this model.')) return 0
   const match = text.match(/(\d+) sectors? that may split or slow the paceline/)
-  expect(match, 'the briefing counts the sectors').toBeTruthy()
+  expect(match, 'the TTT line counts the sectors').toBeTruthy()
   return Number(match![1])
 }
 
@@ -74,16 +76,16 @@ async function topFrameName(page: Page) {
 }
 
 test.describe('course analysis tabs', () => {
-  test('serves every panel and the segment links from the server, with elevation showing first', async ({ page, request }) => {
+  test('draws the profile once, as the hero, and serves every panel and the segment links from the server', async ({ page, request }) => {
     await visit(page, HILLY)
-    for (const name of ['Elevation', 'Segments', 'Speed & surface', 'Surface details']) await expect(tab(page, name)).toBeVisible()
+    for (const name of ['Climbs and sprints', 'Surfaces', 'Speed by surface']) await expect(tab(page, name)).toBeVisible()
+    // The elevation profile is the Course hero, never a tab of its own.
+    await expect(tab(page, 'Elevation')).toHaveCount(0)
+    await expect(hero(page)).toBeVisible()
+    await expect(hero(page).getByRole('img')).toHaveAttribute('aria-label', /^Elevation profile of Watopia Hilly Route: .*1 named climb, 1 sprint\.$/)
     await expect(tab(page, 'TTT plan')).toHaveCount(0)
     await expect(briefing(page)).not.toContainText('View TTT plan')
-    await expect(tab(page, 'Elevation')).toHaveAttribute('aria-selected', 'true')
-    await expect(panel(page, 'Elevation')).toContainText('Measured elevation profile; 1 lap, lead-in included once.')
-    await expect(elevationChart(page)).toBeVisible()
-    // The retired tables are gone; the occurrences live in the Segments tab.
-    await expect(page.getByText(/Climbs on this route|Sprints on this route/)).toHaveCount(0)
+    await expect(tab(page, 'Climbs and sprints')).toHaveAttribute('aria-selected', 'true')
 
     // The prerendered HTML, not the hydrated page: what a crawler gets.
     const html = await (await request.get(HILLY)).text()
@@ -91,14 +93,16 @@ test.describe('course analysis tabs', () => {
       const doc = new DOMParser().parseFromString(html, 'text/html')
       const panels = [...doc.querySelectorAll('[role="tabpanel"]')]
       return {
+        hero: doc.querySelectorAll('#course-hero').length,
         panels: panels.length,
         hiddenPanels: panels.filter(node => node.hasAttribute('hidden')).length,
         segmentLinks: panels.flatMap(node => [...node.querySelectorAll('a[href^="/segments/"]')].map(link => link.getAttribute('href'))),
         simulated: doc.querySelectorAll('[aria-label="Average speed by surface segment"]').length
       }
     }, html)
-    expect(served.panels).toBe(4)
-    expect(served.hiddenPanels).toBe(3)
+    expect(served.hero).toBe(1)
+    expect(served.panels).toBe(3)
+    expect(served.hiddenPanels).toBe(2)
     expect(served.segmentLinks).toEqual(expect.arrayContaining(['/segments/zwift-kom', '/segments/watopia-sprint']))
     // The expensive speed simulation is not run for a page nobody has asked it of.
     expect(served.simulated).toBe(0)
@@ -106,8 +110,8 @@ test.describe('course analysis tabs', () => {
 
   test('lists climbs and sprints in ride order, once per lap, and keeps the tab through a lap refresh and the drawer', async ({ page }) => {
     await visit(page, HILLY)
-    await tab(page, 'Segments').click()
-    await expect(panel(page, 'Segments')).toContainText('1 lap; kilometre positions include the lead-in, ridden once.')
+    await tab(page, 'Climbs and sprints').click()
+    await expect(panel(page, 'Climbs and sprints')).toContainText('1 lap; kilometre positions include the lead-in, ridden once.')
     await expect(segmentRows(page)).toHaveCount(2)
     await expect(segmentRows(page).nth(0)).toContainText('Zwift KOM')
     await expect(segmentRows(page).nth(1)).toContainText('Watopia Sprint')
@@ -116,11 +120,11 @@ test.describe('course analysis tabs', () => {
     expect(komFrom).toBeCloseTo(1.44, 1)
     expect(komTo).toBeCloseTo(2.33, 1)
     await expect(segmentRows(page).nth(0)).not.toContainText('lap 1')
-    await expect(segmentRows(page).nth(0).getByRole('link', { name: 'Zwift KOM' })).toHaveAttribute('href', '/segments/zwift-kom')
+    await expect(segmentRows(page).nth(0).getByRole('link', { name: 'Fastest bike for Zwift KOM' })).toHaveAttribute('href', '/segments/zwift-kom')
 
     await rerank(page, () => pickLaps(page, '2 laps'))
-    await expect(tab(page, 'Segments')).toHaveAttribute('aria-selected', 'true')
-    await expect(panel(page, 'Segments')).toContainText('2 laps;')
+    await expect(tab(page, 'Climbs and sprints')).toHaveAttribute('aria-selected', 'true')
+    await expect(panel(page, 'Climbs and sprints')).toContainText('2 laps;')
     await expect(segmentRows(page)).toHaveCount(4)
     const names = await segmentRows(page).allInnerTexts()
     expect(names.map(text => text.includes('Zwift KOM') ? 'climb' : 'sprint')).toEqual(['climb', 'sprint', 'climb', 'sprint'])
@@ -137,31 +141,32 @@ test.describe('course analysis tabs', () => {
     await expect(dialog).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
-    await expect(tab(page, 'Segments')).toHaveAttribute('aria-selected', 'true')
+    await expect(tab(page, 'Climbs and sprints')).toHaveAttribute('aria-selected', 'true')
     await expect(segmentRows(page)).toHaveCount(4)
   })
 
   test('explains a route with nothing mapped', async ({ page }) => {
     await visit(page, VOLCANO)
-    await tab(page, 'Segments').click()
-    await expect(panel(page, 'Segments')).toContainText('No mapped climbs or sprints on this route.')
+    await tab(page, 'Climbs and sprints').click()
+    await expect(panel(page, 'Climbs and sprints')).toContainText('No mapped climbs or sprints on this route.')
     await rerank(page, () => pickLaps(page, '2 laps'))
-    await expect(panel(page, 'Segments')).toContainText('2 laps; kilometre positions include the lead-in, ridden once.')
-    await expect(panel(page, 'Segments')).toContainText('No mapped climbs or sprints on this route.')
-    await tab(page, 'Elevation').click()
-    await expect(panel(page, 'Elevation')).toContainText('Measured elevation profile; 2 laps, lead-in included once.')
-    await expect(elevationChart(page)).toBeVisible()
+    await expect(panel(page, 'Climbs and sprints')).toContainText('2 laps; kilometre positions include the lead-in, ridden once.')
+    await expect(panel(page, 'Climbs and sprints')).toContainText('No mapped climbs or sprints on this route.')
+    // The hero follows the lap count: two laps and the lead-in, one dashed lap start between them.
+    await expect(hero(page)).toBeVisible()
+    await expect(hero(page).locator('line[stroke-dasharray="3 4"]')).toHaveCount(1)
   })
 
   test('names what is missing on a route without a profile or surface locations, and keeps the ride-only tabs', async ({ page }) => {
     await visit(page, FLAT_REV)
-    await expect(panel(page, 'Elevation')).toContainText('Elevation profile unavailable; the estimate uses the route\'s distance and climbing totals.')
-    await expect(elevationChart(page)).toHaveCount(0)
-    await tab(page, 'Speed & surface').click()
-    await expect(panel(page, 'Speed & surface')).toContainText('Speed & surface profile unavailable: elevation and surface locations are missing. No curve is inferred from the overall surface mix.')
+    await expect(hero(page)).toHaveCount(0)
+    await expect(page.locator('#course-hero-unavailable')).toContainText('terrain is approximated from its distance and total climbing')
+    await tab(page, 'Speed by surface').click()
+    await expect(panel(page, 'Speed by surface')).toContainText('Speed & surface profile unavailable: elevation and surface locations are missing. No curve is inferred from the overall surface mix.')
     await expect(speedChart(page)).toHaveCount(0)
-    await tab(page, 'Surface details').click()
-    await expect(panel(page, 'Surface details')).toContainText('Surface unverified; road assumed by model')
+    await tab(page, 'Surfaces').click()
+    await expect(panel(page, 'Surfaces')).toContainText('Surface unverified; road assumed by model')
+    await expect(briefing(page)).toContainText('road assumed by model')
   })
 
   test('simulates the speed chart only once its tab is chosen, scoped to the applied setup, and keeps it dimmed through a refresh', async ({ page }) => {
@@ -169,9 +174,9 @@ test.describe('course analysis tabs', () => {
     const frameName = await topFrameName(page)
     // Mounted but hidden: the expensive part has not run.
     await expect(speedChart(page)).toHaveCount(0)
-    await tab(page, 'Speed & surface').click()
+    await tab(page, 'Speed by surface').click()
     await expect(speedChart(page)).toBeVisible()
-    const speed = panel(page, 'Speed & surface')
+    const speed = panel(page, 'Speed by surface')
     await expect(speed).toContainText(`${frameName} /`)
     await expect(speed).toContainText('225 W · Solo · one lap plus the lead-in; the finish estimate covers 1 lap.')
     await expect(speed).toContainText(/\d+\.\d km\/h average over the whole simulated ride/)
@@ -198,7 +203,7 @@ test.describe('course analysis tabs', () => {
     await ready(page)
     await expect(speed.getByText('Updating results…')).toHaveCount(0)
     await expect(speed).toContainText('the finish estimate covers 2 laps.')
-    await expect(tab(page, 'Speed & surface')).toHaveAttribute('aria-selected', 'true')
+    await expect(tab(page, 'Speed by surface')).toHaveAttribute('aria-selected', 'true')
   })
 
   test('keeps the ride-only tabs with zero matches and says the equipment tabs need a ranked setup', async ({ page }) => {
@@ -210,37 +215,41 @@ test.describe('course analysis tabs', () => {
     await ready(page)
     await expect(page.getByText('No bikes match your filters.')).toBeVisible()
 
-    await expect(elevationChart(page)).toBeVisible()
-    await tab(page, 'Segments').click()
+    await expect(hero(page)).toBeVisible()
+    await tab(page, 'Climbs and sprints').click()
     await expect(segmentRows(page)).toHaveCount(2)
-    await tab(page, 'Speed & surface').click()
-    await expect(panel(page, 'Speed & surface')).toContainText('The speed & surface profile needs a ranked setup to simulate; it returns with the first match.')
+    await tab(page, 'Speed by surface').click()
+    await expect(panel(page, 'Speed by surface')).toContainText('Speed by surface needs a ranked setup to simulate; it returns with the first match.')
     await expect(speedChart(page)).toHaveCount(0)
-    await tab(page, 'Surface details').click()
-    await expect(panel(page, 'Surface details')).toContainText('Mapped surfaces; the mix describes one lap.')
-    await expect(panel(page, 'Surface details')).toContainText('Cobbles')
+    await tab(page, 'Surfaces').click()
+    await expect(panel(page, 'Surfaces')).toContainText('Mapped surfaces; the shares describe one lap.')
+    await expect(panel(page, 'Surfaces').getByRole('table', { name: 'Surfaces' })).toContainText('Cobbles')
+    // Extra watts are the fastest setup's, and with nothing ranked there is none to price.
+    await expect(panel(page, 'Surfaces')).toContainText('they appear once a ranked setup')
   })
 
-  test('gives a climb the speed chart as a standing-start simulation, a sprint none, and neither a Segments tab', async ({ page }) => {
+  test('gives a climb the speed chart as a standing-start simulation, a sprint none, and neither a climbs tab', async ({ page }) => {
     await visit(page, CLIMB)
-    await expect(tab(page, 'Segments')).toHaveCount(0)
-    await expect(panel(page, 'Elevation')).toContainText('Measured elevation profile of the timed segment.')
-    await expect(elevationChart(page)).toBeVisible()
-    await tab(page, 'Speed & surface').click()
-    await expect(panel(page, 'Speed & surface')).toContainText('route-style simulation from a standing start, not the timed estimate.')
+    await expect(tab(page, 'Climbs and sprints')).toHaveCount(0)
+    await expect(hero(page)).toBeVisible()
+    await tab(page, 'Speed by surface').click()
+    await expect(panel(page, 'Speed by surface')).toContainText('route-style simulation from a standing start, not the timed estimate.')
     await expect(speedChart(page)).toBeVisible()
-    await tab(page, 'Surface details').click()
-    await expect(panel(page, 'Surface details')).toContainText('the mix describes the timed segment.')
+    await tab(page, 'Surfaces').click()
+    await expect(panel(page, 'Surfaces')).toContainText('the shares describe the timed segment.')
+    // Priced for the fastest setup, now that there is one.
+    await expect(panel(page, 'Surfaces').getByRole('table', { name: 'Surfaces' })).toBeVisible()
 
-    // The remembered tab is not on a sprint page, so it falls back to Elevation.
+    // The remembered tab is not on a sprint page, so it falls back to the first tab.
+    await tab(page, 'Speed by surface').click()
     await visit(page, SPRINT)
-    await expect(tab(page, 'Speed & surface')).toHaveCount(0)
-    await expect(tab(page, 'Segments')).toHaveCount(0)
-    await expect(tab(page, 'Elevation')).toHaveAttribute('aria-selected', 'true')
-    await expect(elevationChart(page)).toBeVisible()
+    await expect(tab(page, 'Speed by surface')).toHaveCount(0)
+    await expect(tab(page, 'Climbs and sprints')).toHaveCount(0)
+    await expect(tab(page, 'Surfaces')).toHaveAttribute('aria-selected', 'true')
+    await expect(hero(page)).toBeVisible()
   })
 
-  test('briefs the TTT sectors from the same plan the tab lists, through a lap refresh, and jumps to the tab', async ({ page }) => {
+  test('states the TTT sectors in the Fact row from the same plan the tab lists, through a lap refresh, and jumps to the tab', async ({ page }) => {
     await visitInTtt(page, HILLY)
     const frameName = await topFrameName(page)
     // Hilly Route's 0.5 km lead-in is long enough to hold a sector but has no measured trace.
@@ -301,7 +310,7 @@ test.describe('course analysis tabs', () => {
     await expect(sectorRows(page).first()).toContainText('Long climb')
   })
 
-  test('withholds the analysis without elevation locations, in the briefing and the tab alike', async ({ page }) => {
+  test('withholds the analysis without elevation locations, in the Fact row and the tab alike', async ({ page }) => {
     await visitInTtt(page, FLAT_REV)
     const withheld = 'TTT sector analysis unavailable: elevation locations are missing.'
     await expect(briefing(page)).toContainText(withheld)

@@ -19,10 +19,8 @@ const ROUTE = '/routes/hilly-route'
 /** Zwift's Tron bike: integrated wheels, and free rather than a purchasable Halo frame, so a plain search reaches it. */
 const FIXED_WHEEL_FRAME = 'Zwift Concept Z1'
 
-const rows = (page: Page) => page.getByRole('list', { name: 'Ranked setups' }).getByRole('listitem')
-const recommendation = (page: Page) => page.locator('section:has(#ride-recommendation-heading)')
-/** Every setup on the page: the recommendation is rank 1 of the ranking and the rows are the rest of it (issue #227). */
-const setups = (page: Page) => page.locator('section:has(#ride-recommendation-heading), ol[aria-label="Ranked setups"] > li')
+/** One group per setup, rank 1 included: the row and, when open, its detail row. */
+const rows = (page: Page) => page.getByRole('table', { name: 'Ranked setups' }).locator('tbody')
 const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search all frames and wheels' })
 const drawer = (page: Page) => page.getByRole('dialog')
 /** The drawer's own finish estimate, which is the card's number - the drawer never computes one. */
@@ -32,7 +30,7 @@ const routeCurve = (page: Page) => drawer(page).getByRole('img', { name: /^On th
 const routeCurveCaption = (page: Page) => drawer(page).getByText(/^Seconds off /)
 /** "now +8.9 · maxed +10.3 s" - the marker that follows the stage the bike is scored at. */
 const routeCurveMarker = (page: Page) => drawer(page).locator('div:has(> svg[aria-label^="On this route:"]) span.tabular-nums').first()
-const wheelDisclosure = (page: Page) => recommendation(page).getByRole('button', { name: /^Wheel alternatives/ })
+const disclosure = (row: ReturnType<typeof rows>) => row.getByRole('button', { name: /^(Show|Hide) details for / })
 
 const normalise = (text: string) => text.replace(/\s+/g, ' ').trim()
 
@@ -55,9 +53,8 @@ test.describe('equipment drawer', () => {
     })
 
     await visit(page, ROUTE)
-    // Entered from a ranked row rather than the recommendation: the row is
-    // the path with no card of its own above the fold, and both open the
-    // drawer the same way.
+    // Entered from the table rather than the answer: both open the drawer
+    // the same way.
     const row = rows(page).first()
     const frameName = normalise(await row.getByRole('button', { name: /^Details for / }).innerText())
     await row.getByRole('button', { name: /^Details for / }).click()
@@ -190,8 +187,9 @@ test.describe('equipment drawer', () => {
     })
 
     await visit(page, ROUTE)
-    await wheelDisclosure(page).click()
-    const list = recommendation(page).locator('[aria-busy]')
+    const first = rows(page).first()
+    await disclosure(first).click()
+    const list = first.locator('[aria-busy]')
     await expect(list).toContainText('Couldn\'t load the wheel options.')
 
     // The retry's answer is still in flight when the ranking underneath
@@ -207,31 +205,32 @@ test.describe('equipment drawer', () => {
     await expect(list).not.toContainText(STALE_WHEEL)
     await expect(list).toContainText('Gaps are against the fastest wheels for this frame')
 
-    // The count on the disclosure is the whole compatible pool; the rows are
-    // the fastest few of it, and the list says which it is showing.
-    const offered = Number(normalise(await wheelDisclosure(page).innerText()).replace(/\D+/g, ''))
+    // The list is the fastest few of the compatible pool, and says which it is showing.
     const shown = await list.getByRole('button', { name: /^(Quick-add|Remove) / }).count()
-    expect(offered).toBeGreaterThan(1)
     expect(shown).toBeGreaterThan(0)
-    if (offered > shown) await expect(list).toContainText(`Fastest ${shown} of ${offered} compatible wheels on this ride.`)
+    const scope = normalise(await list.innerText()).match(/Fastest (\d+) of (\d+) compatible wheels on this ride\./)
+    if (scope) {
+      expect(Number(scope[1])).toBe(shown)
+      expect(Number(scope[2])).toBeGreaterThan(shown)
+    }
   })
 
   test('offers no wheel swap on a frame whose wheels are part of it', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the desktop journey covers the integrated-wheel frame')
     await visit(page, ROUTE)
     await rerank(page, () => searchBox(page).fill('Concept'))
-    // Found wherever the search ranks it - the Tron is quick enough here to be
-    // rank 1, which is the recommendation rather than a row.
-    const tron = setups(page).filter({ has: page.getByRole('button', { name: `Details for ${FIXED_WHEEL_FRAME}` }) })
+    // Found wherever the search ranks it.
+    const tron = rows(page).filter({ has: page.getByRole('button', { name: `Details for ${FIXED_WHEEL_FRAME}` }) })
     await expect(tron).toHaveCount(1)
 
     // It names the wheels it cannot swap rather than inventing a wheelset,
-    // and offers no disclosure to open.
-    await expect(tron).toContainText('Fixed disc wheels (not swappable)')
+    // and its disclosure lists no alternatives.
+    await expect(tron).toContainText('Fixed disc wheels')
+    await disclosure(tron).click()
     await expect(tron).toContainText('Fixed disc wheels - no wheel swaps on this frame.')
-    await expect(tron.getByRole('button', { name: /^Wheel alternatives/ })).toHaveCount(0)
+    await expect(tron.getByRole('list', { name: /^Wheel alternatives/ })).toHaveCount(0)
 
-    await tron.getByRole('button', { name: `Details for ${FIXED_WHEEL_FRAME}` }).click()
+    await tron.getByRole('button', { name: `Details for ${FIXED_WHEEL_FRAME}`, exact: true }).click()
     await expect(drawer(page)).toContainText('Fixed disc wheels (not swappable)')
     // Nothing in the drawer treats the wheels as a separate part: no wheel
     // garage action, no wheel column in the ratings, no wheel physics row.
@@ -249,9 +248,9 @@ test.describe('equipment drawer', () => {
     // inside the drawer is the outside-observable proof: the numbers can only
     // follow if the drawer is reading the ranking that refetches.
     await visit(page, ROUTE)
-    await page.getByRole('tab', { name: 'Segments', exact: true }).click()
+    await page.getByRole('tab', { name: 'Climbs and sprints', exact: true }).click()
     const segment = page.getByRole('list', { name: 'Segments in ride order' }).getByRole('link').first()
-    const segmentName = normalise(await segment.innerText())
+    const segmentName = normalise(await segment.innerText()).replace(/^Fastest bike for /, '')
     await segment.click()
     await expect(page).toHaveURL(/\/segments\//)
     await ready(page)
@@ -282,10 +281,13 @@ test.describe('equipment drawer', () => {
   test('keeps the comparison across a drawer visit and the refetch one triggers', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the desktop journey covers the comparison')
     await visit(page, ROUTE)
-    for (const index of [0, 1]) await rows(page).nth(index).getByRole('checkbox').check()
+    for (const index of [0, 1]) {
+      await disclosure(rows(page).nth(index)).click()
+      await rows(page).nth(index).getByRole('checkbox', { name: /^Compare / }).check()
+    }
     const comparison = page.getByRole('region', { name: /Selected setups/ })
-    await expect(comparison.getByRole('article')).toHaveCount(2)
-    const compared = await comparison.getByRole('article').allInnerTexts()
+    await expect(page.getByRole('button', { name: /^Show comparison, 2 of 3/ })).toBeVisible()
+    const compared = normalise(await comparison.getByRole('table').innerText())
 
     await rows(page).nth(0).getByRole('button', { name: /^Details for / }).click()
     await expect(drawer(page)).toBeVisible()
@@ -296,9 +298,13 @@ test.describe('equipment drawer', () => {
     await page.keyboard.press('Escape')
     await expect(drawer(page)).toBeHidden()
 
-    await expect(comparison.getByRole('article')).toHaveCount(2)
-    expect(await comparison.getByRole('article').allInnerTexts()).toEqual(compared)
-    for (const index of [0, 1]) await expect(rows(page).nth(index).getByRole('checkbox')).toBeChecked()
+    await expect(page.getByRole('button', { name: /^Show comparison, 2 of 3/ })).toBeVisible()
+    expect(normalise(await comparison.getByRole('table').innerText())).toEqual(compared)
+    for (const index of [0, 1]) {
+      const row = rows(page).nth(index)
+      if (await disclosure(row).getAttribute('aria-expanded') !== 'true') await disclosure(row).click()
+      await expect(row.getByRole('checkbox', { name: /^Compare / })).toBeChecked()
+    }
   })
 })
 

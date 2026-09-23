@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { expectNoHorizontalOverflow, ready, resolvedColor, tabTo, visitPage } from './support'
 
 /**
- * Segment discovery (issue #211): the segments page as the way into a climb's
+ * Segment discovery (issues #211, #257): the segments page as the way into a climb's
  * or a sprint's recommendation. Climbs and sprints are one list with one set
  * of filters but two rankings behind them - a sprint is ranked at sprint
  * power - so the journeys open one of each and check they landed on the right
@@ -19,12 +19,15 @@ const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search segm
 /** A `USelectMenu`'s trigger is a button carrying the filter's `aria-label`. */
 const filter = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
 const resetButton = (page: Page) => page.getByRole('button', { name: 'Reset' })
-/** `DiscoveryStatus`'s live count line - "Finding segments…", then "N climbs and M sprints found". */
-const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
+/** The live count line on the filter row - "Finding segments…", then "N climbs and M sprints found". */
+const statusLine = (page: Page) => page.getByRole('group', { name: 'Segment filters' }).locator('p[aria-live="polite"]')
 const notice = (page: Page) => page.getByRole('alert')
-const cards = (page: Page) => page.locator('a[href^="/segments/"]')
+/** Every segment card - each in its world group's list, so nothing in the shell matches. */
+const cards = (page: Page) => page.locator('main li > a[href^="/segments/"]')
 const worldHeadings = (page: Page) => page.getByRole('heading', { level: 2 })
-const finishTime = (page: Page) => page.locator('section:has(#ride-recommendation-heading) p.tabular-nums').first()
+const finishTime = (page: Page) => page.locator('#ride-finish-time')
+/** A card's segment name, as the card prints it. */
+const cardName = async (card: Locator) => (await card.getByRole('heading').innerText()).trim()
 
 /** Runs `action` and waits for the segment list the change asks for. */
 async function refilter(page: Page, action: () => Promise<void>) {
@@ -54,11 +57,11 @@ test.describe('segment discovery', () => {
     expect(shown).toBeGreaterThan(0)
 
     const opened = page.locator(`a[href="${TEMPLE_KOM}"]`)
-    const name = await opened.locator('p').first().innerText()
+    const name = await cardName(opened)
     await opened.click()
     await page.waitForURL(`**${TEMPLE_KOM}`)
     await ready(page)
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(name)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(name)
     expect(await finishTime(page).innerText()).toMatch(/^\d{1,2}:\d{2}(:\d{2})?$/)
 
     await page.goBack()
@@ -79,19 +82,31 @@ test.describe('segment discovery', () => {
 
     const opened = cards(page).first()
     const href = (await opened.getAttribute('href'))!
-    const name = await opened.locator('p').first().innerText()
+    const name = await cardName(opened)
     await opened.click()
     await page.waitForURL(`**${href}`)
     await ready(page)
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(name)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(name)
     // A sprint is ranked at the rider's sprint power, not their steady power:
-    // the rider strip marks the W/kg it applied as the sprint one, and that is
+    // the Rider card marks the W/kg it applied as the sprint one, and that is
     // the whole reason a sprint is a different ranking, not a shorter climb.
-    await expect(page.getByText(/W\/kg, sprint$/).first()).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Rider' })).toContainText('W/kg, sprint')
 
     await page.goBack()
     await expect(page).toHaveURL(/[?&]kind=sprint/)
     await expect(filter(page, 'Show')).toHaveText('Sprints')
+  })
+
+  test('lists every segment as plain numbers with its kind as text, and no drawn shape', async ({ page }) => {
+    await visitPage(page, '/segments')
+    const count = await cards(page).count()
+    expect(count).toBeGreaterThan(20)
+    await expect(cards(page).locator('svg[data-silhouette]')).toHaveCount(0)
+    for (const text of await cards(page).allInnerTexts()) {
+      expect(text).toMatch(/\b(Climb|Sprint)\b/)
+      expect(text).toMatch(/\d+\.\d km/)
+    }
+    await expectNoHorizontalOverflow(page)
   })
 
   test('says when nothing matched, and Reset brings the whole catalog back', async ({ page }) => {
@@ -118,7 +133,7 @@ test.describe('segment discovery', () => {
     await page.keyboard.press('Enter')
     await expect(page.locator('main')).toBeFocused()
 
-    await tabTo(page, page.getByRole('link', { name: 'Browse all routes' }))
+    await tabTo(page, page.getByRole('link', { name: 'All routes', exact: true }))
     await tabTo(page, searchBox(page))
     await tabTo(page, filter(page, 'World'))
     await tabTo(page, filter(page, 'Show'))
@@ -176,31 +191,35 @@ test.describe('segment discovery', () => {
       return {
         heading: doc.querySelector('h1')?.textContent?.trim(),
         segmentLinks: [...doc.querySelectorAll('a[href^="/segments/"]')].map(link => link.getAttribute('href')),
-        // Two links reach "/" in the HTML: the shell's Routes entry and this
-        // page's cross-link. The cross-link is the one this page owns.
-        routeLinks: [...doc.querySelectorAll('a[href="/"]')].map(link => link.textContent?.trim())
+        // Several links reach "/" in the HTML: the wordmark, the shell's
+        // Routes entry and this page's breadcrumb. The breadcrumb is this page's.
+        routeLinks: [...doc.querySelectorAll('a[href="/"]')].map(link => link.textContent?.trim()),
+        silhouettes: doc.querySelectorAll('main li svg[data-silhouette]').length
       }
     }, html)
-    expect(served.heading).toBe('Zwift climbs & sprints')
+    expect(served.heading).toBe('The fastest bike for every climb and sprint')
     expect(served.segmentLinks.length).toBeGreaterThan(20)
     expect(served.segmentLinks).toContain(TEMPLE_KOM)
-    expect(served.routeLinks).toContain('Browse all routes')
+    expect(served.routeLinks).toContain('All routes')
+    // The listing carries only scalar length, elevation and grade, so the
+    // segments hub draws no shapes it would have to make up.
+    expect(served.silhouettes).toBe(0)
   })
 
   test('puts the cards on the dark ground, and lifts them off it on a switch to light', async ({ page }) => {
     await visitPage(page, '/segments')
-    const cardGround = () => cards(page).first().locator('> *').first()
-      .evaluate(element => getComputedStyle(element).backgroundColor)
-    // A first visit is dark. The palette's deepest neutral, which `main.css`
-    // re-points `--ui-bg` to in dark mode - not merely "whatever `--ui-bg`
-    // is", which would hold in light mode too.
+    const cardGround = () => cards(page).first().evaluate(element => getComputedStyle(element).backgroundColor)
+    const bodyGround = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+    // A first visit is dark: the page on the palette's deepest neutral, a
+    // card one step up on the raised surface.
     await expect(page.locator('html')).toHaveClass(/\bdark\b/)
-    const darkGround = await resolvedColor(page, 'var(--ui-color-neutral-950)')
-    expect(await cardGround()).toBe(darkGround)
+    expect(await bodyGround()).toBe(await resolvedColor(page, 'var(--ui-color-neutral-950)'))
+    expect(await cardGround()).toBe(await resolvedColor(page, 'var(--ui-color-neutral-900)'))
 
     await page.getByRole('banner').getByRole('button', { name: 'Switch to light mode' }).click()
     await expect(page.locator('html')).toHaveClass(/\blight\b/)
-    expect(await cardGround()).not.toBe(darkGround)
+    expect(await cardGround()).toBe('rgb(255, 255, 255)')
+    expect(await bodyGround()).not.toBe(await cardGround())
     await expectNoHorizontalOverflow(page)
   })
 })

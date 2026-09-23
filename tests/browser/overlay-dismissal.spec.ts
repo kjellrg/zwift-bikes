@@ -68,7 +68,7 @@ async function drag(panel: Locator, dx: number, dy: number, steps = 6) {
 test.describe('overlay dismissal', () => {
   test('back closes the Overlay and leaves the rider on the page', async ({ page, isMobile }) => {
     await visit(page, ROUTE)
-    await (await navEntry(page, isMobile, 'My Profile')).click()
+    await (await navEntry(page, isMobile, 'Profile')).click()
     await expect(profileOverlay(page)).toBeVisible()
     // The address bar never moves: the entry an Overlay pushes is for the
     // same URL, and no Shared view value is written.
@@ -83,7 +83,7 @@ test.describe('overlay dismissal', () => {
   test('leaves no dead entry behind when the Overlay is closed by hand', async ({ page, isMobile }) => {
     await visitPage(page, '/segments')
     await visit(page, ROUTE)
-    await (await navEntry(page, isMobile, 'My Profile')).click()
+    await (await navEntry(page, isMobile, 'Profile')).click()
     await expect(profileOverlay(page)).toBeVisible()
 
     await page.keyboard.press('Escape')
@@ -107,7 +107,8 @@ test.describe('overlay dismissal', () => {
       await expect(aboutOverlay(page)).toBeVisible()
       await expect(menu(page)).toHaveCount(0)
     } else {
-      await (await navEntry(page, isMobile, 'About')).click()
+      // About is a footer link on a desktop since #257.
+      await page.getByRole('contentinfo').getByRole('link', { name: 'About this project' }).click()
       await expect(aboutOverlay(page)).toBeVisible()
     }
 
@@ -170,7 +171,7 @@ test.describe('overlay dismissal', () => {
     await visitPage(page, '/segments')
     await visit(page, ROUTE)
 
-    await (await navEntry(page, isMobile, 'My Profile')).click()
+    await (await navEntry(page, isMobile, 'Profile')).click()
     await expect(profileOverlay(page)).toBeVisible()
     // Up is not the way out: the gesture that reverses the entrance is the
     // only one that dismisses.

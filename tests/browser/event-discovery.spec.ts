@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { expectNoHorizontalOverflow, hydrated, visitPage } from './support'
 
 /**
- * The events Discovery pages (issue #216): the hub that lists Seasons and a
+ * The events Discovery pages (issues #216, #257): the hub that lists Seasons and a
  * season page that lists its Races (see `CONTEXT.md`). Both rank nothing and
  * neither has a filter - a journey here asserts what a rider scans and what a
  * crawler is served, not a ranking.
@@ -25,30 +25,30 @@ const DURING = new Date('2026-09-25T12:00:00Z')
 const AFTER = new Date('2027-05-01T12:00:00Z')
 
 const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
-const raceCard = (page: Page, name: string | RegExp) => page.getByRole('link', { name })
+/** A race's row on a season page, by the name it is listed under. */
+const raceRow = (page: Page, name: RegExp) => page.locator('li').filter({ hasText: name })
+/** The row's way into its race page - absent for a race with no page yet. */
+const raceLink = (page: Page, name: RegExp) => raceRow(page, name).getByRole('link', { name: 'Fastest bike for it' })
 const pastRaces = (page: Page) => page.getByRole('button', { name: /^Past races \(\d+\)$/ })
 const pastSeasons = (page: Page) => page.getByRole('button', { name: /^Past seasons \(\d+\)$/ })
 /**
  * A round tile on a season card, by its number and name - the hub's way into
  * one round of a season page. Matched loosely between the two, because a
- * round that is on now or over says so in a badge that sits between them.
+ * round's state ("Ongoing", "To come") is a text tag that sits between them.
  */
 const roundTile = (page: Page, number: number, name: string) =>
-  page.getByRole('link', { name: new RegExp(`^Round ${number}\\b.*${name}`) })
+  page.getByRole('link', { name: new RegExp(`^Round ${number}(?!\\d).*${name}`) })
 
 async function visitAt(page: Page, path: string, time: Date) {
   await page.clock.setFixedTime(time)
   await visitPage(page, path)
 }
 
-/**
- * One card box, by what is inside it. `UCard` stamps its root
- * `data-slot="root"` (Nuxt UI names every slot element that way), which is
- * the only handle on the card itself rather than on one of the nested divs
- * that also contain the text.
- */
-const cardWith = (page: Page, contents: { has?: Locator, hasText?: string }): Locator =>
-  page.locator('[data-slot="root"]').filter(contents)
+/** A season card on the hub, by what is inside it. */
+const seasonCard = (page: Page, contents: { has?: Locator, hasText?: string }): Locator =>
+  page.locator('article').filter(contents)
+/** A round tile, linked or not, by the text inside it. */
+const tileWith = (page: Page, text: string): Locator => page.locator('article li').filter({ hasText: text })
 
 test.describe('event discovery', () => {
   test('lists every series newest first, with the organiser behind each one', async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe('event discovery', () => {
     const season = page.getByRole('link', { name: 'Zwift Racing League 2026/27' })
     await expect(season).toHaveAttribute('href', SEASON)
     // The stat row a rider picks a season by, on the card itself.
-    const card = cardWith(page, { has: season })
+    const card = seasonCard(page, { has: season })
     await expect(card).toContainText('4 rounds')
     await expect(card).toContainText('24 races')
     await expect(card).toContainText('Round 1')
@@ -70,6 +70,15 @@ test.describe('event discovery', () => {
     await expect(roundTile(page, 1, 'Fresh & Fast')).toHaveAttribute('href', `${SEASON}#round-1`)
     // We complement the organisers, so their own page is one click away.
     await expect(page.getByRole('link', { name: 'WTRL' })).toHaveAttribute('href', /wtrl/)
+
+    // A round's state is a text tag, never a coloured badge.
+    await expect(roundTile(page, 1, 'Fresh & Fast')).toContainText('Ongoing')
+    await expect(roundTile(page, 2, 'Team Tempo')).toContainText('To come')
+
+    // The next race is one strip with a link that asks the question.
+    const next = page.getByRole('region', { name: 'Next race' })
+    await expect(next).toBeVisible()
+    await expect(next.getByRole('link', { name: 'Fastest bike for it' })).toHaveAttribute('href', /^\/events\/[^/]+\/[^/]+$/)
 
     // Nothing has finished yet at this clock, so nothing has collapsed away.
     await expect(pastSeasons(page)).toHaveCount(0)
@@ -121,16 +130,15 @@ test.describe('event discovery', () => {
     // can open. It says so and leaves them there.
     await visitAt(page, '/events', DURING)
     await expect(roundTile(page, 8, 'Makuri Madness')).toHaveCount(0)
-    await expect(cardWith(page, { hasText: 'August: Makuri Madness' })).toContainText('Past')
+    await expect(tileWith(page, 'August: Makuri Madness')).toContainText('Past')
     // The round being raced right now is still a way in, and says which it is.
     const ongoing = roundTile(page, 9, 'DURA-ACE')
     await expect(ongoing).toHaveAttribute('href', `${ZRACING}#round-9`)
     await expect(ongoing).toContainText('Ongoing')
-    // A round still to come carries no badge: it is the default, and its
-    // dates are on the tile already.
+    // A round still to come says so in the same quiet text.
     const toCome = roundTile(page, 3, 'Racecraft Rush')
+    await expect(toCome).toContainText('To come')
     await expect(toCome).not.toContainText('Ongoing')
-    await expect(toCome).not.toContainText('Past')
   })
 
   test('shows the season round by round, with the next race marked and run ones collapsed', async ({ page }) => {
@@ -139,9 +147,9 @@ test.describe('event discovery', () => {
 
     // The header's own numbers: the whole calendar, not the part still to
     // come, and the days it spans end to end.
-    const stats = page.locator('dl').first()
-    await expect(stats).toContainText('Rounds')
-    await expect(stats).toContainText('24')
+    const stats = page.locator('main ul').first()
+    await expect(stats).toContainText('4 rounds')
+    await expect(stats).toContainText('24 races')
     await expect(stats).toContainText('Tue 22 Sept - Tue 6 Apr')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zwift Racing League 2026/27 schedule')
 
@@ -149,14 +157,17 @@ test.describe('event discovery', () => {
     await expect(page.getByRole('heading', { level: 2, name: 'Round 2: Team Tempo' })).toBeVisible()
     await expect(statusLine(page)).toHaveText(/^\d+ races found$/)
 
-    // Week 1 has been run, so week 2 carries the Next badge and week 1 is gone
-    // from the round.
-    const next = raceCard(page, /Round 1 Week 2/)
-    await expect(next).toContainText('Next')
-    await expect(raceCard(page, /Round 1 Week 1/)).toHaveCount(0)
+    // Week 1 has been run, so week 2 is marked the next race and week 1 is
+    // gone from the round.
+    const next = raceRow(page, /Round 1 Week 2/)
+    await expect(next).toContainText('Next race')
+    await expect(raceLink(page, /Round 1 Week 2/)).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
+    // A schedule row draws its primary route's Silhouette, as every listing does.
+    await expect(next.locator('svg[data-silhouette]')).toHaveCount(1)
+    await expect(raceRow(page, /Round 1 Week 1/)).toHaveCount(0)
 
     await pastRaces(page).click()
-    const completed = raceCard(page, /Round 1 Week 1/)
+    const completed = raceRow(page, /Round 1 Week 1/)
     await expect(completed).toContainText('Completed')
     // The same card as an upcoming race, under its own round heading - a race
     // does not lose its distance the day its date passes.
@@ -164,24 +175,24 @@ test.describe('event discovery', () => {
     await expect(page.getByRole('heading', { level: 3, name: 'Round 1: Fresh & Fast' })).toBeVisible()
   })
 
-  test('lists an unannounced race as a card with no page behind it', async ({ page }) => {
+  test('lists an unannounced race as a row with no page behind it', async ({ page }) => {
     await visitAt(page, SEASON, DURING)
     // Round 2 is on the calendar with no format and no course yet, so it has
-    // no page - `isRacePublishable`. The card says what is known and says the
+    // no page - `isRacePublishable`. The row says what is known and says the
     // rest is to come, rather than linking somewhere thin.
-    await expect(raceCard(page, /Round 2 Week 1/)).toHaveCount(0)
-    const card = cardWith(page, { hasText: 'Round 2 Week 1' })
-    await expect(card).toContainText('Format TBC')
-    await expect(card).toContainText('Route TBC')
-    await expect(card).toContainText('Details to come')
+    await expect(raceLink(page, /Round 2 Week 1/)).toHaveCount(0)
+    const row = raceRow(page, /Round 2 Week 1/)
+    await expect(row).toContainText('Format to come')
+    await expect(row).toContainText('Route to come')
+    await expect(row).toContainText('Details to come')
   })
 
-  test('reaches a race page from its card and comes back', async ({ page }) => {
+  test('reaches a race page from its row and comes back', async ({ page }) => {
     await visitAt(page, SEASON, DURING)
-    await raceCard(page, /Round 1 Week 2/).click()
+    await raceLink(page, /Round 1 Week 2/).click()
     await page.waitForURL('**/events/zrl-2026-27/round-1-week-2')
     await hydrated(page)
-    await page.getByRole('link', { name: 'Zwift Racing League 2026/27 schedule' }).click()
+    await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Zwift Racing League 2026/27' }).click()
     await page.waitForURL(`**${SEASON}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zwift Racing League 2026/27 schedule')
   })
@@ -194,7 +205,7 @@ test.describe('event discovery', () => {
     await expect(page.getByText('races found')).toHaveCount(0)
     // The disclosure holds the whole page here, so it is open on arrival.
     await expect(pastRaces(page)).toBeVisible()
-    await expect(raceCard(page, /Round 1 Week 1/)).toContainText('Completed')
+    await expect(raceRow(page, /Round 1 Week 1/)).toContainText('Completed')
   })
 
   test('keeps a failed calendar fetch on screen with a retry', async ({ page }) => {
@@ -211,7 +222,7 @@ test.describe('event discovery', () => {
 
     const notice = page.getByRole('alert').filter({ hasText: 'Couldn\'t load races.' })
     await expect(notice).toBeVisible()
-    await expect(raceCard(page, /Round 1 Week 2/)).toHaveCount(0)
+    await expect(raceRow(page, /Round 1 Week 2/)).toHaveCount(0)
 
     await page.unroute('**/api/events/**')
     await page.unroute('**/_payload.json*')
@@ -219,7 +230,7 @@ test.describe('event discovery', () => {
     await notice.getByRole('button', { name: 'Try again' }).click()
     await responded
     await expect(notice).toHaveCount(0)
-    await expect(raceCard(page, /Round 1 Week 2/)).toContainText('Next')
+    await expect(raceRow(page, /Round 1 Week 2/)).toContainText('Next race')
   })
 
   test('serves real race links in the HTML a crawler reads', async ({ page, request }) => {

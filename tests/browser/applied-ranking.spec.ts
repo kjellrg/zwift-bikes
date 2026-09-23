@@ -15,8 +15,8 @@ for (const [kind, path] of [
     test(`${kind}: keeps the expanded Applied Ranking coherent through Garage refresh ${outcome}, and recovers`, async ({ page }) => {
       await visit(page, path!)
       await rerank(page, () => page.getByRole('switch', { name: 'My garage only' }).click())
-      const rows = page.locator('ol[aria-label="Ranked setups"] > li')
-      const more = page.getByRole('button', { name: 'Show more matches' })
+      const rows = page.locator('table[aria-label="Ranked setups"] > tbody')
+      const more = page.getByRole('button', { name: /^Show the next \d+$/ })
       const initialRows = await rows.count()
       const expansion = page.waitForResponse(response => isListingResponse(response)
         && Number(new URL(response.url()).searchParams.get('offset')) > 0)
@@ -126,9 +126,9 @@ for (const [kind, path] of [
 
 test('route: keeps the ranking when Show more fails, and adds the page on the next press', async ({ page }) => {
   await visit(page, '/routes/hilly-route')
-  const rows = page.locator('ol[aria-label="Ranked setups"] > li')
-  const more = page.getByRole('button', { name: 'Show more matches' })
-  const failureLine = page.getByText('Couldn\'t load more matches - the ranking above is unchanged.')
+  const rows = page.locator('table[aria-label="Ranked setups"] > tbody')
+  const more = page.getByRole('button', { name: /^Show the next \d+$/ })
+  const failureLine = page.getByText('Couldn\'t load more setups - the ranking above is unchanged.')
   const before = await rows.count()
 
   await page.route(url => isListingUrl(url.toString()) && Number(url.searchParams.get('offset')) > 0,
