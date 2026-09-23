@@ -138,7 +138,10 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
   if (!penaltySec || penaltySec <= 0) return undefined
   if (surface.gravel <= 0 && surface.cobble <= 0) return undefined
 
-  const cost = penaltySec < 60 ? `${Math.round(penaltySec)} seconds` : `${formatDuration(penaltySec)} minutes`
+  // Rounded first, so 59.7 s reads "1:00 minutes" rather than "60 seconds";
+  // `formatDuration` prints h:mm:ss from an hour up, which reads as hours.
+  const seconds = Math.round(penaltySec)
+  const cost = seconds < 60 ? `${seconds} seconds` : `${formatDuration(seconds)} ${seconds < 3600 ? 'minutes' : 'hours'}`
   return `Rough surfaces cost this setup about ${cost} here`
 }
 

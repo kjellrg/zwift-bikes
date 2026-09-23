@@ -42,9 +42,10 @@ const sentence = computed(() => props.course && props.combo
   : undefined)
 const delta = computed(() => props.combo ? comboPhysicsDelta(props.combo) : undefined)
 const surfaceCost = computed(() => {
-  const penalty = props.combo?.surfaceTimePenaltySec
-  if (!penalty || penalty < 0.5) return undefined
-  return penalty < 60 ? `${Math.round(penalty)} s` : formatDuration(penalty)
+  const penalty = Math.round(props.combo?.surfaceTimePenaltySec ?? 0)
+  if (!penalty) return undefined
+  // Rounded first, so 59.7 s reads 1:00 rather than 60 s.
+  return penalty < 60 ? `${penalty} s` : formatDuration(penalty)
 })
 </script>
 
