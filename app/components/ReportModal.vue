@@ -26,7 +26,7 @@ defineProps<{
     :content="content"
     title="Report an issue"
     description="Write up a bug or a wrong number, then send it to GitHub or by email."
-    :ui="{ content: 'sm:max-w-xl' }"
+    :ui="{ content: 'sm:max-w-3xl', title: 'text-xl font-semibold font-heading', description: 'text-toned' }"
   >
     <template #body>
       <ReportContent

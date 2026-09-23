@@ -15,20 +15,19 @@ import { isDrillDownUrl, isListingResponse, isListingUrl, ready, visit } from '.
  */
 
 const ROUTE = '/routes/hilly-route'
-/** Ranked rows only: the Recommendation carries the same disclosure, and this journey is about a row's. */
-const rowsWithWheels = (page: Page) => page.locator('ol[aria-label="Ranked setups"] > li')
-  .filter({ has: page.getByRole('button', { name: /^Wheel alternatives/ }) })
-const disclosure = (row: ReturnType<typeof rowsWithWheels>) => row.getByRole('button', { name: /^Wheel alternatives/ })
+/** Every setup in the table, rank 1 included; each row's disclosure holds its Wheel alternatives. */
+const rows = (page: Page) => page.locator('table[aria-label="Ranked setups"] > tbody')
+const disclosure = (row: ReturnType<typeof rows>) => row.getByRole('button', { name: /^(Show|Hide) details for / })
+const wheelList = (row: ReturnType<typeof rows>) => row.locator('[aria-busy]')
 
 test('asks for wheel alternatives under the ranking on screen, not the controls that moved past it', async ({ page }) => {
   await visit(page, ROUTE)
-  const firstRow = rowsWithWheels(page).first()
+  const firstRow = rows(page).first()
   const opened = page.waitForRequest(request => isDrillDownUrl(request.url()))
   await disclosure(firstRow).click()
   // The ranking was fetched without the garage restriction, and so is this.
   expect(new URL((await opened).url()).searchParams.get('ownedOnly')).toBeNull()
   await expect(firstRow.getByText('Gaps are against the fastest wheels for this frame')).toBeVisible()
-  const openedList = await firstRow.innerText()
 
   let release = () => {}
   const held = new Promise<void>((resolve) => {
@@ -38,6 +37,7 @@ test('asks for wheel alternatives under the ranking on screen, not the controls 
     await held
     await route.fulfill({ status: 500, json: { statusCode: 500, message: 'Ranking refresh failed' } })
   })
+  const secondRow = rows(page).nth(1)
   try {
     const failed = page.waitForResponse(response => isListingResponse(response) && response.status() === 500)
     await page.getByRole('switch', { name: 'My garage only' }).click()
@@ -46,17 +46,21 @@ test('asks for wheel alternatives under the ranking on screen, not the controls 
     // Held: the control has moved and the ranking has not, so a disclosure
     // opened now asks under the ranking the rider can see - otherwise this
     // list would compare wheels under a restriction the times beside it
-    // were never computed with.
+    // were never computed with. One disclosure is open at a time, so this
+    // one closes the first.
     const duringRefresh = page.waitForRequest(request => isDrillDownUrl(request.url()))
-    await disclosure(rowsWithWheels(page).nth(1)).click()
+    await disclosure(secondRow).click()
     expect(new URL((await duringRefresh).url()).searchParams.get('ownedOnly')).toBeNull()
+    await expect(disclosure(firstRow)).toHaveAttribute('aria-expanded', 'false')
+    await expect(wheelList(secondRow)).toHaveAttribute('aria-busy', 'false')
+    const openedList = await secondRow.innerText()
 
     release()
     expect((await failed).status()).toBe(500)
     await ready(page)
     await expect(page.locator('#ride-refresh-notice')).toBeVisible()
     // Failed: the ranking that is still on screen keeps its alternatives.
-    expect(await firstRow.innerText()).toBe(openedList)
+    expect(await secondRow.innerText()).toBe(openedList)
   } finally {
     release()
     await page.unrouteAll({ behavior: 'wait' })

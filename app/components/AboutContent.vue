@@ -23,7 +23,7 @@ const contactMailto = `mailto:${contactAddress}`
 </script>
 
 <template>
-  <div class="flex flex-col gap-5 text-sm">
+  <div class="flex flex-col gap-6 text-md text-toned">
     <p>
       Tell it your weight, height and power, and ZwiftBikes ranks every
       frame and wheelset in the game by predicted finish time for the exact
@@ -39,7 +39,7 @@ const contactMailto = `mailto:${contactAddress}`
     </p>
 
     <div class="flex flex-col gap-2">
-      <h2 class="font-medium text-highlighted">
+      <h2 class="text-lg font-semibold font-heading text-highlighted">
         Where the numbers come from
       </h2>
       <p>
@@ -47,24 +47,14 @@ const contactMailto = `mailto:${contactAddress}`
         wherever it exists. Where it doesn't, the app falls back to a clearly
         labelled estimate, so a guess never passes for a fact:
       </p>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <span class="flex items-center gap-1.5">
-          <UBadge
-            color="success"
-            variant="subtle"
-            icon="i-lucide-badge-check"
-          >verified</UBadge>
-          <span class="text-muted">real speed-test data</span>
-        </span>
-        <span class="flex items-center gap-1.5">
-          <UBadge
-            color="neutral"
-            variant="subtle"
-            icon="i-lucide-help-circle"
-          >estimated</UBadge>
-          <span class="text-muted">a labelled fallback</span>
-        </span>
-      </div>
+      <ul class="space-y-1">
+        <li>
+          <span class="font-medium text-success">Bot-tested</span> - real ZwiftInsider speed-test data.
+        </li>
+        <li>
+          <span class="font-medium text-warning">Estimate</span> - a labelled fallback where no test exists.
+        </li>
+      </ul>
       <p>
         Route surface and elevation come from each route's real GPS trace
         where available, and a heuristic estimate otherwise. The full method
@@ -72,13 +62,13 @@ const contactMailto = `mailto:${contactAddress}`
         <ULink
           to="https://github.com/kjellrg/zwift-bikes/blob/main/docs/physics-model.md"
           target="_blank"
-          class="underline"
+          class="underline decoration-rule-strong hover:text-highlighted"
         >How the physics works</ULink>.
       </p>
     </div>
 
     <div class="flex flex-col gap-2">
-      <h2 class="font-medium text-highlighted">
+      <h2 class="text-lg font-semibold font-heading text-highlighted">
         Built on
       </h2>
       <p>
@@ -89,7 +79,7 @@ const contactMailto = `mailto:${contactAddress}`
           <ULink
             to="https://zwiftinsider.com/"
             target="_blank"
-            class="underline"
+            class="underline decoration-rule-strong hover:text-highlighted"
           >ZwiftInsider</ULink>
           - bot speed-test results for frames and wheels, plus Zwift's
           rolling-resistance values per surface. Their painstaking, publicly
@@ -99,7 +89,7 @@ const contactMailto = `mailto:${contactAddress}`
           <ULink
             to="https://www.npmjs.com/package/zwift-data"
             target="_blank"
-            class="underline"
+            class="underline decoration-rule-strong hover:text-highlighted"
           >zwift-data</ULink>
           - the catalog of every route, frame, wheel and segment in the game.
         </li>
@@ -107,7 +97,7 @@ const contactMailto = `mailto:${contactAddress}`
           <ULink
             to="https://github.com/andipaetzold/zwiftmap"
             target="_blank"
-            class="underline"
+            class="underline decoration-rule-strong hover:text-highlighted"
           >zwiftmap</ULink>
           - hand-mapped surface polygons for each Zwift world, used to work
           out where a route turns to gravel or cobbles.
@@ -116,7 +106,7 @@ const contactMailto = `mailto:${contactAddress}`
           <ULink
             to="https://www.strava.com/"
             target="_blank"
-            class="underline"
+            class="underline decoration-rule-strong hover:text-highlighted"
           >Strava</ULink>
           - the real GPS and elevation trace of each route, fetched once when
           the route data is generated. No Strava account or connection is
@@ -126,7 +116,7 @@ const contactMailto = `mailto:${contactAddress}`
           <ULink
             to="https://www.wtrl.racing/"
             target="_blank"
-            class="underline"
+            class="underline decoration-rule-strong hover:text-highlighted"
           >WTRL</ULink>
           - the Zwift Racing League schedules behind the race calendar,
           typed in by hand from their published rounds together with Zwift's
@@ -137,7 +127,7 @@ const contactMailto = `mailto:${contactAddress}`
     </div>
 
     <div class="flex flex-col gap-2">
-      <h2 class="font-medium text-highlighted">
+      <h2 class="text-lg font-semibold font-heading text-highlighted">
         Your data
       </h2>
       <p>
@@ -164,14 +154,14 @@ const contactMailto = `mailto:${contactAddress}`
     </div>
 
     <div class="flex flex-col gap-2">
-      <h2 class="font-medium text-highlighted">
+      <h2 class="text-lg font-semibold font-heading text-highlighted">
         Reporting an issue
       </h2>
       <p>
         The
         <a
           href="/report"
-          class="underline"
+          class="underline decoration-rule-strong hover:text-highlighted"
           @click="openReportFromAbout"
         >Report an issue</a>
         form fills in the report for you, then opens it as either a GitHub
@@ -188,7 +178,7 @@ const contactMailto = `mailto:${contactAddress}`
     </div>
 
     <div class="flex flex-col gap-2">
-      <h2 class="font-medium text-highlighted">
+      <h2 class="text-lg font-semibold font-heading text-highlighted">
         Getting in touch
       </h2>
       <p>
@@ -197,7 +187,7 @@ const contactMailto = `mailto:${contactAddress}`
           Write to
           <a
             :href="contactMailto"
-            class="underline"
+            class="underline decoration-rule-strong hover:text-highlighted"
           >{{ contactAddress }}</a>.
           <template #fallback>
             The report form above reaches us too, whatever you want to say.
@@ -206,14 +196,14 @@ const contactMailto = `mailto:${contactAddress}`
       </p>
     </div>
 
-    <p class="text-xs text-muted">
+    <p class="border-t border-default pt-4 text-xs text-muted">
       An unofficial fan project, not affiliated with or endorsed by Zwift.
       Zwift is a trademark of Zwift, Inc. The code is MIT-licensed and open
       source on
       <ULink
         to="https://github.com/kjellrg/zwift-bikes"
         target="_blank"
-        class="underline"
+        class="underline decoration-rule-strong hover:text-highlighted"
       >GitHub</ULink>.
     </p>
   </div>

@@ -1,16 +1,18 @@
-import type { BikeCategory, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import type { BikeCategory, BikeStyle, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
 import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
 import { RACE_FORMAT_LABELS } from '#shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
 import { formatDuration, formatDurationGap } from '#shared/utils/duration'
+import { surfaceFamily, type SurfaceFamily } from '#shared/utils/silhouette'
 
 /**
- * A rank as the Ranking prints it: `01`, `02`, ... The Recommendation is rank
- * 1 and the rows are the rest, so the two render their markers through one
- * function and cannot drift in format.
+ * A rank as the Ranking prints it: a plain `1`, `2`, ... `10`, in tabular
+ * figures and right-aligned by its column, so the digits line up without a
+ * zero pad. The Recommendation is rank 1 and the rows are the rest, so the
+ * two render their markers through one function and cannot drift in format.
  */
-export const rankMarker = (rank: number) => String(rank).padStart(2, '0')
+export const rankMarker = (rank: number) => String(rank)
 
 /** The draft mode as the rider strip, the draft selects and the course-analysis scope lines name it - one list, so none of them can disagree. */
 export const DRAFT_MODE_LABELS: Record<DraftMode, string> = { solo: 'Solo', race: 'Race draft', ttt: 'TTT paceline' }
@@ -26,12 +28,12 @@ export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
   funbike: 'Fun Bike'
 }
 
-export const BIKE_CATEGORY_COLORS: Record<BikeCategory, 'primary' | 'info' | 'warning' | 'neutral' | 'success'> = {
-  standard: 'primary',
-  tt: 'info',
-  gravel: 'warning',
-  handbike: 'neutral',
-  funbike: 'success'
+/** A frame's style, as the Ranking's style column and the "why" sentence name it. */
+export const BIKE_STYLE_LABELS: Record<BikeStyle, string> = {
+  aero: 'aero',
+  climb: 'climbing',
+  endurance: 'endurance',
+  allrounder: 'all-round'
 }
 
 export const WHEEL_CATEGORY_LABELS: Record<WheelCategory, string> = {
@@ -49,22 +51,7 @@ export const TERRAIN_LABELS: Record<TerrainCategory, string> = {
   mountainous: 'Mountainous'
 }
 
-export const TERRAIN_COLORS: Record<TerrainCategory, 'success' | 'primary' | 'warning' | 'error'> = {
-  flat: 'success',
-  rolling: 'primary',
-  hilly: 'warning',
-  mountainous: 'error'
-}
-
 /** Strava-style climb categories, steepest/hardest (HC) to gentlest (4). Not every mapped climb has one. */
-export const CLIMB_TYPE_COLORS: Record<'HC' | '4' | '3' | '2' | '1', 'error' | 'warning' | 'primary' | 'success'> = {
-  HC: 'error',
-  1: 'error',
-  2: 'warning',
-  3: 'primary',
-  4: 'success'
-}
-
 export const SURFACE_TYPE_LABELS: Record<ZwiftSurfaceType, string> = {
   tarmac: 'Tarmac',
   brick: 'Brick',
@@ -77,42 +64,33 @@ export const SURFACE_TYPE_LABELS: Record<ZwiftSurfaceType, string> = {
   gravel: 'Gravel'
 }
 
-export const SURFACE_TYPE_COLORS: Record<ZwiftSurfaceType, string> = {
-  tarmac: 'bg-slate-400',
-  brick: 'bg-orange-600',
-  wood: 'bg-amber-700',
-  cobbles: 'bg-stone-500',
-  snow: 'bg-sky-300',
-  dirt: 'bg-yellow-800',
-  grass: 'bg-green-500',
-  sand: 'bg-yellow-300',
-  gravel: 'bg-amber-500'
+/**
+ * A surface's colour, by family (see `surfaceFamily`): tarmac in the strong
+ * rule, the loose surfaces in dirt ochre, cobbles, brick and wood in
+ * grey-blue. Two surface colours and no more, so the hero's strip, the
+ * surface table, the speed chart and the Discovery cards all mean the same
+ * thing by one - and a surface never borrows a status colour.
+ */
+export const SURFACE_FAMILY_BG: Record<SurfaceFamily, string> = {
+  tarmac: 'bg-tarmac',
+  dirt: 'bg-dirt',
+  rough: 'bg-rough'
 }
 
-/** Same palette as `SURFACE_TYPE_COLORS`, as SVG `fill-*` utilities instead of `bg-*` - Tailwind's `background-color` utilities have no effect on SVG shapes, which paint via the `fill` property instead (see `RouteSurfaceSpeedProfile.vue`'s chart, `RouteElevationProfile.vue`'s `GRADE_BANDS.fillClass` for the existing precedent). */
-export const SURFACE_TYPE_FILL_COLORS: Record<ZwiftSurfaceType, string> = {
-  tarmac: 'fill-slate-400',
-  brick: 'fill-orange-600',
-  wood: 'fill-amber-700',
-  cobbles: 'fill-stone-500',
-  snow: 'fill-sky-300',
-  dirt: 'fill-yellow-800',
-  grass: 'fill-green-500',
-  sand: 'fill-yellow-300',
-  gravel: 'fill-amber-500'
+/** The same colours as SVG fills - `background-color` utilities do nothing to an SVG shape. */
+export const SURFACE_FAMILY_FILL: Record<SurfaceFamily, string> = {
+  tarmac: 'fill-tarmac',
+  dirt: 'fill-dirt',
+  rough: 'fill-rough'
 }
 
-export const SURFACE_TYPE_ICONS: Record<ZwiftSurfaceType, string> = {
-  tarmac: 'i-lucide-road',
-  brick: 'i-lucide-brick-wall',
-  wood: 'i-lucide-fence',
-  cobbles: 'i-lucide-grip',
-  snow: 'i-lucide-snowflake',
-  dirt: 'i-lucide-footprints',
-  grass: 'i-lucide-sprout',
-  sand: 'i-lucide-waves',
-  gravel: 'i-lucide-stone'
-}
+export const SURFACE_TYPE_COLORS = Object.fromEntries(
+  (Object.keys(SURFACE_TYPE_LABELS) as ZwiftSurfaceType[]).map(type => [type, SURFACE_FAMILY_BG[surfaceFamily(type)]])
+) as Record<ZwiftSurfaceType, string>
+
+export const SURFACE_TYPE_FILL_COLORS = Object.fromEntries(
+  (Object.keys(SURFACE_TYPE_LABELS) as ZwiftSurfaceType[]).map(type => [type, SURFACE_FAMILY_FILL[surfaceFamily(type)]])
+) as Record<ZwiftSurfaceType, string>
 
 /**
  * Whether every number behind a combo traces to ZwiftInsider bot tests - the
@@ -149,8 +127,8 @@ export function formatElevation(m: number): string {
 // `rankingResults.test.ts`), which teaches no auto-imports.
 
 /**
- * Describes how much time a route's non-tarmac sections cost vs. an
- * equivalent fully-paved route - see `estimateSurfaceTimePenaltySec`. Kept
+ * Describes, as one short evidence line, how much time a route's non-tarmac
+ * sections cost vs. an equivalent fully-paved route - see `estimateSurfaceTimePenaltySec`. Kept
  * generic ("rough terrain") rather than naming specific surfaces, since the
  * coarse `gravel`/`cobble` fields are buckets that can mean anything from
  * dirt/snow/sand to brick/wood - see `coarsenSurfaceComposition`. Returns
@@ -160,7 +138,11 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
   if (!penaltySec || penaltySec <= 0) return undefined
   if (surface.gravel <= 0 && surface.cobble <= 0) return undefined
 
-  return `Due to increased rolling resistance, rough terrain adds ~${Math.round(penaltySec)}s to this route with the fastest combo below.`
+  // Rounded first, so 59.7 s reads "1:00 minutes" rather than "60 seconds";
+  // `formatDuration` prints h:mm:ss from an hour up, which reads as hours.
+  const seconds = Math.round(penaltySec)
+  const cost = seconds < 60 ? `${seconds} seconds` : `${formatDuration(seconds)} ${seconds < 3600 ? 'minutes' : 'hours'}`
+  return `Rough surfaces cost this setup about ${cost} here`
 }
 
 /**
@@ -224,13 +206,6 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
 // out too - server code cannot import from `app/`. Re-exported here because
 // this module is where every page already reaches for a label.
 export { RACE_FORMAT_LABELS }
-
-export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warning' | 'error'> = {
-  ttt: 'warning',
-  points: 'info',
-  scratch: 'primary',
-  rot: 'error'
-}
 
 /**
  * The format for use mid-sentence. Every other label lowercases into ordinary

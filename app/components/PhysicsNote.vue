@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The "what are these times, exactly?" alert, shared by the route, segment and
+ * The "what are these times, exactly?" note, shared by the route, segment and
  * event race pages.
  *
  * The endpoints return two versions of the same disclosure: a one-sentence
@@ -28,37 +28,29 @@ const hasDetail = computed(() => Boolean(props.summary) && props.summary !== pro
 </script>
 
 <template>
-  <UAlert
-    color="primary"
-    variant="subtle"
-    icon="i-lucide-atom"
-    :title="title"
-  >
-    <template #description>
-      <p>{{ summary ?? note }}</p>
-      <UCollapsible
-        v-if="hasDetail"
-        :ui="{ content: 'mt-2' }"
-        class="mt-2"
-      >
-        <template #default="{ open }">
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 text-sm font-medium underline"
-          >
-            How the model works
-            <UIcon
-              :name="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-              class="size-4 shrink-0"
-            />
-          </button>
-        </template>
-        <template #content>
-          <p class="text-sm">
-            {{ note }}
-          </p>
-        </template>
-      </UCollapsible>
-    </template>
-  </UAlert>
+  <!-- Informational, never an alert: it explains the times, it reports no failure. -->
+  <SiteNotice :title="title">
+    <p>{{ summary ?? note }}</p>
+    <UCollapsible
+      v-if="hasDetail"
+      :ui="{ content: 'mt-2' }"
+      class="mt-1"
+    >
+      <template #default="{ open }">
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 font-medium underline decoration-rule-strong"
+        >
+          How the model works
+          <UIcon
+            :name="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+            class="size-4 shrink-0"
+          />
+        </button>
+      </template>
+      <template #content>
+        <p>{{ note }}</p>
+      </template>
+    </UCollapsible>
+  </SiteNotice>
 </template>

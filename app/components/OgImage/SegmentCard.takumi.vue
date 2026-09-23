@@ -1,12 +1,16 @@
 <script setup lang="ts">
-// Social-share card for a segment page (issue #59 phase 2, unblocked when
-// #56 made segments prerenderable). Rendered to a static 1200x630 PNG at
-// build time by nuxt-og-image (zeroRuntime) - never in the browser or the
-// Worker. Same Takumi constraints as `RouteCard.takumi.vue`: flexbox-only
-// CSS subset, inline styles, Inter 400/700 only.
+import type { OgProfile } from '../../utils/ogProfile'
+import { OG_COLORS, OG_MARK_IMAGE, ogProfileImage } from '../../utils/ogProfile'
+
+// Social-share card for a segment page (issue #59 phase 2), repainted in the night
+// Palette and Archivo (#257). Rendered to a static 1200x630 PNG at build
+// time by nuxt-og-image (zeroRuntime) - never in the browser or the Worker.
+// Takumi supports a flexbox-only CSS subset, hence the inline styles and the
+// absence of grid/UApp/Nuxt UI components; its colours are `OG_COLORS`,
+// because it reads no CSS variables.
 const props = defineProps<{
   title: string
-  /** Eyebrow suffix: "CLIMB", "HC CLIMB", "CAT 2 CLIMB" or "SPRINT". */
+  /** What the segment is, mid-sentence: "climb", "HC climb", "category 2 climb", "sprint". */
   kind: string
   world: string
   length: string
@@ -15,78 +19,66 @@ const props = defineProps<{
   frameName?: string
   wheelName?: string
   /**
-   * Elevation silhouette across the segment itself, each sample already
-   * normalized to 0..1 - see `ogProfileFromPoints` in `app/utils/ogProfile.ts`.
-   * Absent for membership segments (no measured position on any route): the
-   * card renders without a strip rather than faking a straight ramp.
+   * The segment's Silhouette - see `ogProfile`. Absent for membership
+   * segments (no measured position on any route): the card renders without
+   * one rather than faking a straight ramp.
    */
-  profile?: number[]
+  profile?: OgProfile
 }>()
 
-// Long segment names ("Temple KOM from Fishing Village side") step down
-// instead of clipping - Takumi has no line-clamp, so the size must
-// guarantee a fit.
-const titleSize = computed(() => props.title.length > 24 ? '56px' : '72px')
+// Long segment names ("Temple KOM from Fishing Village side") step down instead of
+// clipping - Takumi has no line-clamp, so the size must guarantee a fit.
+const titleSize = computed(() => props.title.length > 24 ? '60px' : '80px')
 
 const setupLabel = computed(() => {
   if (!props.frameName) return undefined
-  return props.wheelName ? `${props.frameName} + ${props.wheelName}` : props.frameName
+  return props.wheelName ? `${props.frameName} with ${props.wheelName}` : props.frameName
 })
-const setupSize = computed(() => (setupLabel.value?.length ?? 0) > 44 ? '30px' : '38px')
+const setupSize = computed(() => (setupLabel.value?.length ?? 0) > 44 ? '28px' : '34px')
 
-// The silhouette is passed to Takumi as a data-URI <img> rather than an
-// inline <svg> element: raster-from-src is the documented, dependable path.
-const profileImage = computed(() => {
-  const values = props.profile
-  if (!values || values.length < 2) return undefined
-  const w = 1200
-  const h = 230
-  const step = w / (values.length - 1)
-  const points = values.map((v, i) => `${Math.round(i * step)},${Math.round(h - 6 - v * (h - 12))}`).join(' ')
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`
-    + `<polygon points="0,${h} ${points} ${w},${h}" fill="rgba(0,220,130,0.14)"/>`
-    + `<polyline points="${points}" fill="none" stroke="rgba(0,220,130,0.5)" stroke-width="3"/>`
-    + `</svg>`
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
-})
+const profileImage = computed(() => props.profile && props.profile.heights.length > 1 ? ogProfileImage(props.profile, 1072, 150) : undefined)
 </script>
 
 <template>
   <div
-    class="flex h-full w-full flex-col justify-between"
-    style="background: linear-gradient(160deg, #0D1C19 0%, #071412 100%); padding: 56px 64px; position: relative;"
+    class="flex h-full w-full flex-col"
+    :style="{ background: OG_COLORS.ground, padding: '52px 64px 48px', fontFamily: 'Archivo' }"
   >
+    <div
+      class="flex items-center"
+      style="gap: 14px;"
+    >
+      <img
+        :src="OG_MARK_IMAGE"
+        alt=""
+        style="width: 45px; height: 30px;"
+      >
+      <span :style="{ fontSize: '32px', fontWeight: 700, color: OG_COLORS.ink }">ZwiftBikes</span>
+    </div>
+
+    <div
+      class="flex flex-col"
+      style="gap: 6px; margin-top: 26px;"
+    >
+      <span :style="{ fontSize: '30px', color: OG_COLORS.toned }">The fastest bike for the {{ kind }}</span>
+      <span :style="{ fontSize: titleSize, fontWeight: 700, color: OG_COLORS.ink, lineHeight: 1.02, fontStretch: '78%' }">{{ title }}</span>
+      <span :style="{ fontSize: '26px', color: OG_COLORS.muted, marginTop: '6px' }">{{ world }} · {{ length }} · {{ elevation }} · {{ grade }}</span>
+    </div>
+
     <img
       v-if="profileImage"
       :src="profileImage"
       alt=""
-      style="position: absolute; left: 0; bottom: 0; width: 1200px; height: 230px;"
+      style="width: 1072px; height: 150px; margin-top: auto; flex-shrink: 0;"
     >
-
-    <div
-      class="flex items-center"
-      style="gap: 16px;"
-    >
-      <div style="width: 14px; height: 34px; background: #FF6AA8; border-radius: 4px;" />
-      <span style="font-size: 34px; font-weight: 700; color: #ffffff;">ZwiftBikes</span>
-    </div>
-
-    <div
-      class="flex flex-col"
-      style="gap: 12px;"
-    >
-      <span style="font-size: 26px; font-weight: 700; color: #FF6AA8; letter-spacing: 4px;">BEST BIKE FOR THE {{ kind }}</span>
-      <span :style="{ fontSize: titleSize, fontWeight: 700, color: '#ffffff', lineHeight: 1.05 }">{{ title }}</span>
-      <span style="font-size: 30px; color: #8FA79F;">{{ world }} · {{ length }} · {{ elevation }} · {{ grade }}</span>
-    </div>
 
     <div
       v-if="setupLabel"
-      class="flex flex-col"
-      style="gap: 8px;"
+      class="flex items-baseline"
+      :style="{ gap: '14px', marginTop: profileImage ? '18px' : 'auto' }"
     >
-      <span style="font-size: 22px; font-weight: 700; color: #8FA79F; letter-spacing: 3px;">FASTEST SETUP</span>
-      <span :style="{ fontSize: setupSize, fontWeight: 700, color: '#ffffff' }">{{ setupLabel }}</span>
+      <span :style="{ fontSize: '22px', fontWeight: 600, color: OG_COLORS.primary }">Fastest setup</span>
+      <span :style="{ fontSize: setupSize, fontWeight: 600, color: OG_COLORS.ink }">{{ setupLabel }}</span>
     </div>
   </div>
 </template>

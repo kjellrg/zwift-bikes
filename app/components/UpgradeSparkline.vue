@@ -2,7 +2,7 @@
 /**
  * One measured frame's gain from upgrading, stage 0 to 5, as a sparkline:
  * what each stage is worth over the just-bought bike. The stage the bike is
- * currently scored at is the filled point. Drawn relative to stage 0 rather
+ * currently scored at is the larger point, all in the neutral ink. Drawn relative to stage 0 rather
  * than to the reference bike because the question the drawer answers here is
  * "what does upgrading do", not "how does this bike compare".
  *
@@ -52,17 +52,15 @@ const ACTIVE_DOT_R = 3.5
 // the rendered width, so one unit stays one pixel either way.
 const viewWidth = computed(() => (props.wide ? 264 : 132))
 
-const gains = computed(() => props.values.map(value => value - (props.values[0] ?? 0)))
+const gains = computed(() => upgradeGains(props.values))
 
 const points = computed(() => {
-  const min = Math.min(0, ...gains.value)
-  const max = Math.max(1, ...gains.value)
-  const stepX = (viewWidth.value - PAD_X * 2) / Math.max(1, gains.value.length - 1)
+  const range = upgradeGainRange(gains.value)
   return gains.value.map((gain, stage) => ({
     stage,
     gain,
-    x: PAD_X + stage * stepX,
-    y: VIEW_HEIGHT - PAD_Y - ((gain - min) / (max - min)) * (VIEW_HEIGHT - PAD_Y * 2)
+    x: upgradeStageX(stage, gains.value.length, viewWidth.value, PAD_X),
+    y: upgradeGainY(gain, range, VIEW_HEIGHT, PAD_Y)
   }))
 })
 
@@ -79,7 +77,7 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
     <div class="flex items-baseline justify-between gap-2 text-xs">
       <span class="font-medium text-highlighted">{{ label }}</span>
       <span class="text-muted tabular-nums">
-        now <span class="font-semibold text-primary">{{ signed(current?.gain ?? 0) }}</span>
+        now <span class="font-semibold text-highlighted">{{ signed(current?.gain ?? 0) }}</span>
         · maxed {{ signed(maxed) }} {{ unit }}
       </span>
     </div>
@@ -105,7 +103,7 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
         :points="polyline"
         fill="none"
         stroke="currentColor"
-        class="text-primary"
+        class="text-highlighted"
         stroke-width="1.5"
         stroke-linejoin="round"
         stroke-linecap="round"
@@ -117,16 +115,16 @@ const summary = computed(() => `${props.label}: ${gains.value.map((gain, stage) 
         :cy="point.y"
         :r="point.stage === current?.stage ? ACTIVE_DOT_R : DOT_R"
         fill="currentColor"
-        :class="point.stage === current?.stage ? 'text-primary' : 'text-muted'"
+        :class="point.stage === current?.stage ? 'text-highlighted' : 'text-muted'"
       >
         <title>Stage {{ point.stage }}: {{ signed(point.gain) }} {{ unit }}</title>
       </circle>
     </svg>
-    <div class="flex justify-between text-[10px] text-muted tabular-nums">
+    <div class="flex justify-between text-xs text-muted">
       <span
         v-for="point in points"
         :key="point.stage"
-        :class="point.stage === current?.stage ? 'font-semibold text-primary' : ''"
+        :class="point.stage === current?.stage ? 'font-semibold text-highlighted' : ''"
       >{{ point.stage }}</span>
     </div>
   </div>

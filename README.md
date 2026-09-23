@@ -13,13 +13,14 @@ This is a hobby project, built and run in spare time by fellow cyclists and
 Zwifters, for the fun of it. Bug reports, data corrections and pull requests
 are all very welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-![A route page: the recommended frame and wheels with their estimated finish time beside a short ride briefing, and the ranked alternatives beneath](docs/assets/screenshots/bikes-light.png#gh-light-mode-only)
-![A route page: the recommended frame and wheels with their estimated finish time beside a short ride briefing, and the ranked alternatives beneath](docs/assets/screenshots/bikes-dark.png#gh-dark-mode-only)
+![A route page: the route's elevation profile with its surfaces and named climbs, and beneath it the fastest frame and wheels with their estimated finish time beside the rider they were timed for](docs/assets/screenshots/bikes-light.png#gh-light-mode-only)
+![A route page: the route's elevation profile with its surfaces and named climbs, and beneath it the fastest frame and wheels with their estimated finish time beside the rider they were timed for](docs/assets/screenshots/bikes-dark.png#gh-dark-mode-only)
 
-*The heart of the site: set your weight, height and power, and any route
-tells you its fastest frame + wheelset with an estimated finish time, the
-alternatives and how far behind they are, and whether each number is backed
-by verified test data or an estimate.*
+*The heart of the site: any route draws its own profile and tells you its
+fastest frame + wheelset with an estimated finish time, for the rider in the
+card beside it - move a slider and every time follows. Beneath it, every
+other setup is ranked by how far behind it finishes, and says whether its
+numbers are backed by verified test data or an estimate.*
 
 ## What it does
 
@@ -44,17 +45,17 @@ by verified test data or an estimate.*
   answers in plain markdown to anything that asks for it — see
   [Markdown for agents](docs/markdown-for-agents.md).
 
-![Speed and surface chart for a route, showing estimated speed over the elevation profile, surface segments and their watt penalties](docs/assets/screenshots/terrain-light.png#gh-light-mode-only)
-![Speed and surface chart for a route, showing estimated speed over the elevation profile, surface segments and their watt penalties](docs/assets/screenshots/terrain-dark.png#gh-dark-mode-only)
+![The speed-by-surface chart for a route: the fastest setup's simulated speed over a faint elevation backdrop, with the surface strip beneath](docs/assets/screenshots/terrain-light.png#gh-light-mode-only)
+![The speed-by-surface chart for a route: the fastest setup's simulated speed over a faint elevation backdrop, with the surface strip beneath](docs/assets/screenshots/terrain-dark.png#gh-dark-mode-only)
 
-*Each route's speed & surface chart: your estimated speed over the elevation
+*Each route's speed-by-surface chart: your estimated speed over the elevation
 profile, where the surface changes, and what each surface costs you in watts.*
 
 ## Where the numbers come from
 
 - Aero/climb performance and rolling-resistance (Crr) figures are sourced
   from [ZwiftInsider](https://zwiftinsider.com/) bot-test data where
-  available (marked with a "verified" badge in the UI); everything else
+  available (marked "bot-tested" in the UI); everything else
   falls back to a labeled heuristic estimate. Huge thanks to the ZwiftInsider
   team — their painstaking, publicly shared bot testing of nearly every
   frame, wheel and Crr surface value in the game is what makes this app's

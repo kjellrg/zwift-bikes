@@ -1,22 +1,13 @@
 <template>
-  <!-- Same box as `SegmentCard`: title + world, the climb/sprint badge,
-       three stat chips. -->
-  <UCard
-    class="h-full"
-    :ui="{ body: 'space-y-3' }"
+  <!-- `SegmentCard`'s own shape: the name line and the three numbers. -->
+  <div
+    class="h-full rounded-xl border border-default bg-elevated px-4 py-3.5"
     aria-hidden="true"
   >
-    <div class="flex items-start justify-between gap-2">
-      <div class="space-y-2">
-        <USkeleton class="h-4 w-40" />
-        <USkeleton class="h-3 w-24" />
-      </div>
-      <USkeleton class="h-5 w-20" />
+    <div class="flex justify-between gap-2">
+      <USkeleton class="h-4 w-36" />
+      <USkeleton class="h-4 w-14" />
     </div>
-    <div class="flex gap-4">
-      <USkeleton class="h-4 w-16" />
-      <USkeleton class="h-4 w-16" />
-      <USkeleton class="h-4 w-12" />
-    </div>
-  </UCard>
+    <USkeleton class="mt-2 h-4 w-40" />
+  </div>
 </template>

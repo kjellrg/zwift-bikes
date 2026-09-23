@@ -15,7 +15,7 @@ const open = defineModel<boolean>('open', { default: false })
     v-model:open="open"
     :content="content"
     title="About ZwiftBikes"
-    :ui="{ content: 'sm:max-w-xl' }"
+    :ui="{ content: 'sm:max-w-3xl', title: 'text-xl font-semibold font-heading', description: 'text-toned' }"
   >
     <template #body>
       <AboutContent />

@@ -10,37 +10,15 @@ defineProps<{ notice?: string }>()
 </script>
 
 <template>
-  <UContainer class="py-10">
-    <UButton
-      to="/"
-      variant="link"
-      color="neutral"
-      icon="i-lucide-arrow-left"
-      class="mb-4 px-0"
-    >
-      Back to all routes
+  <UContainer class="py-12 space-y-6">
+    <h1 class="text-3xl font-bold font-display text-highlighted">
+      The events calendar is taking a break
+    </h1>
+    <SiteNotice>
+      <p>{{ notice ?? 'This section is temporarily unavailable. Everything else on the site works as usual - check back soon.' }}</p>
+    </SiteNotice>
+    <UButton to="/">
+      Browse routes instead
     </UButton>
-    <UCard>
-      <div class="flex flex-col items-center gap-3 py-8 text-center">
-        <UIcon
-          name="i-lucide-calendar-off"
-          class="size-8 text-muted"
-        />
-        <p class="text-lg font-semibold text-highlighted">
-          The events calendar is taking a break
-        </p>
-        <p class="text-muted max-w-md">
-          {{ notice ?? 'This section is temporarily unavailable. Everything else on the site works as usual - check back soon.' }}
-        </p>
-        <UButton
-          to="/"
-          color="primary"
-          variant="subtle"
-          class="mt-2"
-        >
-          Browse routes instead
-        </UButton>
-      </div>
-    </UCard>
   </UContainer>
 </template>

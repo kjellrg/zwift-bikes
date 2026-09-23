@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { breadcrumbScript, courseNote, faqScript, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
+import { activeFiltersLabel, breadcrumbScript, comboPhysicsDelta, courseNote, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
 const course = (terrain: unknown, surface: unknown) => ({ terrain, surface } as RouteWithMeta)
@@ -55,7 +55,7 @@ describe('rankingEvidence', () => {
     })
 
     expect(evidence.notes).toEqual([
-      'Due to increased rolling resistance, rough terrain adds ~43s to this route with the fastest combo below.',
+      'Rough surfaces cost this setup about 43 seconds here',
       'A 4-rider paceline saves ~1:35 vs riding this alone at the same effort (~320 W on your pulls).',
       'Sitting in a typical mass-start bunch saves ~1:01 vs riding this alone at the same average power (~24% less power for the same speed on the flat).'
     ])
@@ -174,5 +174,48 @@ describe('structured data', () => {
     // Answer is worse than no structured data at all.
     expect(faqScript('What\'s the fastest bike for Box Hill?', undefined)).toBeUndefined()
     expect(faqScript(undefined, 'The Tarmac Pro on Zipp 858s, in 12:34.')).toBeUndefined()
+  })
+})
+
+describe('comboPhysicsDelta', () => {
+  const delta = (cdaDeltaM2: number, bikeMassDeltaKg: number, crrDelta = 0) => ({ cdaDeltaM2, bikeMassDeltaKg, crrDelta })
+
+  it('adds the wheels\' deltas to the frame\'s, both against the same stock bike', () => {
+    const combo = { frame: { physics: delta(-0.02, -1, -0.0003), hasFixedWheels: false }, wheelset: { physics: delta(-0.013, -1.15) } } as unknown as ComboScore
+    const total = comboPhysicsDelta(combo)!
+    expect(total.cdaDeltaM2).toBeCloseTo(-0.033)
+    expect(total.bikeMassDeltaKg).toBeCloseTo(-2.15)
+    expect(total.crrDelta).toBeCloseTo(-0.0003)
+  })
+
+  it('has no delta when a part was never solved, rather than half of one', () => {
+    expect(comboPhysicsDelta({ frame: { physics: delta(-0.02, -1), hasFixedWheels: false }, wheelset: {} } as unknown as ComboScore)).toBeUndefined()
+    expect(comboPhysicsDelta({ frame: { hasFixedWheels: false }, wheelset: { physics: delta(0, 0) } } as unknown as ComboScore)).toBeUndefined()
+  })
+
+  it('reads a fixed-wheel frame\'s delta as the whole setup\'s', () => {
+    expect(comboPhysicsDelta({ frame: { physics: delta(-0.05, 1), hasFixedWheels: true } } as unknown as ComboScore)).toEqual(delta(-0.05, 1))
+  })
+})
+
+describe('formatSignedDelta', () => {
+  it('signs every non-zero value with a true minus, and prints zero unsigned', () => {
+    expect(formatSignedDelta(-0.0331, 3)).toBe('\u22120.033')
+    expect(formatSignedDelta(0.5, 2)).toBe('+0.50')
+    expect(formatSignedDelta(-0.00001, 3)).toBe('0.000')
+  })
+})
+
+describe('activeFiltersLabel', () => {
+  const restrictions = { verifiedOnly: true, includeHaloBikes: false, myBikesOnly: false, search: '' }
+
+  it('names the category, the data rule and the Halo rule the pool was drawn under', () => {
+    expect(activeFiltersLabel(restrictions, 'standard')).toBe('Standard (Road) · verified data only · Halo bikes hidden')
+    expect(activeFiltersLabel({ ...restrictions, verifiedOnly: false, includeHaloBikes: true, myBikesOnly: true }, 'all'))
+      .toBe('All categories · estimates included · your garage')
+  })
+
+  it('names a directed search instead of a Halo rule it lifts', () => {
+    expect(activeFiltersLabel({ ...restrictions, search: ' tarmac ' }, 'standard')).toBe('Standard (Road) · verified data only · search "tarmac"')
   })
 })

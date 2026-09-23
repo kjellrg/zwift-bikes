@@ -1,35 +1,37 @@
 <script setup lang="ts">
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { CourseAnalysisTab } from '../composables/useCourseAnalysisTab'
 import type { TttPlan } from '../composables/useTttPlan'
 import type { AppliedRiderInputs } from '../utils/recommendRequest'
-import { MIN_ROUTE_KM, type RacePlanItem } from '#shared/utils/physics/racePlan'
-import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
+import { MIN_ROUTE_KM } from '#shared/utils/physics/racePlan'
+import { draftOf } from '#shared/utils/physics/draft'
+import { computeRouteSurfaceSpeedProfile } from '#shared/utils/physics/routeSurfaceSpeedProfile'
+import { surfaceFamily } from '#shared/utils/silhouette'
 import { courseNote, hasElevationProfile, hasSurfaceLocations } from '../utils/rankingResults'
 
 /**
- * The course-analysis tabs under a route or segment page: the Ride-only
- * views (Elevation, Segments, Surface details), which exist with zero
- * equipment matches and through a results refresh, and the equipment views
- * (Speed & surface, TTT plan), which describe one ranked setup and say so.
+ * "The course": the tabs beside "Why this bike wins", under the answer. The
+ * elevation profile is the Course hero at the top of the page and is not
+ * drawn again here, so the tabs hold what the hero cannot say - the named
+ * climbs and sprints in ride order (a route), the scoring segments (a race),
+ * the surfaces as a table, and the equipment views (speed by surface, the
+ * TTT plan), which describe one ranked setup and say so.
  *
  * Every panel is in the server HTML (`unmount-on-hide` off), so the segment
  * links exist before any interaction and a hidden panel is merely hidden.
  * Which tab shows is page memory (`useCourseAnalysisTab`), never the URL.
  *
  * Two Rides on purpose, not one. The Ride-only tabs follow the selector
- * (`route`, `laps`), like the briefing: they describe the ride the rider has
- * chosen. The equipment tabs follow the APPLIED results (`resultsRoute`,
- * `resultsLaps`, `combo`, `rider`): a plan priced for a setup must describe
- * the ride and the rider that setup was ranked for, and during a refresh
- * they keep the previous results, dimmed, exactly as the recommendation
+ * (`route`, `laps`), like the Fact row and the hero: they describe the ride
+ * the rider has chosen. The equipment views follow the APPLIED results
+ * (`resultsRoute`, `resultsLaps`, `combo`, `rider`): a plan priced for a
+ * setup must describe the ride and the rider that setup was ranked for, and
+ * during a refresh they keep the previous results, dimmed, as the answer
  * does. `resultsRoute` is the Applied Ranking's own course on every page,
  * never the selected one standing in for it: on a race the category group
- * can move the course itself, and a speed curve drawn on the new course for
- * a setup ranked on the old one is a chart of a bike that was never ranked
- * there (#233). Until the ranking's lookup has answered, the equipment tabs
- * say so instead. The TTT plan itself arrives from the page (`useTttPlan`), which computes
- * it once for the briefing's TTT line and this tab, so the two cannot
- * disagree.
+ * can move the course itself (#233). The TTT plan arrives from the page
+ * (`useTttPlan`), which computes it once for the Fact row's TTT line and
+ * this tab, so the two cannot disagree.
  */
 const props = defineProps<{
   /** The route the rider has selected, or the synthetic segment-as-route the segment page ranks against. The Ride-only tabs describe this one. */
@@ -54,47 +56,41 @@ const props = defineProps<{
   plan?: TttPlan
   /** Whether this ride scores points along the way - a race. Adds the Scoring tab, whose content is the page's own through the `scoring` slot. */
   scoring?: boolean
-  /** The scoring segments that have a page here, starred on the elevation profile in ride order - see `RouteElevationProfile`. */
-  scoringSlugs?: string[]
 }>()
 
 const { selected } = useCourseAnalysisTab()
 
 const isRoute = computed(() => props.kind === 'route')
-const hasElevation = computed(() => (props.route.terrain.elevationProfile?.length ?? 0) > 1)
 const leadInKm = computed(() => props.route.leadInDistance ?? 0)
 
-// The applied course, for the two tabs that describe a ranked setup on it.
+// The applied course, for the two views that describe a ranked setup on it.
 const equipmentLeadInKm = computed(() => props.resultsRoute?.leadInDistance ?? 0)
 const equipmentHasElevation = computed(() => hasElevationProfile(props.resultsRoute))
 const equipmentHasSurfaceLocations = computed(() => hasSurfaceLocations(props.resultsRoute))
 
 const items = computed(() => [
-  { label: 'Elevation', value: 'elevation' as const, slot: 'elevation' as const, icon: 'i-lucide-mountain' },
-  ...(props.scoring ? [{ label: 'Scoring', value: 'scoring' as const, slot: 'scoring' as const, icon: 'i-lucide-trophy' }] : []),
-  ...(isRoute.value ? [{ label: 'Segments', value: 'segments' as const, slot: 'segments' as const, icon: 'i-lucide-route' }] : []),
-  ...(props.kind !== 'sprint' ? [{ label: 'Speed & surface', value: 'speed' as const, slot: 'speed' as const, icon: 'i-lucide-gauge' }] : []),
-  { label: 'Surface details', value: 'surface' as const, slot: 'surface' as const, icon: 'i-lucide-layers' },
-  ...(props.plan ? [{ label: 'TTT plan', value: 'plan' as const, slot: 'plan' as const, icon: 'i-lucide-flag' }] : [])
+  ...(isRoute.value ? [{ label: 'Climbs and sprints', value: 'segments' as const, slot: 'segments' as const }] : []),
+  ...(props.scoring ? [{ label: 'Scoring', value: 'scoring' as const, slot: 'scoring' as const }] : []),
+  { label: 'Surfaces', value: 'surface' as const, slot: 'surface' as const },
+  ...(props.kind !== 'sprint' ? [{ label: 'Speed by surface', value: 'speed' as const, slot: 'speed' as const }] : []),
+  ...(props.plan ? [{ label: 'TTT plan', value: 'plan' as const, slot: 'plan' as const }] : [])
 ])
 // The remembered tab may have left the set: the plan when draft mode leaves
-// ttt, the speed chart on a sprint page, the scoring of a race whose group
-// has none. Elevation is always there.
-watch(items, (list) => {
-  if (!list.some(item => item.value === selected.value)) selected.value = 'elevation'
-}, { immediate: true })
+// ttt, the climbs on a segment page, the scoring of a race whose group has
+// none. The first tab is always there, and it is shown in place of the
+// remembered one without being written back - a segment page would
+// otherwise overwrite the rider's route tab with Surfaces for the next
+// route page.
+const shown = computed<CourseAnalysisTab>({
+  get: () => items.value.some(item => item.value === selected.value) ? selected.value : items.value[0]!.value,
+  set: (tab) => {
+    selected.value = tab
+  }
+})
 
 const lapsLabel = (count: number) => `${count} lap${count === 1 ? '' : 's'}`
 
-const climbs = computed(() => isRoute.value ? expandClimbsForLaps(props.route, props.laps) : [])
-const sprints = computed(() => isRoute.value ? expandSprintsForLaps(props.route, props.laps) : [])
 const segments = computed(() => isRoute.value ? courseSegmentsInRideOrder(props.route, props.laps) : [])
-
-const elevationScope = computed(() => isRoute.value
-  ? `Measured elevation profile; ${lapsLabel(props.laps)}${leadInKm.value > 0 ? ', lead-in included once' : ''}.`
-  : 'Measured elevation profile of the timed segment.')
-const elevationUnavailable = computed(() =>
-  `Elevation profile unavailable; the estimate uses the ${isRoute.value ? 'route\'s distance' : 'segment\'s length'} and climbing totals.`)
 
 const segmentsScope = computed(() => leadInKm.value > 0
   ? `${lapsLabel(props.laps)}; kilometre positions include the lead-in, ridden once.`
@@ -125,8 +121,61 @@ const speedUnavailable = computed(() => {
 })
 
 const surfaceScope = computed(() =>
-  `${surfaceCoverageLine(props.route.surface)}; the mix describes ${isRoute.value ? 'one lap' : 'the timed segment'}. `
-  + 'Crr is Zwift\'s rolling resistance per surface and wheel class - higher means more effort at the same speed; see THIRD_PARTY_NOTICES.md for the data source.')
+  `${surfaceCoverageLine(props.route.surface)}; the shares describe ${isRoute.value ? 'one lap' : 'the timed segment'}.`)
+
+/**
+ * What each surface costs the fastest setup, in watts: the length-weighted
+ * average of the speed profile's "extra power to hold this stretch's pace on
+ * its real surface, against tarmac at the same pace". Equipment-dependent,
+ * so from the APPLIED course and rank 1, and only when that course is the
+ * one the table describes; worked out the first time the tab is shown,
+ * client-side, because it is the same simulation the speed chart runs.
+ */
+const extraWatts = shallowRef<Partial<Record<string, number>>>()
+function computeExtraWatts() {
+  const route = props.resultsRoute
+  const combo = props.combo
+  if (!route || !combo || route.slug !== props.route.slug) {
+    extraWatts.value = undefined
+    return
+  }
+  const profile = computeRouteSurfaceSpeedProfile(route, combo.frame, combo.wheelset, props.rider.weightKg, props.rider.heightCm, props.rider.powerW,
+    draftOf({ draftMode: props.rider.draftMode, tttRiders: props.rider.tttRiders, tttClimbWkg: props.rider.tttClimbWkg }))
+  if (!profile) {
+    extraWatts.value = undefined
+    return
+  }
+  const totals: Record<string, { watts: number, km: number }> = {}
+  for (const segment of profile.segments) {
+    const km = segment.toKm - segment.fromKm
+    const total = totals[segment.surface] ??= { watts: 0, km: 0 }
+    total.watts += segment.extraWattsVsTarmac * km
+    total.km += km
+  }
+  extraWatts.value = Object.fromEntries(Object.entries(totals).map(([surface, total]) => [surface, total.km > 0 ? Math.round(total.watts / total.km) : 0]))
+}
+onMounted(() => {
+  watch([() => shown.value === 'surface', () => props.route.slug, () => props.combo, () => props.resultsRoute, () => props.rider], ([surfaceShown]) => {
+    if (surfaceShown) computeExtraWatts()
+  }, { immediate: true })
+})
+
+/** The surface table's rows: each surface's share and distance on one lap (or the segment), largest first. */
+const surfaceRows = computed(() => {
+  const composition = props.route.surface.composition
+  if (!composition) return []
+  const lengthKm = props.route.distance
+  return (Object.entries(composition) as [keyof typeof composition, number | undefined][])
+    .filter((entry): entry is [keyof typeof composition, number] => (entry[1] ?? 0) > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([surface, percent]) => ({
+      surface,
+      family: surfaceFamily(surface),
+      percent,
+      distanceKm: (percent / 100) * lengthKm,
+      extraWatts: extraWatts.value?.[surface]
+    }))
+})
 
 const planScope = computed(() => {
   if (!props.plan) return undefined
@@ -136,7 +185,6 @@ const planScope = computed(() => {
   const team = `${props.plan.riders}-rider paceline${props.plan.climbWkg ? `, team climb pace ${props.plan.climbWkg.toFixed(1)} W/kg` : ''}`
   return `${setupLabel.value}${equipmentCourseNote.value} · ${props.rider.powerW} W · ${team} · ${ride}.`
 })
-const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-mountain', surface: 'i-lucide-triangle-alert' }
 </script>
 
 <template>
@@ -144,46 +192,33 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
     :id="COURSE_ANALYSIS_ID"
     aria-labelledby="course-analysis-heading"
     tabindex="-1"
-    class="space-y-4 scroll-mt-6 outline-none"
+    class="min-w-0 scroll-mt-24 outline-none"
   >
     <h2
       id="course-analysis-heading"
-      class="text-xl font-semibold text-highlighted"
+      class="text-2xl font-semibold font-heading text-highlighted"
     >
-      Course analysis
+      The course
     </h2>
     <!-- The list wraps rather than scrolls so every tab is visible on a phone;
          the sliding indicator only knows one row, so the active trigger draws
-         its own underline instead. -->
+         its own underline, in the primary like the current section. A step
+         smaller and tighter on a phone, so a route's three tabs fit one row
+         and only a race's longer set wraps. -->
     <UTabs
-      v-model="selected"
+      v-model="shown"
       :items="items"
       variant="link"
+      color="neutral"
       :unmount-on-hide="false"
+      class="mt-3"
       :ui="{
-        list: 'flex-wrap gap-x-1',
+        list: 'flex-wrap gap-x-1 border-b border-accented',
         indicator: 'hidden',
-        trigger: 'data-[state=active]:text-highlighted data-[state=active]:after:content-[\'\'] data-[state=active]:after:absolute data-[state=active]:after:inset-x-0 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:rounded-full data-[state=active]:after:bg-primary',
-        content: 'pt-4'
+        trigger: 'text-md text-muted max-sm:px-2 max-sm:text-sm data-[state=active]:text-highlighted data-[state=active]:after:content-[\'\'] data-[state=active]:after:absolute data-[state=active]:after:inset-x-0 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary',
+        content: 'pt-3'
       }"
     >
-      <template #elevation>
-        <div class="space-y-3">
-          <p class="text-xs text-muted">
-            {{ hasElevation ? elevationScope : elevationUnavailable }}
-          </p>
-          <RouteElevationProfile
-            v-if="hasElevation"
-            :route="route"
-            :laps="laps"
-            :climbs="climbs"
-            :sprints="sprints"
-            :scoring-slugs="scoringSlugs"
-            flat
-          />
-        </div>
-      </template>
-
       <!-- Ride-only, and the page's own: where the points are is a property
            of the race's rules, not of anything that was ranked. -->
       <template #scoring>
@@ -191,73 +226,124 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
       </template>
 
       <template #segments>
-        <div class="space-y-3">
-          <p class="text-xs text-muted">
-            {{ segmentsScope }}
-          </p>
-          <ol
-            v-if="segments.length"
-            aria-label="Segments in ride order"
-            class="divide-y divide-default"
+        <p class="text-xs text-muted">
+          {{ segmentsScope }}
+        </p>
+        <ol
+          v-if="segments.length"
+          aria-label="Segments in ride order"
+          class="mt-1"
+        >
+          <li
+            v-for="(segment, index) in segments"
+            :key="`${segment.slug}-${segment.rideFromKm}-${index}`"
+            class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 border-b border-default py-3"
           >
-            <li
-              v-for="(segment, index) in segments"
-              :key="`${segment.slug}-${segment.rideFromKm}-${index}`"
-              class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 text-sm"
+            <div class="min-w-0">
+              <NuxtLink
+                :to="`/segments/${segment.slug}`"
+                class="font-semibold text-highlighted hover:underline"
+              >Fastest bike for {{ segment.name }}</NuxtLink>
+              <p class="text-sm text-muted">
+                {{ segment.kind === 'climb' ? 'Climb' : 'Sprint' }}{{ segment.climbType ? `, ${segment.climbType === 'HC' ? 'HC' : `category ${segment.climbType}`}` : '' }} · km {{ segment.rideFromKm.toFixed(1) }} to {{ segment.rideToKm.toFixed(1) }}<template v-if="segment.lapNumber">
+                  · lap {{ segment.lapNumber }}
+                </template><template v-else-if="segment.leadIn">
+                  · lead-in
+                </template>
+              </p>
+            </div>
+            <p class="text-right text-md whitespace-nowrap">
+              {{ formatDistance(segment.lengthKm) }} · {{ segment.avgGradePercent ? formatGrade(segment.avgGradePercent) : 'flat' }}
+              <span
+                v-if="segment.elevationM !== undefined"
+                class="block text-xs text-muted"
+              >{{ formatElevation(segment.elevationM) }}</span>
+            </p>
+          </li>
+        </ol>
+        <p
+          v-else
+          class="mt-2 text-sm text-muted"
+        >
+          No mapped climbs or sprints on this route.
+        </p>
+      </template>
+
+      <template #surface>
+        <p class="text-xs text-muted">
+          {{ surfaceScope }}
+        </p>
+        <table
+          v-if="surfaceRows.length"
+          class="mt-1 w-full border-collapse text-md"
+          aria-label="Surfaces"
+        >
+          <thead>
+            <tr class="text-left text-xs text-muted">
+              <th
+                scope="col"
+                class="border-b border-default px-2 py-2 font-medium"
+              >
+                Surface
+              </th>
+              <th
+                scope="col"
+                class="border-b border-default px-2 py-2 text-right font-medium"
+              >
+                Share
+              </th>
+              <th
+                scope="col"
+                class="border-b border-default px-2 py-2 text-right font-medium"
+              >
+                Distance
+              </th>
+              <th
+                scope="col"
+                class="border-b border-default px-2 py-2 text-right font-medium"
+              >
+                Extra watts
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in surfaceRows"
+              :key="row.surface"
             >
-              <UIcon
-                :name="segment.kind === 'climb' ? 'i-lucide-mountain' : 'i-lucide-zap'"
-                class="size-4 shrink-0"
-                :class="segment.kind === 'climb' ? 'text-success' : 'text-warning'"
-              />
-              <div class="min-w-0 flex-1">
-                <ULink
-                  :to="`/segments/${segment.slug}`"
-                  class="font-medium text-primary underline"
-                >{{ segment.name }}</ULink>
-                <p class="text-xs text-muted">
-                  km {{ segment.rideFromKm.toFixed(1) }}-{{ segment.rideToKm.toFixed(1) }}<template v-if="segment.lapNumber">
-                    / lap {{ segment.lapNumber }}
-                  </template><template v-else-if="segment.leadIn">
-                    / lead-in
-                  </template>
-                </p>
-              </div>
-              <span class="text-xs text-muted">
-                {{ segment.kind === 'climb' ? 'Climb' : 'Sprint' }}<template v-if="segment.climbType"> / {{ segment.climbType === 'HC' ? 'HC' : `Cat ${segment.climbType}` }}</template>
-              </span>
-              <dl class="flex w-full gap-x-5 pl-8 text-xs sm:w-auto sm:pl-0">
-                <div>
-                  <dt class="text-muted">
-                    Length
-                  </dt><dd class="tabular-nums text-highlighted">
-                    {{ formatDistance(segment.lengthKm) }}
-                  </dd>
-                </div>
-                <div v-if="segment.elevationM !== undefined">
-                  <dt class="text-muted">
-                    Elevation
-                  </dt><dd class="tabular-nums text-highlighted">
-                    {{ formatElevation(segment.elevationM) }}
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-muted">
-                    Avg grade
-                  </dt><dd class="tabular-nums text-highlighted">
-                    {{ segment.avgGradePercent ? formatGrade(segment.avgGradePercent) : 'Flat' }}
-                  </dd>
-                </div>
-              </dl>
-            </li>
-          </ol>
-          <p
-            v-else
-            class="text-sm text-muted"
-          >
-            No mapped climbs or sprints on this route.
-          </p>
-        </div>
+              <td class="border-b border-default px-2 py-2.5">
+                <span
+                  class="mr-2 inline-block size-2.5 rounded-[2px] align-[-1px]"
+                  :class="SURFACE_FAMILY_BG[row.family]"
+                  aria-hidden="true"
+                />{{ SURFACE_TYPE_LABELS[row.surface] }}
+              </td>
+              <td class="border-b border-default px-2 py-2.5 text-right">
+                {{ formatPercent(row.percent) }}
+              </td>
+              <td class="border-b border-default px-2 py-2.5 text-right">
+                {{ formatDistance(row.distanceKm) }}
+              </td>
+              <td class="border-b border-default px-2 py-2.5 text-right">
+                {{ row.surface === 'tarmac' || row.extraWatts === undefined ? '-' : `+${row.extraWatts} W` }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p
+          v-else
+          class="mt-2 text-sm text-muted"
+        >
+          No detailed surface mix for this ride.
+        </p>
+        <p
+          v-if="surfaceRows.length"
+          class="mt-2 text-xs text-muted"
+        >
+          Extra watts are what the fastest setup needs to hold its pace on each surface rather than on tarmac, averaged over the ride<template v-if="!extraWatts">
+            - they appear once a ranked setup and mapped surface positions are there to simulate
+          </template>.
+        </p>
       </template>
 
       <template #speed>
@@ -273,10 +359,10 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
             class="text-sm text-muted"
           >
             <template v-if="loading">
-              The speed &amp; surface profile follows the ranking.
+              The speed by surface follows the ranking.
             </template>
             <template v-else>
-              The speed &amp; surface profile needs a ranked setup to simulate; it returns with the first match.
+              Speed by surface needs a ranked setup to simulate; it returns with the first match.
             </template>
           </p>
           <!-- The course is there whenever `speedUnavailable` is not; the
@@ -297,7 +383,7 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
               :class="{ 'opacity-60 pointer-events-none': refreshing }"
             >
               <p class="text-xs text-muted">
-                {{ speedScope }} The curve is this setup's simulated pace at every grade and surface change, over a faint elevation backdrop; the strip beneath marks the surface behind each dip.
+                {{ speedScope }} The line is this setup's simulated pace at every grade and surface change, over a faint elevation backdrop; the strip beneath marks the surface behind each dip.
               </p>
               <RouteSurfaceSpeedProfile
                 :route="resultsRoute"
@@ -310,29 +396,10 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
                 :ttt-riders="rider.tttRiders"
                 :ttt-climb-wkg="rider.tttClimbWkg"
                 flat
-                :active="selected === 'speed'"
+                :active="shown === 'speed'"
               />
             </div>
           </template>
-        </div>
-      </template>
-
-      <template #surface>
-        <div class="space-y-3">
-          <p class="text-xs text-muted">
-            {{ surfaceScope }}
-          </p>
-          <RouteSurfaceComposition
-            v-if="route.surface.composition"
-            :surface="route.surface"
-            flat
-          />
-          <p
-            v-else
-            class="text-sm text-muted"
-          >
-            No detailed surface mix for this ride.
-          </p>
         </div>
       </template>
 
@@ -385,27 +452,19 @@ const PLAN_ICONS: Record<RacePlanItem['type'], string> = { climb: 'i-lucide-moun
               <ul
                 v-if="plan.sectors.length"
                 aria-label="TTT sectors"
-                class="divide-y divide-default"
               >
                 <li
                   v-for="item in plan.sectors"
                   :key="`${item.type}-${item.fromKm}`"
-                  class="flex items-start gap-3 py-3 text-sm"
+                  class="border-b border-default py-3 text-md"
                 >
-                  <UIcon
-                    :name="PLAN_ICONS[item.type]"
-                    class="mt-0.5 size-4 shrink-0"
-                    :class="item.type === 'climb' ? 'text-success' : 'text-warning'"
-                  />
-                  <div>
-                    <p class="font-medium text-highlighted">
-                      km {{ item.fromKm.toFixed(1) }}–{{ item.toKm.toFixed(1) }}
-                      <span class="font-normal text-muted">· {{ item.detail }}</span>
-                    </p>
-                    <p class="text-muted">
-                      {{ item.note }}
-                    </p>
-                  </div>
+                  <p class="font-semibold text-highlighted">
+                    km {{ item.fromKm.toFixed(1) }} to {{ item.toKm.toFixed(1) }}
+                    <span class="font-normal text-muted">· {{ item.type === 'climb' ? 'sustained climb' : 'rough surface' }} · {{ item.detail }}</span>
+                  </p>
+                  <p class="text-sm text-toned">
+                    {{ item.note }}
+                  </p>
                 </li>
               </ul>
               <p

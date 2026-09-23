@@ -40,7 +40,7 @@ A stretch of a Ride where a TTT paceline is likely to split or slow: a sustained
 _Avoid_: danger, race plan item, hazard
 
 **TTT plan**:
-The Ride's sectors in ride order for the recommended setup, with the coverage the model could not analyse disclosed beside them. It exists under TTT drafting only; race drafting models a bunch, not a paceline, and has no plan. The briefing's TTT line and the plan itself read one result.
+The Ride's sectors in ride order for the recommended setup, with the coverage the model could not analyse disclosed beside them. It exists under TTT drafting only; race drafting models a bunch, not a paceline, and has no plan. The fact row's TTT line and the plan itself read one result.
 _Avoid_: race plan, sector list, paceline analysis
 
 **Overlay**:
@@ -84,15 +84,15 @@ Where a frame stands on Zwift's five-step upgrade ladder. Stage 0 is the frame a
 _Avoid_: level, upgrade level, tier (a frame's price class, a different axis). The API query key `defaultUnownedLevel` and the MCP `upgradeLevel` argument keep the old word on purpose - they are a published contract, not drift.
 
 **Ranking**:
-Every eligible setup for a Ride, ordered by the finish time the Applied rider gets on it, fastest first. It is one list: the Recommendation is its rank 1 shown large, and the rows beneath it continue from rank 2, so no setup appears twice. A Directed search, a filter change or a Garage change produces a new ranking rather than narrowing this one, and a ranking of a single setup is a recommendation with nothing beneath it. The comparison picks from anywhere in the ranking, rank 1 included.
+Every eligible setup for a Ride, ordered by the finish time the Applied rider gets on it, fastest first. It is one list, shown whole as a table from rank 1 down: the Recommendation above it is rank 1 shown as the page's answer, and rank 1's own row stays in the table so the fastest and the rest can be read together. A row carries what belongs to a row - the comparison pick, its disclosure and its Wheel alternatives - so those exist once, on the row. A Directed search, a filter change or a Garage change produces a new ranking rather than narrowing this one, and a ranking of a single setup is a recommendation with one row beneath it.
 _Avoid_: results list, alternatives list, the field, matches
 
 **Recommendation**:
-Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, and the paths deeper into it. It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. It carries everything a lower rank carries, the comparison pick included.
+Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, the evidence lines that say what the time rests on, and the paths deeper into it (the Equipment drawer, the Garage, the note on a quicker setup the rules exclude). It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. The controls that belong to a row - comparison, disclosure, Wheel alternatives - are on rank 1's row in the table, not repeated here.
 _Avoid_: top combo, hero card, winner, best bike
 
 **Ranking results**:
-Everything a page shows about its Applied Ranking: the Recommendation, the evidence lines that say what its time rests on, the answer the page's title asks for, the ranking beneath it, and what all of that looks like while it is refreshing or when nothing matched. It is one thing, shown the same way wherever a ride is ranked, so what a rider learns on a route page is true on a segment or a race page. What a page states on its own is not part of it - its header, its selection control, its briefing, its course analysis, and the decision of whether there is a ranking to show at all.
+Everything a page shows about its Applied Ranking: the Recommendation, the evidence lines that say what its time rests on, the answer the page's title asks for, the ranking beneath it, and what all of that looks like while it is refreshing or when nothing matched. It is one thing, shown the same way wherever a ride is ranked, so what a rider learns on a route page is true on a segment or a race page. What a page states on its own is not part of it - its header, its selection control, its fact row, its course hero, its course analysis, and the decision of whether there is a ranking to show at all.
 _Avoid_: the results column, results section, results area, recommendation block
 
 **Wheel alternatives**:
@@ -102,6 +102,22 @@ _Avoid_: drill-down, wheel options, wheel list, frame combos
 **Equipment drawer**:
 The Overlay that shows everything known about one ranked setup: its numbers on the Ride, its physics, its bot-test and route upgrade curves, and its Garage controls. It reads the Applied Ranking on screen and follows its setup through refreshes; when the setup is on no loaded row it says whether the setup lost or was never allowed to start, and keeps the numbers from the last ranking it found the setup in.
 _Avoid_: bike drawer, bike detail, slideover, modal
+
+**Rider card**:
+The Applied rider beside the Recommendation on every ranking page: the weight, height, power, draft mode, lap count and frame category the times on screen were computed for, whether they are the defaults or the rider's own, and the levers that change them. A lever writes the stored profile the moment it is released, so the card, the profile Overlay and the profile page edit one rider; there is no unsaved state to explain. While a refresh is in flight the card says so and keeps showing the Applied values until the times change. A value a link supplied is marked as the link's, with the way back to the rider's own.
+_Avoid_: rider strip, adjust effort, slider box, settings panel
+
+**Fact row**:
+The plain-text numbers a rider chooses a Ride by, set under the page's heading: distance, elevation, climb ratio, surface shares, climb count, and the Ride-only notes beneath them (a segment's timing scope and host routes, a lap count with its lead-in, the TTT line). It renders from the Ride alone, so it is there with zero matches and during a refresh, and it carries no badges: classification is text, only status is coloured.
+_Avoid_: ride briefing, stats row, header stats, badges
+
+**Course hero**:
+The Ride's elevation profile drawn large at the top of a ranking page, in the neutral ink, with its surfaces on a strip beneath, its named climbs marked as bands and its sprints marked, for the Applied lap count with the lead-in once. On a segment page it draws the segment itself; on a race page the scoring segments are starred. A Ride with no measured profile has no hero, only the fact row and a line saying its terrain is approximated. The hero is Ride-only and never waits for a Ranking.
+_Avoid_: elevation chart, profile chart, banner, header image
+
+**Silhouette**:
+The small, unlabeled drawing of a route or segment's profile that stands for it wherever it is listed: Discovery cards, related rides, race rows and share cards. Every silhouette of one Ride is the same shape, drawn from one geometry, with a floor on its vertical span so a flat route stays visibly flat rather than becoming noise.
+_Avoid_: sparkline, thumbnail, mini chart, icon
 
 **Palette**:
 The one primary and one neutral scale the whole site is drawn in, shared by both Colour modes: every badge, button, chart and share card takes its colour from a semantic name that resolves into the palette, never from a colour of its own. A palette change is therefore a change to those two scales and to the brand assets that were painted from them, and it leaves no page looking different from the share card that announces it. It is not the light/dark switch; both modes are drawn in the same palette.

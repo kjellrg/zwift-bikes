@@ -1,64 +1,48 @@
 <script setup lang="ts">
-import type { RouteSummary } from '../../shared/types/catalog'
+import type { RouteCardData } from '../utils/routeCards'
 
 /**
- * A route as the homepage lists it: who it is (name, world, how it rides,
- * whether an event is the only way onto it) and the two numbers a rider
- * picks a route by. The stat rows are the ride briefing's - same icon, same
- * muted line - so that arriving on the route page reads as the same page
- * continuing rather than a different design of the same facts.
+ * A route as the homepage lists it: its Silhouette and surface strip first,
+ * so terrain reads before any number, then its name, and at the foot its
+ * world and terrain over the numbers a rider picks a route by - distance,
+ * climbing, climb ratio - as plain text. Terrain is a word, "Event only" a
+ * small text tag: nothing on a card is a coloured badge.
+ *
+ * The name has the card's whole width and wraps; the foot is pinned to the
+ * bottom, so the cards in a grid row line their numbers up whichever name
+ * took two lines.
  */
 defineProps<{
-  route: RouteSummary
+  route: RouteCardData
 }>()
 </script>
 
 <template>
-  <ULink :to="`/routes/${route.slug}`">
-    <UCard
-      class="h-full transition hover:ring-primary/50"
-      :ui="{ body: 'space-y-3' }"
-    >
-      <div class="flex items-start justify-between gap-2">
-        <!-- `min-w-0` so a long name wraps inside its own column instead of
-             widening the card past its grid cell. -->
-        <div class="min-w-0">
-          <p class="font-semibold text-highlighted">
-            {{ route.name }}
-          </p>
-          <p class="text-sm text-muted">
-            {{ route.worldName }}
-          </p>
-        </div>
-        <div class="flex shrink-0 flex-col items-end gap-1.5">
-          <TerrainBadge :terrain="route.terrain" />
-          <UBadge
-            v-if="route.eventOnly"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-calendar-clock"
-          >
-            Event only
-          </UBadge>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted">
-        <span class="inline-flex items-center gap-2">
-          <UIcon
-            name="i-lucide-ruler"
-            class="size-4 shrink-0"
-          />{{ formatDistance(route.distance) }}
-        </span>
-        <span class="inline-flex items-center gap-2">
-          <UIcon
-            name="i-lucide-trending-up"
-            class="size-4 shrink-0"
-          />{{ formatElevation(route.elevation) }}
-        </span>
-      </div>
-
-      <SurfaceBadges :surface="route.surface" />
-    </UCard>
-  </ULink>
+  <NuxtLink
+    :to="`/routes/${route.slug}`"
+    class="flex h-full flex-col rounded-xl border border-default bg-elevated px-4 pt-3.5 pb-3.5 transition-colors hover:border-accented"
+  >
+    <RouteSilhouette
+      :shape="route.shape"
+      strip
+      class="h-14"
+    />
+    <h3 class="mt-3 font-semibold text-balance text-highlighted">
+      {{ route.name }}
+    </h3>
+    <span class="mt-auto block pt-1.5">
+      <span class="flex items-baseline justify-between gap-2 text-sm text-muted">
+        <span class="min-w-0">{{ route.worldName }} · {{ TERRAIN_LABELS[route.terrain] }}</span>
+        <span
+          v-if="route.eventOnly"
+          class="shrink-0 text-xs"
+        >Event only</span>
+      </span>
+      <span class="mt-0.5 flex flex-wrap gap-x-3 text-sm text-toned">
+        <span><span class="font-semibold text-highlighted">{{ route.distance.toFixed(1) }}</span> km</span>
+        <span><span class="font-semibold text-highlighted">{{ Math.round(route.elevation) }}</span> m</span>
+        <span>{{ route.climbRatio.toFixed(1) }} m/km</span>
+      </span>
+    </span>
+  </NuxtLink>
 </template>

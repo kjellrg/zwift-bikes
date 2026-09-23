@@ -6,25 +6,6 @@
  * HTML and the first client render agree; a live message then pops in.
  */
 const { activeMotd, dismissMotd } = useSiteFlags()
-
-/** `tone` is deliberately a subset of UAlert's color names. */
-const TONE_ICONS = {
-  info: 'i-lucide-megaphone',
-  warning: 'i-lucide-triangle-alert',
-  error: 'i-lucide-octagon-alert'
-} as const
-
-/** The optional destination, as the alert's single action button. */
-const actions = computed(() => {
-  if (!activeMotd.value?.href) return undefined
-  return [{
-    label: activeMotd.value.linkText ?? 'Read more',
-    to: activeMotd.value.href,
-    color: 'neutral' as const,
-    variant: 'outline' as const,
-    size: 'xs' as const
-  }]
-})
 </script>
 
 <template>
@@ -32,14 +13,31 @@ const actions = computed(() => {
     v-if="activeMotd"
     class="pt-4"
   >
-    <UAlert
-      :color="activeMotd.tone"
-      variant="subtle"
-      :icon="TONE_ICONS[activeMotd.tone]"
-      :description="activeMotd.message"
-      :actions="actions"
-      :close="activeMotd.dismissible"
-      @update:open="dismissMotd"
-    />
+    <SiteNotice :tone="activeMotd.tone">
+      <p>{{ activeMotd.message }}</p>
+      <template
+        v-if="activeMotd.href || activeMotd.dismissible"
+        #actions
+      >
+        <UButton
+          v-if="activeMotd.href"
+          :to="activeMotd.href"
+          color="neutral"
+          variant="outline"
+          size="xs"
+        >
+          {{ activeMotd.linkText ?? 'Read more' }}
+        </UButton>
+        <UButton
+          v-if="activeMotd.dismissible"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          icon="i-lucide-x"
+          aria-label="Close"
+          @click="dismissMotd"
+        />
+      </template>
+    </SiteNotice>
   </UContainer>
 </template>

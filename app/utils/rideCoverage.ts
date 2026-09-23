@@ -1,20 +1,4 @@
-import type { SurfaceComposition, SurfaceEstimate } from '../../shared/types/catalog'
-import { SURFACE_TYPE_LABELS } from './labels'
-
-/**
- * The surfaces a lap is made of, by name and largest share first - the
- * briefing's compact form of the composition. The percentages themselves
- * stay in the surface-details panel: at a glance "Tarmac / Cobbles / Wood"
- * says what the ride feels like, and "95.3% / 2.6% / 2.1%" does not.
- */
-export function surfaceNamesLine(composition: SurfaceComposition | undefined): string | undefined {
-  if (!composition) return undefined
-  const names = (Object.entries(composition) as [keyof SurfaceComposition, number | undefined][])
-    .filter((entry): entry is [keyof SurfaceComposition, number] => (entry[1] ?? 0) > 0)
-    .sort((first, second) => second[1] - first[1])
-    .map(([surface]) => SURFACE_TYPE_LABELS[surface])
-  return names.length ? names.join(' / ') : undefined
-}
+import type { SurfaceEstimate } from '../../shared/types/catalog'
 
 /**
  * How much the model actually knows about where the surfaces are - the

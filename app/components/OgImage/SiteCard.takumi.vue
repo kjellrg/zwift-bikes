@@ -1,31 +1,37 @@
 <script setup lang="ts">
+import { OG_COLORS, OG_MARK_IMAGE } from '../../utils/ogProfile'
+
 // Brand social-share card for the home and about pages (issue #59): same
-// build-time Takumi constraints as RouteCard - flexbox-only CSS, Inter
-// 400/700. No props: one card, one message, everywhere the site itself
+// build-time Takumi constraints as RouteCard - flexbox-only CSS, Archivo,
+// the Palette's values from `OG_COLORS`. No props: one card, one message, everywhere the site itself
 // (rather than a specific route or race) is what's being shared.
 </script>
 
 <template>
   <div
     class="flex h-full w-full flex-col justify-between"
-    style="background: linear-gradient(160deg, #0D1C19 0%, #071412 100%); padding: 56px 64px;"
+    :style="{ background: OG_COLORS.ground, padding: '56px 64px', fontFamily: 'Archivo' }"
   >
     <div
       class="flex items-center"
-      style="gap: 16px;"
+      style="gap: 14px;"
     >
-      <div style="width: 14px; height: 34px; background: #FF6AA8; border-radius: 4px;" />
-      <span style="font-size: 34px; font-weight: 700; color: #ffffff;">ZwiftBikes</span>
+      <img
+        :src="OG_MARK_IMAGE"
+        alt=""
+        style="width: 45px; height: 30px;"
+      >
+      <span :style="{ fontSize: '32px', fontWeight: 700, color: OG_COLORS.ink }">ZwiftBikes</span>
     </div>
 
     <div
       class="flex flex-col"
       style="gap: 18px;"
     >
-      <span style="font-size: 64px; font-weight: 700; color: #ffffff; line-height: 1.1;">Find the fastest bike for any Zwift route</span>
-      <span style="font-size: 30px; color: #8FA79F; line-height: 1.4;">Every frame and wheel combo in the game, ranked by predicted finish time for your weight, height and power.</span>
+      <span :style="{ fontSize: '84px', fontWeight: 700, color: OG_COLORS.ink, lineHeight: 1, fontStretch: '78%' }">The fastest bike for any Zwift route</span>
+      <span :style="{ fontSize: '30px', color: OG_COLORS.toned, lineHeight: 1.35 }">Every frame and wheelset in the game, ridden over the route's real elevation and surfaces at your weight and power, and ranked by finish time.</span>
     </div>
 
-    <span style="font-size: 26px; font-weight: 700; color: #FF6AA8;">zwiftbikes.com</span>
+    <span :style="{ fontSize: '26px', fontWeight: 600, color: OG_COLORS.primary }">zwiftbikes.com</span>
   </div>
 </template>

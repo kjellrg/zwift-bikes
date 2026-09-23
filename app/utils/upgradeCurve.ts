@@ -29,3 +29,36 @@ export function upgradeCurveKey(
 ): string {
   return `${comboKey(combo)}@${requestKey ?? ''}`
 }
+
+/**
+ * How an upgrade curve is drawn, kept in one place for the two charts that
+ * draw one: the drawer's sparklines (`UpgradeSparkline`) and the Ranking
+ * row's flat-and-climb chart (`UpgradeCurveChart`). Both plot gains over
+ * stage 0 - "what does upgrading do", not "how does this bike compare" - on
+ * a range that never starts above 0 or spans less than one unit, so a flat
+ * curve reads as flat instead of as noise stretched to the top.
+ */
+export function upgradeGains(values: readonly number[]): number[] {
+  return values.map(value => value - (values[0] ?? 0))
+}
+
+export interface UpgradeGainRange {
+  min: number
+  max: number
+}
+
+/** The vertical range for one or more gain series drawn on one scale. */
+export function upgradeGainRange(...series: readonly (readonly number[])[]): UpgradeGainRange {
+  const all = series.flat()
+  return { min: Math.min(0, ...all), max: Math.max(1, ...all) }
+}
+
+/** A stage's x in a chart `width` wide, padded `pad` at each side, for `stages` evenly spaced stages. */
+export function upgradeStageX(stage: number, stages: number, width: number, pad: number): number {
+  return pad + stage * ((width - pad * 2) / Math.max(1, stages - 1))
+}
+
+/** A gain's y in a chart `height` tall, padded `pad` top and bottom - SVG coordinates, so up is smaller. */
+export function upgradeGainY(gain: number, range: UpgradeGainRange, height: number, pad: number): number {
+  return height - pad - ((gain - range.min) / (range.max - range.min)) * (height - pad * 2)
+}

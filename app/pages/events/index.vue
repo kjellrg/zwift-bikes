@@ -87,7 +87,7 @@ const pastSeasonCount = computed(() => pastSeriesGroups.value.reduce((total, gro
 const siteConfig = useSiteConfig()
 
 useSeoMeta({
-  title: 'Zwift Race Calendars - Best Bike per Race - ZwiftBikes',
+  title: 'The fastest bike for every Zwift race | ZwiftBikes',
   description: 'Race dates, routes and the fastest bike and wheel combo for every round of Zwift Racing League and every ZRacing stage.',
   ogTitle: 'Zwift race calendars',
   ogDescription: 'Race dates, routes and the fastest bike and wheel combo for every round of Zwift Racing League and every ZRacing stage.'
@@ -117,54 +117,55 @@ useHead({
   />
   <UContainer
     v-else
-    class="py-10 space-y-10"
+    class="pb-8"
   >
-    <div>
-      <UButton
-        to="/"
-        variant="link"
-        color="neutral"
-        icon="i-lucide-arrow-left"
-        class="mb-4 px-0"
-      >
-        Back to all routes
-      </UButton>
-      <h1 class="text-3xl font-bold text-highlighted">
-        Zwift race calendars
+    <div class="pt-8 sm:pt-12">
+      <nav aria-label="Breadcrumb">
+        <ol class="flex flex-wrap gap-x-3.5 text-sm text-muted">
+          <li>
+            <NuxtLink
+              to="/"
+              class="hover:text-highlighted"
+            >
+              All routes
+            </NuxtLink>
+          </li>
+          <li>Events</li>
+        </ol>
+      </nav>
+      <h1 class="mt-3 text-balance text-[clamp(2.25rem,6vw,3.75rem)] leading-none font-bold font-display tracking-[-0.01em] text-highlighted">
+        The fastest bike for every Zwift race
       </h1>
-      <p class="text-muted mt-2 max-w-2xl">
-        Every race day, the route it's run on, and the bike and wheel combo our physics model makes
-        fastest for it - with the lap count and equipment rules the organisers actually set.
+      <p class="mt-4 max-w-2xl text-lg text-toned">
+        Every race day, the route it's run on, and the bike and wheel combo our physics model makes fastest for it - with the lap count and equipment rules the organisers actually set.
       </p>
     </div>
 
-    <!-- The same teaser the homepage carries, and for the same reason: the
-         one race a rider is most likely here for is the next one, and it is
-         otherwise several rounds down a season page. It resolves and hides
+    <!-- The one race a rider is most likely here for is the next one, and it
+         is otherwise several rounds down a season page. It resolves and hides
          itself (teasers off, section gated, calendars run dry). -->
-    <NextRaceCard />
+    <NextRaceCard class="mt-8" />
 
     <!-- Reachable by hiding every season - rare, but an empty page with a
          heading and nothing under it reads as broken rather than deliberate. -->
     <p
       v-if="!seasons.length"
-      class="text-muted"
+      class="mt-10 text-muted"
     >
       No race calendars are being tracked at the moment. Check back when the next season is announced.
     </p>
 
-    <div
+    <section
       v-for="series in activeSeriesGroups"
       :key="series.seriesSlug"
-      class="space-y-4"
+      class="mt-12"
     >
       <SeriesHeading
         :series-name="series.seriesName"
         :organizer="series.organizer"
         :organizer-url="series.organizerUrl"
       />
-
-      <div class="grid grid-cols-1 gap-4">
+      <div class="mt-4 space-y-4">
         <SeasonCard
           v-for="season in series.seasons.filter(s => !isPastSeason(s))"
           :key="season.slug"
@@ -172,29 +173,31 @@ useHead({
           :today="today"
         />
       </div>
-    </div>
+    </section>
 
-    <UCollapsible v-if="pastSeasonCount">
+    <UCollapsible
+      v-if="pastSeasonCount"
+      class="mt-12"
+    >
       <UButton
         color="neutral"
-        variant="subtle"
+        variant="outline"
         trailing-icon="i-lucide-chevron-down"
       >
         Past seasons ({{ pastSeasonCount }})
       </UButton>
       <template #content>
-        <div class="mt-4 space-y-8">
-          <div
+        <div class="mt-6 space-y-10">
+          <section
             v-for="series in pastSeriesGroups"
             :key="series.seriesSlug"
-            class="space-y-4"
           >
             <SeriesHeading
               :series-name="series.seriesName"
               :organizer="series.organizer"
               :organizer-url="series.organizerUrl"
             />
-            <div class="grid grid-cols-1 gap-4">
+            <div class="mt-4 space-y-4">
               <SeasonCard
                 v-for="season in series.seasons"
                 :key="season.slug"
@@ -202,11 +205,11 @@ useHead({
                 :today="today"
               />
             </div>
-          </div>
+          </section>
         </div>
       </template>
     </UCollapsible>
 
-    <EventsDisclaimer />
+    <EventsDisclaimer class="mt-12" />
   </UContainer>
 </template>

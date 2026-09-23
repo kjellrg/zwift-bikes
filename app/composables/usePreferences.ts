@@ -83,6 +83,15 @@ export function usePreferences() {
    * defaults never meet.
    */
   const includeHaloBikes = useState<boolean>('pref-include-halo-bikes', () => false)
+  /**
+   * Whether the Ranking table shows every column - the drag-area and mass
+   * deltas, the wheel type and the data source - in a horizontally scrolling
+   * container, rather than the default few. Off by default, and optional in
+   * the stored record: a record written before it existed parses exactly as
+   * it did (absent means off), and one written with it is ignored field by
+   * field by a site that predates it.
+   */
+  const allColumns = useState<boolean>('pref-all-columns', () => false)
 
   function persist() {
     if (!import.meta.client) return
@@ -91,7 +100,8 @@ export function usePreferences() {
       myBikesOnly: myBikesOnly.value,
       bikeCategory: storedBikeCategory.value,
       showUpcomingRaces: showUpcomingRaces.value,
-      includeHaloBikes: includeHaloBikes.value
+      includeHaloBikes: includeHaloBikes.value,
+      allColumns: allColumns.value
     }))
   }
 
@@ -113,6 +123,7 @@ export function usePreferences() {
       }
       if (typeof parsed.showUpcomingRaces === 'boolean') showUpcomingRaces.value = parsed.showUpcomingRaces
       if (typeof parsed.includeHaloBikes === 'boolean') includeHaloBikes.value = parsed.includeHaloBikes
+      if (typeof parsed.allColumns === 'boolean') allColumns.value = parsed.allColumns
     } catch {
       // ignore corrupted storage
     }
@@ -160,5 +171,10 @@ export function usePreferences() {
     persist()
   }
 
-  return { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, savedBikeCategory, showUpcomingRaces, includeHaloBikes, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setShowUpcomingRaces, setIncludeHaloBikes }
+  function setAllColumns(value: boolean) {
+    allColumns.value = value
+    persist()
+  }
+
+  return { verifiedOnly, myBikesOnly, bikeCategory, categoryFromLink, savedBikeCategory, showUpcomingRaces, includeHaloBikes, allColumns, load, setVerifiedOnly, setMyBikesOnly, setBikeCategory, restoreBikeCategory, setShowUpcomingRaces, setIncludeHaloBikes, setAllColumns }
 }

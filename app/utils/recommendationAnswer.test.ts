@@ -20,7 +20,7 @@ const base: RecommendationAnswerInputs = {
 describe('buildRecommendationAnswer', () => {
   it('names the equipment, the ride, the time and the speed in the summary', () => {
     const answer = buildRecommendationAnswer(base)
-    expect(answer.summary).toBe('Our model puts Specialized Tarmac SL9 with Shimano C99/Disc fastest within the current filters for Watopia Hilly Route in Watopia: 17:42 (~32.9 km/h).')
+    expect(answer.summary).toBe('Our model puts Specialized Tarmac SL9 with Shimano C99/Disc fastest within the current filters for Watopia Hilly Route in Watopia, the best bike for it at 17:42 (~32.9 km/h).')
   })
 
   it('spells out every assumption the time depends on', () => {
@@ -31,7 +31,7 @@ describe('buildRecommendationAnswer', () => {
 
   it('omits the speed when the ride has no distance to divide by', () => {
     const answer = buildRecommendationAnswer({ ...base, distanceKm: undefined })
-    expect(answer.summary).toMatch(/: 17:42\.$/)
+    expect(answer.summary).toMatch(/ at 17:42\.$/)
   })
 
   it('describes a fixed-wheel frame by its frame alone', () => {

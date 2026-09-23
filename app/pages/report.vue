@@ -16,17 +16,17 @@ useSeoMeta({
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-8">
+  <UContainer class="max-w-3xl py-10 space-y-8">
     <div>
-      <h1 class="text-3xl font-bold text-highlighted">
+      <h1 class="text-3xl font-bold font-display text-highlighted">
         Report an issue
       </h1>
-      <p class="text-muted mt-1">
+      <p class="mt-2 text-toned">
         Something broken, or a number that doesn't look right? Tell us about it.
       </p>
     </div>
 
-    <div class="max-w-2xl">
+    <div>
       <ReportContent />
     </div>
   </UContainer>

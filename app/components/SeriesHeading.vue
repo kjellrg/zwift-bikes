@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A racing series on the events hub: its name, and the organiser behind it
- * as a badge linking to their own page. We complement the original sources
+ * as a quiet text link to their own page. We complement the original sources
  * rather than replacing them, so the way back to the organiser - signup,
  * rules, results - travels with the heading wherever seasons are listed.
  *
@@ -21,26 +21,20 @@ defineProps<{
 <template>
   <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
     <!-- Always an `h2`, in the disclosure as well as in the current list: a
-         season card's title is the `h3` under it either way, and a series
-         that reads as a subsection in one place and a section in the other
-         is a heading order that only makes sense to whoever wrote it. -->
-    <h2 class="text-2xl font-semibold text-highlighted">
+         season card's title is the `h3` under it either way. -->
+    <h2 class="text-2xl font-semibold font-heading text-highlighted">
       {{ seriesName }}
     </h2>
-    <UBadge
-      color="neutral"
-      variant="subtle"
-    >
-      <ULink
+    <span class="text-sm text-muted">
+      by
+      <a
         v-if="organizerUrl"
-        :to="organizerUrl"
+        :href="organizerUrl"
         target="_blank"
         rel="noopener"
-        class="hover:text-primary"
-      >{{ organizer }}</ULink>
-      <template v-else>
-        {{ organizer }}
-      </template>
-    </UBadge>
+        class="underline decoration-rule-strong hover:text-highlighted"
+      >{{ organizer }}</a>
+      <template v-else>{{ organizer }}</template>
+    </span>
   </div>
 </template>
