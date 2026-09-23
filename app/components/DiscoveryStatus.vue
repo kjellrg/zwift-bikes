@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DiscoveryCount } from '../utils/discoveryCounts'
+
 /**
  * What a discovery page (see `CONTEXT.md`) says about its own list: how many
  * Rides matched, that they are still being fetched, that none matched, or
@@ -20,12 +22,6 @@
  * matched nothing. See `showsStatus` in `pages/events/[season]/index.vue`.
  */
 
-/** One counted noun of the count line, e.g. `{ value: 12, noun: 'climb' }` -> "12 climbs". Every noun these pages count takes a plain `-s`. */
-export interface DiscoveryCount {
-  value: number
-  noun: string
-}
-
 const props = defineProps<{
   /**
    * What the page lists, as the word reads mid-sentence: "Finding routes…",
@@ -44,8 +40,8 @@ const props = defineProps<{
   /**
    * Whether the page prints the count line itself, beside its filters - the
    * homepage and the segments page keep the count on the filter row, so the
-   * number sits with the controls that produced it. The line's words are
-   * this component's either way: see `discoveryCountLine`.
+   * number sits with the controls that produced it. The words are the same
+   * either way: both come from `discoveryCountLine`.
    */
   countElsewhere?: boolean
 }>()
@@ -56,9 +52,7 @@ const isLoading = computed(() => props.status === 'pending')
 const failed = computed(() => props.status === 'error')
 const isEmpty = computed(() => props.counts.every(count => count.value === 0))
 
-const countLine = computed(() =>
-  `${props.counts.map(({ value, noun }) => `${value} ${noun}${value === 1 ? '' : 's'}`).join(' and ')} found`
-)
+const countLine = computed(() => discoveryCountLine(props.counts))
 </script>
 
 <template>

@@ -78,7 +78,7 @@ watch([searchDebounced, worldFilter, typeFilter], () => {
   })
 })
 
-const countLine = computed(() => `${shownCounts.value.map(({ value, noun }) => `${value} ${noun}${value === 1 ? '' : 's'}`).join(' and ')} found`)
+const countLine = computed(() => discoveryCountLine(shownCounts.value))
 
 const climbCount = computed(() => segments.value.filter(s => s.type === 'climb').length)
 const sprintCount = computed(() => segments.value.filter(s => s.type === 'sprint').length)

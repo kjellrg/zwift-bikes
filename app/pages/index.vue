@@ -131,10 +131,10 @@ function toggleTerrain(value: TerrainCategory) {
 const items = computed<RouteCardData[]>(() => (served.value?.routes ?? [])
   .filter(route => !terrainFilter.value.length || terrainFilter.value.includes(route.terrain)))
 const visibleItems = computed(() => items.value.slice(0, visibleCount.value))
-// Routes are the only thing counted here, so the line reads "24 results
+// Routes are the only thing counted here, so the line reads "24 routes
 // found" - the segments page counts climbs and sprints separately.
 const resultCounts = computed(() => [{ value: items.value.length, noun: 'route' }])
-const countLine = computed(() => `${items.value.length} route${items.value.length === 1 ? '' : 's'} found`)
+const countLine = computed(() => discoveryCountLine(resultCounts.value))
 
 // Whose rider the times on the site are for, under the search - the default
 // is never silent. Read after mount like everything stored.
