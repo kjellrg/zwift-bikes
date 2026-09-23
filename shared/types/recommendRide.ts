@@ -35,7 +35,7 @@ export interface RidePhysics {
      * Times one combo on this ride. Present exactly when `prepare` was given a
      * rider, i.e. when this request simulates at all.
      */
-  time?: (options: SimulateComboOptions) => ComboTiming
+  timeCombo?: (options: SimulateComboOptions) => ComboTiming
 }
 
 /** The ride being ranked: a whole route, or one segment. */

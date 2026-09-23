@@ -166,6 +166,6 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
     </div>
     <!-- The notes that go deeper into the answer: a quicker setup the rules
          exclude, and the Climb trade. -->
-    <slot name="notes" />
+    <slot name="answer-notes" />
   </section>
 </template>

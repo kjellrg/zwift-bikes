@@ -97,7 +97,9 @@ describe('whyThisWins: the Wheel close call', () => {
       { draftMode: 'race' as const, category: 'rolling' as const },
       { draftMode: 'solo' as const },
       { draftMode: 'ttt' as const },
-      { draftMode: 'race' as const, wheelChoice: { ...regularFaster, gapSec: 3 } }
+      { draftMode: 'race' as const, wheelChoice: { ...regularFaster, gapSec: 3 } },
+      // A disc that is somehow the lighter of the two has no extra weight to excuse.
+      { draftMode: 'race' as const, wheelChoice: { ...discFaster, massDeltaKg: -0.12 } }
     ]) {
       expect(why(overrides)).toMatch(/(heavier|lighter)\.$/)
     }

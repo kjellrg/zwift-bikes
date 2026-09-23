@@ -1,7 +1,6 @@
 import type { InternalApi } from 'nitropack/types'
 import type { ComboScore } from '../../shared/types/catalog'
-import type { ClimbTrade } from '../utils/climbTrade'
-import type { WheelChoice } from '../utils/rideWhy'
+import type { ClimbTrade, WheelChoice } from '../../shared/types/rideNotes'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import {
   buildRecommendQuery,
@@ -37,9 +36,9 @@ export interface RecommendResponse {
     /** Absent when the filters left no rank 1 to measure the gap against - see `FastestOverall`. */
     deltaSec?: number
   }
-  /** The numbers behind the Wheel close call - see `WheelChoice` in `server/utils/recommendPipeline.ts`. */
+  /** The numbers behind the Wheel close call - see `WheelChoice` in `shared/types/rideNotes.ts`. */
   wheelChoice?: WheelChoice
-  /** The Climb trade - see `ClimbTrade` in `server/utils/climbTrade.ts`. Route and race pages only. */
+  /** The Climb trade - see `ClimbTrade` in `shared/types/rideNotes.ts`. Route and race pages only. */
   climbTrade?: ClimbTrade
   /**
    * Mirrored, deliberately, by `RankingPhysics` in `app/utils/rankingResults.ts`,

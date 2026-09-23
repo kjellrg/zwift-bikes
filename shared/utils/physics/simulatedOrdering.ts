@@ -74,9 +74,9 @@ export const FASTEST_OVERALL_ORDER_MARGIN = 15
  * click, rather than at build time: 6 rows plus this margin is ~21 route
  * integrations, against the 54 a first page already costs.
  *
- * "Very nearly" is not "exactly". Until #261 the drill-down capped its pool
- * to the page BEFORE ordering it, so this margin never took effect and six
- * wheels were all it ever simulated - and on Duchy Estate, ridden solo, that
+ * "Very nearly" is not "exactly". Until #261 the Wheel alternatives request
+ * capped its pool to the page BEFORE ordering it, so this margin never took
+ * effect and six wheels were all it ever simulated - and on Duchy Estate, ridden solo, that
  * left both of the frame's two fastest discs (true 3rd and 4th) off the list.
  */
 export const WHEEL_OPTIONS_ORDER_MARGIN = 15
@@ -216,6 +216,16 @@ export function confirmWheelPicks<T extends OrderableCombo>(options: {
 }
 
 /**
+ * What the simulator actually sees of a combo. Physically identical combos -
+ * cosmetic re-skins, colourways, and any frame whose wheels are fixed -
+ * share one, so one timing answers for all of them.
+ */
+export function comboPhysicsKey(combo: OrderableCombo): string {
+  const { cdaM2, bikeMassKg, crrDelta } = equipmentPhysics(combo.frame, combo.wheelset)
+  return `${cdaM2}|${bikeMassKg}|${crrDelta ?? 0}|${combo.wheelset?.crrClass ?? 'road'}`
+}
+
+/**
  * Re-orders the head of `combos` by real simulated finish time, returning the
  * new ordering along with every time it computed so callers don't simulate
  * the same combo twice.
@@ -248,8 +258,7 @@ export function orderBySimulatedTime<T extends OrderableCombo>(
 
   const head = combos.slice(0, Math.max(0, windowSize))
   for (const combo of head) {
-    const { cdaM2, bikeMassKg, crrDelta } = equipmentPhysics(combo.frame, combo.wheelset)
-    const physicsKey = `${cdaM2}|${bikeMassKg}|${crrDelta ?? 0}|${combo.wheelset?.crrClass ?? 'road'}`
+    const physicsKey = comboPhysicsKey(combo)
     let seconds = byPhysics.get(physicsKey)
     if (seconds === undefined) {
       seconds = simulateSeconds(combo)

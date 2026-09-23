@@ -1,20 +1,5 @@
+import type { ClimbTrade } from '../../shared/types/rideNotes'
 import { formatGapSeconds } from './labels'
-
-/**
- * The recommend endpoint's `climbTrade`, as the pages read it. Mirrors
- * `ClimbTrade` in `server/utils/climbTrade.ts`; `RecommendResponse` holds
- * the two together.
- */
-export interface ClimbTrade {
-  frameName: string
-  wheelsetName?: string
-  sameFrame: boolean
-  climbName: string
-  passes: number
-  lapNumber?: number
-  gainSec: number
-  costSec: number
-}
 
 /**
  * A climb's name mid-sentence. Most are things - "the Innsbruck KOM", "the

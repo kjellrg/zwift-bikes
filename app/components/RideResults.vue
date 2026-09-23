@@ -109,7 +109,7 @@ const evidence = computed(() => rankingEvidence({
             :limited-data-note="evidence.limitedDataNote"
             :notes="evidence.notes"
           >
-            <template #notes>
+            <template #answer-notes>
               <!-- `pointer-events-auto`: the reveal is a filter change, not a
                    stale result, and stays usable through a refresh. -->
               <FastestOverallNote

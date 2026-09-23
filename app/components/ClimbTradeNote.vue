@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ClimbTrade } from '../utils/climbTrade'
+import type { ClimbTrade } from '../../shared/types/rideNotes'
 import { climbTradeNote } from '../utils/climbTrade'
 
 /**

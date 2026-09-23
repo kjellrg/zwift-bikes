@@ -6,9 +6,9 @@ import { getWheelsets } from '../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../shared/utils/finishTime'
-import { confirmWheelPicks, draftOf, equipmentPhysics, fastestWheelOfEachKind, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, resolveDraft, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, WHEEL_OPTIONS_ORDER_MARGIN, wheelKind } from '../../shared/utils/physics'
-import type { RideDraft, WheelKind } from '../../shared/utils/physics'
-import type { ClimbTrade } from './climbTrade'
+import { comboPhysicsKey, confirmWheelPicks, draftOf, equipmentPhysics, fastestWheelOfEachKind, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, resolveDraft, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, WHEEL_OPTIONS_ORDER_MARGIN, wheelKind } from '../../shared/utils/physics'
+import type { RideDraft } from '../../shared/utils/physics'
+import type { ClimbTrade, WheelChoice } from '../../shared/types/rideNotes'
 import { CLIMB_TRADE_GARAGE_SIMS, pickClimbTrade } from './climbTrade'
 import type { RecommendBaseQuery } from './apiQuerySchemas'
 import { addTimingMeta, markPhase } from './timing'
@@ -67,22 +67,6 @@ export interface RaceDisclosure {
   raceSavedSec?: number
 }
 
-/**
- * The numbers behind the Wheel close call (see `CONTEXT.md`): rank 1's own
- * wheels against the fastest wheels of the other kind - disc against
- * regular - on rank 1's frame. Whether the two are close enough to say so is
- * the sentence's call (`app/utils/rideWhy.ts`); this is only what it says it
- * with.
- */
-export interface WheelChoice {
-  own: { wheelsetName: string, kind: WheelKind }
-  other: { wheelsetName: string, kind: WheelKind }
-  /** How much later the other wheels finish, s. Never negative: when they are quicker there is no choice to describe, and this is left out. */
-  gapSec: number
-  /** How much heavier rank 1's own wheels make the bike, kg; negative when they are lighter. */
-  massDeltaKg: number
-}
-
 export interface RecommendPipelineResult {
   /** The page, fully timed, sorted and annotated. */
   combos: ComboScore[]
@@ -120,7 +104,7 @@ export async function runRecommendPipeline(
   // below, not with the page size, which is exactly the thing that is easy to
   // change without noticing. Note a ride is free to spend more than one
   // integration per combo - the segment endpoint spends two - which is why
-  // the counter wraps the simulator rather than counting `time` calls.
+  // the counter wraps the simulator rather than counting `timeCombo` calls.
   let simCount = 0
   const countedSimulate: typeof simulateRoute = (options) => {
     simCount++
@@ -245,7 +229,7 @@ export async function runRecommendPipeline(
   // The ride builds its own geometry, and hands back the one function that
   // knows how to time a combo on it - one integration for a route, a warmed
   // start after its warm-up for a segment.
-  const { time } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
+  const { timeCombo } = ride.prepare(countedSimulate, hasRiderProfile && physicsMode !== 'legacy' ? rider : undefined)
   // Everything timed on this ride is timed under one draft, resolved ONCE on
   // the ride's own geometry and shared by every combo - a per-combo draft
   // would poison `orderBySimulatedTime`'s physics-keyed dedupe cache (see
@@ -254,29 +238,31 @@ export async function runRecommendPipeline(
   // the simulator, and `prepare` gets no rider in legacy mode, which is why
   // the draft is the pipeline's to resolve rather than the ride's.
   const draft = hasRiderProfile ? resolveDraft(setting, ride.planGeometry(), rider) : undefined
-  // `time` exists only when `prepare` was given the rider, so a draft always
-  // accompanies it. Folding the two lets every timing below say only which
+  // `timeCombo` exists only when `prepare` was given the rider, so a draft
+  // always accompanies it. Folding the two lets every timing below say only which
   // draft it rides under - the request's, or that draft's own `solo`.
   //
   // Every timing under the request's own draft keeps its Climb times, by
-  // combo, so the Climb trade below reads them out of the very simulations
-  // that timed the rows rather than timing anything again.
-  const timings = new Map<Pick<SimulateComboOptions, 'frame' | 'wheelset'>, ComboTiming>()
-  const timeSec = time && draft
+  // physics key - the same key `orderBySimulatedTime` dedupes by, so a
+  // physics twin it never simulated still finds them - and the Climb trade
+  // below reads them out of the very simulations that timed the rows rather
+  // than timing anything again.
+  const timings = new Map<string, ComboTiming>()
+  const timeSec = timeCombo && draft
     ? (combo: Pick<SimulateComboOptions, 'frame' | 'wheelset'>, under: RideDraft = draft) => {
-        const timing = time({ frame: combo.frame, wheelset: combo.wheelset, draft: under })
-        if (under === draft) timings.set(combo, timing)
+        const timing = timeCombo({ frame: combo.frame, wheelset: combo.wheelset, draft: under })
+        if (under === draft) timings.set(comboPhysicsKey(combo), timing)
         return timing.finishSec
       }
     : undefined
+  const isTimed = (combo: Pick<SimulateComboOptions, 'frame' | 'wheelset'>) => timings.has(comboPhysicsKey(combo))
   // A combo's timing under the request's draft, timed now only if nothing
-  // timed it yet - a physics twin whose time `orderBySimulatedTime` copied
-  // has a finish time but no Climb times of its own.
+  // with its physics was timed yet.
   const timingOf = (combo: Pick<SimulateComboOptions, 'frame' | 'wheelset'>): ComboTiming => {
-    const known = timings.get(combo)
+    const known = timings.get(comboPhysicsKey(combo))
     if (known) return known
     timeSec!(combo)
-    return timings.get(combo)!
+    return timings.get(comboPhysicsKey(combo))!
   }
   await markPhase(event, 'geometry')
 
@@ -293,15 +279,16 @@ export async function runRecommendPipeline(
   // searching, in favor of showing every real match, ordered frame-name
   // matches first (see `searchCombos`).
   const rankValue = (combo: ComboScore): number => (hasRiderProfile ? combo.finishTimeSec! : combo.score)
-  // How deep the simulator re-orders the pool below. A drill-down's pool is
-  // one frame against every wheel that fits it, so it reaches the simulator
-  // very nearly in order - see the two margins.
+  // How deep the simulator re-orders the pool below. The pool behind a
+  // frame's Wheel alternatives is one frame against every wheel that fits
+  // it, so it reaches the simulator very nearly in order - see the two
+  // margins.
   const simulatedWindow = offset + limit + (wheelsForFrame === undefined ? SIMULATED_ORDER_MARGIN : WHEEL_OPTIONS_ORDER_MARGIN)
   let filteredRankedCombos = search
     ? searchCombos(orderedCombos, search)
-    // For a drill-down the per-frame cap becomes the simulated window - never
-    // the page, which would leave the window nothing past the page to find
-    // (#261). It is still `capWheelsetsPerFrame` that runs, because
+    // For Wheel alternatives the per-frame cap becomes the simulated window -
+    // never the page, which would leave the window nothing past the page to
+    // find (#261). It is still `capWheelsetsPerFrame` that runs, because
     // collapsing wheelsets that produce an identical time - colourways of one
     // physical wheel - is exactly as right in the wheel list as it is in the
     // ranking.
@@ -503,14 +490,16 @@ export async function runRecommendPipeline(
       alreadySimulated: simulatedSec
     }).get(ownKind === 'disc' ? 'regular' : 'disc')
     if (other?.combo.wheelset) {
-      otherKindOnRank1 = other.combo
       const gapSec = other.seconds - rank1!.finishTimeSec!
+      const massDeltaKg = equipmentPhysics(rank1!.frame, own).bikeMassKg - equipmentPhysics(rank1!.frame, other.combo.wheelset).bikeMassKg
+      // Only the lighter kind can be what gets rank 1's own frame over a climb sooner.
+      if (massDeltaKg > 0) otherKindOnRank1 = other.combo
       if (gapSec >= 0) {
         wheelChoice = {
           own: { wheelsetName: own.name, kind: ownKind },
           other: { wheelsetName: other.combo.wheelset.name, kind: wheelKind(other.combo.wheelset) },
           gapSec,
-          massDeltaKg: equipmentPhysics(rank1!.frame, own).bikeMassKg - equipmentPhysics(rank1!.frame, other.combo.wheelset).bikeMassKg
+          massDeltaKg
         }
       }
     }
@@ -521,7 +510,7 @@ export async function runRecommendPipeline(
   // measured against rank 1. The candidates are the rider's Garage frames
   // when it holds any - the dilemma is real between bikes a rider owns - and
   // otherwise the first page's rows, plus, either way, rank 1's own frame on
-  // the other kind of wheel. A Garage frame the ranking never simulated is
+  // the other kind of wheel when that kind is the lighter one. A Garage frame the ranking never simulated is
   // timed once, for at most `CLIMB_TRADE_GARAGE_SIMS` of them.
   let climbTrade: ClimbTrade | undefined
   if (answersRank1 && setting.mode === 'race' && ride.climbs.length > 0) {
@@ -534,7 +523,7 @@ export async function runRecommendPipeline(
       for (const combo of [...pageCombos, ...filteredRankedCombos]) {
         if (!garageFrameIds.has(combo.frame.id) || seenFrames.has(combo.frame.id)) continue
         seenFrames.add(combo.frame.id)
-        if (!timings.has(combo)) {
+        if (!isTimed(combo)) {
           if (extraSims >= CLIMB_TRADE_GARAGE_SIMS) continue
           extraSims++
         }
@@ -590,7 +579,7 @@ export async function runRecommendPipeline(
       // gets the pool roughly ordered, but the number displayed next to the
       // page's own simulated times has to come from the simulator too, or the
       // gap would be comparing two different models. It goes through the same
-      // `time` the ranked results use, so the two times are directly
+      // `timeCombo` the ranked results use, so the two times are directly
       // comparable.
       if (timeSec && physicsMode === 'dynamic') {
         const ordering = orderBySimulatedTime(

@@ -2,7 +2,8 @@
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { comboPhysicsDelta, formatSignedDelta, isDynamicPhysics } from '../utils/rankingResults'
-import { aeroShare, whyThisWins, type WheelChoice } from '../utils/rideWhy'
+import type { WheelChoice } from '../../shared/types/rideNotes'
+import { aeroShare, whyThisWins } from '../utils/rideWhy'
 
 /**
  * "Why this bike wins here": the reason behind the Recommendation's number,

@@ -40,7 +40,7 @@ describe('rideForRoute', () => {
       return simulateRoute(options)
     }
     const draft = resolveDraft({ mode: 'race' }, ride.planGeometry(), rider)
-    const timing = ride.prepare(recordingSimulate, rider).time!({ ...carbon(), draft })
+    const timing = ride.prepare(recordingSimulate, rider).timeCombo!({ ...carbon(), draft })
     expect(calls).toHaveLength(1)
     expect(timing.climbSec).toHaveLength(3)
     // The same 7.4 km at 6%, ridden three times by one rider: about 25
@@ -54,7 +54,7 @@ describe('rideForRoute', () => {
     for (const [slug, laps] of [['lutscher', 2], ['innsbruck-kom-after-party', 1], ['road-to-sky', 1]] as const) {
       const ride = rideForRoute(getRouteBySlug(slug)!, laps)
       const draft = resolveDraft({ mode: 'race' }, ride.planGeometry(), rider)
-      const timing = ride.prepare(simulateRoute, rider).time!({ ...carbon(), draft })
+      const timing = ride.prepare(simulateRoute, rider).timeCombo!({ ...carbon(), draft })
       const plain = simulateRoute({ rider, ...carbon(), geometry: ride.planGeometry(), powerSegmentsW: draft.plan?.powerSegmentsW, powerScaleAtSpeed: draft.powerScaleAtSpeed })
       expect(timing.finishSec).toBe(plain.elapsedSec)
     }
@@ -67,14 +67,14 @@ describe('rideForRoute', () => {
     const straddling = { ...base, lap: true, terrain: { ...base.terrain, climbs: [{ ...kom, fromKm: base.distance - 1, toKm: base.distance + 0.5, lengthKm: 1.5 }] } }
     const ride = rideForRoute(straddling, 2)
     const draft = resolveDraft({ mode: 'solo' }, ride.planGeometry(), rider)
-    const timing = ride.prepare(simulateRoute, rider).time!({ ...carbon(), draft })
+    const timing = ride.prepare(simulateRoute, rider).timeCombo!({ ...carbon(), draft })
     expect(ride.climbs).toHaveLength(2)
     // Lap 1's pass crosses into lap 2; lap 2's is cut at the finish, 1 km long.
     expect(timing.climbSec[0]).toBeGreaterThan(timing.climbSec[1]!)
     expect(timing.climbSec[1]).toBeGreaterThan(0)
 
     const toTheLine = rideForRoute(base, 1)
-    const whole = toTheLine.prepare(simulateRoute, rider).time!({ ...carbon(), draft: resolveDraft({ mode: 'solo' }, toTheLine.planGeometry(), rider) })
+    const whole = toTheLine.prepare(simulateRoute, rider).timeCombo!({ ...carbon(), draft: resolveDraft({ mode: 'solo' }, toTheLine.planGeometry(), rider) })
     expect(whole.climbSec).toHaveLength(1)
     expect(whole.climbSec[0]).toBeGreaterThan(20 * 60)
     expect(whole.climbSec[0]).toBeLessThan(whole.finishSec)
@@ -101,7 +101,7 @@ describe('rideForSegment', () => {
       calls.push({ options, result })
       return result
     }
-    const timing = ride.prepare(recordingSimulate, rider).time!({
+    const timing = ride.prepare(recordingSimulate, rider).timeCombo!({
       frame: getFrames().find(frame => frame.name === 'Zwift Carbon')!,
       wheelset: getWheelsets().find(wheelset => wheelset.name === 'Zwift 32mm Carbon')!,
       draft
@@ -131,7 +131,7 @@ describe('rideForSegment', () => {
     for (const setting of [{ mode: 'solo' as const }, { mode: 'ttt' as const, riders: 6, climbWkg: 3.5 }]) {
       const times = [2000, 3000, 4000].map((warmup) => {
         const ride = rideForSegment(route, false, warmup)
-        return ride.prepare(simulateRoute, rider).time!({
+        return ride.prepare(simulateRoute, rider).timeCombo!({
           frame,
           wheelset,
           draft: resolveDraft(setting, ride.planGeometry(), rider)
@@ -148,7 +148,7 @@ describe('rideForSegment', () => {
     expect(geometry.points.length).toBeGreaterThan(2)
     expect(ride.prepare(simulateRoute)).toEqual({})
     expect(ride.planGeometry()).toBe(geometry)
-    expect(ride.prepare(simulateRoute, { weightKg: 75, heightCm: 175, powerW: 225 }).time).toBeTypeOf('function')
+    expect(ride.prepare(simulateRoute, { weightKg: 75, heightCm: 175, powerW: 225 }).timeCombo).toBeTypeOf('function')
     expect(ride.planGeometry()).toBe(geometry)
   })
 })

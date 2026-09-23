@@ -1,4 +1,5 @@
 import type { ComboTiming } from '../../shared/types/recommendRide'
+import type { ClimbTrade } from '../../shared/types/rideNotes'
 import type { RouteClimbOccurrence } from '../../shared/utils/routeOccurrences'
 
 /**
@@ -14,21 +15,6 @@ import type { RouteClimbOccurrence } from '../../shared/utils/routeOccurrences'
  * and gave the same answer whether the setup cost 8 s or 90 s over the race
  * (issue #258).
  */
-export interface ClimbTrade {
-  frameName: string
-  wheelsetName?: string
-  /** Rank 1's own frame on the other kind of wheel, rather than another bike. */
-  sameFrame: boolean
-  climbName: string
-  /** How many times the Ride passes the climb; the trade is measured on the last. */
-  passes: number
-  /** The lap the last pass is on, when more than one lap is ridden. */
-  lapNumber?: number
-  /** How much sooner the setup gets over the climb's last pass, s. */
-  gainSec: number
-  /** How much later it finishes the Ride, s. */
-  costSec: number
-}
 
 export interface ClimbTradeCandidate {
   frameName: string

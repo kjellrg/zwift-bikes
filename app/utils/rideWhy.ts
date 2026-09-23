@@ -1,4 +1,5 @@
 import type { BikeCategory, BikeStyle, TerrainCategory, TerrainWeights } from '../../shared/types/catalog'
+import type { WheelChoice } from '../../shared/types/rideNotes'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { BIKE_STYLE_LABELS, formatGapSeconds, TERRAIN_LABELS } from './labels'
 
@@ -32,18 +33,6 @@ export interface RideWhyInputs {
   finishTimeSec?: number
   /** Rank 1's own wheels against the other kind's fastest, from the recommend endpoint. */
   wheelChoice?: WheelChoice
-}
-
-/**
- * The recommend endpoint's `wheelChoice`, as the pages read it. Mirrors
- * `WheelChoice` in `server/utils/recommendPipeline.ts`; `RecommendResponse`
- * holds the two together.
- */
-export interface WheelChoice {
-  own: { wheelsetName: string, kind: 'disc' | 'regular' }
-  other: { wheelsetName: string, kind: 'disc' | 'regular' }
-  gapSec: number
-  massDeltaKg: number
 }
 
 /** Aerodynamics' share of the aero-versus-weight split, 0..1. */
@@ -116,7 +105,7 @@ function wheelCloseCallSentence(inputs: RideWhyInputs): string | undefined {
     ? ''
     : choice.massDeltaKg > 0 ? `, but ${kg} heavier` : ` here, and ${kg} lighter`
   const fact = `Disc or regular wheels is a close call: the ${choice.own.wheelsetName} is ${formatGapSeconds(choice.gapSec)} faster than the ${choice.other.wheelsetName}${weight}.`
-  if (inputs.draftMode === 'race' && inputs.category === 'flat' && choice.own.kind === 'disc') {
+  if (inputs.draftMode === 'race' && inputs.category === 'flat' && choice.own.kind === 'disc' && choice.massDeltaKg > 0) {
     return `${fact} With this little climbing, the extra weight rarely costs you the group, so the disc is the pick as long as you stay in the draft, as these times assume.`
   }
   return fact

@@ -26,7 +26,7 @@ export function rideForRoute(route: RouteWithMeta, requestedLaps?: number, exclu
       if (!rider) return {}
       const geometry = planGeometry()
       return {
-        time: ({ frame, wheelset, draft }) => {
+        timeCombo: ({ frame, wheelset, draft }) => {
           const result = simulate({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: draft.plan?.powerSegmentsW, powerScaleAtSpeed: draft.powerScaleAtSpeed })
           return { finishSec: result.elapsedSec, climbSec: climbTimesSec(climbs, result) }
         }
@@ -85,7 +85,7 @@ export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, w
         // group's) but never paced: the plan is in the timed run's coordinates.
         // Tight convergence prevents the warm-up shortcut from handing over
         // a still-accelerating speed (issue #199; docs/shared-ride-verification.md).
-        time: ({ frame, wheelset, draft }) => {
+        timeCombo: ({ frame, wheelset, draft }) => {
           const warmup = simulate({
             rider,
             frame,

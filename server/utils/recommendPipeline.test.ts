@@ -75,7 +75,7 @@ function query(params: Record<string, string> = {}): RecommendBaseQuery {
   return recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '175', powerW: '225', ...params })
 }
 
-/** Every `time` call the pipeline made, so the draft each timing was ridden under can be asserted. */
+/** Every `timeCombo` call the pipeline made, so the draft each timing was ridden under can be asserted. */
 type SimulateLog = Pick<SimulateComboOptions, 'draft'>[]
 
 function loggedRide(ride: RecommendRide, log: SimulateLog): RecommendRide {
@@ -83,12 +83,12 @@ function loggedRide(ride: RecommendRide, log: SimulateLog): RecommendRide {
     ...ride,
     prepare: (simulate, rider) => {
       const physics = ride.prepare(simulate, rider)
-      const { time } = physics
+      const { timeCombo } = physics
       return {
         ...physics,
-        time: time && ((options) => {
+        timeCombo: timeCombo && ((options) => {
           log.push({ draft: options.draft })
-          return time(options)
+          return timeCombo(options)
         })
       }
     }
