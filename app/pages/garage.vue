@@ -14,16 +14,15 @@ useRobotsRule('noindex, follow')
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-8 sm:max-w-3xl">
-    <!-- Capped at the overlay's own width (`sm:max-w-3xl`, see `GarageModal`):
-         the page and the overlay edit the same garage, and rows that ran the
-         full width of a desktop container here and sat in a narrower dialog
-         there would read as two different pages. -->
+  <UContainer class="max-w-3xl py-10 space-y-8">
+    <!-- The one width every secondary page and Overlay shares (`max-w-3xl`,
+         see the modals): the page and the Overlay show the same content, and
+         a different width here would read as a different site. -->
     <div>
-      <h1 class="text-3xl font-bold text-highlighted">
+      <h1 class="text-3xl font-bold font-display text-highlighted">
         My Garage
       </h1>
-      <p class="text-muted mt-2">
+      <p class="mt-2 text-toned">
         Mark the frames and wheels you own and the stage each frame has
         reached. "My garage only" on every ranking page reads this.
       </p>

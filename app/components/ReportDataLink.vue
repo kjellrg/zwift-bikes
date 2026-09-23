@@ -27,11 +27,11 @@ function open(event: MouseEvent) {
 </script>
 
 <template>
-  <p class="text-xs text-muted text-center mt-8">
+  <p class="mt-8 text-center text-sm text-muted">
     Something here look wrong?
     <a
       href="/report"
-      class="underline transition-colors hover:text-default"
+      class="underline decoration-rule-strong transition-colors hover:text-highlighted"
       @click="open"
     >Report it</a> - corrections with a source get folded back into the data.
   </p>

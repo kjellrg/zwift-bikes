@@ -11,25 +11,25 @@ const segments = computed(() =>
       key: 'aero',
       label: 'Aero (flat/fast)',
       value: props.breakdown.aero,
-      color: 'bg-blue-500'
+      color: 'bg-ink'
     },
     {
       key: 'climb',
       label: 'Climbing',
       value: props.breakdown.climb,
-      color: 'bg-emerald-500'
+      color: 'bg-ink-toned'
     },
     {
       key: 'gravel',
       label: 'Gravel',
       value: props.breakdown.gravel,
-      color: 'bg-amber-500'
+      color: 'bg-dirt'
     },
     {
       key: 'cobble',
       label: 'Cobbles',
       value: props.breakdown.cobble,
-      color: 'bg-slate-500'
+      color: 'bg-rough'
     }
   ].filter(s => s.value > 0)
 )
@@ -37,7 +37,7 @@ const segments = computed(() =>
 
 <template>
   <div class="space-y-1.5 w-full">
-    <div class="flex h-2 w-full overflow-hidden rounded-full bg-elevated">
+    <div class="flex h-2 w-full gap-0.5 overflow-hidden rounded-[3px] bg-accented">
       <div
         v-for="segment in segments"
         :key="segment.key"
@@ -45,14 +45,14 @@ const segments = computed(() =>
         :style="{ width: `${segment.value}%` }"
       />
     </div>
-    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+    <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-toned">
       <span
         v-for="segment in segments"
         :key="segment.key"
         class="inline-flex items-center gap-1"
       >
         <span
-          class="size-2 rounded-full inline-block"
+          class="inline-block size-2.5 rounded-[2px]"
           :class="segment.color"
         />
         {{ segment.label }}: {{ segment.value }}

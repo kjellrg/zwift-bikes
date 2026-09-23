@@ -150,25 +150,27 @@ const activeTab = ref('bikes')
 </script>
 
 <template>
-  <div class="space-y-8">
-    <p class="text-muted mt-1">
-      Mark which bike frames and wheels you own (and each frame's current
-      upgrade stage - 0 = stock, just purchased, 5 = fully upgraded). Route
-      recommendations can then be limited to just your equipment, using their
-      real per-stage performance.
+  <div class="space-y-6">
+    <p class="text-toned">
+      Mark which frames and wheels you own, and each frame's upgrade stage
+      (0 is stock, 5 fully upgraded). Rankings can then be limited to your
+      own equipment, at its real per-stage performance.
     </p>
 
-    <UAlert
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-info"
-      title="Stored on this device only"
-      description="Your garage is saved in this browser's local storage - there's no account system, so it won't follow you to another device or browser."
-    />
+    <SiteNotice title="Stored on this device only">
+      <p>Your garage is saved in this browser's local storage - there's no account system, so it won't follow you to another device or browser.</p>
+    </SiteNotice>
 
     <UTabs
       v-model="activeTab"
       :items="tabItems"
+      variant="link"
+      color="neutral"
+      :ui="{
+        list: 'border-b border-accented',
+        indicator: 'hidden',
+        trigger: 'text-md text-muted data-[state=active]:text-highlighted data-[state=active]:after:content-[\'\'] data-[state=active]:after:absolute data-[state=active]:after:inset-x-0 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary'
+      }"
     >
       <template #content="{ item }">
         <div
@@ -176,12 +178,12 @@ const activeTab = ref('bikes')
           class="space-y-4 mt-4"
         >
           <div
-            class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4"
+            class="flex flex-wrap items-end gap-x-5 gap-y-3"
           >
             <div class="min-w-56 flex-1">
               <label
                 :for="bikeSearchId"
-                class="block text-xs font-medium text-muted mb-1"
+                class="mb-1.5 block text-sm font-medium text-highlighted"
               >Search bikes</label>
               <UInput
                 :id="bikeSearchId"
@@ -190,18 +192,15 @@ const activeTab = ref('bikes')
                 placeholder="e.g. Tarmac, Aethos, Grail..."
               />
             </div>
-            <UBadge
-              color="primary"
-              variant="subtle"
-            >
+            <p class="pb-1.5 text-sm text-toned">
               {{ ownedCount }} bike{{ ownedCount === 1 ? "" : "s" }} owned
-            </UBadge>
-            <div class="flex items-center gap-2">
+            </p>
+            <div class="flex items-center gap-2 pb-1.5">
               <USwitch
                 v-model="ownedFramesOnly"
                 aria-label="Only show bikes I own"
               />
-              <span class="text-sm">Only show bikes I own</span>
+              <span class="text-sm text-toned">Only show bikes I own</span>
             </div>
           </div>
 
@@ -219,7 +218,7 @@ const activeTab = ref('bikes')
 
           <div
             v-if="frameListStatus === 'loading'"
-            class="space-y-2"
+            class="border-t border-default"
           >
             <GarageRowSkeleton
               v-for="n in 6"
@@ -258,7 +257,7 @@ const activeTab = ref('bikes')
             <p>{{ frameEmptyNote }}</p>
             <UButton
               color="neutral"
-              variant="subtle"
+              variant="outline"
               size="sm"
               @click="ownedFramesOnly = false"
             >
@@ -268,12 +267,12 @@ const activeTab = ref('bikes')
 
           <div
             v-else
-            class="space-y-2"
+            class="border-t border-default"
           >
             <div
               v-for="frame in frames"
               :key="frame.id"
-              class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-default p-3"
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-default py-3"
             >
               <!-- The name column must be allowed to shrink (`min-w-0`) and
                    the name itself to break: a flex child otherwise refuses to
@@ -292,16 +291,11 @@ const activeTab = ref('bikes')
                   <p class="font-medium text-highlighted break-words">
                     {{ frame.name }}
                   </p>
-                  <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    <BikeCategoryBadge :category="frame.category" />
-                    <UBadge
-                      v-if="frame.style"
-                      color="neutral"
-                      variant="subtle"
-                    >
-                      {{ frame.style }}
-                    </UBadge>
-                  </div>
+                  <p class="text-sm text-muted">
+                    {{ BIKE_CATEGORY_LABELS[frame.category] }}<template v-if="frame.style">
+                      · {{ BIKE_STYLE_LABELS[frame.style] }}
+                    </template>
+                  </p>
                 </div>
               </div>
 
@@ -342,12 +336,12 @@ const activeTab = ref('bikes')
           class="space-y-4 mt-4"
         >
           <div
-            class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4"
+            class="flex flex-wrap items-end gap-x-5 gap-y-3"
           >
             <div class="min-w-56 flex-1">
               <label
                 :for="wheelSearchId"
-                class="block text-xs font-medium text-muted mb-1"
+                class="mb-1.5 block text-sm font-medium text-highlighted"
               >Search wheels</label>
               <UInput
                 :id="wheelSearchId"
@@ -356,21 +350,15 @@ const activeTab = ref('bikes')
                 placeholder="e.g. Zipp, DICUT, Aeolus..."
               />
             </div>
-            <UBadge
-              color="primary"
-              variant="subtle"
-            >
-              {{ ownedWheelCount }} wheelset{{
-                ownedWheelCount === 1 ? "" : "s"
-              }}
-              owned
-            </UBadge>
-            <div class="flex items-center gap-2">
+            <p class="pb-1.5 text-sm text-toned">
+              {{ ownedWheelCount }} wheelset{{ ownedWheelCount === 1 ? "" : "s" }} owned
+            </p>
+            <div class="flex items-center gap-2 pb-1.5">
               <USwitch
                 v-model="ownedWheelsetsOnly"
                 aria-label="Only show wheels I own"
               />
-              <span class="text-sm">Only show wheels I own</span>
+              <span class="text-sm text-toned">Only show wheels I own</span>
             </div>
           </div>
 
@@ -385,7 +373,7 @@ const activeTab = ref('bikes')
 
           <div
             v-if="wheelListStatus === 'loading'"
-            class="space-y-2"
+            class="border-t border-default"
           >
             <GarageRowSkeleton
               v-for="n in 6"
@@ -420,7 +408,7 @@ const activeTab = ref('bikes')
             <p>{{ wheelEmptyNote }}</p>
             <UButton
               color="neutral"
-              variant="subtle"
+              variant="outline"
               size="sm"
               @click="ownedWheelsetsOnly = false"
             >
@@ -430,12 +418,12 @@ const activeTab = ref('bikes')
 
           <div
             v-else
-            class="space-y-2"
+            class="border-t border-default"
           >
             <div
               v-for="wheelset in wheelsets"
               :key="wheelset.key"
-              class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-default p-3"
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-default py-3"
             >
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <USwitch
@@ -449,14 +437,9 @@ const activeTab = ref('bikes')
                   <p class="font-medium text-highlighted break-words">
                     {{ wheelset.name }}
                   </p>
-                  <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    <UBadge
-                      color="neutral"
-                      variant="subtle"
-                    >
-                      {{ WHEEL_CATEGORY_LABELS[wheelset.rear.category] }}
-                    </UBadge>
-                  </div>
+                  <p class="text-sm text-muted">
+                    {{ WHEEL_CATEGORY_LABELS[wheelset.rear.category] }}
+                  </p>
                 </div>
               </div>
             </div>

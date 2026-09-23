@@ -6,10 +6,10 @@ defineProps<{
 </script>
 
 <template>
-  <!-- Same box as a garage row: the ownership switch, a name over its badges,
-       and the stage select the bikes tab puts on the right. -->
+  <!-- Same shape as a garage row: the ownership switch, a name over its
+       category line, and the stage select the bikes tab puts on the right. -->
   <div
-    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-default p-3"
+    class="flex flex-wrap items-center justify-between gap-3 border-b border-default py-3"
     aria-hidden="true"
   >
     <div class="flex items-center gap-3">

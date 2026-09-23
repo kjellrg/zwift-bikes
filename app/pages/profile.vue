@@ -14,16 +14,15 @@ useRobotsRule('noindex, follow')
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-8 sm:max-w-2xl">
-    <!-- Capped at the overlay's own width (`sm:max-w-2xl`, see
-         `ProfileModal`): the page and the overlay show the same controls, and
-         a form that stretched to a desktop container's full width here and
-         sat in a narrow dialog there would read as two different pages. -->
+  <UContainer class="max-w-3xl py-10 space-y-8">
+    <!-- The one width every secondary page and Overlay shares (`max-w-3xl`,
+         see the modals): the page and the Overlay show the same content, and
+         a different width here would read as a different site. -->
     <div>
-      <h1 class="text-3xl font-bold text-highlighted">
+      <h1 class="text-3xl font-bold font-display text-highlighted">
         My Profile
       </h1>
-      <p class="text-muted mt-2">
+      <p class="mt-2 text-toned">
         Your weight, height and power set every finish time on the site; the
         defaults below apply wherever a link hasn't chosen otherwise.
       </p>

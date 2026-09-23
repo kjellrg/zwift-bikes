@@ -101,33 +101,29 @@ async function copyReport() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 text-sm">
-    <p class="text-muted">
+  <div class="flex flex-col gap-6 text-md">
+    <p class="text-toned">
       Found a bug, or a number that looks wrong? This form fills in the report
       for you - including the page you were on, your filters and your browser -
       then opens it as either a GitHub issue or an email. Nothing goes anywhere
       until you press send.
     </p>
 
-    <UAlert
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-shield-alert"
-      title="Security issues go somewhere else"
-    >
-      <template #description>
+    <SiteNotice title="Security issues go somewhere else">
+      <p>
         Please don't report a security vulnerability here - posting it here
         would make it public immediately. Use
-        <ULink
-          to="https://github.com/kjellrg/zwift-bikes/security/advisories/new"
+        <a
+          href="https://github.com/kjellrg/zwift-bikes/security/advisories/new"
           target="_blank"
-          class="underline"
-        >private vulnerability reporting</ULink> instead.
-      </template>
-    </UAlert>
+          rel="noopener"
+          class="underline decoration-rule-strong hover:text-highlighted"
+        >private vulnerability reporting</a> instead.
+      </p>
+    </SiteNotice>
 
     <div class="max-w-md">
-      <label class="block text-xs font-medium text-muted mb-1">What kind of report is this?</label>
+      <label class="mb-1.5 block text-sm font-medium text-highlighted">What kind of report is this?</label>
       <USelectMenu
         v-model="kind"
         value-key="value"
@@ -218,7 +214,7 @@ async function copyReport() {
       </UFormField>
     </template>
 
-    <div class="rounded-lg border border-default p-4 flex flex-col gap-3">
+    <div class="flex flex-col gap-3 border-y border-default py-4">
       <UCheckbox
         v-model="includeProfile"
         label="Include my rider profile and garage size"
@@ -231,11 +227,11 @@ async function copyReport() {
         and it doubles as the manual path when `copyReport` can't reach the
         clipboard (permissions, insecure context, older mobile browsers).
       -->
-      <details class="text-xs">
-        <summary class="cursor-pointer text-muted hover:text-default">
+      <details class="text-sm">
+        <summary class="cursor-pointer text-toned hover:text-highlighted">
           Show exactly what gets sent
         </summary>
-        <pre class="mt-2 max-h-64 overflow-auto rounded bg-elevated p-3 text-xs whitespace-pre-wrap break-words select-all">{{ report.plainText }}</pre>
+        <pre class="mt-2 max-h-64 overflow-auto rounded-md border border-default bg-accented p-3 text-xs whitespace-pre-wrap break-words select-all">{{ report.plainText }}</pre>
       </details>
     </div>
 
@@ -255,7 +251,7 @@ async function copyReport() {
           icon="i-lucide-mail"
           label="Email it instead"
           color="neutral"
-          variant="subtle"
+          variant="outline"
           @click="emailReport"
         />
         <UButton

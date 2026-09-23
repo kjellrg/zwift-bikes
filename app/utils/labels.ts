@@ -27,14 +27,6 @@ export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
   funbike: 'Fun Bike'
 }
 
-export const BIKE_CATEGORY_COLORS: Record<BikeCategory, 'primary' | 'info' | 'warning' | 'neutral' | 'success'> = {
-  standard: 'primary',
-  tt: 'info',
-  gravel: 'warning',
-  handbike: 'neutral',
-  funbike: 'success'
-}
-
 /** A frame's style, as the Ranking's style column and the "why" sentence name it. */
 export const BIKE_STYLE_LABELS: Record<BikeStyle, string> = {
   aero: 'aero',
@@ -58,22 +50,7 @@ export const TERRAIN_LABELS: Record<TerrainCategory, string> = {
   mountainous: 'Mountainous'
 }
 
-export const TERRAIN_COLORS: Record<TerrainCategory, 'success' | 'primary' | 'warning' | 'error'> = {
-  flat: 'success',
-  rolling: 'primary',
-  hilly: 'warning',
-  mountainous: 'error'
-}
-
 /** Strava-style climb categories, steepest/hardest (HC) to gentlest (4). Not every mapped climb has one. */
-export const CLIMB_TYPE_COLORS: Record<'HC' | '4' | '3' | '2' | '1', 'error' | 'warning' | 'primary' | 'success'> = {
-  HC: 'error',
-  1: 'error',
-  2: 'warning',
-  3: 'primary',
-  4: 'success'
-}
-
 export const SURFACE_TYPE_LABELS: Record<ZwiftSurfaceType, string> = {
   tarmac: 'Tarmac',
   brick: 'Brick',
@@ -113,18 +90,6 @@ export const SURFACE_TYPE_COLORS = Object.fromEntries(
 export const SURFACE_TYPE_FILL_COLORS = Object.fromEntries(
   (Object.keys(SURFACE_TYPE_LABELS) as ZwiftSurfaceType[]).map(type => [type, SURFACE_FAMILY_FILL[surfaceFamily(type)]])
 ) as Record<ZwiftSurfaceType, string>
-
-export const SURFACE_TYPE_ICONS: Record<ZwiftSurfaceType, string> = {
-  tarmac: 'i-lucide-road',
-  brick: 'i-lucide-brick-wall',
-  wood: 'i-lucide-fence',
-  cobbles: 'i-lucide-grip',
-  snow: 'i-lucide-snowflake',
-  dirt: 'i-lucide-footprints',
-  grass: 'i-lucide-sprout',
-  sand: 'i-lucide-waves',
-  gravel: 'i-lucide-stone'
-}
 
 /**
  * Whether every number behind a combo traces to ZwiftInsider bot tests - the
@@ -236,13 +201,6 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
 // out too - server code cannot import from `app/`. Re-exported here because
 // this module is where every page already reaches for a label.
 export { RACE_FORMAT_LABELS }
-
-export const RACE_FORMAT_COLORS: Record<RaceFormat, 'primary' | 'info' | 'warning' | 'error'> = {
-  ttt: 'warning',
-  points: 'info',
-  scratch: 'primary',
-  rot: 'error'
-}
 
 /**
  * The format for use mid-sentence. Every other label lowercases into ordinary

@@ -179,24 +179,7 @@ export default defineNuxtConfig({
       // (the sitemap's zeroRuntime prerender crawl hits nearly every icon
       // in the app back-to-back). Scanning bundles every icon reachable as
       // a literal string across app/shared source.
-      scan: true,
-      // Icons only ever reached via a Record/object lookup (e.g.
-      // `SURFACE_TYPE_ICONS[surface]` in app/utils/labels.ts, consumed by
-      // RouteSurfaceComposition.vue, RouteSurfaceSpeedProfile.vue and
-      // SurfaceBadges.vue) aren't literal strings in the source, so `scan`
-      // can't find them either - list them explicitly.
-      icons: [
-        'lucide:road',
-        'lucide:brick-wall',
-        'lucide:fence',
-        'lucide:grip',
-        'lucide:snowflake',
-        'lucide:footprints',
-        'lucide:sprout',
-        'lucide:waves',
-        'lucide:stone',
-        'lucide:mountain-snow'
-      ]
+      scan: true
     }
   },
 

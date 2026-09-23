@@ -117,24 +117,16 @@ const tttClimbLabelId = useId()
 </script>
 
 <template>
-  <div class="space-y-8">
-    <p class="text-muted mt-1">
-      Set your weight, height and FTP so route recommendations can estimate finish times using the dynamic physics model. Your profile is stored locally in this browser.
-    </p>
+  <div class="space-y-6">
+    <SiteNotice title="Stored on this device only">
+      <p>Your profile is saved in this browser's local storage - there's no account system, so it won't follow you to another device or browser.</p>
+    </SiteNotice>
 
-    <UAlert
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-info"
-      title="Stored on this device only"
-      description="Your profile is saved in this browser's local storage - there's no account system, so it won't follow you to another device or browser."
-    />
-
-    <div class="rounded-lg border border-default p-4 space-y-6">
-      <div class="max-w-md">
+    <div class="divide-y divide-default border-y border-default [&>*]:py-5">
+      <div class="[&>*]:max-w-md">
         <label
           :id="weightLabelId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Rider weight: {{ pendingWeightKg }} kg</label>
         <USlider
           :model-value="pendingWeightKg"
@@ -146,18 +138,18 @@ const tttClimbLabelId = useId()
           @update:model-value="(value: number | number[] | undefined) => { pendingWeightKg = sliderValue(value, pendingWeightKg) }"
           @change="commitWeight"
         />
-        <div class="flex justify-between text-xs text-muted mt-1">
+        <div class="mt-1 flex justify-between text-xs text-muted">
           <span>40 kg</span><span>130 kg</span>
         </div>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           Weight drives gravity on climbs and, with height, the drag estimate. Changing it keeps your power in watts - only the derived W/kg moves.
         </p>
       </div>
 
-      <div class="max-w-md">
+      <div class="[&>*]:max-w-md">
         <label
           :id="heightLabelId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Rider height: {{ pendingHeightCm }} cm</label>
         <USlider
           :model-value="pendingHeightCm"
@@ -169,18 +161,18 @@ const tttClimbLabelId = useId()
           @update:model-value="(value: number | number[] | undefined) => { pendingHeightCm = sliderValue(value, pendingHeightCm) }"
           @change="commitHeight"
         />
-        <div class="flex justify-between text-xs text-muted mt-1">
+        <div class="mt-1 flex justify-between text-xs text-muted">
           <span>100 cm</span><span>220 cm</span>
         </div>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           Height affects the aerodynamic drag estimate used by the physics model.
         </p>
       </div>
 
-      <div class="max-w-md">
+      <div class="[&>*]:max-w-md">
         <label
           :id="powerLabelId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Race power (FTP): {{ pendingPowerW }} W</label>
         <USlider
           :model-value="pendingPowerW"
@@ -192,18 +184,18 @@ const tttClimbLabelId = useId()
           @update:model-value="(value: number | number[] | undefined) => { pendingPowerW = sliderValue(value, pendingPowerW) }"
           @change="commitPower"
         />
-        <div class="flex justify-between text-xs text-muted mt-1">
+        <div class="mt-1 flex justify-between text-xs text-muted">
           <span>{{ POWER_W_RANGE.min }} W</span><span>{{ POWER_W_RANGE.max }} W</span>
         </div>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           The sustained power recommendations are ranked at. It is the same stored value as the Power slider on route, segment and event pages - change it in either place and both move.
         </p>
       </div>
 
-      <div class="max-w-md">
+      <div class="[&>*]:max-w-md">
         <label
           :id="sprintPowerLabelId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Sprint power: {{ pendingSprintPowerW }} W</label>
         <USlider
           :model-value="pendingSprintPowerW"
@@ -215,30 +207,30 @@ const tttClimbLabelId = useId()
           @update:model-value="(value: number | number[] | undefined) => { pendingSprintPowerW = sliderValue(value, pendingSprintPowerW) }"
           @change="commitSprintPower"
         />
-        <div class="flex justify-between text-xs text-muted mt-1">
+        <div class="mt-1 flex justify-between text-xs text-muted">
           <span>{{ SPRINT_POWER_W_RANGE.min }} W</span><span>{{ SPRINT_POWER_W_RANGE.max }} W</span>
         </div>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           What you can hold for a short all-out effort. Sprint segment pages rank with this instead of your race power - the two are stored separately, so cranking one never drags the other along.
         </p>
       </div>
 
       <div>
-        <p class="text-xs font-medium text-muted uppercase tracking-wide">
+        <p class="text-sm font-medium text-highlighted">
           W/kg at race power
         </p>
-        <p class="text-2xl font-bold text-primary">
+        <p class="text-3xl font-semibold font-timing text-highlighted">
           {{ powerWkg.toFixed(2) }} W/kg
         </p>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           {{ powerW }} W ÷ {{ weightKg }} kg. Dialling power on a route page updates it here too.
         </p>
       </div>
 
-      <div class="max-w-xs">
+      <div class="[&>*]:max-w-md">
         <label
           :for="unownedStageId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Assumed upgrade stage for bikes you don't own</label>
         <USelectMenu
           :id="unownedStageId"
@@ -249,15 +241,15 @@ const tttClimbLabelId = useId()
           aria-label="Assumed upgrade stage for bikes you don't own"
           @update:model-value="(level: number) => setDefaultUnownedLevel(level)"
         />
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           Your garage bikes use their actual upgrade stage; other bikes use this assumed stage.
         </p>
       </div>
 
-      <div class="max-w-xs">
+      <div class="[&>*]:max-w-md">
         <label
           :for="bikeCategoryId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Default bike category</label>
         <USelectMenu
           :id="bikeCategoryId"
@@ -268,29 +260,29 @@ const tttClimbLabelId = useId()
           aria-label="Default bike category"
           @update:model-value="(value: BikeCategory | 'all') => setBikeCategory(value)"
         />
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           Which category route and segment pages rank by. Standard is the default: TT bikes are usually fastest outright, but they're restricted in a lot of group rides and races. Whichever you pick, pages still tell you when a bike outside it would be faster.
         </p>
       </div>
 
-      <div class="max-w-md">
+      <div class="[&>*]:max-w-md">
         <div class="flex items-center gap-2">
           <USwitch
             :model-value="showUpcomingRaces"
             aria-label="Show upcoming races"
             @update:model-value="(value: boolean) => setShowUpcomingRaces(value)"
           />
-          <span class="text-sm">Show upcoming races</span>
+          <span class="text-sm font-medium text-highlighted">Show upcoming races</span>
         </div>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           Surfaces the next race on the homepage and a "featured in upcoming races" note on route pages. The Events calendar itself stays in the menu either way.
         </p>
       </div>
 
-      <div class="max-w-xs">
+      <div class="[&>*]:max-w-md">
         <label
           :for="draftModeId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Default draft mode</label>
         <USelectMenu
           :id="draftModeId"
@@ -301,21 +293,21 @@ const tttClimbLabelId = useId()
           aria-label="Default draft mode"
           @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')"
         />
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           TTT (Team Time Trial) models a rotating paceline. Your W/kg still means your own average over a full rotation - you push well above it while pulling on the front and sit below it in the wheels - and the group moves at the speed that combined effort produces, which is a lot faster than riding alone at the same effort.
         </p>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           Race models a mass-start bunch, using one draft benefit measured from thirteen real race fields rather than a pack model - so it needs no extra settings. Your W/kg still means your own average for the race (average power, not normalised), and what you get is a typical mid-pack finish time, not a winning one.
         </p>
       </div>
 
       <div
         v-if="draftMode === 'ttt'"
-        class="max-w-md"
+        class="[&>*]:max-w-md"
       >
         <label
           :id="tttRidersLabelId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >TTT riders: {{ pendingRiders }}</label>
         <USlider
           :model-value="pendingRiders"
@@ -327,21 +319,21 @@ const tttClimbLabelId = useId()
           @update:model-value="(value: number | number[] | undefined) => { pendingRiders = sliderValue(value, pendingRiders) }"
           @change="commitRiders"
         />
-        <div class="flex justify-between text-xs text-muted mt-1">
+        <div class="mt-1 flex justify-between text-xs text-muted">
           <span>{{ TTT_MIN_RIDERS }} riders</span><span>{{ TTT_MAX_RIDERS }} riders</span>
         </div>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           How many riders rotate in the paceline. Per-position draft stops improving past the 4th wheel, but team size keeps mattering: in a bigger team you spend a smaller share of the time on the front, which is where all the cost is.
         </p>
       </div>
 
       <div
         v-if="draftMode === 'ttt'"
-        class="max-w-md"
+        class="[&>*]:max-w-md"
       >
         <label
           :id="tttClimbLabelId"
-          class="block text-xs font-medium text-muted mb-1"
+          class="mb-1.5 block text-sm font-medium text-highlighted"
         >Team climb pace: {{ pendingClimbWkg.toFixed(1) }} W/kg{{ tttClimbWkg === undefined ? ' (not set - your normal power)' : '' }}</label>
         <USlider
           :model-value="pendingClimbWkg"
@@ -353,17 +345,20 @@ const tttClimbLabelId = useId()
           @update:model-value="(value: number | number[] | undefined) => { pendingClimbWkg = sliderValue(value, pendingClimbWkg) }"
           @change="commitClimbWkg"
         />
-        <div class="flex justify-between text-xs text-muted mt-1">
+        <div class="mt-1 flex justify-between text-xs text-muted">
           <span>{{ TTT_MIN_CLIMB_WKG }} W/kg</span><span>{{ TTT_MAX_CLIMB_WKG }} W/kg</span>
         </div>
-        <p class="text-sm text-muted mt-1">
+        <p class="mt-1.5 text-sm text-toned">
           What the team averages on stretches slow enough that the rotation stops (roughly 2.5+ minutes below ~21 km/h), where drafting gives almost nothing. <template v-if="tttClimbWkg === undefined">
             Untouched, so climbs are ridden at your normal power - the slider starts there.
           </template><template v-else>
-            Set independently of your FTP: changing your power above won't move it. <ULink
-              class="text-primary underline cursor-pointer"
+            Set independently of your FTP: changing your power above won't move it. <button
+              type="button"
+              class="text-primary underline"
               @click="setTttClimbWkg(undefined)"
-            >Go back to using my normal power</ULink>.
+            >
+              Go back to using my normal power
+            </button>.
           </template>
         </p>
       </div>

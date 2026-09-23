@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ClassifiedWheel, ComboScore, EquipmentPhysicsDelta } from '../../shared/types/catalog'
 import type { EquipmentDrawerView } from '../utils/equipmentDrawer'
+import { formatSignedDelta } from '../utils/rankingResults'
 
 /**
  * Everything the app knows about one frame+wheelset combo, laid out as a
@@ -249,7 +250,7 @@ const physicsRows = computed(() => {
   return rows
 })
 
-const signed = (value: number, digits: number) => `${value > 0 ? '+' : ''}${value.toFixed(digits)}`
+const signed = formatSignedDelta
 
 // Zwift's own names for the scheme, matching docs/bike-upgrade-levels.md.
 const UPGRADE_AXIS_LABELS = { distance: 'distance', duration: 'duration', elevation: 'elevation' } as const
@@ -264,51 +265,30 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
 <template>
   <div class="space-y-6">
     <section class="space-y-3">
-      <div class="flex flex-wrap items-center gap-1.5">
-        <BikeCategoryBadge :category="frame.category" />
-        <UBadge
-          v-if="frame.style"
-          color="neutral"
-          variant="subtle"
-        >
-          {{ frame.style }} style
-        </UBadge>
-        <UBadge
-          color="neutral"
-          variant="subtle"
-        >
-          {{ wheelset ? WHEEL_CATEGORY_LABELS[wheelset.rear.category] : 'Fixed disc' }} wheels
-        </UBadge>
-        <UBadge
+      <!-- What the setup is, as text: classification never takes a colour,
+           and whether its numbers are bot-tested is the one status here. -->
+      <p class="text-md text-toned">
+        {{ BIKE_CATEGORY_LABELS[frame.category] }}<template v-if="frame.style">
+          · {{ BIKE_STYLE_LABELS[frame.style] }} frame
+        </template>
+        · {{ wheelset ? WHEEL_CATEGORY_LABELS[wheelset.rear.category] : 'Fixed disc' }} wheels<template v-if="wheelset">
+          · {{ CRR_CLASS_LABELS[wheelset.crrClass].toLowerCase() }} rolling class
+        </template>
+      </p>
+      <p class="flex flex-wrap gap-x-4 text-sm">
+        <span :class="frame.confidence === 'measured' ? 'text-success' : 'text-warning'">Frame {{ frame.confidence === 'measured' ? 'bot-tested' : 'estimated' }}</span>
+        <span
           v-if="wheelset"
-          color="neutral"
-          variant="subtle"
-        >
-          {{ CRR_CLASS_LABELS[wheelset.crrClass] }} rolling class
-        </UBadge>
-        <UBadge
-          :color="frame.confidence === 'measured' ? 'success' : 'neutral'"
-          variant="subtle"
-          :icon="frame.confidence === 'measured' ? 'i-lucide-badge-check' : 'i-lucide-help-circle'"
-        >
-          frame {{ frame.confidence === 'measured' ? 'verified' : 'estimated' }}
-        </UBadge>
-        <UBadge
-          v-if="wheelset"
-          :color="wheelset.confidence === 'measured' ? 'success' : 'neutral'"
-          variant="subtle"
-          :icon="wheelset.confidence === 'measured' ? 'i-lucide-badge-check' : 'i-lucide-help-circle'"
-        >
-          wheels {{ wheelset.confidence === 'measured' ? 'verified' : 'estimated' }}
-        </UBadge>
-      </div>
+          :class="wheelset.confidence === 'measured' ? 'text-success' : 'text-warning'"
+        >Wheels {{ wheelset.confidence === 'measured' ? 'bot-tested' : 'estimated' }}</span>
+      </p>
 
       <div class="flex flex-wrap items-center gap-3">
         <UButton
           size="sm"
-          :color="isOwnedFrame ? 'success' : 'neutral'"
-          variant="subtle"
-          :icon="isOwnedFrame ? 'i-lucide-circle-check' : 'i-lucide-circle-plus'"
+          color="neutral"
+          variant="outline"
+          :icon="isOwnedFrame ? 'i-lucide-check' : 'i-lucide-plus'"
           @click="toggleFrameOwned"
         >
           {{ isOwnedFrame ? 'Frame in your garage' : 'Add frame to garage' }}
@@ -316,9 +296,9 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
         <UButton
           v-if="wheelset"
           size="sm"
-          :color="isOwnedWheel ? 'success' : 'neutral'"
-          variant="subtle"
-          :icon="isOwnedWheel ? 'i-lucide-circle-check' : 'i-lucide-circle-plus'"
+          color="neutral"
+          variant="outline"
+          :icon="isOwnedWheel ? 'i-lucide-check' : 'i-lucide-plus'"
           @click="toggleWheelOwned"
         >
           {{ isOwnedWheel ? 'Wheels in your garage' : 'Add wheels to garage' }}
@@ -334,8 +314,8 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
             v-for="level in [0, 1, 2, 3, 4, 5]"
             :key="level"
             type="button"
-            class="flex size-6 items-center justify-center rounded text-xs font-medium transition-colors"
-            :class="level === ownedFrameLevel ? 'bg-primary text-inverted' : 'bg-elevated text-muted hover:bg-accented'"
+            class="flex size-7 items-center justify-center rounded text-xs font-medium transition-colors"
+            :class="level === ownedFrameLevel ? 'bg-inverted text-inverted' : 'bg-accented text-toned hover:text-highlighted'"
             :aria-label="`Set upgrade stage ${level} for ${frame.name}`"
             :aria-pressed="level === ownedFrameLevel"
             @click="setOwned(frame.id, level)"
@@ -348,53 +328,44 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
         v-else
         class="text-xs text-muted"
       >
-        Scored at upgrade stage {{ frame.level }}<template v-if="!isOwnedFrame && frame.confidence === 'measured'">
-          (your default for bikes you don't own - change it in your profile)
-        </template>.
+        Scored at upgrade stage {{ frame.level }}{{ !isOwnedFrame && frame.confidence === 'measured' ? ' (your default for bikes you don\'t own - change it in your profile)' : '' }}.
       </p>
     </section>
 
-    <UAlert
+    <SiteNotice
       v-if="barredByRide"
-      color="warning"
-      variant="subtle"
-      icon="i-lucide-ban"
       title="This bike is barred from the ride you are looking at"
-      description="TT frames cannot be started on it, so it is missing from the ranking rather than beaten by it - no upgrade stage would list it here. The numbers below are still those of the ride this drawer was opened from, and it stays eligible everywhere TT frames are."
-    />
-    <UAlert
+    >
+      <p>TT frames cannot be started on it, so it is missing from the ranking rather than beaten by it - no upgrade stage would list it here. The numbers below are still those of the ride this drawer was opened from, and it stays eligible everywhere TT frames are.</p>
+    </SiteNotice>
+    <SiteNotice
       v-else-if="droppedFromRanking"
-      color="warning"
-      variant="subtle"
-      icon="i-lucide-arrow-down-to-line"
       title="This bike has dropped off the results you have loaded"
-      :description="`At stage ${currentLevel} it is slow enough to rank below every bike shown. ${refetching ? 'Fetching its numbers at this stage.' : refetched ? 'The numbers below are for this stage.' : 'The numbers below are from before the change.'} Once you close this drawer it will not be listed until you show more results or raise its stage.`"
-    />
+    >
+      <p>At stage {{ currentLevel }} it is slow enough to rank below every bike shown. {{ refetching ? 'Fetching its numbers at this stage.' : refetched ? 'The numbers below are for this stage.' : 'The numbers below are from before the change.' }} Once you close this drawer it will not be listed until you show more results or raise its stage.</p>
+    </SiteNotice>
 
     <section
       v-if="finishTimeSec !== undefined"
       class="space-y-2"
     >
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+      <h3 class="text-lg font-semibold font-heading text-highlighted">
         On this route
       </h3>
-      <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+      <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-md">
         <dt class="text-muted">
           Est. finish time
         </dt>
-        <dd class="font-semibold text-highlighted tabular-nums">
+        <dd class="text-xl font-semibold font-heading text-highlighted">
           {{ formatDuration(finishTimeSec) }}<template v-if="totalDistanceKm !== undefined">
-            <span class="font-normal text-muted"> · {{ formatSpeedKmh(totalDistanceKm, finishTimeSec) }}</span>
+            <span class="text-sm font-normal text-muted"> · {{ formatSpeedKmh(totalDistanceKm, finishTimeSec) }}</span>
           </template>
         </dd>
         <template v-if="gapSec !== undefined">
           <dt class="text-muted">
             Behind the fastest
           </dt>
-          <dd
-            class="font-semibold tabular-nums"
-            :class="gapSec > 0 ? 'text-warning' : 'text-success'"
-          >
+          <dd class="font-semibold text-highlighted">
             {{ gapSec > 0 ? formatDurationDelta(gapSec) : 'This is the fastest combo' }}
           </dd>
         </template>
@@ -420,12 +391,12 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
       v-if="frame.upgradeCurve"
       class="space-y-3"
     >
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+      <h3 class="text-lg font-semibold font-heading text-highlighted">
         What upgrading does
       </h3>
       <div
         v-if="routeUpgradeGainsSec"
-        class="rounded-lg border border-default p-3 space-y-2"
+        class="space-y-2 border-y border-default py-3"
       >
         <UpgradeSparkline
           :values="routeUpgradeGainsSec"
@@ -445,7 +416,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
            10px line box whether it holds digits or skeletons. -->
       <div
         v-else-if="routeUpgradePending"
-        class="rounded-lg border border-default p-3 space-y-2"
+        class="space-y-2 border-y border-default py-3"
         aria-busy="true"
       >
         <div class="space-y-1">
@@ -454,7 +425,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
             <USkeleton class="h-3 w-28" />
           </div>
           <USkeleton class="w-full aspect-[264/40] rounded" />
-          <div class="flex h-[1lh] items-center justify-between text-[10px]">
+          <div class="flex h-[1lh] items-center justify-between text-xs">
             <USkeleton
               v-for="stage in 6"
               :key="stage"
@@ -487,14 +458,14 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
     </section>
 
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+      <h3 class="text-lg font-semibold font-heading text-highlighted">
         Why it ranks here
       </h3>
       <ScoreBreakdown :breakdown="combo.breakdown" />
-      <div class="overflow-x-auto rounded-lg border border-default">
-        <table class="w-full text-sm">
-          <thead class="bg-elevated/50">
-            <tr class="text-left text-muted">
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-md">
+          <thead>
+            <tr class="border-b border-accented text-left text-xs text-muted">
               <th class="px-3 py-2 font-medium">
                 Rating (0-100)
               </th>
@@ -511,7 +482,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
             <tr
               v-for="row in scoreRows.rows"
               :key="row.key"
-              class="border-t border-default"
+              class="border-b border-default"
             >
               <td class="px-3 py-2">
                 {{ row.label }}
@@ -519,7 +490,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
               <td
                 v-for="col in scoreRows.cols"
                 :key="col.key"
-                class="px-3 py-2 text-right tabular-nums"
+                class="px-3 py-2 text-right"
               >
                 {{ col.scores[row.key] }}
               </td>
@@ -533,13 +504,13 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
     </section>
 
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-muted">
+      <h3 class="text-lg font-semibold font-heading text-highlighted">
         Physics the simulator runs on
       </h3>
-      <div class="overflow-x-auto rounded-lg border border-default">
-        <table class="w-full text-sm">
-          <thead class="bg-elevated/50">
-            <tr class="text-left text-muted">
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-md">
+          <thead>
+            <tr class="border-b border-accented text-left text-xs text-muted">
               <th class="px-3 py-2 font-medium">
                 Part
               </th>
@@ -564,19 +535,19 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
             <tr
               v-for="row in physicsRows"
               :key="row.label"
-              class="border-t border-default"
+              class="border-b border-default"
             >
               <td class="px-3 py-2">
                 {{ row.label }}
               </td>
               <template v-if="row.physics">
-                <td class="px-3 py-2 text-right tabular-nums">
+                <td class="px-3 py-2 text-right">
                   {{ signed(row.physics.cdaDeltaM2, 4) }} m²
                 </td>
-                <td class="px-3 py-2 text-right tabular-nums">
+                <td class="px-3 py-2 text-right">
                   {{ signed(row.physics.bikeMassDeltaKg, 2) }} kg
                 </td>
-                <td class="px-3 py-2 text-right tabular-nums">
+                <td class="px-3 py-2 text-right">
                   {{ row.physics.crrDelta ? signed(row.physics.crrDelta, 4) : '-' }}
                 </td>
               </template>

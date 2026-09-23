@@ -2,10 +2,10 @@
 import type { TttPlan } from '../composables/useTttPlan'
 
 /**
- * The briefing's TTT line: how many sectors may split or slow the paceline,
+ * The Fact row's TTT line: how many sectors may split or slow the paceline,
  * the first of them, what the model could not analyse, and the way to the
- * full plan. Rendered as further `<li>`s of the briefing list (see
- * `RideBriefing`'s slot), present whenever draft mode is ttt - reading the
+ * full plan. Rendered as a further `<li>` of the Fact row's notes (see
+ * `RideFactRow`'s slot), present whenever draft mode is ttt - reading the
  * same `TttPlan` the plan tab renders, so the two cannot disagree.
  */
 const props = defineProps<{
@@ -27,29 +27,19 @@ const summary = computed(() => {
 </script>
 
 <template>
-  <li class="space-y-1">
-    <p>
-      <UIcon
-        name="i-lucide-flag"
-        class="mr-1.5 inline-block size-4 align-text-bottom"
-      />{{ summary }}
-    </p>
-    <p
+  <li>
+    {{ summary }}
+    <span
       v-for="caveat in plan.coverage.caveats"
       :key="caveat"
-      class="text-xs"
-    >
-      {{ caveat }}
-    </p>
-    <UButton
+    > {{ caveat }}</span>
+    <button
       v-if="!plan.coverage.withheld"
-      variant="link"
-      size="xs"
-      icon="i-lucide-arrow-down"
-      class="px-0"
+      type="button"
+      class="ml-1 text-primary hover:underline"
       @click="show('plan')"
     >
       View TTT plan
-    </UButton>
+    </button>
   </li>
 </template>
