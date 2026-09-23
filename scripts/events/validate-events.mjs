@@ -41,6 +41,9 @@
 //   - a documented >5% distance divergence (see above)
 //   - a race with a route but no format or lap counts (stays unpublished)
 //   - missing tactical note / sourceUrl on a publishable race
+//   - with `--notes` only: a tactical note whose claim about climbing versus
+//     aerodynamics the physics contradicts (see check-race-notes.mjs; needs
+//     TYPESAFE_API_KEY and the network, so the build never passes it)
 
 import { routes } from 'zwift-data'
 // Shared TS modules can't be imported by plain node directly (extensionless,
@@ -308,6 +311,13 @@ for (const season of getAllSeasons()) {
       errors.push(`${season.slug} round ${round.number}: a race window overlaps the one before it`)
     }
   }
+}
+
+if (process.argv.includes('--notes')) {
+  const { checkRaceNotes } = await import('./check-race-notes.mjs')
+  const checked = await checkRaceNotes(getAllSeasons())
+  notes.push(...checked.notes)
+  warnings.push(...checked.warnings)
 }
 
 for (const note of notes) console.log(`[events]  note: ${note}`)
