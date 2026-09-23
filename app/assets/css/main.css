@@ -68,38 +68,41 @@
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
 
-  /* The primary: a raspberry built around #FF6AA8, the 400 and dark-mode
-     primary. Light mode takes the 600 (#BE185D). The two modes share a
-     family rather than a colour. */
-  --color-pink-50: #FFF0F6;
-  --color-pink-100: #FFE0EC;
-  --color-pink-200: #FFC2DA;
-  --color-pink-300: #FF97C2;
-  --color-pink-400: #FF6AA8;
-  --color-pink-500: #E63C86;
-  --color-pink-600: #BE185D;
-  --color-pink-700: #9D1450;
-  --color-pink-800: #7E1243;
-  --color-pink-900: #67123A;
-  --color-pink-950: #3F0520;
+  /* The primary: a dusk steel blue built around #8DB2DA, the 400 and
+     dark-mode primary - set at the lightness of the page's own inks, so it
+     marks what can be acted on without outshining the finish time or the
+     white elevation line. Light mode takes the 700 (#2F5B8A), which reads
+     on white like printed ink. The two modes share a family rather than a
+     colour. */
+  --color-blue-50: #F1F5FB;
+  --color-blue-100: #E1EAF6;
+  --color-blue-200: #C4D5EC;
+  --color-blue-300: #A3BDE0;
+  --color-blue-400: #8DB2DA;
+  --color-blue-500: #5F8DC0;
+  --color-blue-600: #4574A8;
+  --color-blue-700: #2F5B8A;
+  --color-blue-800: #264A71;
+  --color-blue-900: #203D5C;
+  --color-blue-950: #14263A;
 
   /* The neutral scale behind Nuxt UI's semantic tokens (text-muted,
-     bg-elevated, border-default, ...): a teal-black - dark glass on a head
-     unit at night - whose light end has a faint sea-glass cast. Each step
-     is one of the Colour modes' own grounds, rules or inks (see the two
-     blocks below), so a semantic token resolves to a step rather than to a
-     colour of its own. */
-  --color-slate-50: #F3F8F6;
-  --color-slate-100: #E8F0EC;
-  --color-slate-200: #D3E0DA;
-  --color-slate-300: #B8CAC3;
-  --color-slate-400: #8AA198;
-  --color-slate-500: #5A6F67;
-  --color-slate-600: #33483F;
-  --color-slate-700: #2C4139;
-  --color-slate-800: #1E2F2A;
-  --color-slate-900: #0E1A17;
-  --color-slate-950: #08110F;
+     bg-elevated, border-default, ...): a warm graphite - tarmac at night,
+     with the primary its one cool colour - whose light end is a barely warm
+     paper. Each step is one of the Colour modes' own grounds, rules or
+     inks (see the two blocks below), so a semantic token resolves to a
+     step rather than to a colour of its own. */
+  --color-stone-50: #F6F6F4;
+  --color-stone-100: #EDECE8;
+  --color-stone-200: #DCDAD4;
+  --color-stone-300: #C2BFB7;
+  --color-stone-400: #9A968D;
+  --color-stone-500: #6E6A62;
+  --color-stone-600: #4B4943;
+  --color-stone-700: #3B3A35;
+  --color-stone-800: #2A2926;
+  --color-stone-900: #1B1A18;
+  --color-stone-950: #121110;
 }
 
 /*
@@ -107,7 +110,8 @@
   through their semantic tokens so each Colour mode resolves its own shade.
   Dirt stands for the loose family (dirt, gravel, grass, sand, snow), rough
   for the hard-but-bumpy one (cobbles, brick, wood); tarmac is the strong
-  rule. The Course hero's strip, the surface table, the speed chart and the
+  rule. Both are earth tones - amber for loose ground, brick for cobbles,
+  brick and wood - so neither reads as a second primary beside the blue. The Course hero's strip, the surface table, the speed chart and the
   Discovery cards all draw from these two and nothing else.
 */
 @theme inline {
@@ -137,13 +141,13 @@
    each checked at 4.5:1 or better against the raised white surface they
    sit on most (`tests/browser/accessibility.spec.ts`). */
 :root, .light {
-  --ui-primary: var(--ui-color-primary-600);
+  --ui-primary: var(--ui-color-primary-700);
   --ui-success: #1B7F4B;
   --ui-info: var(--ui-color-neutral-600);
   --ui-warning: #8F6410;
   --ui-error: var(--ui-color-error-800);
   --ui-surface-dirt: #9A6E14;
-  --ui-surface-rough: #3F6A96;
+  --ui-surface-rough: #9A4A38;
 
   --ui-bg: var(--ui-color-neutral-50);
   --ui-bg-muted: #FFFFFF;
@@ -152,35 +156,35 @@
   --ui-border: var(--ui-color-neutral-200);
   --ui-border-muted: var(--ui-color-neutral-200);
   --ui-border-accented: var(--ui-color-neutral-300);
-  --ui-text-highlighted: #0B1A16;
-  --ui-text: #0B1A16;
+  --ui-text-highlighted: #171614;
+  --ui-text: #171614;
   --ui-text-toned: var(--ui-color-neutral-600);
   --ui-text-muted: var(--ui-color-neutral-500);
   --ui-text-dimmed: var(--ui-color-neutral-500);
 }
 
 /* Dark mode, the one the site is designed on: ground, raised surface and
-   nested surface step 950 -> 900 -> #142420, rules 800 and 700, and the
-   inks 100 (text), #B9C8C1 (secondary) and 400 (muted). */
+   nested surface step 950 -> 900 -> #23221F, rules 800 and 700, and the
+   inks 100 (text), #C6C2B9 (secondary) and 400 (muted). */
 .dark {
   --ui-primary: var(--ui-color-primary-400);
   --ui-success: #4FD18B;
-  --ui-info: #B9C8C1;
+  --ui-info: #C6C2B9;
   --ui-warning: #F0B24A;
   --ui-error: var(--ui-color-error-400);
   --ui-surface-dirt: #D2A24A;
-  --ui-surface-rough: #8FB0CF;
+  --ui-surface-rough: #D08C7A;
 
   --ui-bg: var(--ui-color-neutral-950);
   --ui-bg-muted: var(--ui-color-neutral-900);
   --ui-bg-elevated: var(--ui-color-neutral-900);
-  --ui-bg-accented: #142420;
+  --ui-bg-accented: #23221F;
   --ui-border: var(--ui-color-neutral-800);
   --ui-border-muted: var(--ui-color-neutral-800);
   --ui-border-accented: var(--ui-color-neutral-700);
   --ui-text-highlighted: var(--ui-color-neutral-100);
   --ui-text: var(--ui-color-neutral-100);
-  --ui-text-toned: #B9C8C1;
+  --ui-text-toned: #C6C2B9;
   --ui-text-muted: var(--ui-color-neutral-400);
   --ui-text-dimmed: var(--ui-color-neutral-400);
 }

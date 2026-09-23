@@ -8,15 +8,15 @@ import type { Silhouette, SurfaceFamily } from '#shared/utils/silhouette'
  * A Palette change is a change here too (see **Palette** in `CONTEXT.md`).
  */
 export const OG_COLORS = {
-  ground: '#08110F',
-  raised: '#0E1A17',
-  rule: '#2C4139',
-  ink: '#E8F0EC',
-  toned: '#B9C8C1',
-  muted: '#8AA198',
-  primary: '#FF6AA8',
+  ground: '#121110',
+  raised: '#1B1A18',
+  rule: '#3B3A35',
+  ink: '#EDECE8',
+  toned: '#C6C2B9',
+  muted: '#9A968D',
+  primary: '#8DB2DA',
   dirt: '#D2A24A',
-  rough: '#8FB0CF'
+  rough: '#D08C7A'
 } as const
 
 const FAMILY_COLORS: Record<SurfaceFamily, string> = { tarmac: OG_COLORS.rule, dirt: OG_COLORS.dirt, rough: OG_COLORS.rough }
