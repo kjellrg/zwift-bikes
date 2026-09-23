@@ -77,8 +77,6 @@ const evidence = computed(() => rankingEvidence({
     and a wrapper would put the whole results block at one spacing step
     instead of each part at its own.
   -->
-  <slot name="page-block" />
-
   <RideRefreshNotice
     :failed="refreshFailed"
     :has-results="hasRanking"
@@ -160,6 +158,12 @@ const evidence = computed(() => rankingEvidence({
       <slot name="rider" />
     </div>
 
+    <!-- What the page has to say about the ranking beyond the ranking - a
+         race's draft-mode hint - directly under the answer it qualifies,
+         never between the course and the answer, which share the first
+         screen on a phone. -->
+    <slot name="page-block" />
+
     <!-- The answer the page's title asks for, in plain words, directly
          under the answer band - the words a crawler quotes are the words a
          rider reads first. Its Ride rules lead, where the Ride has any. -->
@@ -177,7 +181,10 @@ const evidence = computed(() => rankingEvidence({
       <p class="mt-2 max-w-[72ch] text-toned">
         {{ answer.summary }}
       </p>
-      <p class="mt-1.5 max-w-[72ch] text-xs text-muted">
+      <p
+        id="ride-answer-assumptions"
+        class="mt-1.5 max-w-[72ch] text-xs text-muted"
+      >
         {{ answer.assumptions }}
       </p>
     </section>

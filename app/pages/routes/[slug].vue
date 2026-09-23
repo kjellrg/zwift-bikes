@@ -248,7 +248,7 @@ useHead(() => {
           ({{ formatRaceDateRange(entry.race.date, entry.race.endDate) }})<span v-if="index < upcomingEvents.length - 1">, </span>
         </template>
       </li>
-      <TttBriefingLine
+      <TttFactLine
         v-if="tttPlan"
         :plan="tttPlan"
       />
@@ -282,6 +282,7 @@ useHead(() => {
           :refreshing="isRefreshing"
           :has-long-climb="hasLongClimb"
           :lap-options="routeData.lap ? lapOptions : undefined"
+          :applied-laps="resultsLaps"
         />
       </template>
 

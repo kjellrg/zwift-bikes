@@ -85,7 +85,7 @@ const ride = computed<Ride | undefined>(() => selectedRouteSlug.value
   : undefined)
 // Handed whole to `RideResults`, which renders everything this page shows
 // about the Ranking; what is destructured here is what the page itself is
-// still about - its header, its Category group selector, its briefing, its
+// still about - its header, its Category group selector, its Fact row, its
 // analysis, and the decision of whether there is a ranking to show at all.
 const request = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 const {
@@ -181,8 +181,8 @@ const coursesDiffer = hasSplitCourses(race)
  */
 const powerups = race.powerups
 /**
- * The powerups in one line. Computed rather than written into the briefing,
- * because a category group whose course isn't in the catalog has no briefing
+ * The powerups in one line. Computed rather than written into the markup,
+ * because a category group whose course isn't in the catalog has no ranking
  * and this is organiser data that never needed one - so it is rendered twice
  * and must read identically both times.
  */
@@ -344,7 +344,7 @@ const reportRideLine = computed(() => formatRideLine({
 // previous group's course cannot explain the newly accepted times, and the
 // new group's geometry under a chart drawn for the previous group's top
 // combo would be a speed curve for a bike that was never ranked there.
-// Meanwhile the briefing, the header stats and the Ride-only tabs follow the
+// Meanwhile the Fact row, the hero and the Ride-only tabs follow the
 // selector, which is what the rider just moved.
 const resultsTotals = computed(() => appliedRanking.value.course ? computeRouteTotals(appliedRanking.value.course, resultsLaps.value) : undefined)
 const resolvedRide = computed(() => appliedRanking.value.course
@@ -364,7 +364,7 @@ const hasLongClimb = computed(() => resolvedRide.value
 // cost the recommended setup, and what the race's own draft is worth over
 // riding it alone. All fall away by themselves when the selected group has no
 // catalog route - there is no physics block without a ranking.
-// One plan for the briefing's TTT line and the TTT plan tab, from the applied
+// One plan for the Fact row's TTT line and the TTT plan tab, from the applied
 // results - see `useTttPlan`. Undefined outside TTT drafting, which for a TTT
 // race is exactly what the draft hint above offers to switch on.
 const tttPlan = useTttPlan({
@@ -545,7 +545,7 @@ useHead(() => {
       <!-- A rule, not a nudge: the ranking is computed solo whatever the
            rider's saved draft mode says, so this states what happened. -->
       <li v-if="!draftAllowed">
-        WTRL turns the draft off for a Race of Truth: every rider covers the course on their own power, so the ranking is computed solo and aerodynamics count for more than in a normal road race. Your saved draft setting still applies everywhere else.
+        No draft in a Race of Truth, so the ranking is ridden solo; your saved draft setting still applies everywhere else.
       </li>
       <li v-if="routeTotals && routeTotals.leadInDistanceKm > 0">
         {{ laps }} lap{{ laps === 1 ? '' : 's' }} plus a {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in, ridden once.
@@ -553,92 +553,11 @@ useHead(() => {
       <li v-if="officialDiffers">
         {{ season!.organizer }} publishes this race as {{ [selectedGroup?.officialDistanceKm ? formatDistance(selectedGroup.officialDistanceKm) : undefined, selectedGroup?.officialElevationM !== undefined ? formatElevation(selectedGroup.officialElevationM) : undefined].filter(Boolean).join(' / ') }}; the figures above are this site's own totals from the route's lead-in and lap data, which is what the physics runs on.
       </li>
-      <!-- Curated fact only: absent powerup data renders no line at all. -->
-      <li v-if="powerupsLine">
-        PowerUps: {{ powerupsLine }}.
-      </li>
-      <TttBriefingLine
+      <TttFactLine
         v-if="tttPlan"
         :plan="tttPlan"
       />
-      <li v-if="race!.sourceUrl || season!.organizerUrl">
-        <a
-          :href="race!.sourceUrl ?? season!.organizerUrl"
-          target="_blank"
-          rel="noopener"
-          class="text-toned underline decoration-rule-strong hover:text-highlighted"
-        >Official event info</a> - signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.
-      </li>
     </RideFactRow>
-
-    <!-- The differences readable at a glance, without moving the selector. -->
-    <div
-      v-if="coursesDiffer"
-      class="mt-5 overflow-x-auto"
-    >
-      <table class="w-full border-collapse text-sm">
-        <caption class="sr-only">
-          Course, laps and published figures for each category group in this race
-        </caption>
-        <thead>
-          <tr class="border-b border-accented text-left text-xs text-muted">
-            <th
-              scope="col"
-              class="px-2 py-2 font-medium"
-            >
-              Group
-            </th>
-            <th
-              scope="col"
-              class="px-2 py-2 font-medium"
-            >
-              Course
-            </th>
-            <th
-              scope="col"
-              class="px-2 py-2 text-right font-medium"
-            >
-              Laps
-            </th>
-            <th
-              scope="col"
-              class="px-2 py-2 text-right font-medium"
-            >
-              Distance
-            </th>
-            <th
-              scope="col"
-              class="px-2 py-2 text-right font-medium"
-            >
-              Elevation
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="group in race!.categories"
-            :key="formatCategoryGroup(group)"
-            class="border-b border-default"
-          >
-            <td class="px-2 py-2 whitespace-nowrap font-medium text-highlighted">
-              {{ formatCategoryGroup(group) }}
-            </td>
-            <td class="px-2 py-2">
-              {{ group.routeName ?? 'TBC' }}
-            </td>
-            <td class="px-2 py-2 text-right">
-              {{ group.laps }}
-            </td>
-            <td class="px-2 py-2 text-right whitespace-nowrap">
-              {{ group.officialDistanceKm ? formatDistance(group.officialDistanceKm) : '-' }}
-            </td>
-            <td class="px-2 py-2 text-right whitespace-nowrap">
-              {{ group.officialElevationM !== undefined ? formatElevation(group.officialElevationM) : '-' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
 
     <CourseHero
       v-if="routeInfo"
@@ -733,6 +652,7 @@ useHead(() => {
             :draft-locked="draftLockedReason"
             :tt-barred="ttBarredReason"
             :fixed-laps="fixedLaps"
+            :applied-laps="resultsLaps"
           />
         </template>
 
@@ -791,35 +711,6 @@ useHead(() => {
         @remove="removeFromComparison"
       />
 
-      <!-- Curated race context, not a property of any ranking. -->
-      <section
-        v-if="race!.note"
-        class="mt-16"
-        aria-labelledby="race-note-heading"
-      >
-        <h2
-          id="race-note-heading"
-          class="text-2xl font-semibold font-heading text-highlighted"
-        >
-          How this race tends to play out
-        </h2>
-        <p class="mt-3 max-w-[72ch] text-toned">
-          {{ race!.note }}
-        </p>
-        <p
-          v-if="race!.sourceUrl"
-          class="mt-2 text-xs text-muted"
-        >
-          Race details from
-          <a
-            :href="race!.sourceUrl"
-            target="_blank"
-            rel="noopener"
-            class="underline decoration-rule-strong hover:text-highlighted"
-          >the published round guide</a>.
-        </p>
-      </section>
-
       <PhysicsNote
         v-if="physicsInfo"
         class="mt-12"
@@ -844,6 +735,114 @@ useHead(() => {
         </template>
       </p>
     </template>
+
+    <!-- The organiser's own context - the PowerUps, how the race plays
+         out, where its rules live - after the answer rather than in the
+         Fact row, which shares a phone's first screen with the time. -->
+    <section
+      v-if="race!.note || powerupsLine || coursesDiffer || race!.sourceUrl || season!.organizerUrl"
+      class="mt-16"
+      aria-labelledby="race-note-heading"
+    >
+      <h2
+        id="race-note-heading"
+        class="text-2xl font-semibold font-heading text-highlighted"
+      >
+        {{ race!.note ? 'How this race tends to play out' : 'About this race' }}
+      </h2>
+      <p
+        v-if="race!.note"
+        class="mt-3 max-w-[72ch] text-toned"
+      >
+        {{ race!.note }}
+      </p>
+      <!-- Curated fact only: absent powerup data renders no line at all. -->
+      <p
+        v-if="powerupsLine"
+        class="mt-3 text-toned"
+      >
+        PowerUps: {{ powerupsLine }}.
+      </p>
+      <!-- Each Category group's course, readable at a glance without moving the selector. -->
+      <div
+        v-if="coursesDiffer"
+        class="mt-4 overflow-x-auto"
+      >
+        <table class="w-full border-collapse text-sm">
+          <caption class="sr-only">
+            Course, laps and published figures for each category group in this race
+          </caption>
+          <thead>
+            <tr class="border-b border-accented text-left text-xs text-muted">
+              <th
+                scope="col"
+                class="px-2 py-2 font-medium"
+              >
+                Group
+              </th>
+              <th
+                scope="col"
+                class="px-2 py-2 font-medium"
+              >
+                Course
+              </th>
+              <th
+                scope="col"
+                class="px-2 py-2 text-right font-medium"
+              >
+                Laps
+              </th>
+              <th
+                scope="col"
+                class="px-2 py-2 text-right font-medium"
+              >
+                Distance
+              </th>
+              <th
+                scope="col"
+                class="px-2 py-2 text-right font-medium"
+              >
+                Elevation
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="group in race!.categories"
+              :key="formatCategoryGroup(group)"
+              class="border-b border-default"
+            >
+              <td class="px-2 py-2 whitespace-nowrap font-medium text-highlighted">
+                {{ formatCategoryGroup(group) }}
+              </td>
+              <td class="px-2 py-2">
+                {{ group.routeName ?? 'TBC' }}
+              </td>
+              <td class="px-2 py-2 text-right">
+                {{ group.laps }}
+              </td>
+              <td class="px-2 py-2 text-right whitespace-nowrap">
+                {{ group.officialDistanceKm ? formatDistance(group.officialDistanceKm) : '-' }}
+              </td>
+              <td class="px-2 py-2 text-right whitespace-nowrap">
+                {{ group.officialElevationM !== undefined ? formatElevation(group.officialElevationM) : '-' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p
+        v-if="race!.sourceUrl || season!.organizerUrl"
+        class="mt-3 text-sm text-muted"
+      >
+        <a
+          :href="race!.sourceUrl ?? season!.organizerUrl"
+          target="_blank"
+          rel="noopener"
+          class="text-toned underline decoration-rule-strong hover:text-highlighted"
+        >Official event info</a> - signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.
+      </p>
+    </section>
 
     <EventsDisclaimer
       class="mt-10"

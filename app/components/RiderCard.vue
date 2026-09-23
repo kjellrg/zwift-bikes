@@ -49,6 +49,8 @@ const props = withDefaults(defineProps<{
   lapOptions?: { label: string, value: number }[]
   /** The lap count the Ride fixes and why - a race group's laps, a segment timed once. */
   fixedLaps?: { label: string, reason: string }
+  /** The lap count the times on screen were computed for - `appliedRide.laps`; absent on a segment, ridden once. */
+  appliedLaps?: number
 }>(), { hasLongClimb: true, sprintPower: false })
 
 const laps = defineModel<number>('laps')
@@ -124,6 +126,7 @@ const appliedLine = computed(() => {
     power: `${rider.powerW} W`,
     wkg: `${(rider.powerW / rider.weightKg).toFixed(2)} W/kg${props.sprintPower ? ', sprint' : ''}`,
     draft: DRAFT_MODE_LABELS[rider.draftMode],
+    laps: props.appliedLaps === undefined ? 'once' : `${props.appliedLaps} lap${props.appliedLaps === 1 ? '' : 's'}`,
     category: rider.category === 'all' ? 'All categories' : BIKE_CATEGORY_LABELS[rider.category]
   }
 })
@@ -134,7 +137,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
 <template>
   <aside
     aria-labelledby="rider-card-heading"
-    class="min-w-0 rounded-xl border border-default bg-elevated p-5 shadow-[0_18px_40px_-24px_rgb(0_0_0/0.6)]"
+    class="min-w-0 rounded-xl border border-default bg-elevated p-5 shadow-card"
   >
     <div class="flex items-baseline justify-between gap-3">
       <h2
@@ -166,6 +169,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         restore-label="Restore my saved draft mode"
         @restore="restoreDraftMode"
       /></span><span aria-hidden="true">·</span>
+      <span>{{ appliedLine.laps }}</span><span aria-hidden="true">·</span>
       <span>{{ appliedLine.category }}</span>
     </p>
     <!-- Until a profile is saved every time on the page is the default

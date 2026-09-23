@@ -24,7 +24,7 @@ defineProps<{
       class="h-14"
     />
     <span class="mt-3 flex items-baseline justify-between gap-2">
-      <span class="min-w-0 font-semibold text-highlighted">{{ route.name }}</span>
+      <h3 class="min-w-0 font-semibold text-highlighted">{{ route.name }}</h3>
       <span class="shrink-0 text-sm text-muted">{{ route.worldName }}</span>
     </span>
     <span class="mt-0.5 flex flex-wrap gap-x-3 text-sm text-toned">

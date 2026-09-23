@@ -25,7 +25,7 @@ defineProps<{
     class="block h-full rounded-xl border border-default bg-elevated px-4 py-3.5 transition-colors hover:border-accented"
   >
     <span class="flex items-baseline justify-between gap-2">
-      <span class="min-w-0 font-semibold text-highlighted">{{ segment.name }}</span>
+      <h3 class="min-w-0 font-semibold text-highlighted">{{ segment.name }}</h3>
       <span class="shrink-0 text-xs text-muted">{{ segment.type === 'climb' ? (segment.climbType ? (segment.climbType === 'HC' ? 'Climb, HC' : `Climb, cat ${segment.climbType}`) : 'Climb') : 'Sprint' }}</span>
     </span>
     <span class="mt-1 flex flex-wrap gap-x-3 text-sm text-toned">

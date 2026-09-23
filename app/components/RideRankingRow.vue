@@ -83,8 +83,8 @@ function onRowClick(event: MouseEvent) {
       @click="onRowClick"
     >
       <td
-        class="w-11 px-2.5 pt-4 text-sm text-muted"
-        :class="!allColumns && 'max-md:row-span-3 max-md:p-0 max-md:pt-1'"
+        class="w-11 px-2.5 pt-4 text-sm"
+        :class="[rank === 1 ? 'font-semibold text-primary' : 'text-muted', !allColumns && 'max-md:row-span-3 max-md:p-0 max-md:pt-1']"
       >
         {{ rankMarker(rank) }}
       </td>
@@ -122,9 +122,19 @@ function onRowClick(event: MouseEvent) {
       <td
         class="w-[22%] min-w-28 px-2.5 pt-[1.3rem]"
         :class="!allColumns && 'max-md:col-span-2 max-md:col-start-2 max-md:row-start-3 max-md:w-auto max-md:min-w-0 max-md:p-0 max-md:pt-2'"
-        aria-hidden="true"
       >
-        <div class="h-1.5 overflow-hidden rounded-full bg-rule">
+        <!-- A meter, so the bar's length is something assistive tech can
+             read too: the gap against the table's scale, which is the
+             largest gap on the first page (see `RideRanking`). -->
+        <div
+          role="meter"
+          aria-label="Gap to the fastest, against the table's scale"
+          :aria-valuenow="Math.round(bar * 100)"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-valuetext="rank === 1 || isFastest ? 'fastest' : `${Math.round(bar * 100)}% of the largest gap on the first page`"
+          class="h-1.5 overflow-hidden rounded-full bg-rule"
+        >
           <div
             class="h-full rounded-full"
             :class="rank === 1 ? 'bg-primary' : 'bg-ink-toned'"

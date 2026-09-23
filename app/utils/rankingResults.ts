@@ -1,7 +1,7 @@
 import type { ComboScore, EquipmentPhysicsDelta, RouteWithMeta } from '../../shared/types/catalog'
 import { BIKE_CATEGORY_LABELS, formatRaceTimeSaving, formatSurfaceTimePenalty, formatTttTimeSaving } from './labels'
 import type { RiderInputs } from './recommendRequest'
-import { limitedCourseDataNote } from './rideBriefing'
+import { limitedCourseDataNote } from './rideCoverage'
 
 /**
  * Whether the course carries a real elevation shape, rather than a start

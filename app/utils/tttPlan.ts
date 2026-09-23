@@ -23,7 +23,7 @@ export interface TttPlanCoverage {
    * missing. `km` is where the lead-in ends, in ride kilometres.
    */
   leadIn?: { km: number, climbs: boolean, surfaces: boolean }
-  /** The disclosures, in rider words, for the briefing and the plan tab. */
+  /** The disclosures, in rider words, for the Fact row and the plan tab. */
   caveats: string[]
 }
 

@@ -1,23 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { SurfaceEstimate } from '../../shared/types/catalog'
-import { limitedCourseDataNote, surfaceCoverageLine, surfaceNamesLine } from './rideBriefing'
+import { limitedCourseDataNote, surfaceCoverageLine } from './rideCoverage'
 
 function surface(overrides: Partial<SurfaceEstimate>): SurfaceEstimate {
   return { road: 100, gravel: 0, cobble: 0, confidence: 'heuristic', ...overrides }
 }
-
-describe('surfaceNamesLine', () => {
-  it('lists the surfaces present, largest share first, by their display names', () => {
-    expect(surfaceNamesLine({ tarmac: 95.3, cobbles: 2.6, wood: 2.1 })).toBe('Tarmac / Cobbles / Wood')
-    expect(surfaceNamesLine({ wood: 8.7, tarmac: 87.1, dirt: 2.0 })).toBe('Tarmac / Wood / Dirt')
-  })
-
-  it('drops zero shares and yields nothing without a composition', () => {
-    expect(surfaceNamesLine({ tarmac: 100, gravel: 0 })).toBe('Tarmac')
-    expect(surfaceNamesLine(undefined)).toBeUndefined()
-    expect(surfaceNamesLine({})).toBeUndefined()
-  })
-})
 
 describe('surfaceCoverageLine', () => {
   it('distinguishes mapped positions from a measured mix without them', () => {

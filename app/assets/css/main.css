@@ -52,6 +52,9 @@
   --text-3xl: 2.25rem;
   --text-3xl--line-height: 1.05;
 
+  /* The one raised-card shadow: the Rider card and the homepage example. */
+  --shadow-card: 0 18px 40px -24px rgb(0 0 0 / 0.6);
+
   /* Nuxt's green. Still Nuxt UI's `success` scale behind the status token below. */
   --color-green-50: #EFFDF5;
   --color-green-100: #D9FBE8;
@@ -198,9 +201,6 @@
 }
 
 @layer base {
-  html {
-    overflow-x: clip;
-  }
   body {
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;

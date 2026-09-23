@@ -135,7 +135,7 @@ onMounted(async () => {
     v-if="card"
     id="home-example"
     :to="card.href"
-    class="block rounded-2xl border border-default bg-elevated px-5 pt-4.5 pb-5 shadow-[0_18px_40px_-24px_rgb(0_0_0/0.6)] transition-colors hover:border-accented"
+    class="block rounded-2xl border border-default bg-elevated px-5 pt-4.5 pb-5 shadow-card transition-colors hover:border-accented"
   >
     <span class="flex justify-between gap-3 text-sm text-muted">
       <span class="min-w-0 truncate">{{ card.context }} · {{ card.worldName }}</span>

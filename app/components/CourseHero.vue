@@ -241,14 +241,14 @@ function leave(event: PointerEvent) {
         v-for="label in labels"
         :key="label.key"
         class="absolute top-0 hidden -translate-x-1/2 whitespace-nowrap text-xs md:block"
-        :class="label.scoring ? 'text-primary' : 'text-muted'"
+        :class="label.scoring ? 'text-highlighted' : 'text-muted'"
         :style="{ left: `${(label.at * 100).toFixed(2)}%` }"
         aria-hidden="true"
       >{{ label.scoring ? '★ ' : '' }}{{ label.name }}</span>
       <span
         v-for="star in stars"
         :key="star.key"
-        class="absolute top-4 -translate-x-1/2 text-sm text-primary md:hidden"
+        class="absolute top-4 -translate-x-1/2 text-sm text-highlighted md:hidden"
         :style="{ left: `${(star.at * 100).toFixed(2)}%` }"
         aria-hidden="true"
       >★</span>

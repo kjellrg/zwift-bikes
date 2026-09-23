@@ -97,7 +97,7 @@ const ride = computed<Ride>(() => ({
 }))
 // Handed whole to `RideResults`, which renders everything this page shows
 // about the Ranking; what is destructured here is what the page itself is
-// still about - its header, its race-format control, its briefing and its
+// still about - its header, its race-format control, its Fact row and its
 // analysis.
 const request = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 const {
@@ -300,7 +300,7 @@ useHead(() => {
       <li v-if="segmentData.placement === 'membership'">
         The exact position of this segment along its host routes isn't in our route data, so length and grade come from the segment's own record, and the surface estimate is borrowed from the host route's overall mix.
       </li>
-      <TttBriefingLine
+      <TttFactLine
         v-if="tttPlan"
         :plan="tttPlan"
       />
