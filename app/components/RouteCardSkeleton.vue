@@ -1,21 +1,15 @@
 <template>
-  <!-- Same box as `RouteCard`: title + world, two stat chips, a badge row. -->
-  <UCard
-    class="h-full"
-    :ui="{ body: 'space-y-3' }"
+  <!-- `RouteCard`'s own shape: the silhouette, the strip, the name line and the numbers. -->
+  <div
+    class="h-full rounded-xl border border-default bg-elevated px-4 pt-3.5 pb-3.5"
     aria-hidden="true"
   >
-    <div class="flex items-start justify-between gap-2">
-      <div class="space-y-2">
-        <USkeleton class="h-4 w-40" />
-        <USkeleton class="h-3 w-24" />
-      </div>
-      <USkeleton class="h-5 w-16" />
-    </div>
-    <div class="flex gap-4">
-      <USkeleton class="h-4 w-16" />
+    <USkeleton class="h-14 w-full" />
+    <USkeleton class="mt-1 h-1 w-full" />
+    <div class="mt-3 flex justify-between gap-2">
+      <USkeleton class="h-4 w-36" />
       <USkeleton class="h-4 w-16" />
     </div>
-    <USkeleton class="h-5 w-28" />
-  </UCard>
+    <USkeleton class="mt-2 h-4 w-48" />
+  </div>
 </template>

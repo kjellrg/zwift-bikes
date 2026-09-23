@@ -41,6 +41,13 @@ const props = defineProps<{
   counts: DiscoveryCount[]
   /** The list fetch's `useFetch` status. */
   status: 'idle' | 'pending' | 'success' | 'error'
+  /**
+   * Whether the page prints the count line itself, beside its filters - the
+   * homepage and the segments page keep the count on the filter row, so the
+   * number sits with the controls that produced it. The line's words are
+   * this component's either way: see `discoveryCountLine`.
+   */
+  countElsewhere?: boolean
 }>()
 
 const emit = defineEmits<{ retry: [] }>()
@@ -60,36 +67,31 @@ const countLine = computed(() =>
          screen and says so above it, the same bargain the ranking pages
          strike: a filter change that fails leaves the previous list readable
          instead of blanking the page under a rider who was reading it. -->
-    <p
+    <SiteNotice
       v-if="failed"
-      class="flex flex-wrap items-center gap-x-2 text-sm text-muted"
+      tone="error"
       role="alert"
     >
-      <UIcon
-        name="i-lucide-refresh-cw-off"
-        class="size-4 shrink-0"
-      />Couldn't load {{ subject }}.
-      <UButton
-        color="neutral"
-        variant="link"
-        size="xs"
-        class="px-0"
-        @click="emit('retry')"
-      >
-        Try again
-      </UButton>
-    </p>
+      <p>Couldn't load {{ subject }}.</p>
+      <template #actions>
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="xs"
+          icon="i-lucide-rotate-cw"
+          @click="emit('retry')"
+        >
+          Try again
+        </UButton>
+      </template>
+    </SiteNotice>
 
     <!-- The live region is always in the DOM: one that appears along with the
-         text it holds is announced by nothing.
-
-         A failed fetch reports no count at all. The cards beneath are the
-         previous filter's, so a count would be a true statement about what is
-         on screen announced as the answer to the filter that was just moved -
-         which is the defect the skeleton grid was introduced to end ("the
-         stale count above it kept quoting the previous filter's total"). The
-         notice above says what actually happened. -->
+         text it holds is announced by nothing. A failed fetch reports no
+         count: the cards beneath are the previous filter's, and a count would
+         announce them as the answer to the filter just moved. -->
     <p
+      v-if="!countElsewhere"
       class="text-sm text-muted"
       aria-live="polite"
     >
@@ -107,9 +109,9 @@ const countLine = computed(() =>
     />
     <p
       v-else-if="isEmpty && !failed"
-      class="text-center py-10 text-muted"
+      class="py-10 text-muted"
     >
-      No {{ subject }} match your filters.
+      No {{ subject }} match your filters. Loosen one, or reset them.
     </p>
     <slot v-else />
   </div>

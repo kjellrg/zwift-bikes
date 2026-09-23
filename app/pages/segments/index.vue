@@ -78,6 +78,8 @@ watch([searchDebounced, worldFilter, typeFilter], () => {
   })
 })
 
+const countLine = computed(() => `${shownCounts.value.map(({ value, noun }) => `${value} ${noun}${value === 1 ? '' : 's'}`).join(' and ')} found`)
+
 const climbCount = computed(() => segments.value.filter(s => s.type === 'climb').length)
 const sprintCount = computed(() => segments.value.filter(s => s.type === 'sprint').length)
 
@@ -117,7 +119,7 @@ const description = catalogClimbs
   : 'The fastest bike and wheel combo for every rankable Zwift climb and sprint, ranked by predicted time for your rider profile.'
 
 useSeoMeta({
-  title: 'Zwift Climbs & Sprints - Best Bike for Every Segment - ZwiftBikes',
+  title: 'The fastest bike for every Zwift climb and sprint | ZwiftBikes',
   description,
   ogTitle: 'Zwift climbs & sprints',
   ogDescription: description
@@ -141,40 +143,46 @@ useHead({
 </script>
 
 <template>
-  <UContainer class="py-10 space-y-10">
-    <div>
-      <UButton
-        to="/"
-        variant="link"
-        color="neutral"
-        icon="i-lucide-arrow-left"
-        class="mb-4 px-0"
-      >
-        Browse all routes
-      </UButton>
-      <h1 class="text-3xl font-bold text-highlighted">
-        Zwift climbs &amp; sprints
+  <UContainer class="pb-8">
+    <div class="pt-8 sm:pt-12">
+      <nav aria-label="Breadcrumb">
+        <ol class="flex flex-wrap gap-x-3.5 text-sm text-muted">
+          <li>
+            <NuxtLink
+              to="/"
+              class="hover:text-highlighted"
+            >
+              All routes
+            </NuxtLink>
+          </li>
+          <li>Segments</li>
+        </ol>
+      </nav>
+      <h1 class="mt-3 text-balance text-[clamp(2.25rem,6vw,3.75rem)] leading-none font-bold font-display tracking-[-0.01em] text-highlighted">
+        The fastest bike for every climb and sprint
       </h1>
-      <p class="text-muted mt-2 max-w-2xl">
-        Every rankable segment in Zwift - {{ catalogClimbs }} climbs and {{ catalogSprints }} sprints -
-        with the bike and wheel combo our physics model predicts fastest for each one, tuned to
-        your own weight, height and power once you set a rider profile.
+      <p class="mt-4 max-w-2xl text-lg text-toned">
+        Every rankable segment in Zwift - {{ catalogClimbs }} climbs and {{ catalogSprints }} sprints - with the bike and wheel combo our physics model predicts fastest for each one, at your own weight, height and power once you set a rider profile.
       </p>
     </div>
 
-    <div class="flex flex-wrap items-end gap-4 rounded-lg border border-default p-4">
-      <div class="min-w-56 grow sm:grow-0 sm:w-72">
-        <label class="block text-xs font-medium text-muted mb-1">Search</label>
+    <div
+      class="mt-8 flex flex-wrap items-end gap-x-6 gap-y-4 border-y border-default py-4"
+      role="group"
+      aria-label="Segment filters"
+    >
+      <div class="w-full sm:w-72">
+        <label class="mb-1 block text-xs text-muted">Search</label>
         <UInput
           v-model="search"
           icon="i-lucide-search"
           aria-label="Search segments"
-          placeholder="e.g. Alpe du Zwift, Fuego Flats..."
+          placeholder="e.g. Alpe du Zwift, Fuego Flats"
           class="w-full"
         />
       </div>
-      <div class="min-w-40">
-        <label class="block text-xs font-medium text-muted mb-1">World</label>
+      <div>
+        <label class="mb-1 block text-xs text-muted">World</label>
         <USelectMenu
           v-model="worldFilter"
           value-key="value"
@@ -184,8 +192,8 @@ useHead({
           class="w-44"
         />
       </div>
-      <div class="min-w-40">
-        <label class="block text-xs font-medium text-muted mb-1">Show</label>
+      <div>
+        <label class="mb-1 block text-xs text-muted">Show</label>
         <USelectMenu
           v-model="typeFilter"
           value-key="value"
@@ -195,55 +203,71 @@ useHead({
           class="w-48"
         />
       </div>
-      <UButton
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-rotate-ccw"
-        @click="resetFilters"
-      >
-        Reset
-      </UButton>
+      <div class="flex items-center gap-3 lg:ml-auto">
+        <p
+          class="text-sm text-muted"
+          aria-live="polite"
+        >
+          <template v-if="status === 'pending'">
+            Finding segments…
+          </template>
+          <template v-else-if="status !== 'error'">
+            {{ countLine }}
+          </template>
+        </p>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-rotate-ccw"
+          @click="resetFilters"
+        >
+          Reset
+        </UButton>
+      </div>
     </div>
 
-    <!-- The count line, the empty message and a failed fetch's notice are
-         `DiscoveryStatus`, shared with the homepage; the world groups it
-         fills are this page's. Skeletons load into a flat grid rather than
-         under headings: which worlds have anything in them is exactly what
-         the pending response is about to say. -->
+    <!-- Skeletons load into a flat grid rather than under headings: which
+         worlds have anything in them is exactly what the pending response is
+         about to say. -->
     <DiscoveryStatus
+      class="mt-6"
       subject="segments"
       :counts="shownCounts"
       :status="status"
+      count-elsewhere
       @retry="refresh"
     >
       <template #skeleton>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <SegmentCardSkeleton
-            v-for="n in 6"
+            v-for="n in 8"
             :key="n"
           />
         </div>
       </template>
 
-      <!-- One child of the slot, so the worlds keep the page's own rhythm
-           apart from each other rather than the status block's tighter one. -->
       <div class="space-y-10">
-        <div
+        <section
           v-for="group in worldGroups"
           :key="group.world"
-          class="space-y-4"
+          :aria-labelledby="`world-${group.world}`"
         >
-          <h2 class="text-xl font-semibold text-highlighted">
+          <h2
+            :id="`world-${group.world}`"
+            class="text-2xl font-semibold font-heading text-highlighted"
+          >
             {{ group.worldName }}
           </h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SegmentCard
+          <ul class="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <li
               v-for="segment in group.segments"
               :key="segment.slug"
-              :segment="segment"
-            />
-          </div>
-        </div>
+            >
+              <SegmentCard :segment="segment" />
+            </li>
+          </ul>
+        </section>
       </div>
     </DiscoveryStatus>
   </UContainer>

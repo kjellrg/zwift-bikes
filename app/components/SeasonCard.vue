@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ULink } from '#components'
+import { NuxtLink } from '#components'
 import type { EventSeason } from '../../shared/utils/events'
 
 /**
@@ -58,88 +58,56 @@ const roundTiles = computed(() => props.season.rounds.map((round) => {
 </script>
 
 <template>
-  <UCard :ui="{ body: 'space-y-4' }">
-    <div>
-      <h3 class="text-xl font-semibold">
-        <ULink
-          :to="`/events/${season.slug}`"
-          class="text-primary hover:underline"
-        >
-          {{ season.seriesName }} {{ season.label }}
-        </ULink>
-      </h3>
-      <p class="text-muted mt-1 max-w-2xl">
-        {{ season.description }}
-      </p>
-    </div>
+  <article class="rounded-xl border border-default bg-elevated p-5">
+    <h3 class="text-xl font-semibold font-heading">
+      <NuxtLink
+        :to="`/events/${season.slug}`"
+        class="text-highlighted underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+      >
+        {{ season.seriesName }} {{ season.label }}
+      </NuxtLink>
+    </h3>
+    <p class="mt-1 max-w-2xl text-toned">
+      {{ season.description }}
+    </p>
 
-    <!-- The numbers a rider scans a season by, in the stat row every card on
-         a discovery page uses. A season with nothing announced yet has no
-         span to report and says so rather than printing an empty dash. -->
-    <div class="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted">
-      <span class="inline-flex items-center gap-2">
-        <UIcon
-          name="i-lucide-calendar-days"
-          class="size-4 shrink-0"
-        />{{ formatSeasonSpan(summary) ?? 'Dates to come' }}
-      </span>
-      <span class="inline-flex items-center gap-2">
-        <UIcon
-          name="i-lucide-layers"
-          class="size-4 shrink-0"
-        />{{ summary.rounds }} round{{ summary.rounds === 1 ? '' : 's' }}
-      </span>
-      <span class="inline-flex items-center gap-2">
-        <UIcon
-          name="i-lucide-flag"
-          class="size-4 shrink-0"
-        />{{ summary.races }} race{{ summary.races === 1 ? '' : 's' }}
-      </span>
-    </div>
+    <!-- The numbers a rider scans a season by. A season with nothing
+         announced yet has no span and says so rather than printing a dash. -->
+    <p class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-toned">
+      <span>{{ formatSeasonSpan(summary) ?? 'Dates to come' }}</span>
+      <span><span class="font-semibold text-highlighted">{{ summary.rounds }}</span> round{{ summary.rounds === 1 ? '' : 's' }}</span>
+      <span><span class="font-semibold text-highlighted">{{ summary.races }}</span> race{{ summary.races === 1 ? '' : 's' }}</span>
+    </p>
 
-    <div
+    <ul
       v-if="season.rounds.length"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+      class="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4"
     >
-      <component
-        :is="tile.to ? ULink : 'div'"
+      <li
         v-for="tile in roundTiles"
         :key="tile.round.number"
-        :to="tile.to"
-        class="rounded-lg border border-default p-3"
-        :class="tile.to && 'transition hover:border-primary hover:ring hover:ring-primary/50'"
       >
-        <div class="flex items-baseline justify-between gap-2">
-          <p class="text-xs text-muted uppercase tracking-wide">
-            Round {{ tile.round.number }}
-          </p>
-          <UBadge
-            v-if="tile.state === 'ongoing'"
-            color="primary"
-            variant="subtle"
-            size="sm"
-          >
-            Ongoing
-          </UBadge>
-          <UBadge
-            v-else-if="tile.state === 'past'"
-            color="neutral"
-            variant="subtle"
-            size="sm"
-          >
-            Past
-          </UBadge>
-        </div>
-        <p
-          class="font-medium"
-          :class="tile.state === 'past' ? 'text-muted' : 'text-highlighted'"
+        <component
+          :is="tile.to ? NuxtLink : 'div'"
+          :to="tile.to"
+          class="block h-full rounded-lg border border-default px-3 py-2.5"
+          :class="tile.to && 'transition-colors hover:border-accented'"
         >
-          {{ tile.round.name ?? `Round ${tile.round.number}` }}
-        </p>
-        <p class="text-sm text-muted">
-          {{ formatRaceDateShort(tile.round.startDate) }} - {{ formatRaceDateShort(tile.round.endDate) }}
-        </p>
-      </component>
-    </div>
-  </UCard>
+          <span class="flex items-baseline justify-between gap-2 text-xs text-muted">
+            <span>Round {{ tile.round.number }}</span>
+            <span>{{ tile.state === 'ongoing' ? 'Ongoing' : tile.state === 'past' ? 'Past' : 'To come' }}</span>
+          </span>
+          <span
+            class="mt-0.5 block font-medium"
+            :class="tile.state === 'past' ? 'text-muted' : 'text-highlighted'"
+          >
+            {{ tile.round.name ?? `Round ${tile.round.number}` }}
+          </span>
+          <span class="block text-sm text-muted">
+            {{ formatRaceDateShort(tile.round.startDate) }} - {{ formatRaceDateShort(tile.round.endDate) }}
+          </span>
+        </component>
+      </li>
+    </ul>
+  </article>
 </template>
