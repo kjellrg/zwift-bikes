@@ -166,24 +166,27 @@ const evidence = computed(() => rankingEvidence({
 
     <!-- The answer the page's title asks for, in plain words, directly
          under the answer band - the words a crawler quotes are the words a
-         rider reads first. Its Ride rules lead, where the Ride has any. -->
+         rider reads first. Its Ride rules lead, where the Ride has any.
+         Set as a caption, not a section of its own: it restates the answer
+         band above it in a sentence, and at full size it read as the same
+         answer given twice. -->
     <section
       v-if="answer"
       aria-labelledby="ride-answer-heading"
-      class="mt-9 border-y border-default py-5"
+      class="mt-8 max-w-[72ch]"
     >
       <h2
         id="ride-answer-heading"
-        class="text-lg font-semibold text-highlighted"
+        class="text-md font-medium text-toned"
       >
         {{ faqQuestion }}
       </h2>
-      <p class="mt-2 max-w-[72ch] text-toned">
+      <p class="mt-1 text-sm text-muted">
         {{ answer.summary }}
       </p>
       <p
         id="ride-answer-assumptions"
-        class="mt-1.5 max-w-[72ch] text-xs text-muted"
+        class="mt-1 text-xs text-muted"
       >
         {{ answer.assumptions }}
       </p>

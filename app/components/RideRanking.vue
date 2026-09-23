@@ -173,7 +173,7 @@ const headingId = useId()
           <tr class="border-b border-accented text-left text-xs text-muted">
             <th
               scope="col"
-              class="px-2.5 pb-2 font-medium"
+              class="px-2.5 pb-2 text-right font-medium"
             >
               #
             </th>

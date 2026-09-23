@@ -76,7 +76,7 @@ test.describe('route recommendation', () => {
   test('shows the whole ranking as a table from rank 1, and reaches it from the answer', async ({ page }) => {
     await visit(page, ROUTE)
     const [rank1] = await recommendation(page).getByRole('button', { name: /^Details for / }).allInnerTexts()
-    expect(await setups(page).first().locator('tr').first().innerText()).toMatch(/^01\b/)
+    expect(await setups(page).first().locator('tr').first().innerText()).toMatch(/^1\b/)
     expect((await frameNames(page))[0]).toBe(rank1)
     await expect(setups(page).first()).toContainText('fastest')
     // The row controls exist once: none of them on the answer.

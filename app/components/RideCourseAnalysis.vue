@@ -195,7 +195,9 @@ const planScope = computed(() => {
     </h2>
     <!-- The list wraps rather than scrolls so every tab is visible on a phone;
          the sliding indicator only knows one row, so the active trigger draws
-         its own underline, in the primary like the current section. -->
+         its own underline, in the primary like the current section. A step
+         smaller and tighter on a phone, so a route's three tabs fit one row
+         and only a race's longer set wraps. -->
     <UTabs
       v-model="selected"
       :items="items"
@@ -206,7 +208,7 @@ const planScope = computed(() => {
       :ui="{
         list: 'flex-wrap gap-x-1 border-b border-accented',
         indicator: 'hidden',
-        trigger: 'text-md text-muted data-[state=active]:text-highlighted data-[state=active]:after:content-[\'\'] data-[state=active]:after:absolute data-[state=active]:after:inset-x-0 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary',
+        trigger: 'text-md text-muted max-sm:px-2 max-sm:text-sm data-[state=active]:text-highlighted data-[state=active]:after:content-[\'\'] data-[state=active]:after:absolute data-[state=active]:after:inset-x-0 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:bg-primary',
         content: 'pt-3'
       }"
     >

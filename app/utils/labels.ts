@@ -7,11 +7,12 @@ import { formatDuration, formatDurationGap } from '#shared/utils/duration'
 import { surfaceFamily, type SurfaceFamily } from '#shared/utils/silhouette'
 
 /**
- * A rank as the Ranking prints it: `01`, `02`, ... The Recommendation is rank
- * 1 and the rows are the rest, so the two render their markers through one
- * function and cannot drift in format.
+ * A rank as the Ranking prints it: a plain `1`, `2`, ... `10`, in tabular
+ * figures and right-aligned by its column, so the digits line up without a
+ * zero pad. The Recommendation is rank 1 and the rows are the rest, so the
+ * two render their markers through one function and cannot drift in format.
  */
-export const rankMarker = (rank: number) => String(rank).padStart(2, '0')
+export const rankMarker = (rank: number) => String(rank)
 
 /** The draft mode as the rider strip, the draft selects and the course-analysis scope lines name it - one list, so none of them can disagree. */
 export const DRAFT_MODE_LABELS: Record<DraftMode, string> = { solo: 'Solo', race: 'Race draft', ttt: 'TTT paceline' }

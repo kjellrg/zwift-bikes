@@ -88,7 +88,7 @@ test.describe('segment recommendation', () => {
       return Boolean(ranking.compareDocumentPosition(analysis) & Node.DOCUMENT_POSITION_FOLLOWING)
     })).toBe(true)
     // The table starts at rank 1, which is the answer's setup.
-    expect(await rows(page).first().locator('tr').first().innerText()).toMatch(/^01\b/)
+    expect(await rows(page).first().locator('tr').first().innerText()).toMatch(/^1\b/)
 
     // A segment is ridden once: the Rider card fixes the lap count, and the
     // route-only climbs tab has no place here.

@@ -276,7 +276,9 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
           @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')"
         />
       </div>
-      <div>
+      <!-- Laps and Frames take the card's whole width on a phone: half of
+           it is narrower than "Standard (Road)" and the select's chevron. -->
+      <div class="max-sm:col-span-2">
         <label
           :for="ids.laps"
           class="block text-xs text-muted"
@@ -304,7 +306,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
           1 lap <span class="block text-xs text-muted">This route is ridden once</span>
         </p>
       </div>
-      <div>
+      <div class="max-sm:col-span-2">
         <div class="flex items-center gap-1.5">
           <label
             :for="ids.category"

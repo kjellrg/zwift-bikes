@@ -83,7 +83,7 @@ function onRowClick(event: MouseEvent) {
       @click="onRowClick"
     >
       <td
-        class="w-11 px-2.5 pt-4 text-sm"
+        class="w-11 px-2.5 pt-4 text-right text-sm"
         :class="[rank === 1 ? 'font-semibold text-primary' : 'text-muted', !allColumns && 'max-md:row-span-3 max-md:p-0 max-md:pt-1']"
       >
         {{ rankMarker(rank) }}

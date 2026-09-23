@@ -92,7 +92,7 @@ test.describe('race recommendation', () => {
       return Boolean(ranking.compareDocumentPosition(analysis) & Node.DOCUMENT_POSITION_FOLLOWING)
     })).toBe(true)
     // The table starts at rank 1.
-    expect(await rows(page).first().locator('tr').first().innerText()).toMatch(/^01\b/)
+    expect(await rows(page).first().locator('tr').first().innerText()).toMatch(/^1\b/)
     await expectNoHorizontalOverflow(page)
   })
 
