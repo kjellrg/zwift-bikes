@@ -300,6 +300,7 @@ useHead(() => {
         :combo="topCombo"
         :ride-name="routeData.name"
         :physics-mode="physicsInfo?.mode"
+        :draft-mode="appliedInputs.draftMode"
         :refreshing="isRefreshing"
       />
       <!-- The Ride-only tabs follow the picker `laps` like the hero; the

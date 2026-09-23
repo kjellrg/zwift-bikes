@@ -377,6 +377,7 @@ useHead(() => {
         :combo="topCombo"
         :ride-name="segmentData.name"
         :physics-mode="physicsInfo?.mode"
+        :draft-mode="appliedInputs.draftMode"
         :refreshing="isRefreshing"
       />
       <RideCourseAnalysis

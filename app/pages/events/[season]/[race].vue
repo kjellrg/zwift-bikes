@@ -676,6 +676,7 @@ useHead(() => {
           :combo="topCombo"
           :ride-name="appliedRanking.course?.name ?? displayRouteName"
           :physics-mode="physicsInfo?.mode"
+          :draft-mode="appliedInputs.draftMode"
           :refreshing="isRefreshing"
         />
         <RideCourseAnalysis

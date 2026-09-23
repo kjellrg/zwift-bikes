@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { DraftMode } from '../../shared/utils/physics/draft'
 import { comboPhysicsDelta, formatSignedDelta, isDynamicPhysics } from '../utils/rankingResults'
 import { aeroShare, whyThisWins } from '../utils/rideWhy'
 
 /**
  * "Why this bike wins here": the reason behind the Recommendation's number,
- * from data the response already carries and nothing else - one templated
- * sentence (`whyThisWins`), the aero-against-weight split drawn as a
- * two-part bar, and rank 1's own figures: its physics against the stock
- * bike, what rough surfaces cost it, and which physics model timed it.
+ * from data the response already carries and nothing else - a few templated
+ * sentences (`whyThisWins`), what the terrain rewards drawn as a two-part
+ * aero-against-weight bar, and rank 1's own figures: its physics against the
+ * stock bike, what rough surfaces cost it, and which physics model timed it.
  *
  * Equipment-dependent, so it reads the APPLIED Ranking - its course and its
  * rank 1 - and dims through a refresh like the answer it explains.
@@ -21,6 +22,8 @@ const props = defineProps<{
   /** The Ride in the page's words, for the sentence: "The Mega Pretzel". */
   rideName: string
   physicsMode: string | undefined
+  /** The draft mode the times were computed under - `appliedInputs.draftMode`. */
+  draftMode: DraftMode
   refreshing: boolean
 }>()
 
@@ -32,7 +35,9 @@ const sentence = computed(() => props.course && props.combo
       climbRatio: props.course.terrain.climbRatio,
       weights: props.course.terrain.weights,
       frameName: props.combo.frame.name,
-      frameStyle: props.combo.frame.style
+      frameStyle: props.combo.frame.style,
+      frameCategory: props.combo.frame.category,
+      draftMode: props.draftMode
     })
   : undefined)
 const delta = computed(() => props.combo ? comboPhysicsDelta(props.combo) : undefined)
@@ -70,7 +75,7 @@ const surfaceCost = computed(() => {
       </p>
       <div class="mt-5">
         <p class="text-xs text-muted">
-          How the finish time is decided on this ride
+          What the terrain rewards, from its climbing alone: aerodynamics against low weight
         </p>
         <div
           class="mt-1.5 flex h-2.5 gap-0.5 overflow-hidden rounded-[3px]"
