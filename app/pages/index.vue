@@ -227,7 +227,7 @@ watch([query, terrainFilter], ([value]) => {
             <a
               href="/profile"
               aria-haspopup="dialog"
-              class="text-primary hover:underline"
+              class="text-primary underline decoration-primary/40 hover:decoration-primary"
               @click="openProfile"
             >Edit your profile</a>
           </template>
@@ -236,7 +236,7 @@ watch([query, terrainFilter], ([value]) => {
             <a
               href="/profile"
               aria-haspopup="dialog"
-              class="text-primary hover:underline"
+              class="text-primary underline decoration-primary/40 hover:decoration-primary"
               @click="openProfile"
             >Set your profile</a>
             and every page uses yours.

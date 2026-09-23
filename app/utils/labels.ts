@@ -126,8 +126,8 @@ export function formatElevation(m: number): string {
 // `rankingResults.test.ts`), which teaches no auto-imports.
 
 /**
- * Describes how much time a route's non-tarmac sections cost vs. an
- * equivalent fully-paved route - see `estimateSurfaceTimePenaltySec`. Kept
+ * Describes, as one short evidence line, how much time a route's non-tarmac
+ * sections cost vs. an equivalent fully-paved route - see `estimateSurfaceTimePenaltySec`. Kept
  * generic ("rough terrain") rather than naming specific surfaces, since the
  * coarse `gravel`/`cobble` fields are buckets that can mean anything from
  * dirt/snow/sand to brick/wood - see `coarsenSurfaceComposition`. Returns
@@ -137,7 +137,8 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
   if (!penaltySec || penaltySec <= 0) return undefined
   if (surface.gravel <= 0 && surface.cobble <= 0) return undefined
 
-  return `Due to increased rolling resistance, rough terrain adds ~${Math.round(penaltySec)}s to this route with the fastest combo below.`
+  const cost = penaltySec < 60 ? `${Math.round(penaltySec)} seconds` : `${formatDuration(penaltySec)} minutes`
+  return `Rough surfaces cost this setup about ${cost} here`
 }
 
 /**

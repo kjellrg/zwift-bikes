@@ -55,7 +55,7 @@ describe('rankingEvidence', () => {
     })
 
     expect(evidence.notes).toEqual([
-      'Due to increased rolling resistance, rough terrain adds ~43s to this route with the fastest combo below.',
+      'Rough surfaces cost this setup about 43 seconds here',
       'A 4-rider paceline saves ~1:35 vs riding this alone at the same effort (~320 W on your pulls).',
       'Sitting in a typical mass-start bunch saves ~1:01 vs riding this alone at the same average power (~24% less power for the same speed on the flat).'
     ])

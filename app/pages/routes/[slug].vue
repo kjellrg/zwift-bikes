@@ -127,6 +127,15 @@ const facts = computed<RideFact[]>(() => {
     ...(climbs ? [climbs] : [])
   ]
 })
+/** The lap and lead-in scope as one Ride-only line, when there is either to state. */
+const lapScope = computed(() => {
+  const totals = routeTotals.value
+  if (!routeData.value || !totals || (!routeData.value.lap && totals.leadInDistanceKm <= 0)) return undefined
+  const lapsText = `${laps.value} lap${laps.value === 1 ? '' : 's'}`
+  if (totals.leadInDistanceKm <= 0) return `${lapsText}.`
+  const climbing = totals.leadInElevationM > 0 ? ` with ${formatElevation(totals.leadInElevationM)} of climbing` : ''
+  return `${lapsText} plus a ${formatDistance(totals.leadInDistanceKm)} lead-in${climbing}, ridden once.`
+})
 const surfaceCoverage = computed(() => routeData.value ? surfaceCoverageLine(routeData.value.surface) : undefined)
 
 // The lap count the currently displayed combos were computed for - `laps`
@@ -218,12 +227,8 @@ useHead(() => {
     <!-- `laps` (the picker), not the applied lap count: the Fact row and the
          hero describe the ride the rider has chosen, and are Ride-only. -->
     <RideFactRow :facts="facts">
-      <li v-if="routeTotals && (routeData.lap || routeTotals.leadInDistanceKm > 0)">
-        {{ laps }} lap{{ laps === 1 ? '' : 's' }}<template v-if="routeTotals.leadInDistanceKm > 0">
-          plus a {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in<template v-if="routeTotals.leadInElevationM > 0">
-            with {{ formatElevation(routeTotals.leadInElevationM) }} of climbing
-          </template>, ridden once
-        </template>.
+      <li v-if="lapScope">
+        {{ lapScope }}
       </li>
       <li v-if="surfaceCoverage && surfaceCoverage !== 'Mapped surfaces'">
         {{ surfaceCoverage }}.
