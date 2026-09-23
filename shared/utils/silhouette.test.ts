@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RouteWithMeta } from '../types/catalog'
-import { routeSilhouette, silhouette, SILHOUETTE_MIN_SPAN_M, surfaceFamily } from './silhouette'
+import { outlineRuns, routeSilhouette, silhouette, SILHOUETTE_MIN_SPAN_M, surfaceFamily } from './silhouette'
 
 // Hand-built routes rather than catalog ones, for the same reason as
 // `routeOccurrences.test.ts`: the pages draw a Silhouette from the fetched
@@ -149,9 +149,56 @@ describe('routeSilhouette', () => {
     expect(routeSilhouette(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
   })
 
+  it('marks an unmeasured lead-in as approximated, to be dashed, and a measured one or none as not', () => {
+    expect(routeSilhouette(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBeCloseTo(2 / 22)
+    expect(routeSilhouette(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
+    const measured = fixtureRoute({ leadInDistance: 2 })
+    measured.terrain.leadInElevationProfile = [{ distanceM: 0, elevationM: 0 }, { distanceM: 2000, elevationM: 10 }]
+    expect(routeSilhouette(measured, 2)!).not.toHaveProperty('approximatedUntil')
+  })
+
+  it('leaves a lead-in-only climb off a listing\'s lap-only shape, and places it on a full route\'s', () => {
+    const withLeadInClimb = (leadInDistance: number | undefined) => {
+      const route = fixtureRoute({ leadInDistance: leadInDistance ?? 0 })
+      if (leadInDistance === undefined) delete (route as { leadInDistance?: number }).leadInDistance
+      route.terrain.climbs.push({ name: 'Pen climb', slug: 'pen-climb', fromKm: 0.5, toKm: 1.5, lengthKm: 1, elevationM: 30, avgGradePercent: 3, perLap: false })
+      return routeSilhouette(route, 1)!
+    }
+    expect(withLeadInClimb(undefined).climbs.map(band => band.slug)).toEqual(['lap-kom'])
+    expect(withLeadInClimb(2).climbs.map(band => band.slug)).toEqual(['pen-climb', 'lap-kom'])
+  })
+
   it('draws no surface strip when the surfaces have no measured positions', () => {
     const route = fixtureRoute()
     delete (route.surface as { segments?: unknown }).segments
     expect(routeSilhouette(route, 1)!.surfaces).toEqual([])
+  })
+})
+
+describe('outlineRuns', () => {
+  const points = [{ x: 0, y: 0 }, { x: 0.2, y: 0.4 }, { x: 0.6, y: 1 }, { x: 1, y: 0 }]
+
+  it('is one measured run when nothing was approximated', () => {
+    expect(outlineRuns(points, undefined)).toEqual([{ points, approximated: false }])
+  })
+
+  it('splits at the end of the approximated stretch, the two runs sharing the point where they meet', () => {
+    const [approximated, measured] = outlineRuns(points, 0.4)
+    expect(approximated!.approximated).toBe(true)
+    expect(measured!.approximated).toBe(false)
+    expect(approximated!.points.slice(0, 2)).toEqual([{ x: 0, y: 0 }, { x: 0.2, y: 0.4 }])
+    expect(measured!.points.slice(1)).toEqual([{ x: 0.6, y: 1 }, { x: 1, y: 0 }])
+    // The joint is interpolated on the 0.2 -> 0.6 segment, and is the same point in both runs.
+    const joint = approximated!.points.at(-1)!
+    expect(joint.x).toBe(0.4)
+    expect(joint.y).toBeCloseTo(0.7)
+    expect(measured!.points[0]).toBe(joint)
+  })
+
+  it('splits on a point that falls exactly at the end, without inventing one', () => {
+    expect(outlineRuns(points, 0.2)).toEqual([
+      { approximated: true, points: [{ x: 0, y: 0 }, { x: 0.2, y: 0.4 }] },
+      { approximated: false, points: [{ x: 0.2, y: 0.4 }, { x: 0.6, y: 1 }, { x: 1, y: 0 }] }
+    ])
   })
 })

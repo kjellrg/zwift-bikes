@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { RouteWithMeta } from '../../shared/types/catalog'
-import { routeSilhouette } from '#shared/utils/silhouette'
+import { outlineRuns, routeSilhouette, type OutlinePoint } from '#shared/utils/silhouette'
 
 /**
  * The Course hero (see `CONTEXT.md`): the Ride's elevation profile drawn
@@ -13,7 +13,10 @@ import { routeSilhouette } from '#shared/utils/silhouette'
  * finish time was simulated over, for the lap count the rider has chosen
  * with the lead-in once. Ride-only: it never waits for a Ranking, and a
  * route with no measured profile gets a line saying its terrain is
- * approximated instead of a drawing of the model's own guess.
+ * approximated instead of a drawing of the model's own guess. A lead-in with
+ * no measured profile is drawn - it is ridden - but dashed, with a line
+ * saying why, and its readout names it approximated instead of reading a
+ * grade off the model's straight line.
  *
  * The SVG stretches to its box (`preserveAspectRatio="none"`), so every
  * stroke is `non-scaling` and every label is HTML over it rather than SVG
@@ -39,11 +42,14 @@ const PAD_BOTTOM = 10
 const scaleX = (fraction: number) => fraction * VIEW_WIDTH
 const scaleY = (height: number) => VIEW_HEIGHT - PAD_BOTTOM - height * (VIEW_HEIGHT - PAD_TOP - PAD_BOTTOM)
 
-const linePath = computed(() => {
-  const points = shape.value?.points ?? []
-  return points.map((point, index) => `${index ? 'L' : 'M'}${scaleX(point.x).toFixed(1)},${scaleY(point.y).toFixed(1)}`).join(' ')
-})
+const pathOf = (points: readonly OutlinePoint[]) =>
+  points.map((point, index) => `${index ? 'L' : 'M'}${scaleX(point.x).toFixed(1)},${scaleY(point.y).toFixed(1)}`).join(' ')
+const linePath = computed(() => pathOf(shape.value?.points ?? []))
 const areaPath = computed(() => linePath.value ? `${linePath.value} L${VIEW_WIDTH},${VIEW_HEIGHT} L0,${VIEW_HEIGHT} Z` : '')
+/** The outline as drawn: an unmeasured lead-in dashed, the rest solid. */
+const lineRuns = computed(() => shape.value
+  ? outlineRuns(shape.value.points, shape.value.approximatedUntil).map(run => ({ d: pathOf(run.points), approximated: run.approximated }))
+  : [])
 
 const scoring = computed(() => new Set(props.scoringSlugs ?? []))
 
@@ -96,6 +102,7 @@ const summary = computed(() => {
   const climbs = new Set(shape.value.climbs.map(band => band.slug)).size
   const sprints = new Set(shape.value.sprints.map(band => band.slug)).size
   const parts = [`${formatDistance(totalKm.value)}`, `${formatElevation(shape.value.maxElevationM - shape.value.minElevationM)} between its lowest and highest points`]
+  if (shape.value.approximatedUntil) parts.push('its lead-in approximated')
   if (climbs) parts.push(`${climbs} named climb${climbs === 1 ? '' : 's'}`)
   if (sprints) parts.push(`${sprints} sprint${sprints === 1 ? '' : 's'}`)
   return `Elevation profile of ${props.name}: ${parts.join(', ')}.`
@@ -122,7 +129,10 @@ function read(event: PointerEvent) {
   const height = a.y + (b.y - a.y) * t
   const grade = spanM > 0 ? ((b.elevationM - a.elevationM) / spanM) * 100 : 0
   const surface = shape.value!.surfaces.find(span => at >= span.from && at <= span.to)?.surface
-  const parts = [`km ${(at * totalKm.value).toFixed(1)}`, formatElevation(elevationM), `${grade >= 0 ? '+' : ''}${formatGrade(grade)}`]
+  const approximated = at < (shape.value!.approximatedUntil ?? 0)
+  const parts = approximated
+    ? [`km ${(at * totalKm.value).toFixed(1)}`, 'approximated lead-in']
+    : [`km ${(at * totalKm.value).toFixed(1)}`, formatElevation(elevationM), `${grade >= 0 ? '+' : ''}${formatGrade(grade)}`]
   if (surface) parts.push(SURFACE_TYPE_LABELS[surface as keyof typeof SURFACE_TYPE_LABELS] ?? surface)
   readout.value = { at, top: scaleY(height) / VIEW_HEIGHT, text: parts.join(' · ') }
 }
@@ -199,12 +209,16 @@ function leave(event: PointerEvent) {
           vector-effect="non-scaling-stroke"
         />
         <path
-          :d="linePath"
+          v-for="(run, index) in lineRuns"
+          :key="`line-${index}`"
+          :d="run.d"
           fill="none"
-          class="stroke-ink"
+          :class="run.approximated ? 'stroke-ink-toned' : 'stroke-ink'"
           stroke-width="1.6"
+          :stroke-dasharray="run.approximated ? '5 4' : undefined"
           stroke-linejoin="round"
           vector-effect="non-scaling-stroke"
+          :data-approximated="run.approximated || undefined"
         />
         <line
           v-for="band in shape.sprints"
@@ -283,10 +297,17 @@ function leave(event: PointerEvent) {
         :style="{ width: `${((span.to - span.from) * 100).toFixed(3)}%` }"
       />
     </div>
-    <figcaption class="mt-2 flex justify-between text-xs text-muted">
-      <span>0 km</span>
-      <span>{{ formatDistance(totalKm / 2) }}</span>
-      <span>{{ formatDistance(totalKm) }}</span>
+    <figcaption class="mt-2 text-xs text-muted">
+      <span class="flex justify-between">
+        <span>0 km</span>
+        <span>{{ formatDistance(totalKm / 2) }}</span>
+        <span>{{ formatDistance(totalKm) }}</span>
+      </span>
+      <span
+        v-if="shape.approximatedUntil"
+        id="course-hero-approximated"
+        class="mt-1 block"
+      >The dashed start is the lead-in, which has no measured profile, so its shape is approximated.</span>
     </figcaption>
   </figure>
   <p

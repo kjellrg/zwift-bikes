@@ -1,4 +1,4 @@
-import type { Silhouette, SurfaceFamily } from '#shared/utils/silhouette'
+import { outlineRuns, type Silhouette, type SurfaceFamily } from '#shared/utils/silhouette'
 
 /**
  * What the share cards draw, and what they draw it with. The cards render at
@@ -25,6 +25,8 @@ const FAMILY_COLORS: Record<SurfaceFamily, string> = { tarmac: OG_COLORS.rule, d
 export interface OgProfile {
   heights: number[]
   surfaces: { from: number, to: number, family: SurfaceFamily }[]
+  /** Where an unmeasured lead-in ends, as a fraction - see `Silhouette.approximatedUntil`; dashed on the card. */
+  approximatedUntil?: number
 }
 
 /**
@@ -44,7 +46,8 @@ export function ogProfile(shape: Silhouette | undefined): OgProfile | undefined 
       if (previous && previous.family === span.family) previous.to = to
       else if (to > from) spans.push({ from, to, family: span.family })
       return spans
-    }, [])
+    }, []),
+    ...(shape.approximatedUntil ? { approximatedUntil: Math.round(shape.approximatedUntil * 1000) / 1000 } : {})
   }
 }
 
@@ -53,20 +56,29 @@ const dataUri = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(s
 /**
  * The Silhouette as an image for a card - passed to Takumi as a data-URI
  * `<img>` rather than inline SVG, the renderer's dependable path. The
- * outline in the ink over a faint fill, and the surface strip beneath in the
- * two surface colours when the positions are known.
+ * outline in the ink over a faint fill - an unmeasured lead-in dashed, as on
+ * the page - and the surface strip beneath in the two surface colours when
+ * the positions are known.
  */
 export function ogProfileImage(profile: OgProfile, width: number, height: number): string {
   const stripHeight = profile.surfaces.length ? 10 : 0
   const plotHeight = height - stripHeight - (stripHeight ? 8 : 0)
-  const step = width / (profile.heights.length - 1)
-  const points = profile.heights.map((value, index) => `${(index * step).toFixed(1)},${(plotHeight - 4 - value * (plotHeight - 12)).toFixed(1)}`).join(' ')
+  const last = profile.heights.length - 1
+  const coordinates = (points: readonly { x: number, y: number }[]) => points
+    .map(point => `${(point.x * width).toFixed(1)},${(plotHeight - 4 - point.y * (plotHeight - 12)).toFixed(1)}`).join(' ')
+  const outline = profile.heights.map((y, index) => ({ x: index / last, y }))
+  const points = coordinates(outline)
+  const lines = outlineRuns(outline, profile.approximatedUntil)
+    .map(run => run.approximated
+      ? `<polyline points="${coordinates(run.points)}" fill="none" stroke="${OG_COLORS.toned}" stroke-width="3" stroke-dasharray="10 8" stroke-linejoin="round"/>`
+      : `<polyline points="${coordinates(run.points)}" fill="none" stroke="${OG_COLORS.ink}" stroke-width="3" stroke-linejoin="round"/>`)
+    .join('')
   const strip = profile.surfaces
     .map(span => `<rect x="${(span.from * width).toFixed(1)}" y="${height - stripHeight}" width="${Math.max(1, (span.to - span.from) * width).toFixed(1)}" height="${stripHeight}" fill="${FAMILY_COLORS[span.family]}"/>`)
     .join('')
   return dataUri(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
     + `<polygon points="0,${plotHeight} ${points} ${width},${plotHeight}" fill="${OG_COLORS.ink}" fill-opacity="0.1"/>`
-    + `<polyline points="${points}" fill="none" stroke="${OG_COLORS.ink}" stroke-width="3" stroke-linejoin="round"/>`
+    + lines
     + strip
     + `</svg>`)
 }

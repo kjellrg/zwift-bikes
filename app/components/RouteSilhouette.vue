@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Silhouette } from '#shared/utils/silhouette'
+import { outlineRuns, type Silhouette } from '#shared/utils/silhouette'
 
 /**
  * A Silhouette drawn small, unlabelled, as a route or segment is listed: the
@@ -10,7 +10,8 @@ import type { Silhouette } from '#shared/utils/silhouette'
  *
  * With no shape to draw (a ride with no measured profile) it draws a dashed
  * baseline instead of the model's approximation, so a listing keeps its
- * rhythm without pretending to know the terrain.
+ * rhythm without pretending to know the terrain. A lead-in with no measured
+ * profile is part of the shape but dashed, as on the Course hero.
  */
 defineProps<{
   shape: Silhouette | undefined
@@ -21,11 +22,16 @@ defineProps<{
 const VIEW_WIDTH = 200
 const VIEW_HEIGHT = 50
 
+const pathOf = (points: readonly { x: number, y: number }[]) => points
+  .map((point, index) => `${index ? 'L' : 'M'}${(point.x * VIEW_WIDTH).toFixed(1)},${(VIEW_HEIGHT - 3 - point.y * (VIEW_HEIGHT - 8)).toFixed(1)}`)
+  .join(' ')
+
 function outline(shape: Silhouette) {
-  const line = shape.points
-    .map((point, index) => `${index ? 'L' : 'M'}${(point.x * VIEW_WIDTH).toFixed(1)},${(VIEW_HEIGHT - 3 - point.y * (VIEW_HEIGHT - 8)).toFixed(1)}`)
-    .join(' ')
-  return { line, area: `${line} L${VIEW_WIDTH},${VIEW_HEIGHT} L0,${VIEW_HEIGHT} Z` }
+  const line = pathOf(shape.points)
+  return {
+    area: `${line} L${VIEW_WIDTH},${VIEW_HEIGHT} L0,${VIEW_HEIGHT} Z`,
+    runs: outlineRuns(shape.points, shape.approximatedUntil).map(run => ({ d: pathOf(run.points), approximated: run.approximated }))
+  }
 }
 </script>
 
@@ -43,10 +49,13 @@ function outline(shape: Silhouette) {
           class="fill-ink/10"
         />
         <path
-          :d="outline(shape).line"
+          v-for="(run, index) in outline(shape).runs"
+          :key="index"
+          :d="run.d"
           fill="none"
-          class="stroke-ink"
+          :class="run.approximated ? 'stroke-ink-toned' : 'stroke-ink'"
           stroke-width="1.5"
+          :stroke-dasharray="run.approximated ? '4 3' : undefined"
           stroke-linejoin="round"
           vector-effect="non-scaling-stroke"
         />

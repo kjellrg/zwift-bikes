@@ -79,6 +79,13 @@ export interface Silhouette {
   totalDistanceM: number
   minElevationM: number
   maxElevationM: number
+  /**
+   * Where the drawing stops being the model's approximation, as a fraction:
+   * an unmeasured lead-in runs from 0 to here, and a renderer dashes it
+   * (`outlineRuns`). Absent when every metre drawn was measured - the laps
+   * always are, or there is no Silhouette at all.
+   */
+  approximatedUntil?: number
 }
 
 /** A named climb or sprint by its position along the ride, lead-in included - a `SegmentOccurrence`. */
@@ -95,6 +102,8 @@ export interface SilhouetteInput {
   surfaceSegments?: readonly RouteSurfaceSegment[]
   climbs?: readonly SilhouetteOccurrence[]
   sprints?: readonly SilhouetteOccurrence[]
+  /** Where an approximated opening stretch ends, in metres from the start - see `Silhouette.approximatedUntil`. */
+  approximatedUntilM?: number
 }
 
 export interface SilhouetteOptions {
@@ -168,8 +177,46 @@ export function silhouette(input: SilhouetteInput, options: SilhouetteOptions = 
     surfaces: totalDistanceM > 0 ? surfaceSpans(input.surfaceSegments, totalDistanceM) : [],
     totalDistanceM,
     minElevationM,
-    maxElevationM
+    maxElevationM,
+    // Spread rather than set to `undefined`: the key rides in page payloads.
+    ...(input.approximatedUntilM && totalDistanceM > 0 ? { approximatedUntil: clampFraction(input.approximatedUntilM / totalDistanceM) } : {})
   }
+}
+
+/** A point of an outline, in the unit box. */
+export interface OutlinePoint {
+  x: number
+  y: number
+}
+
+/**
+ * An outline split where its approximated opening stretch ends, for a
+ * renderer that dashes that stretch: the approximated run first, then the
+ * measured one, meeting at a shared point so the line is unbroken. One run,
+ * measured, when nothing was approximated.
+ */
+export function outlineRuns(points: readonly OutlinePoint[], approximatedUntil: number | undefined): { points: OutlinePoint[], approximated: boolean }[] {
+  if (!approximatedUntil) return [{ points: [...points], approximated: false }]
+  const approximated: OutlinePoint[] = []
+  const measured: OutlinePoint[] = []
+  for (const [index, point] of points.entries()) {
+    if (point.x < approximatedUntil) {
+      approximated.push(point)
+      continue
+    }
+    const previous = points[index - 1]
+    if (!measured.length && point.x === approximatedUntil) {
+      approximated.push(point)
+    } else if (!measured.length && previous) {
+      const t = (approximatedUntil - previous.x) / (point.x - previous.x)
+      const joint = { x: approximatedUntil, y: previous.y + (point.y - previous.y) * t }
+      approximated.push(joint)
+      measured.push(joint)
+    }
+    measured.push(point)
+  }
+  return [{ points: approximated, approximated: true }, { points: measured, approximated: false }]
+    .filter(run => run.points.length > 1)
 }
 
 /**
@@ -188,11 +235,18 @@ export type SilhouetteRoute = Pick<RouteWithMeta, 'slug' | 'distance' | 'elevati
  * course tabs use, so the picture, the markers and the finish time describe
  * one ride.
  *
- * Undefined when the route has no measured profile: the geometry builder
+ * Undefined when the lap has no measured profile: the geometry builder
  * would otherwise hand back the model's own approximation, and a Silhouette
- * drawn from that would be a shape nobody has ridden. The surface strip
- * follows the same rule - drawn only where the surfaces' positions were
- * measured, never from a mix laid out in share order.
+ * drawn from that would be a shape nobody has ridden. A lead-in is often
+ * unmeasured on a route whose lap is; it is ridden, so it is drawn, from the
+ * builder's approximation (a straight line, or its known climbs), and
+ * `approximatedUntil` marks it so every renderer dashes it. The surface
+ * strip is drawn only where the lap's surfaces were measured, never from a
+ * mix laid out in share order; an unmeasured lead-in takes the builder's
+ * surfaces with its shape.
+ *
+ * A listing's summary has no lead-in, so its Silhouette is the lap alone,
+ * and a climb or sprint ridden only in the lead-in has no place on it.
  */
 export function routeSilhouette(route: SilhouetteRoute, laps = 1, options: SilhouetteOptions = {}): Silhouette | undefined {
   if ((route.terrain.elevationProfile?.length ?? 0) < 2) return undefined
@@ -200,10 +254,14 @@ export function routeSilhouette(route: SilhouetteRoute, laps = 1, options: Silho
   // lead-in ones it treats as absent when they are.
   const full = route as RouteWithMeta
   const geometry = geometryForRouteLaps(full, laps)
+  const leadInM = (route.leadInDistance ?? 0) * 1000
+  const onDrawnRide = (occurrence: { perLap: boolean }) => occurrence.perLap || leadInM > 0
+  const leadInMeasured = (route.terrain.leadInElevationProfile?.length ?? 0) > 1
   return silhouette({
     points: geometry.points,
     surfaceSegments: route.surface.segments?.length ? geometry.surfaceSegments : undefined,
-    climbs: expandClimbsForLaps(full, laps),
-    sprints: expandSprintsForLaps(full, laps)
+    climbs: expandClimbsForLaps(full, laps).filter(onDrawnRide),
+    sprints: expandSprintsForLaps(full, laps).filter(onDrawnRide),
+    approximatedUntilM: leadInM > 0 && !leadInMeasured ? leadInM : undefined
   }, options)
 }
