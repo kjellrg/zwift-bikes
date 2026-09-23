@@ -21,15 +21,11 @@ const VIEW_HEIGHT = 64
 const PAD = 6
 
 const series = computed(() => {
-  const gains = {
-    flat: props.curve.flat.map(value => value - (props.curve.flat[0] ?? 0)),
-    climb: props.curve.climb.map(value => value - (props.curve.climb[0] ?? 0))
-  }
-  const all = [...gains.flat, ...gains.climb]
-  const min = Math.min(0, ...all)
-  const max = Math.max(1, ...all)
-  const x = (stage: number) => PAD + (stage / 5) * (VIEW_WIDTH - PAD * 2)
-  const y = (gain: number) => VIEW_HEIGHT - PAD - ((gain - min) / (max - min)) * (VIEW_HEIGHT - PAD * 2)
+  const gains = { flat: upgradeGains(props.curve.flat), climb: upgradeGains(props.curve.climb) }
+  // One scale for both lines, so flat and climb gains compare by height.
+  const range = upgradeGainRange(gains.flat, gains.climb)
+  const x = (stage: number) => upgradeStageX(stage, gains.flat.length, VIEW_WIDTH, PAD)
+  const y = (gain: number) => upgradeGainY(gain, range, VIEW_HEIGHT, PAD)
   const line = (values: number[]) => values.map((gain, stage) => `${x(stage).toFixed(1)},${y(gain).toFixed(1)}`).join(' ')
   const stage = toUpgradeStage(props.level)
   return {

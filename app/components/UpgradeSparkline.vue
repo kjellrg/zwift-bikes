@@ -52,17 +52,15 @@ const ACTIVE_DOT_R = 3.5
 // the rendered width, so one unit stays one pixel either way.
 const viewWidth = computed(() => (props.wide ? 264 : 132))
 
-const gains = computed(() => props.values.map(value => value - (props.values[0] ?? 0)))
+const gains = computed(() => upgradeGains(props.values))
 
 const points = computed(() => {
-  const min = Math.min(0, ...gains.value)
-  const max = Math.max(1, ...gains.value)
-  const stepX = (viewWidth.value - PAD_X * 2) / Math.max(1, gains.value.length - 1)
+  const range = upgradeGainRange(gains.value)
   return gains.value.map((gain, stage) => ({
     stage,
     gain,
-    x: PAD_X + stage * stepX,
-    y: VIEW_HEIGHT - PAD_Y - ((gain - min) / (max - min)) * (VIEW_HEIGHT - PAD_Y * 2)
+    x: upgradeStageX(stage, gains.value.length, viewWidth.value, PAD_X),
+    y: upgradeGainY(gain, range, VIEW_HEIGHT, PAD_Y)
   }))
 })
 
