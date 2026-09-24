@@ -77,7 +77,7 @@ Valid names: `feather`, `aero`, `draft`, `ghost`, `anvil`, `steamroller`, `burri
 ## Field notes
 
 - **`note` vs `curatorNote`**: `note` is the rider-facing tactical text — it is what keeps a race page from being a template with a route name swapped in. `curatorNote` is for future curators (mapping reasoning, source quirks, documented divergences) and never renders. They exist at season, race, group and scoring-segment level.
-- **`date` / `endDate`**: single-day races (ZRL) set only `date`. Week-long stages (ZRacing) set both; a race is *past* once `endDate ?? date` is behind today, and the pages display the window as a range.
+- **`date` / `endDate`**: single-day races (ZRL) set only `date`. Week-long stages (ZRacing) set both; a race has been run once `endDate ?? date` is behind today (`hasBeenRun`, in UTC days), and the pages display the window as a range.
 - **`officialDistanceKm` / `officialElevationM`**: exactly as the organiser publishes them, display-only. A season page's race rows print them in place of this site's own totals wherever they are set. The physics runs on the route's own geometry. When the two diverge the race page shows both, and the group's `curatorNote` has to explain why — that is what downgrades the validator's error to a warning.
 
   **Always check the published distance against ours, and treat a divergence on an `eventOnly` route as our bug until proved otherwise.** For most routes Zwift's own `leadInDistance` is right and the organiser is quoting the lap; for some event-only routes it is a placeholder and the organiser is right. Zwift publishes 85 m of lead-in for Urumaze and Mech Isle Mayhem while the real pens are ~2 km out, which made every prediction on those routes ~7% fast and cost a week of chasing an imaginary rolling-resistance problem (`docs/race-drafting.md` §5). Corrections live in [`shared/data/routeEventLeadIns.ts`](../shared/data/routeEventLeadIns.ts), one entry per route with its source; the default is always what zwift-data ships. Twenty event-only cycling routes still carry sub-200 m lead-ins that nobody has checked against a published event distance.
@@ -108,7 +108,9 @@ Doing it by hand instead: find slugs with `npm run events:find-route -- "name"` 
 |---|---|---|---|
 | `hidden: true` on a race | row disappears | 404s | dropped |
 | `hidden: true` on a season | hub card and season page 404 | all 404 | all dropped |
-| (nothing — race just becomes past) | moves into the collapsed "Past races" section client-side | stays up, "Completed" badge | stays |
+| (nothing — race just gets run) | row disappears, and its round with its last race; a season with none left is off the hub | stays up, "Completed" badge | stays |
+
+A race that has been run needs no flag: the events pages list only what is still to be run, and decide it twice by the same rule. The server renders with its own day - for a prerendered page, the build's - so the served HTML already leaves out everything that ended before the build; after load the rider's own clock (`useToday` in `app/composables/`) removes whatever has ended since.
 
 `hidden` retires a page without deleting its data — the entry stays in the file as a record. Note that hiding an already-indexed race starts returning 404s for a URL search engines know; that's the intended outcome for genuinely obsolete pages, but it isn't free. The validator still validates hidden entries: `hidden` is a display decision, not a way to smuggle broken data past the build.
 

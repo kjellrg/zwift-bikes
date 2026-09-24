@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { NuxtLink } from '#components'
 import type { EventSeason } from '../../shared/utils/events'
 
 /**
@@ -14,47 +13,33 @@ import type { EventSeason } from '../../shared/utils/events'
  * title is a link in its own right, and styled as one - it was styled as a
  * heading, and nobody could tell it was the way in.
  *
- * One card for current and finished seasons alike - a finished season is
- * still a page, and its races keep their rankings.
+ * Only a season still being run gets a card: the hub leaves out one that has
+ * been (`seasonHasBeenRun`).
  */
 const props = defineProps<{
   season: EventSeason
   /**
-   * Today, as an ISO date, from whichever page mounted this card - never read
-   * here, because the hub is prerendered and a card that asked the clock
-   * itself would bake the build date into the shipped HTML. Absent until the
-   * page has mounted, and then no round is treated as run: that is the state
-   * a crawler sees, with every tile pointing at a round that exists for it.
+   * Today, as an ISO date, from the page that lists this card - never read
+   * here, so the hub and its cards answer "has it been run" off one clock
+   * (`useToday`).
    */
-  today?: string
+  today: string
 }>()
 
 const summary = computed(() => summariseSeason(props.season))
 
 /**
- * Each round tile, with where it stands and where it goes.
+ * Each round tile still ahead of the rider, with where it stands. A round that
+ * has been run has no tile: it is no longer on the season page (see
+ * `roundState`, which that page asks too), and this site has nothing left to
+ * say about it. So every tile is a way into its round of the season page.
  *
- * A run round is not a link at all: it is no longer on the season page (see
- * `roundState`, which that page asks too), and its races are inside a
- * disclosure a link cannot open - so a tile that pointed there landed a rider
- * at the top of the page with nothing to show for the click. It says "Past"
- * and leaves them to the disclosure, which is as much as this site owes a
- * race that has been run. It is not dimmed: a tile at 75% opacity put its
- * text under 3:1 on the light ground, and the badge and the muted name
- * already say what the fade said.
- *
- * Only the two exceptional states are badged. A round still to come is the
- * default and carries its dates already; badging it too would put a chip on
- * every tile of every card and drown the one a rider is looking for.
+ * Where it stands is a quiet word beside its number, on now or to come -
+ * text, never a coloured badge.
  */
-const roundTiles = computed(() => props.season.rounds.map((round) => {
-  const state = props.today ? roundState(round, props.today) : 'upcoming'
-  return {
-    round,
-    state,
-    to: state === 'past' ? undefined : `/events/${props.season.slug}#round-${round.number}`
-  }
-}))
+const roundTiles = computed(() => props.season.rounds
+  .map(round => ({ round, state: roundState(round, props.today) }))
+  .filter(tile => tile.state !== 'past'))
 </script>
 
 <template>
@@ -80,33 +65,28 @@ const roundTiles = computed(() => props.season.rounds.map((round) => {
     </p>
 
     <ul
-      v-if="season.rounds.length"
+      v-if="roundTiles.length"
       class="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4"
     >
       <li
         v-for="tile in roundTiles"
         :key="tile.round.number"
       >
-        <component
-          :is="tile.to ? NuxtLink : 'div'"
-          :to="tile.to"
-          class="block h-full rounded-lg border border-default px-3 py-2.5"
-          :class="tile.to && 'transition-colors hover:border-accented'"
+        <NuxtLink
+          :to="`/events/${season.slug}#round-${tile.round.number}`"
+          class="block h-full rounded-lg border border-default px-3 py-2.5 transition-colors hover:border-accented"
         >
           <span class="flex items-baseline justify-between gap-2 text-xs text-muted">
             <span>Round {{ tile.round.number }}</span>
-            <span>{{ tile.state === 'ongoing' ? 'Ongoing' : tile.state === 'past' ? 'Past' : 'To come' }}</span>
+            <span>{{ tile.state === 'ongoing' ? 'Ongoing' : 'To come' }}</span>
           </span>
-          <span
-            class="mt-0.5 block font-medium"
-            :class="tile.state === 'past' ? 'text-muted' : 'text-highlighted'"
-          >
+          <span class="mt-0.5 block font-medium text-highlighted">
             {{ tile.round.name ?? `Round ${tile.round.number}` }}
           </span>
           <span class="block text-sm text-muted">
             {{ formatRaceDateShort(tile.round.startDate) }} - {{ formatRaceDateShort(tile.round.endDate) }}
           </span>
-        </component>
+        </NuxtLink>
       </li>
     </ul>
   </article>

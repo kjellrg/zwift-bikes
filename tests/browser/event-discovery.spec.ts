@@ -2,15 +2,17 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { expectNoHorizontalOverflow, hydrated, visitPage } from './support'
 
 /**
- * The events Discovery pages (issues #216, #257): the hub that lists Seasons and a
- * season page that lists its Races (see `CONTEXT.md`). Both rank nothing and
- * neither has a filter - a journey here asserts what a rider scans and what a
- * crawler is served, not a ranking.
+ * The events Discovery pages (issues #216, #257, #276): the hub that lists
+ * Seasons and a season page that lists its Races (see `CONTEXT.md`). Both rank
+ * nothing and neither has a filter - a journey here asserts what a rider scans
+ * and what a crawler is served, not a ranking.
  *
- * Upcoming, next and past are resolved post-mount from the browser's own
- * clock, because these pages are prerendered and a build-time answer would
- * ship frozen. So every journey pins the clock first, against the real
- * curated calendars (`shared/data/events/`).
+ * Both list only what is still to be run, decided twice: the server renders
+ * with its own day (a build's, once prerendered), and after load the
+ * browser's own clock takes over (`useToday`). The dev server's day is the
+ * real one, which a test cannot move, so every journey pins the browser's
+ * clock at a date on or after it and asserts what the page shows after load,
+ * against the real curated calendars (`shared/data/events/`).
  *
  * `setFixedTime` rather than `install`: only `Date` has to be deterministic
  * here, and freezing the timers with it would leave the app's own scheduling
@@ -19,18 +21,26 @@ import { expectNoHorizontalOverflow, hydrated, visitPage } from './support'
 
 const SEASON = '/events/zrl-2026-27'
 const ZRACING = '/events/zracing-2026'
-/** Mid-round 1: week 1 has been run, week 2 is next, rounds 2-4 are unannounced. */
+/**
+ * Mid-round 1: week 1 has been run, week 2 is next, rounds 2-4 are unannounced.
+ * ZRacing's August round is over, and September's third stage is mid-window.
+ */
 const DURING = new Date('2026-09-25T12:00:00Z')
+/** The day after ZRacing's September stage 3 closed (Sun 27 Sept). */
+const STAGE_3_RUN = new Date('2026-09-28T00:30:00Z')
 /** Past every race in both curated seasons. */
 const AFTER = new Date('2027-05-01T12:00:00Z')
 
 const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
-/** A race's row on a season page, by the name it is listed under. */
-const raceRow = (page: Page, name: RegExp) => page.locator('li').filter({ hasText: name })
+/** A race's row on a season page, by the name it is listed under - rows are the items of a round section's list. */
+const raceRow = (page: Page, name: RegExp) => page.locator('main section ol > li').filter({ hasText: name })
 /** The row's way into its race page - the whole row, and absent for a race with no page yet. */
 const raceLink = (page: Page, name: RegExp) => raceRow(page, name).getByRole('link')
-const pastRaces = (page: Page) => page.getByRole('button', { name: /^Past races \(\d+\)$/ })
-const pastSeasons = (page: Page) => page.getByRole('button', { name: /^Past seasons \(\d+\)$/ })
+/** Whatever used to hold, or label, what has been run. None of it is on either page any more. */
+async function expectNothingLabelledPast(page: Page) {
+  await expect(page.getByRole('button', { name: /^Past (races|seasons)/ })).toHaveCount(0)
+  await expect(page.getByText(/^(Past|Completed)$/)).toHaveCount(0)
+}
 /**
  * A round tile on a season card, by its number and name - the hub's way into
  * one round of a season page. Matched loosely between the two, because a
@@ -80,26 +90,20 @@ test.describe('event discovery', () => {
     await expect(next).toBeVisible()
     await expect(next.getByRole('link', { name: 'Fastest bike for it' })).toHaveAttribute('href', /^\/events\/[^/]+\/[^/]+$/)
 
-    // Nothing has finished yet at this clock, so nothing has collapsed away.
-    await expect(pastSeasons(page)).toHaveCount(0)
+    await expectNothingLabelledPast(page)
     await season.click()
     await page.waitForURL(`**${SEASON}`)
   })
 
-  test('collapses a season away once its last race has been run', async ({ page }) => {
+  test('leaves a season off the hub once its last race has been run', async ({ page }) => {
     await visitAt(page, '/events', AFTER)
-    // Both curated seasons are over, so the hub keeps them but out of the way.
-    await expect(pastSeasons(page)).toBeVisible()
+    // Both curated seasons are over: neither they nor their series are
+    // listed, and the page says why it is empty rather than standing bare.
+    await expect(page.getByText('No races are left to run on the calendars we cover.')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Zwift Racing League 2026/27' })).toHaveCount(0)
     await expect(page.getByRole('heading', { level: 2, name: 'Zwift Racing League', exact: true })).toHaveCount(0)
-    await pastSeasons(page).click()
-    const season = page.getByRole('link', { name: 'Zwift Racing League 2026/27' })
-    await expect(season).toBeVisible()
-    // A finished season is still a page: its races keep their rankings.
-    await expect(season).toHaveAttribute('href', SEASON)
-    // The series comes with it, and so does the organiser - who is named
-    // nowhere else on the page once their last season is over.
-    await expect(page.getByRole('heading', { level: 2, name: 'Zwift Racing League', exact: true })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'WTRL' })).toHaveAttribute('href', /wtrl/)
+    await expect(page.getByRole('heading', { level: 2, name: 'ZRacing', exact: true })).toHaveCount(0)
+    await expectNothingLabelledPast(page)
   })
 
   test('takes a round tile to that round of the season page', async ({ page }) => {
@@ -114,23 +118,23 @@ test.describe('event discovery', () => {
     expect((await heading.boundingBox())!.y).toBeGreaterThan(64)
   })
 
-  test('drops a run round from the page, and its tile stops leading anywhere', async ({ page }) => {
+  test('drops a run round from the season page, and its tile from the hub', async ({ page }) => {
     // ZRacing's August round finished on 6 September; its September round has
-    // not. The run one is not on the calendar at all - no heading, and none
-    // of the "all of this round's races have been run" it used to lead with.
+    // not. The run one is not on the calendar at all - no heading, no rows.
     await visitAt(page, ZRACING, DURING)
     await expect(page.getByRole('heading', { level: 2, name: /Round 9/ })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: /Round 8/ })).toHaveCount(0)
-    // Its races are where run races live, under their own round.
-    await pastRaces(page).click()
-    await expect(page.getByRole('heading', { level: 3, name: 'Round 8: August: Makuri Madness' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Round 8/ })).toHaveCount(0)
+    await expect(page.locator('a[href^="/events/zracing-2026/stage-"]')).toHaveCount(0)
+    // September's first two stages have been run; the third is mid-window
+    // and still listed, and is the next race.
+    await expect(page.locator('a[href="/events/zracing-2026/september-stage-1"]')).toHaveCount(0)
+    await expect(page.locator('a[href="/events/zracing-2026/september-stage-2"]')).toHaveCount(0)
+    await expect(raceRow(page, /Stage 3/)).toContainText('Next race')
+    await expectNothingLabelledPast(page)
 
-    // And its tile stops being a way in at all, rather than promising a round
-    // it can no longer reach: the races are in that disclosure, which no link
-    // can open. It says so and leaves them there.
+    // On the hub its tile is gone too, rather than standing there as "Past".
     await visitAt(page, '/events', DURING)
-    await expect(roundTile(page, 8, 'Makuri Madness')).toHaveCount(0)
-    await expect(tileWith(page, 'August: Makuri Madness')).toContainText('Past')
+    await expect(tileWith(page, 'August: Makuri Madness')).toHaveCount(0)
     // The round being raced right now is still a way in, and says which it is.
     const ongoing = roundTile(page, 9, 'DURA-ACE')
     await expect(ongoing).toHaveAttribute('href', `${ZRACING}#round-9`)
@@ -139,9 +143,24 @@ test.describe('event discovery', () => {
     const toCome = roundTile(page, 3, 'Racecraft Rush')
     await expect(toCome).toContainText('To come')
     await expect(toCome).not.toContainText('Ongoing')
+    await expectNothingLabelledPast(page)
   })
 
-  test('shows the season round by round, with the next race marked and run ones collapsed', async ({ page }) => {
+  test('drops a race that ends after the page was rendered, from the rider\'s own clock', async ({ page }) => {
+    // The server rendered this page on its own day. The browser's clock is
+    // the day after stage 3's window closed, which is what the page goes by
+    // once loaded: stage 3 goes and stage 4 becomes the next race.
+    await visitAt(page, ZRACING, STAGE_3_RUN)
+    await expect(raceRow(page, /Stage 4/)).toContainText('Next race')
+    await expect(raceRow(page, /Stage 3/)).toHaveCount(0)
+    await expect(page.locator('a[href="/events/zracing-2026/september-stage-3"]')).toHaveCount(0)
+
+    // A week-long stage stays listed to the end of its last day.
+    await visitAt(page, ZRACING, new Date('2026-09-27T23:30:00Z'))
+    await expect(raceRow(page, /Stage 3/)).toContainText('Next race')
+  })
+
+  test('shows the season round by round, with the next race marked and run ones gone', async ({ page }) => {
     await visitAt(page, SEASON, DURING)
     await expectNoHorizontalOverflow(page)
 
@@ -158,21 +177,15 @@ test.describe('event discovery', () => {
     await expect(statusLine(page)).toHaveText(/^\d+ races found$/)
 
     // Week 1 has been run, so week 2 is marked the next race and week 1 is
-    // gone from the round.
+    // nowhere on the page - not in its round, and not tucked away below.
     const next = raceRow(page, /Round 1 Week 2/)
     await expect(next).toContainText('Next race')
     await expect(raceLink(page, /Round 1 Week 2/)).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
     // A schedule row draws its primary route's Silhouette, as every listing does.
     await expect(next.locator('svg[data-silhouette]')).toHaveCount(1)
     await expect(raceRow(page, /Round 1 Week 1/)).toHaveCount(0)
-
-    await pastRaces(page).click()
-    const completed = raceRow(page, /Round 1 Week 1/)
-    await expect(completed).toContainText('Completed')
-    // The same card as an upcoming race, under its own round heading - a race
-    // does not lose its distance the day its date passes.
-    await expect(completed).toContainText('km')
-    await expect(page.getByRole('heading', { level: 3, name: 'Round 1: Fresh & Fast' })).toBeVisible()
+    await expect(page.locator('a[href="/events/zrl-2026-27/round-1-week-1"]')).toHaveCount(0)
+    await expectNothingLabelledPast(page)
   })
 
   test('makes the whole row of a race with a page its one way in', async ({ page }) => {
@@ -248,15 +261,19 @@ test.describe('event discovery', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zwift Racing League 2026/27 schedule')
   })
 
-  test('says a season is over rather than reporting nothing found', async ({ page }) => {
+  test('says a season is over, and points to the hub, rather than reporting nothing found', async ({ page }) => {
     await visitAt(page, SEASON, AFTER)
     // Not "0 races found" and not "No races match your filters": this page has
     // no filters, and a finished season is an answer.
-    await expect(page.getByText('Every race this season has been run - check back when the next season is announced.')).toBeVisible()
+    await expect(page.getByText('Every race this season has been run')).toBeVisible()
     await expect(page.getByText('races found')).toHaveCount(0)
-    // The disclosure holds the whole page here, so it is open on arrival.
-    await expect(pastRaces(page)).toBeVisible()
-    await expect(raceRow(page, /Round 1 Week 1/)).toContainText('Completed')
+    // Nothing that has been run is listed, so there is no round and no row.
+    await expect(page.getByRole('heading', { level: 2, name: /^Round/ })).toHaveCount(0)
+    await expect(page.locator('main section ol > li')).toHaveCount(0)
+    await expectNothingLabelledPast(page)
+    // It points to where the races still to come are.
+    await page.getByRole('link', { name: 'events page' }).click()
+    await page.waitForURL('**/events')
   })
 
   test('keeps a failed calendar fetch on screen with a retry', async ({ page }) => {
@@ -284,21 +301,27 @@ test.describe('event discovery', () => {
     await expect(raceRow(page, /Round 1 Week 2/)).toContainText('Next race')
   })
 
-  test('serves real race links in the HTML a crawler reads', async ({ page, request }) => {
+  test('serves real race links in the HTML a crawler reads, and none that has been run', async ({ page, request }) => {
     await visitAt(page, SEASON, DURING)
     const html = await (await request.get(SEASON)).text()
     const served = await page.evaluate((html) => {
       const doc = new DOMParser().parseFromString(html, 'text/html')
       return {
         heading: doc.querySelector('h1')?.textContent?.trim(),
-        raceLinks: [...doc.querySelectorAll('a[href^="/events/zrl-2026-27/"]')].map(link => link.getAttribute('href'))
+        raceLinks: [...doc.querySelectorAll('a[href^="/events/zrl-2026-27/"]')].map(link => link.getAttribute('href')),
+        text: doc.querySelector('main')?.textContent ?? ''
       }
     }, html)
     expect(served.heading).toBe('Zwift Racing League 2026/27 schedule')
-    // Round 1's five rankable races, every one a real destination in the
-    // served markup - the calendar is not an empty grid awaiting hydration.
-    // (Week 6 is run on an unlisted route, so it has no page - see below.)
-    expect(served.raceLinks).toContain('/events/zrl-2026-27/round-1-week-1')
-    expect(served.raceLinks.length).toBe(5)
+    // Round 1's rankable races still to run, every one a real destination in
+    // the served markup - the calendar is not an empty grid awaiting
+    // hydration. Week 5 is the last of them (week 6 is run on an unlisted
+    // route, so it has no page).
+    expect(served.raceLinks).toContain('/events/zrl-2026-27/round-1-week-5')
+    // Week 1 was run on Tue 22 Sept, before any day this server can render
+    // on, so the served page already leaves it out: a crawler never sees it.
+    expect(served.raceLinks).not.toContain('/events/zrl-2026-27/round-1-week-1')
+    expect(served.text).not.toContain('Round 1 Week 1')
+    expect(served.text).not.toMatch(/Past races|Completed/)
   })
 })

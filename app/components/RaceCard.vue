@@ -10,11 +10,6 @@ import type { Silhouette } from '#shared/utils/silhouette'
  * schedule, and a race with several Category groups still fits, one course
  * line per distinct course.
  *
- * One card shape for upcoming and completed races. They used to be two
- * tables with different columns, so a race quietly lost its distance and
- * gained a different name the day its date passed - a rider looking up what
- * they rode last week saw less than the rider who looked the week before.
- *
  * A race with a page is one link across the whole row, not just its cue: the
  * row is the thing a rider picks, so anywhere on it is the way in. A race the
  * organiser hasn't finished announcing is the same card without a link or a
@@ -25,10 +20,8 @@ import type { Silhouette } from '#shared/utils/silhouette'
 const props = defineProps<{
   race: EventRaceWithRoute
   seasonSlug: string
-  /** The first race still to be run in this season - one per season, from the client's clock. */
+  /** The first race still to be run in this season - one per season. A race that has been run is not listed at all. */
   next?: boolean
-  /** Already run. Both flags are resolved post-mount; see the season page. */
-  past?: boolean
   /** The primary route's Silhouette, when the route has a measured shape. */
   shape?: Silhouette
   /**
@@ -89,9 +82,9 @@ const courses = computed(() => raceCourseLines(props.race))
       <p class="text-sm text-toned">
         {{ dates }}
         <span
-          v-if="next || past"
+          v-if="next"
           class="block text-xs text-muted"
-        >{{ next ? 'Next race' : 'Completed' }}</span>
+        >Next race</span>
       </p>
       <!-- No route yet, no drawing: an empty slot keeps the schedule's columns. -->
       <RouteSilhouette

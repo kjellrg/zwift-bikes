@@ -11,6 +11,7 @@ import {
   getPublishableRaces,
   getSeasons,
   getUpcomingEventsForRoute,
+  hasBeenRun,
   hasSplitCourses,
   isRacePublishable,
   lapsForCategoryGroup,
@@ -21,6 +22,8 @@ import {
   racePowerupsSchema,
   sortRacesByDate,
   roundState,
+  roundsLeftToRun,
+  seasonHasBeenRun,
   sortSeasonsNewestFirst,
   summariseSeason,
   ttBikesAllowed, raceContextLabel } from './events'
@@ -232,6 +235,60 @@ describe('what the events hub and a season page read off a Season', () => {
     // in: still to come however long ago it was announced, never on and
     // never over, since there is nothing to run.
     expect(roundState(round([]), '2027-12-31')).toBe('upcoming')
+  })
+
+  it('counts a race as run only once its last day has passed', () => {
+    const race = testRace({ date: '2026-09-22' })
+    expect(hasBeenRun(race, '2026-09-22')).toBe(false)
+    expect(hasBeenRun(race, '2026-09-23')).toBe(true)
+    // A week-long stage is still to run on every day of its window.
+    const stage = testRace({ date: '2026-09-22', endDate: '2026-09-28' })
+    expect(hasBeenRun(stage, '2026-09-25')).toBe(false)
+    expect(hasBeenRun(stage, '2026-09-28')).toBe(false)
+    expect(hasBeenRun(stage, '2026-09-29')).toBe(true)
+  })
+
+  it('leaves out of a calendar every race and round that has been run', () => {
+    const first = testRace({ slug: 'round-1-week-1', date: '2026-09-22' })
+    const second = testRace({ slug: 'round-1-week-2', week: 2, date: '2026-09-29' })
+    const stage = testRace({ slug: 'round-2-week-1', round: 2, date: '2026-09-22', endDate: '2026-09-28' })
+    const rounds = [
+      { number: 1, startDate: '2026-09-22', endDate: '2026-09-29', races: [first, second] },
+      { number: 2, startDate: '2026-09-22', endDate: '2026-09-28', races: [stage] },
+      // Nothing announced yet: listed for its dates, whatever the day.
+      { number: 3, startDate: '2026-11-17', endDate: '2026-12-22', races: [] }
+    ]
+    const listed = (today: string) => roundsLeftToRun(rounds, today)
+      .map(round => `${round.number}: ${round.races.map(race => race.slug).join(' ')}`)
+
+    // Race day itself: nothing has been run yet.
+    expect(listed('2026-09-22')).toEqual(['1: round-1-week-1 round-1-week-2', '2: round-2-week-1', '3: '])
+    // The day after, the one-day race has gone; the stage is mid-window and stays.
+    expect(listed('2026-09-23')).toEqual(['1: round-1-week-2', '2: round-2-week-1', '3: '])
+    // The stage's last day, then the day after it, which takes its round with it.
+    expect(listed('2026-09-28')).toEqual(['1: round-1-week-2', '2: round-2-week-1', '3: '])
+    expect(listed('2026-09-29')).toEqual(['1: round-1-week-2', '3: '])
+    expect(listed('2026-09-30')).toEqual(['3: '])
+    // The rounds handed in are left as they were.
+    expect(rounds[0]!.races).toHaveLength(2)
+  })
+
+  it('calls a season run once every race on it has been, and not before', () => {
+    const season = testSeason('zracing-2026', [
+      { number: 8, startDate: '2026-08-11', endDate: '2026-09-06', races: [testRace({ date: '2026-08-11', endDate: '2026-09-06' })] },
+      { number: 9, startDate: '2026-09-08', endDate: '2026-10-04', races: [testRace({ slug: 'stage-2', date: '2026-09-08', endDate: '2026-10-04' })] }
+    ])
+    expect(seasonHasBeenRun(season, '2026-10-04')).toBe(false)
+    expect(seasonHasBeenRun(season, '2026-10-05')).toBe(true)
+    // A round the organiser hasn't filled in is still ahead of the rider, so
+    // the season is not over while one is on it.
+    const unannounced = testSeason('zrl-2026-27', [
+      { number: 1, startDate: '2026-09-22', endDate: '2026-09-22', races: [testRace({ date: '2026-09-22' })] },
+      { number: 2, startDate: '2026-11-17', endDate: '2026-12-22' }
+    ])
+    expect(seasonHasBeenRun(unannounced, '2027-01-01')).toBe(false)
+    // And a season with nothing on it at all has not been run either.
+    expect(seasonHasBeenRun(testSeason('zrl-2027-28', []), '2030-01-01')).toBe(false)
   })
 
   it('adds a season up to what the hub and the season header both report', () => {
