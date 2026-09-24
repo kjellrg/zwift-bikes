@@ -172,6 +172,24 @@ test.describe('accessibility', () => {
     await audit(page, 'mobile menu (light)')
   })
 
+  test('a season page\'s race rows, linked and not, have no blocking violations while hovered', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a touch screen has no hover to scan')
+    // Pinned so the scan holds both kinds of row: week 2 has a page (the
+    // whole row is its link), week 6 is on a course with nothing to rank.
+    await page.clock.setFixedTime(new Date('2026-09-25T12:00:00Z'))
+    await visitPage(page, '/events/zrl-2026-27')
+    const row = (name: string) => page.locator('li').filter({ hasText: name })
+    await expect(row('Round 1 Week 2').getByRole('link')).toHaveCount(1)
+    await expect(row('Round 1 Week 6').getByRole('link')).toHaveCount(0)
+    // The tint is a different ground under the row's text, so its contrast
+    // is scanned with the pointer on it.
+    await row('Round 1 Week 2').hover()
+    await audit(page, 'hovered race row (dark)')
+    await switchToLight(page)
+    await row('Round 1 Week 2').hover()
+    await audit(page, 'hovered race row (light)')
+  })
+
   test('the not-found page has no blocking violations in either Colour mode', async ({ page }) => {
     const path = '/segments/not-a-segment'
     const response = await page.goto(path, { waitUntil: 'domcontentloaded' })

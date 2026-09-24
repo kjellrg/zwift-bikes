@@ -27,8 +27,8 @@ const AFTER = new Date('2027-05-01T12:00:00Z')
 const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
 /** A race's row on a season page, by the name it is listed under. */
 const raceRow = (page: Page, name: RegExp) => page.locator('li').filter({ hasText: name })
-/** The row's way into its race page - absent for a race with no page yet. */
-const raceLink = (page: Page, name: RegExp) => raceRow(page, name).getByRole('link', { name: 'Fastest bike for it' })
+/** The row's way into its race page - the whole row, and absent for a race with no page yet. */
+const raceLink = (page: Page, name: RegExp) => raceRow(page, name).getByRole('link')
 const pastRaces = (page: Page) => page.getByRole('button', { name: /^Past races \(\d+\)$/ })
 const pastSeasons = (page: Page) => page.getByRole('button', { name: /^Past seasons \(\d+\)$/ })
 /**
@@ -173,6 +173,57 @@ test.describe('event discovery', () => {
     // does not lose its distance the day its date passes.
     await expect(completed).toContainText('km')
     await expect(page.getByRole('heading', { level: 3, name: 'Round 1: Fresh & Fast' })).toBeVisible()
+  })
+
+  test('makes the whole row of a race with a page its one way in', async ({ page }) => {
+    await visitAt(page, SEASON, DURING)
+    const row = raceRow(page, /Round 1 Week 2/)
+    // One link, named for the race rather than for the cue it shows, and
+    // no link inside it.
+    await expect(row.getByRole('link')).toHaveCount(1)
+    await expect(row.locator('a a')).toHaveCount(0)
+    const link = raceLink(page, /Round 1 Week 2/)
+    await expect(link).toHaveAccessibleName(/^Round 1 Week 2, Tue 29 Sept?\b.*Fastest bike for it$/)
+    await expect(link).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
+
+    // Each course line carries its distance and climbing together - the
+    // organiser's figures, one line per group since A/B and C/D ride
+    // different lap counts.
+    await expect(row).toContainText('A/B: Innsbruckring, Innsbruck · 35.4 km / 309 m')
+    await expect(row).toContainText('C/D: Innsbruckring, Innsbruck · 26.6 km / 232 m')
+
+    // Hovering tints the row and underlines the cue it shows - where there
+    // is a pointer that hovers at all.
+    if (await page.evaluate(() => matchMedia('(hover: hover)').matches)) {
+      const cue = row.getByText('Fastest bike for it')
+      const resting = await link.evaluate(element => getComputedStyle(element).backgroundColor)
+      await expect(cue).toHaveCSS('text-decoration-line', 'none')
+      await link.hover()
+      await expect(link).not.toHaveCSS('background-color', resting)
+      await expect(cue).toHaveCSS('text-decoration-line', 'underline')
+    }
+
+    // From the keyboard it shows the focus ring.
+    await link.focus()
+    await expect(link).toHaveCSS('outline-style', 'solid')
+
+    // And a click anywhere on it - here its course line, nowhere near the
+    // cue - opens the race.
+    await row.getByText('A/B: Innsbruckring').click()
+    await page.waitForURL('**/events/zrl-2026-27/round-1-week-2')
+  })
+
+  test('keeps a race on a course we cannot rank as a plain row saying why', async ({ page }) => {
+    await visitAt(page, SEASON, DURING)
+    // Week 6 runs on one of WTRL's unlisted routes: nothing to rank, so no page.
+    const row = raceRow(page, /Round 1 Week 6/)
+    await expect(row.getByRole('link')).toHaveCount(0)
+    await expect(row).toContainText('ZRL Exclusive Route · 24.0 km / 284 m')
+    await expect(row).toContainText('this course isn\'t in our route data')
+    // Not a destination, so it does not answer a pointer as one.
+    const resting = await row.evaluate(element => getComputedStyle(element.firstElementChild!).backgroundColor)
+    await row.hover()
+    expect(await row.evaluate(element => getComputedStyle(element.firstElementChild!).backgroundColor)).toBe(resting)
   })
 
   test('lists an unannounced race as a row with no page behind it', async ({ page }) => {
