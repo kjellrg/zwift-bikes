@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OgProfile } from '../../utils/ogProfile'
+import type { Silhouette } from '#shared/utils/silhouette'
 import { OG_COLORS, OG_MARK_IMAGE, ogProfileImage } from '../../utils/ogProfile'
 
 // Social-share card for a race page (issue #59), repainted in the night
@@ -18,8 +18,8 @@ const props = defineProps<{
   date: string
   frameName?: string
   wheelName?: string
-  /** The first Category group's route, as its Silhouette - see `ogProfile`. */
-  profile?: OgProfile
+  /** The first Category group's route, as its Silhouette - see `OG_SILHOUETTE_SAMPLES`. */
+  profile?: Silhouette
 }>()
 
 // Long race headings step down instead of

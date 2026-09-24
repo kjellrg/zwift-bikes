@@ -184,7 +184,7 @@ if (segmentData.value) {
     frameName: ogTopCombo?.frame.name,
     wheelName: ogTopCombo?.wheelset?.name,
     profile: measuredProfile && measuredProfile.length > 1
-      ? ogProfile(routeSilhouette(segmentRoute.value!, 1, { samples: 120 }))
+      ? routeSilhouette(segmentRoute.value!, 1, OG_SILHOUETTE_SAMPLES)
       : undefined
   }, {
     alt: `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`

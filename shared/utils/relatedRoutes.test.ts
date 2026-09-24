@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { relatedRoutes } from './relatedRoutes'
 
-const route = (slug: string, world: string, climbRatio: number, distance = 20, eventOnly = false) => ({ slug, world, distance, eventOnly, terrain: { climbRatio } })
+const route = (slug: string, world: string, climbRatio: number, distance = 20, eventOnly = false) => ({ slug, world, distance, eventOnly, climbRatio })
 
 describe('relatedRoutes', () => {
   const target = route('target', 'watopia', 10, 40)

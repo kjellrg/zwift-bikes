@@ -91,6 +91,7 @@ export default defineNuxtConfig({
     // rules: that cache is per-instance memory, all correctness risk for
     // almost no win over plain browser caching.
     '/api/routes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
+    '/api/route-cards': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/bikes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/segments': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/wheelsets': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { EventRaceWithRoute } from '../../../../shared/types/events'
-import { routeSilhouette } from '#shared/utils/silhouette'
 
 /**
  * The Discovery page for one Season's Races (see `CONTEXT.md`): the calendar
@@ -12,8 +11,8 @@ const route = useRoute()
 const seasonSlug = computed(() => route.params.season as string)
 
 // Calendar metadata comes from the leaf module (no fetch needed); the route
-// join - name, world, distance per race - comes from the API, which keeps the
-// route surface dataset behind it on the server.
+// join - name, world, distance and Silhouette per race - comes from the API,
+// which keeps the route surface dataset behind it on the server.
 const season = getSeasonBySlug(seasonSlug.value)
 if (!season) throw createError({ statusCode: 404, statusMessage: 'Season not found', fatal: true })
 
@@ -25,24 +24,6 @@ const { data: seasonData, status, refresh } = await useFetch(() => `/api/events/
 
 const rounds = computed(() => seasonData.value?.rounds ?? [])
 
-/**
- * Each race row's Silhouette, by route. The catalog listing is the only
- * endpoint that carries a route's shape, and it carries every route's; the
- * transform runs where the fetch does and keeps only this season's primary
- * routes, resampled to a row's width, so that is all the payload holds.
- */
-const primarySlugs = new Set(getVisibleSeasonRaces(season).map(primaryRouteSlug).filter((slug): slug is string => Boolean(slug)))
-const { data: silhouettes } = await useFetch('/api/routes', {
-  key: `season-silhouettes-${season.slug}`,
-  query: { sport: 'cycling' },
-  transform: response => Object.fromEntries(response.routes
-    .filter(entry => primarySlugs.has(entry.slug))
-    .map(entry => [entry.slug, routeSilhouette(entry, 1, { samples: 40 })]))
-})
-const shapeFor = (race: EventRaceWithRoute) => {
-  const slug = primaryRouteSlug(race)
-  return slug ? silhouettes.value?.[slug] : undefined
-}
 const title = computed(() => `${season.seriesName} ${season.label}`)
 const summary = computed(() => summariseSeason(season!))
 
@@ -261,7 +242,7 @@ useHead(() => ({
               :race="race"
               :season-slug="season!.slug"
               :next="race.slug === nextRaceSlug"
-              :shape="shapeFor(race)"
+              :shape="race.silhouette"
             />
           </ol>
         </section>
@@ -311,7 +292,7 @@ useHead(() => ({
                 :key="race.slug"
                 :race="race"
                 :season-slug="season!.slug"
-                :shape="shapeFor(race)"
+                :shape="race.silhouette"
                 past
               />
             </ol>

@@ -25,7 +25,7 @@ That makes the failure mode worth naming up front, because it isn't a crash. **A
 | `scripts/events/add-race.mjs` | Interactive scaffolder — `npm run events:add` |
 | `scripts/events/find-route.mjs` | Slug lookup — `npm run events:find-route -- "makuri"` (add `--segments` for scoring segments) |
 | `app/pages/events/` | The three page types (hub, season, race) |
-| `server/api/events/[season].get.ts` | Joins races to route data for the season calendar |
+| `server/api/events/[season].get.ts` | Joins races to route data for the season calendar, each race with its primary route's Silhouette |
 
 ## The leaf-module rule
 

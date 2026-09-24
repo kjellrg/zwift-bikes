@@ -96,7 +96,7 @@ async function answer(ride: Ride, label: ExampleLabel, href: string, rider: Exam
     wheelName: top.wheelset?.name,
     finishTimeSec: top.finishTimeSec,
     riderLabel: exampleRiderLabel(rider, stored),
-    shape: routeSilhouette(route, laps, { samples: CARD_SAMPLES })
+    shape: routeSilhouette(route, laps, CARD_SAMPLES)
   }
 }
 

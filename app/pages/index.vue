@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TerrainCategory } from '../../shared/types/catalog'
-import { toRouteCard, type RouteCardData } from '../utils/routeCards'
+import type { RouteCardData } from '#shared/utils/routeCards'
+import { filterRouteCards, ROUTE_DISTANCE_MAX_KM, ROUTE_ELEVATION_MAX_M } from '../utils/routeCardFilters'
 
 // Without a page-level title the homepage inherits app.vue's bare
 // "ZwiftBikes", dropping the "best bike" phrase from the most-indexed page.
@@ -29,18 +30,17 @@ watch(search, (value) => {
 })
 
 const worldFilter = ref<string>('all')
-const surfaceFilter = ref<string>('all')
+const surfaceFilter = ref<'all' | 'gravel' | 'cobble'>('all')
 // Two refs per range: the `pending*` one the slider drags against, and the
-// committed one the query reads. `useFetch` watches `query` reactively, so a
-// slider bound straight into it fires a request per step crossed - up to ~24
-// sequential fetches for one drag across the distance scale, each with a
-// distinct query string that the 300s cache rule can never serve (issue
-// #155). The committed value moves once, on `change` (value-commit, i.e.
-// pointer release), which is the same treatment the text search gets from its
-// 300ms debounce above. The slider is a controlled `:model-value` rather than
-// `v-model` so `resetFilters` can move both halves in one place.
-const distanceRange = ref<[number, number]>([0, 120])
-const elevationRange = ref<[number, number]>([0, 2000])
+// committed one the list and the URL read. The committed value moves once, on
+// `change` (value-commit, i.e. pointer release), the same treatment the text
+// search gets from its 300ms debounce above: the grid and the count settle on
+// what the rider chose rather than reshuffling under every step of a drag
+// (issue #155, when each step was a request). The slider is a controlled
+// `:model-value` rather than `v-model` so `resetFilters` can move both halves
+// in one place.
+const distanceRange = ref<[number, number]>([0, ROUTE_DISTANCE_MAX_KM])
+const elevationRange = ref<[number, number]>([0, ROUTE_ELEVATION_MAX_M])
 const pendingDistanceRange = ref<[number, number]>([...distanceRange.value])
 const pendingElevationRange = ref<[number, number]>([...elevationRange.value])
 const commitDistanceRange = () => {
@@ -62,48 +62,19 @@ const onElevationRangeInput = (value: number[] | number | undefined) => {
 }
 const visibleCount = ref(24)
 
-const query = computed(() => ({
-  search: searchDebounced.value || undefined,
-  // Zwift routes can support running, cycling or both - this site is
-  // cycling-specific, so running-only routes are always excluded rather
-  // than exposed as a user-facing filter.
-  sport: 'cycling',
-  world: worldFilter.value !== 'all' ? worldFilter.value : undefined,
-  surface: surfaceFilter.value !== 'all' ? surfaceFilter.value : undefined,
-  minDistance: distanceRange.value[0] > 0 ? distanceRange.value[0] : undefined,
-  maxDistance:
-    distanceRange.value[1] < 120 ? distanceRange.value[1] : undefined,
-  minElevation:
-    elevationRange.value[0] > 0 ? elevationRange.value[0] : undefined,
-  maxElevation:
-    elevationRange.value[1] < 2000 ? elevationRange.value[1] : undefined
-}))
-
-// Trimmed where it is fetched: the listing carries every route's full
-// measured profile and surface stretches, several megabytes that used to be
-// serialised into the homepage's payload whole. A card needs its numbers and
-// a resampled Silhouette, so that is all the payload keeps.
-const { data, status, refresh } = await useFetch('/api/routes', {
-  query,
-  transform: response => ({ routes: response.routes.map(toRouteCard), worlds: response.worlds })
-})
-
-// Nuxt resets `data` to its default when a fetch throws, which would empty
-// the grid under the very notice that says the previous routes are still
-// shown (`DiscoveryStatus`). So the last list served stays the one on
-// screen - and the world options with it - until a response replaces it.
-// The same bargain `useRecommendRequest` strikes with `servedEnvelope`, and
-// a computed for the same reason: no watcher runs after setup on the
-// server, where this page reads the list straight after awaiting the fetch.
-let lastServed: typeof data.value
-const served = computed(() => {
-  if (data.value) lastServed = data.value
-  return lastServed
-})
+// Every cycling route's card, once (#262): the prerendered payload carries
+// them all - 48 heights and a few surface spans each - and every filter below
+// works over that list in the browser, so a filter change makes no request
+// and draws no geometry. Should the catalog outgrow the payload budget
+// (`server/utils/routeCardCatalog.test.ts`), the fallback is filtering and paging on
+// the server.
+const { data } = await useFetch<{ cards: RouteCardData[], worlds: { slug: string, name: string }[] }>('/api/route-cards', { key: 'route-cards' })
+const allCards = computed(() => data.value?.cards ?? [])
 
 const worldOptions = computed(() => [
   { label: 'All worlds', value: 'all' },
-  ...(served.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
+  // The game's own order, Watopia first, as the segments page lists them.
+  ...(data.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
 ])
 
 const surfaceOptions = [
@@ -117,9 +88,6 @@ const surfaceOptions = [
 // mode - and the "Show" kind filter that gated it - is gone. One page per
 // content type keeps both lists' filters honest: the distance/elevation/
 // surface controls here never applied to segments anyway.
-// Terrain is filtered here, over the served list, rather than by the
-// endpoint: the four chips are the categories of routes already on the page,
-// and toggling one should not cost a request.
 const TERRAIN_CHIPS: { value: TerrainCategory, label: string }[] = (['flat', 'rolling', 'hilly', 'mountainous'] as const)
   .map(value => ({ value, label: TERRAIN_LABELS[value] }))
 const terrainFilter = ref<TerrainCategory[]>([])
@@ -128,8 +96,15 @@ function toggleTerrain(value: TerrainCategory) {
     ? terrainFilter.value.filter(entry => entry !== value)
     : [...terrainFilter.value, value]
 }
-const items = computed<RouteCardData[]>(() => (served.value?.routes ?? [])
-  .filter(route => !terrainFilter.value.length || terrainFilter.value.includes(route.terrain)))
+const filters = computed(() => ({
+  search: searchDebounced.value,
+  world: worldFilter.value !== 'all' ? worldFilter.value : undefined,
+  surface: surfaceFilter.value !== 'all' ? surfaceFilter.value : undefined,
+  distance: distanceRange.value,
+  elevation: elevationRange.value,
+  terrain: terrainFilter.value
+}))
+const items = computed<RouteCardData[]>(() => filterRouteCards(allCards.value, filters.value))
 const visibleItems = computed(() => items.value.slice(0, visibleCount.value))
 // Routes are the only thing counted here, so the line reads "24 routes
 // found" - the segments page counts climbs and sprints separately.
@@ -143,17 +118,20 @@ const { openProfile } = useOverlays()
 onMounted(loadRiderProfile)
 
 function resetFilters() {
+  // The debounce is for typing; a reset shows the whole catalog at once.
+  clearTimeout(searchDebounceTimer)
   search.value = ''
+  searchDebounced.value = ''
   worldFilter.value = 'all'
   surfaceFilter.value = 'all'
   terrainFilter.value = []
-  distanceRange.value = [0, 120]
-  elevationRange.value = [0, 2000]
+  distanceRange.value = [0, ROUTE_DISTANCE_MAX_KM]
+  elevationRange.value = [0, ROUTE_ELEVATION_MAX_M]
   pendingDistanceRange.value = [...distanceRange.value]
   pendingElevationRange.value = [...elevationRange.value]
 }
 
-watch([query, terrainFilter], () => {
+watch(filters, () => {
   visibleCount.value = 24
 })
 
@@ -178,27 +156,27 @@ onMounted(() => {
   if (surface) surfaceFilter.value = surface
   const terrain = (param('terrain') ?? '').split(',').filter((value): value is TerrainCategory => TERRAIN_CHIPS.some(chip => chip.value === value))
   if (terrain.length) terrainFilter.value = [...new Set(terrain)]
-  const dist = rangeParam('dist', 120)
+  const dist = rangeParam('dist', ROUTE_DISTANCE_MAX_KM)
   if (dist) {
     distanceRange.value = dist
     pendingDistanceRange.value = [...dist]
   }
-  const elev = rangeParam('elev', 2000)
+  const elev = rangeParam('elev', ROUTE_ELEVATION_MAX_M)
   if (elev) {
     elevationRange.value = elev
     pendingElevationRange.value = [...elev]
   }
 })
-watch([query, terrainFilter], ([value]) => {
-  const [minD, maxD] = distanceRange.value
-  const [minE, maxE] = elevationRange.value
+watch(filters, (value) => {
+  const [minD, maxD] = value.distance
+  const [minE, maxE] = value.elevation
   replaceQuery({
-    q: value.search,
+    q: value.search || undefined,
     world: value.world,
     surface: value.surface,
-    terrain: terrainFilter.value.length ? TERRAIN_CHIPS.map(chip => chip.value).filter(entry => terrainFilter.value.includes(entry)).join(',') : undefined,
-    dist: minD > 0 || maxD < 120 ? `${minD}-${maxD}` : undefined,
-    elev: minE > 0 || maxE < 2000 ? `${minE}-${maxE}` : undefined
+    terrain: value.terrain.length ? TERRAIN_CHIPS.map(chip => chip.value).filter(entry => value.terrain.includes(entry)).join(',') : undefined,
+    dist: minD > 0 || maxD < ROUTE_DISTANCE_MAX_KM ? `${minD}-${maxD}` : undefined,
+    elev: minE > 0 || maxE < ROUTE_ELEVATION_MAX_M ? `${minE}-${maxE}` : undefined
   })
 })
 </script>
@@ -324,7 +302,7 @@ watch([query, terrainFilter], ([value]) => {
               <USlider
                 :model-value="pendingDistanceRange"
                 :min="0"
-                :max="120"
+                :max="ROUTE_DISTANCE_MAX_KM"
                 :step="5"
                 size="sm"
                 aria-label="Distance range in kilometres"
@@ -341,7 +319,7 @@ watch([query, terrainFilter], ([value]) => {
               <USlider
                 :model-value="pendingElevationRange"
                 :min="0"
-                :max="2000"
+                :max="ROUTE_ELEVATION_MAX_M"
                 :step="50"
                 size="sm"
                 aria-label="Elevation range in metres"
@@ -357,12 +335,7 @@ watch([query, terrainFilter], ([value]) => {
               class="text-sm text-muted"
               aria-live="polite"
             >
-              <template v-if="status === 'pending'">
-                Finding routes…
-              </template>
-              <template v-else-if="status !== 'error'">
-                {{ countLine }}
-              </template>
+              {{ countLine }}
             </p>
             <UButton
               color="neutral"
@@ -381,19 +354,8 @@ watch([query, terrainFilter], ([value]) => {
         class="mt-5"
         subject="routes"
         :counts="resultCounts"
-        :status="status"
         count-elsewhere
-        @retry="refresh"
       >
-        <template #skeleton>
-          <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <RouteCardSkeleton
-              v-for="n in 8"
-              :key="n"
-            />
-          </div>
-        </template>
-
         <div class="space-y-6">
           <ul class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <li

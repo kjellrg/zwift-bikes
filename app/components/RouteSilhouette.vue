@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { outlineRuns, type Silhouette } from '#shared/utils/silhouette'
+import { outlineRuns, silhouetteOutline, type Silhouette } from '#shared/utils/silhouette'
 
 /**
  * A Silhouette drawn small, unlabelled, as a route or segment is listed: the
@@ -27,10 +27,11 @@ const pathOf = (points: readonly { x: number, y: number }[]) => points
   .join(' ')
 
 function outline(shape: Silhouette) {
-  const line = pathOf(shape.points)
+  const points = silhouetteOutline(shape)
+  const line = pathOf(points)
   return {
     area: `${line} L${VIEW_WIDTH},${VIEW_HEIGHT} L0,${VIEW_HEIGHT} Z`,
-    runs: outlineRuns(shape.points, shape.approximatedUntil).map(run => ({ d: pathOf(run.points), approximated: run.approximated }))
+    runs: outlineRuns(points, shape.approximatedUntil).map(run => ({ d: pathOf(run.points), approximated: run.approximated }))
   }
 }
 </script>

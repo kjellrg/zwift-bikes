@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OgProfile } from '../../utils/ogProfile'
+import type { Silhouette } from '#shared/utils/silhouette'
 import { OG_COLORS, OG_MARK_IMAGE, ogProfileImage } from '../../utils/ogProfile'
 
 // Social-share card for a route page (issue #59), repainted in the night
@@ -15,8 +15,8 @@ const props = defineProps<{
   elevation: string
   frameName?: string
   wheelName?: string
-  /** The route's Silhouette - see `ogProfile`. */
-  profile?: OgProfile
+  /** The route's Silhouette - see `OG_SILHOUETTE_SAMPLES`. */
+  profile?: Silhouette
 }>()
 
 // Long route names ("Queen's Highway After Party") step down instead of
