@@ -11,8 +11,9 @@ import { expectNoHorizontalOverflow, ready, resolvedColor, seedRiderProfile, tab
  *
  * Both projects run: the filter row wraps on a phone rather than collapsing
  * into a disclosure, so it is a different layout of the same controls and
- * worth driving twice. Waits come from `support.ts`; the one abort below is
- * the failure state itself under test, never a shortcut.
+ * worth driving twice. Waits come from `support.ts`. The page carries every
+ * route's card and filters them in the browser (#262), so a filter change
+ * has no response to wait for: a journey waits for what the rider sees.
  */
 
 const LONG_NAME_ROUTE = '/routes/2022-cycling-esports-world-championships-route'
@@ -30,9 +31,8 @@ const filter = (page: Page, name: string) => page.getByRole('button', { name, ex
 const filters = (page: Page) => page.getByRole('group', { name: 'Route filters' })
 const terrainChip = (page: Page, name: string) => filters(page).getByRole('button', { name, exact: true })
 const resetButton = (page: Page) => page.getByRole('button', { name: 'Reset' })
-/** The live count line on the filter row - "Finding routes…", then "N routes found". */
+/** The live count line on the filter row - "N routes found". */
 const statusLine = (page: Page) => filters(page).locator('p[aria-live="polite"]')
-const notice = (page: Page) => page.getByRole('alert')
 /** Every route card in the finder - the example card links to a route too, from outside the finder. */
 const cards = (page: Page) => page.locator('section:has(#route-finder-heading) a[href^="/routes/"]')
 const showMore = (page: Page) => page.getByRole('button', { name: /^Show more/ })
@@ -46,13 +46,20 @@ async function reportedCount(page: Page): Promise<number> {
   return Number.parseInt((await statusLine(page).innerText()).split(' ')[0]!, 10)
 }
 
-/** Picks a filter option and waits for the list the change asks for. */
+/** Picks a filter option; the list follows in the same render as the control's label. */
 async function pickFilter(page: Page, name: string, option: string) {
-  const responded = page.waitForResponse(response => response.url().includes('/api/routes'))
   await filter(page, name).click()
   await page.getByRole('option', { name: option, exact: true }).click()
-  await responded
-  await expect(statusLine(page)).not.toHaveText(/^Finding/)
+  await expect(filter(page, name)).toHaveText(option)
+}
+
+/** Every route-listing request the page makes from here on - there should be none. */
+function listingRequests(page: Page): string[] {
+  const seen: string[] = []
+  page.on('request', (request) => {
+    if (/\/api\/route(s|-cards)\b/.test(request.url())) seen.push(request.url())
+  })
+  return seen
 }
 
 /** A card's route name, as the card prints it. */
@@ -130,18 +137,14 @@ test.describe('route discovery', () => {
     await visitPage(page, '/')
     const everything = await reportedCount(page)
 
-    const responded = page.waitForResponse(response => response.url().includes('search=zzzzz'))
     await searchBox(page).fill('zzzzz')
-    await responded
     await expect(page.getByText(/No routes match your filters\./)).toBeVisible()
     await expect(statusLine(page)).toHaveText('0 routes found')
     await expect(cards(page)).toHaveCount(0)
 
-    const reset = page.waitForResponse(response => response.url().includes('/api/routes') && !response.url().includes('search='))
     await resetButton(page).click()
-    await reset
     await expect(searchBox(page)).toHaveValue('')
-    expect(await reportedCount(page)).toBe(everything)
+    await expect(statusLine(page)).toHaveText(`${everything} routes found`)
     await expect(page.getByText(/No routes match your filters\./)).toHaveCount(0)
   })
 
@@ -193,29 +196,35 @@ test.describe('route discovery', () => {
     expect(new Set(widths).size).toBe(1)
   })
 
-  test('keeps the previous routes on screen when a filter change fails, and retries', async ({ page }) => {
+  test('filters in the browser: every control narrows the list without a request', async ({ page }) => {
     await visitPage(page, '/')
-    const before = await cards(page).evaluateAll(links => links.map(link => link.getAttribute('href')))
-    expect(before.length).toBeGreaterThan(0)
+    const everything = await reportedCount(page)
+    const requests = listingRequests(page)
 
-    // The one abort in this file: a failed refetch is what the journey is
-    // about, and no real filter change can be made to fail on demand.
-    await page.route('**/api/routes?**', route => route.abort())
+    await searchBox(page).fill('loop')
+    await expect(statusLine(page)).not.toHaveText(`${everything} routes found`)
+    for (const found of await cards(page).all()) expect((await cardName(found)).toLowerCase()).toContain('loop')
+    await searchBox(page).fill('')
+    await expect(statusLine(page)).toHaveText(`${everything} routes found`)
+
+    // Worlds in the game's own order, Watopia - the most ridden - first, as on the segments page.
     await filter(page, 'World').click()
-    await page.getByRole('option', { name: 'New York', exact: true }).click()
-    await expect(notice(page)).toContainText('Couldn\'t load routes.')
-    expect(await cards(page).evaluateAll(links => links.map(link => link.getAttribute('href')))).toEqual(before)
-    // The cards below are the previous filter's, so no count is reported for
-    // the filter that failed - and none is announced.
-    await expect(statusLine(page)).toHaveText('')
+    await expect(page.getByRole('option').nth(1)).toHaveText('Watopia')
+    await page.keyboard.press('Escape')
+    await pickFilter(page, 'World', 'London')
+    const london = await reportedCount(page)
+    for (const text of await cards(page).allInnerTexts()) expect(text).toContain('London')
+    await pickFilter(page, 'Surface', 'Includes cobbles')
+    const cobbled = await reportedCount(page)
+    expect(cobbled).toBeLessThan(london)
+    await terrainChip(page, 'Flat').click()
+    await expect(page).toHaveURL(/[?&]terrain=flat/)
+    for (const text of await cards(page).allInnerTexts()) expect(text).toContain('Flat')
+    expect(await reportedCount(page)).toBeLessThanOrEqual(cobbled)
+    await resetButton(page).click()
+    await expect(statusLine(page)).toHaveText(`${everything} routes found`)
 
-    await page.unroute('**/api/routes?**')
-    const responded = page.waitForResponse(response => response.url().includes('/api/routes') && response.ok())
-    await notice(page).getByRole('button', { name: 'Try again' }).click()
-    await responded
-    await expect(notice(page)).toHaveCount(0)
-    expect(await reportedCount(page)).toBeGreaterThan(0)
-    expect(await cards(page).evaluateAll(links => links.map(link => link.getAttribute('href')))).not.toEqual(before)
+    expect(requests).toEqual([])
   })
 
   test('serves real route links and a real answer in the HTML a crawler reads', async ({ page, request }) => {

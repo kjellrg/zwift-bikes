@@ -128,7 +128,7 @@ The Ride's elevation profile drawn large at the top of a ranking page, in the ne
 _Avoid_: elevation chart, profile chart, banner, header image
 
 **Silhouette**:
-The small, unlabeled drawing of a route or segment's profile that stands for it wherever it is listed: Discovery cards, related rides, race rows and share cards. Every silhouette of one Ride is the same shape, drawn from one geometry, with a floor on its vertical span so a flat route stays visibly flat rather than becoming noise.
+The small, unlabeled drawing of a route or segment's profile that stands for it wherever it is listed: Discovery cards, related rides, race rows and share cards. Every silhouette of one Ride is the same shape, drawn from one geometry, with a floor on its vertical span so a flat route stays visibly flat rather than becoming noise. It is an outline, not the measured profile: every listing draws the same outline, a larger drawing of the same Ride (a share card, the homepage's example) draws it finer, and none of them carries anything a pointer could read off. The measured detail belongs to the Course hero.
 _Avoid_: sparkline, thumbnail, mini chart, icon
 
 **Palette**:

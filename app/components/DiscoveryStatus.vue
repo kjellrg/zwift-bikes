@@ -10,10 +10,12 @@ import type { DiscoveryCount } from '../utils/discoveryCounts'
  * them, and one component is how they stay one vocabulary instead of three.
  *
  * The matched Rides come through the default slot and the shape they load
- * into through `#skeleton`: a flat card grid on the homepage, world groups on
- * the segments page, round groups on a season page. Which of the two is on
- * screen is decided here, so no page has to spell out that a skeleton and an
- * empty message are mutually exclusive.
+ * into through `#skeleton`: world groups on the segments page, round groups
+ * on a season page. Which of the two is on screen is decided here, so no page
+ * has to spell out that a skeleton and an empty message are mutually
+ * exclusive. The homepage fetches nothing when a filter moves - it filters
+ * the cards its payload carries (#262) - so it passes no status, and its list
+ * is never loading and never failed.
  *
  * The empty branch belongs to the pages that have filters, and says so - "No
  * routes match your filters". A season page has none, so it does not render
@@ -35,8 +37,8 @@ const props = defineProps<{
    * dropped: that a search matched climbs but no sprints is worth reading.
    */
   counts: DiscoveryCount[]
-  /** The list fetch's `useFetch` status. */
-  status: 'idle' | 'pending' | 'success' | 'error'
+  /** The list fetch's `useFetch` status; none for a list already in hand. */
+  status?: 'idle' | 'pending' | 'success' | 'error'
   /**
    * Whether the page prints the count line itself, beside its filters - the
    * homepage and the segments page keep the count on the filter row, so the

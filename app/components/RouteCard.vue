@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RouteCardData } from '../utils/routeCards'
+import type { RouteCardData } from '#shared/utils/routeCards'
 
 /**
  * A route as the homepage lists it: its Silhouette and surface strip first,

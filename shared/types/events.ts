@@ -1,5 +1,6 @@
 import type { RouteWithMeta } from './catalog'
 import type { EventRace, EventRound, EventSeason, RaceCategoryGroup } from '../utils/events'
+import type { Silhouette } from '../utils/silhouette'
 
 /**
  * API-response shapes for `/api/events/[season]`: the curated calendar
@@ -38,6 +39,12 @@ export interface EventRaceCategoryWithRoute extends RaceCategoryGroup {
 /** A race with every category group joined to its route. */
 export interface EventRaceWithRoute extends Omit<EventRace, 'categories'> {
   categories: EventRaceCategoryWithRoute[]
+  /**
+   * The primary route's Silhouette (`primaryRouteSlug`), one lap, as every
+   * listing draws it - a race row's picture. Absent when that route has no
+   * measured profile or the race has no route yet.
+   */
+  silhouette?: Silhouette
 }
 
 export interface EventRoundWithRoutes extends Omit<EventRound, 'races'> {

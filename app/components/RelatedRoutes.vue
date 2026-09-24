@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { RouteSummary, RouteWithMeta } from '../../shared/types/catalog'
-import { routeSilhouette } from '#shared/utils/silhouette'
-import { relatedRoutes } from '../utils/relatedRoutes'
+import type { RouteWithMeta } from '../../shared/types/catalog'
+import type { RelatedRouteCardData } from '#shared/utils/routeCards'
 
 /**
  * Four routes to move on to from a route page, each drawn as its
@@ -9,30 +8,18 @@ import { relatedRoutes } from '../utils/relatedRoutes'
  * from other worlds when the world is small (see `relatedRoutes`).
  *
  * Server-rendered, so the links are in the prerendered page a crawler reads.
- * The catalog listing it picks from is large; the `transform` runs where the
- * fetch does, so the page's payload carries only the four cards, never the
- * listing. The host keys this component by route, so a route-to-route
- * navigation fetches the next route's four afresh.
+ * The server picks the four (`/api/route-cards?relatedTo=`), so the page's
+ * payload carries only their cards and never the catalog listing. The host
+ * keys this component by route, so a route-to-route navigation fetches the
+ * next route's four afresh.
  */
 const props = defineProps<{ route: RouteWithMeta }>()
 
-/** Enough points for a card's outline; a listing never needs the measured detail. */
-const CARD_SAMPLES = 48
-
-const { data: cards } = await useFetch('/api/routes', {
+const { data } = await useFetch<{ cards: RelatedRouteCardData[] }>('/api/route-cards', {
   key: `related-routes-${props.route.slug}`,
-  query: { sport: 'cycling' },
-  transform: response => relatedRoutes(props.route, response.routes).map(({ route, otherWorld }: { route: RouteSummary, otherWorld: boolean }) => ({
-    slug: route.slug,
-    name: route.name,
-    worldName: route.worldName,
-    distance: route.distance,
-    elevation: route.elevation,
-    terrain: TERRAIN_LABELS[route.terrain.category],
-    otherWorld,
-    shape: routeSilhouette(route, 1, { samples: CARD_SAMPLES })
-  }))
+  query: { relatedTo: props.route.slug }
 })
+const cards = computed(() => data.value?.cards)
 
 const heading = computed(() => cards.value?.every(card => !card.otherWorld)
   ? `Similar rides in ${props.route.worldName}`
@@ -65,7 +52,7 @@ const heading = computed(() => cards.value?.every(card => !card.otherWorld)
           />
           <span class="block font-semibold text-highlighted">{{ card.name }}</span>
           <span class="mt-0.5 block text-sm text-muted">
-            {{ formatDistance(card.distance) }} · {{ formatElevation(card.elevation) }} · {{ card.terrain }}<template v-if="card.otherWorld">
+            {{ formatDistance(card.distance) }} · {{ formatElevation(card.elevation) }} · {{ TERRAIN_LABELS[card.terrain] }}<template v-if="card.otherWorld">
               · {{ card.worldName }}
             </template>
           </span>

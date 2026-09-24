@@ -102,7 +102,7 @@ if (routeData.value) {
     elevation: formatElevation(totals.elevationM),
     frameName: ogTopCombo?.frame.name,
     wheelName: ogTopCombo?.wheelset?.name,
-    profile: ogProfile(routeSilhouette(routeData.value, 1, { samples: 120 }))
+    profile: routeSilhouette(routeData.value, 1, OG_SILHOUETTE_SAMPLES)
   }, {
     alt: `Fastest bike for ${routeData.value.name} in ${routeData.value.worldName}: the route's profile and its fastest bike and wheel setup`
   })

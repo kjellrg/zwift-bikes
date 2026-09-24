@@ -57,6 +57,9 @@ export type _SportDriftGuard = ExpectNever<Exclude<Sport, (typeof SPORTS)[number
  */
 const emptyToUndef = (value: unknown) => (value === '' || value === undefined ? undefined : value)
 
+/** A route or segment slug; whether it exists is the handler's 404. */
+const qSlug = z.preprocess(emptyToUndef, z.string().max(200).optional())
+
 /** Free-text search, normalized the way every handler always has. */
 const qSearch = z.preprocess(emptyToUndef, z.string().max(200).optional())
   .transform(value => value?.trim().toLowerCase() || undefined)
@@ -165,6 +168,15 @@ export const routesQuerySchema = z.object({
   maxElevation: qNumber,
   surface: qEnum(ROUTE_SURFACE_FILTERS),
   eventOnly: qBool(undefined)
+})
+
+/**
+ * `/api/route-cards`: no filters - the homepage filters every card in the
+ * browser - and one optional route whose related cards to pick instead. An
+ * unknown slug is the handler's 404, not a 400: it is well-formed.
+ */
+export const routeCardsQuerySchema = z.object({
+  relatedTo: qSlug
 })
 
 /**

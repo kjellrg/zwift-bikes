@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { RouteWithMeta } from '../../shared/types/catalog'
-import { outlineRuns, routeSilhouette, type OutlinePoint } from '#shared/utils/silhouette'
+import { outlineRuns, routeCourseProfile, type OutlinePoint } from '#shared/utils/silhouette'
 
 /**
  * The Course hero (see `CONTEXT.md`): the Ride's elevation profile drawn
@@ -9,7 +9,7 @@ import { outlineRuns, routeSilhouette, type OutlinePoint } from '#shared/utils/s
  * - on a race - its scoring segments starred. Hovering or touching it reads
  * the kilometre, elevation, grade and surface at that point.
  *
- * It is the Silhouette (`routeSilhouette`), so it is the very geometry the
+ * It is the Ride's full measured geometry (`routeCourseProfile`), the very one the
  * finish time was simulated over, for the lap count the rider has chosen
  * with the lead-in once. Ride-only: it never waits for a Ranking, and a
  * route with no measured profile gets a line saying its terrain is
@@ -32,7 +32,7 @@ const props = defineProps<{
   scoringSlugs?: string[]
 }>()
 
-const shape = computed(() => routeSilhouette(props.route, props.laps))
+const shape = computed(() => routeCourseProfile(props.route, props.laps))
 
 const VIEW_WIDTH = 1000
 const VIEW_HEIGHT = 240

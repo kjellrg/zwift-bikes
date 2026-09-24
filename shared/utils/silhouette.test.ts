@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { RouteWithMeta } from '../types/catalog'
-import { outlineRuns, routeSilhouette, silhouette, SILHOUETTE_MIN_SPAN_M, surfaceFamily } from './silhouette'
+import { courseProfile, outlineRuns, routeCourseProfile, routeSilhouette, silhouetteOutline, SILHOUETTE_HEIGHT_SCALE, SILHOUETTE_LISTING_SAMPLES, SILHOUETTE_MIN_SPAN_M, SILHOUETTE_MIN_SURFACE_SPAN, surfaceFamily } from './silhouette'
 
 // Hand-built routes rather than catalog ones, for the same reason as
-// `routeOccurrences.test.ts`: the pages draw a Silhouette from the fetched
+// `routeOccurrences.test.ts`: the pages draw a profile from the fetched
 // route object alone, so the helper must not need zwift-data or the
 // measured surface table to do it.
 function fixtureRoute(overrides: Partial<{ profile: { distanceM: number, elevationM: number }[], leadInDistance: number, segments: { fromKm: number, toKm: number, type: string }[] }> = {}): RouteWithMeta {
@@ -45,9 +45,9 @@ function fixtureRoute(overrides: Partial<{ profile: { distanceM: number, elevati
   } as unknown as RouteWithMeta
 }
 
-describe('silhouette', () => {
+describe('courseProfile', () => {
   it('normalises every point into the unit box, lowest point at 0 and highest at 1', () => {
-    const shape = silhouette({ points: [
+    const shape = courseProfile({ points: [
       { distanceM: 0, elevationM: 20 },
       { distanceM: 500, elevationM: 220 },
       { distanceM: 2000, elevationM: 120 }
@@ -59,7 +59,7 @@ describe('silhouette', () => {
   })
 
   it('keeps a flat profile visibly flat: under the minimum span, a bump is drawn to scale, not stretched to the top', () => {
-    const shape = silhouette({ points: [
+    const shape = courseProfile({ points: [
       { distanceM: 0, elevationM: 0 },
       { distanceM: 1000, elevationM: 4 },
       { distanceM: 2000, elevationM: 0 }
@@ -71,7 +71,7 @@ describe('silhouette', () => {
   })
 
   it('maps climb and sprint positions to fractions of the ride, clipped to it', () => {
-    const shape = silhouette({
+    const shape = courseProfile({
       points: [{ distanceM: 0, elevationM: 0 }, { distanceM: 10000, elevationM: 50 }],
       climbs: [{ name: 'Hill', slug: 'hill', rideFromKm: 2.5, rideToKm: 5 }, { name: 'Past the end', slug: 'past', rideFromKm: 12, rideToKm: 13 }],
       sprints: [{ name: 'Banner', slug: 'banner', rideFromKm: 9.5, rideToKm: 10.5 }]
@@ -81,7 +81,7 @@ describe('silhouette', () => {
   })
 
   it('maps surface stretches to fractions with their family, merging only neighbours of the same surface', () => {
-    const shape = silhouette({
+    const shape = courseProfile({
       points: [{ distanceM: 0, elevationM: 0 }, { distanceM: 10000, elevationM: 0 }],
       surfaceSegments: [
         { fromM: 0, toM: 2000, surface: 'tarmac' },
@@ -102,7 +102,7 @@ describe('silhouette', () => {
   })
 
   it('resamples to an even number of points when asked, keeping both ends', () => {
-    const shape = silhouette({ points: [
+    const shape = courseProfile({ points: [
       { distanceM: 0, elevationM: 0 },
       { distanceM: 100, elevationM: 100 },
       { distanceM: 1000, elevationM: 0 }
@@ -124,9 +124,9 @@ describe('surfaceFamily', () => {
   })
 })
 
-describe('routeSilhouette', () => {
+describe('routeCourseProfile', () => {
   it('repeats the lap for a multi-lap ride and places every lap\'s climbs and surfaces', () => {
-    const shape = routeSilhouette(fixtureRoute(), 2)!
+    const shape = routeCourseProfile(fixtureRoute(), 2)!
     expect(shape.totalDistanceM).toBe(20000)
     // The summit at 5 km of each 10 km lap, at a quarter and three quarters of the ride.
     const summits = shape.points.filter(point => point.y === 1).map(point => point.x)
@@ -137,7 +137,7 @@ describe('routeSilhouette', () => {
   })
 
   it('rides the lead-in once, ahead of the laps', () => {
-    const shape = routeSilhouette(fixtureRoute({ leadInDistance: 2 }), 2)!
+    const shape = routeCourseProfile(fixtureRoute({ leadInDistance: 2 }), 2)!
     expect(shape.totalDistanceM).toBe(22000)
     expect(shape.climbs.map(band => [band.from, band.to].map(fraction => Number(fraction.toFixed(4))))).toEqual([
       [Number((4 / 22).toFixed(4)), Number((7 / 22).toFixed(4))],
@@ -146,15 +146,15 @@ describe('routeSilhouette', () => {
   })
 
   it('has no shape for a route with no measured profile, rather than drawing the model\'s approximation', () => {
-    expect(routeSilhouette(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
+    expect(routeCourseProfile(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
   })
 
   it('marks an unmeasured lead-in as approximated, to be dashed, and a measured one or none as not', () => {
-    expect(routeSilhouette(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBeCloseTo(2 / 22)
-    expect(routeSilhouette(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
+    expect(routeCourseProfile(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBeCloseTo(2 / 22)
+    expect(routeCourseProfile(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
     const measured = fixtureRoute({ leadInDistance: 2 })
     measured.terrain.leadInElevationProfile = [{ distanceM: 0, elevationM: 0 }, { distanceM: 2000, elevationM: 10 }]
-    expect(routeSilhouette(measured, 2)!).not.toHaveProperty('approximatedUntil')
+    expect(routeCourseProfile(measured, 2)!).not.toHaveProperty('approximatedUntil')
   })
 
   it('leaves a lead-in-only climb off a listing\'s lap-only shape, and places it on a full route\'s', () => {
@@ -162,7 +162,7 @@ describe('routeSilhouette', () => {
       const route = fixtureRoute({ leadInDistance: leadInDistance ?? 0 })
       if (leadInDistance === undefined) delete (route as { leadInDistance?: number }).leadInDistance
       route.terrain.climbs.push({ name: 'Pen climb', slug: 'pen-climb', fromKm: 0.5, toKm: 1.5, lengthKm: 1, elevationM: 30, avgGradePercent: 3, perLap: false })
-      return routeSilhouette(route, 1)!
+      return routeCourseProfile(route, 1)!
     }
     expect(withLeadInClimb(undefined).climbs.map(band => band.slug)).toEqual(['lap-kom'])
     expect(withLeadInClimb(2).climbs.map(band => band.slug)).toEqual(['pen-climb', 'lap-kom'])
@@ -171,7 +171,7 @@ describe('routeSilhouette', () => {
   it('draws no surface strip when the surfaces have no measured positions', () => {
     const route = fixtureRoute()
     delete (route.surface as { segments?: unknown }).segments
-    expect(routeSilhouette(route, 1)!.surfaces).toEqual([])
+    expect(routeCourseProfile(route, 1)!.surfaces).toEqual([])
   })
 })
 
@@ -199,6 +199,78 @@ describe('outlineRuns', () => {
     expect(outlineRuns(points, 0.2)).toEqual([
       { approximated: true, points: [{ x: 0, y: 0 }, { x: 0.2, y: 0.4 }] },
       { approximated: false, points: [{ x: 0.2, y: 0.4 }, { x: 0.6, y: 1 }, { x: 1, y: 0 }] }
+    ])
+  })
+})
+
+describe('routeSilhouette', () => {
+  it('is the course profile\'s outline as heights alone, resampled to a listing\'s count', () => {
+    const route = fixtureRoute()
+    const shape = routeSilhouette(route, 1)!
+    const profile = routeCourseProfile(route, 1, { samples: SILHOUETTE_LISTING_SAMPLES })!
+    expect(SILHOUETTE_LISTING_SAMPLES).toBe(48)
+    expect(shape.heights).toHaveLength(48)
+    expect(shape.heights).toEqual(profile.points.map(point => Math.round(point.y * SILHOUETTE_HEIGHT_SCALE)))
+    expect(shape.heights.every(height => Number.isInteger(height) && height >= 0 && height <= SILHOUETTE_HEIGHT_SCALE)).toBe(true)
+    // Nothing the hero reads rides along: no points, bands or totals.
+    expect(Object.keys(shape).sort()).toEqual(['heights', 'surfaces'])
+  })
+
+  it('draws a larger picture of the same ride finer, with the same type', () => {
+    expect(routeSilhouette(fixtureRoute(), 2, 120)!.heights).toHaveLength(120)
+  })
+
+  it('has no shape for a route with no measured profile', () => {
+    expect(routeSilhouette(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
+  })
+
+  it('carries the surfaces by family, a family\'s neighbours merged into one span', () => {
+    const route = fixtureRoute({ segments: [
+      { fromKm: 0, toKm: 2, type: 'tarmac' },
+      { fromKm: 2, toKm: 3, type: 'dirt' },
+      { fromKm: 3, toKm: 4, type: 'gravel' },
+      { fromKm: 4, toKm: 5, type: 'wood' },
+      { fromKm: 5, toKm: 10, type: 'tarmac' }
+    ] })
+    expect(routeSilhouette(route, 1)!.surfaces).toEqual([
+      { from: 0, to: 0.2, family: 'tarmac' },
+      { from: 0.2, to: 0.4, family: 'dirt' },
+      { from: 0.4, to: 0.5, family: 'rough' },
+      { from: 0.5, to: 1, family: 'tarmac' }
+    ])
+  })
+
+  it('merges a span too narrow to see on a card into its neighbour, leaving no gap', () => {
+    // 10 m of wood in a 10 km lap is a thousandth of the card: under half a pixel.
+    expect(SILHOUETTE_MIN_SURFACE_SPAN).toBeGreaterThan(0.001)
+    const route = fixtureRoute({ segments: [
+      { fromKm: 0, toKm: 0.01, type: 'dirt' },
+      { fromKm: 0.01, toKm: 4, type: 'tarmac' },
+      { fromKm: 4, toKm: 4.01, type: 'wood' },
+      { fromKm: 4.01, toKm: 6, type: 'dirt' },
+      { fromKm: 6, toKm: 10, type: 'tarmac' }
+    ] })
+    expect(routeSilhouette(route, 1)!.surfaces).toEqual([
+      { from: 0, to: 0.401, family: 'tarmac' },
+      { from: 0.401, to: 0.6, family: 'dirt' },
+      { from: 0.6, to: 1, family: 'tarmac' }
+    ])
+  })
+
+  it('keeps where an unmeasured lead-in ends, to be dashed', () => {
+    expect(routeSilhouette(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBe(0.091)
+    expect(routeSilhouette(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
+  })
+})
+
+describe('silhouetteOutline', () => {
+  it('spreads the heights evenly along the ride, x taken from each one\'s place', () => {
+    expect(silhouetteOutline({ heights: [0, 500, 1000, 250, 0], surfaces: [] })).toEqual([
+      { x: 0, y: 0 },
+      { x: 0.25, y: 0.5 },
+      { x: 0.5, y: 1 },
+      { x: 0.75, y: 0.25 },
+      { x: 1, y: 0 }
     ])
   })
 })

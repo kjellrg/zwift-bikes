@@ -13,14 +13,14 @@ export interface RelatedCandidate {
   world: string
   distance: number
   eventOnly: boolean
-  terrain: { climbRatio: number }
+  climbRatio: number
 }
 
 export const RELATED_ROUTE_COUNT = 4
 
 export function relatedRoutes<T extends RelatedCandidate>(target: RelatedCandidate, candidates: readonly T[], count = RELATED_ROUTE_COUNT): { route: T, otherWorld: boolean }[] {
   const nearness = (candidate: T) => [
-    Math.abs(candidate.terrain.climbRatio - target.terrain.climbRatio),
+    Math.abs(candidate.climbRatio - target.climbRatio),
     Math.abs(candidate.distance - target.distance)
   ] as const
   const byNearness = (a: T, b: T) => {

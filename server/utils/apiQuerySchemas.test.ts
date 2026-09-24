@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_UNOWNED_LEVEL } from '../../shared/utils/upgradeStage'
 import { RIDER_BOUNDS } from '../../shared/utils/riderBounds'
-import { bikesQuerySchema, recommendRouteQuerySchema, recommendSegmentQuerySchema, routesQuerySchema } from './apiQuerySchemas'
+import { bikesQuerySchema, recommendRouteQuerySchema, recommendSegmentQuerySchema, routeCardsQuerySchema, routesQuerySchema } from './apiQuerySchemas'
 
 /**
  * The strict 400 contract from issue #45: wrong values of known parameters
@@ -118,5 +118,17 @@ describe('garage parameters', () => {
     expect(recommendRouteQuerySchema.parse({ ownedWheels: '["Zipp 808","ENVE SES 7.8"]' }).ownedWheels).toEqual(new Set(['Zipp 808', 'ENVE SES 7.8']))
     expect(recommendRouteQuerySchema.safeParse({ ownedWheels: '{"a":1}' }).success).toBe(false)
     expect(recommendRouteQuerySchema.safeParse({ ownedWheels: '[1]' }).success).toBe(false)
+  })
+})
+
+describe('route cards query', () => {
+  it('takes a route to relate to, and reads an empty one as none', () => {
+    expect(routeCardsQuerySchema.parse({ relatedTo: 'tempus-fugit' }).relatedTo).toBe('tempus-fugit')
+    expect(routeCardsQuerySchema.parse({ relatedTo: '' }).relatedTo).toBeUndefined()
+    expect(routeCardsQuerySchema.parse({}).relatedTo).toBeUndefined()
+  })
+
+  it('rejects a slug longer than any route has', () => {
+    expect(routeCardsQuerySchema.safeParse({ relatedTo: 'x'.repeat(201) }).success).toBe(false)
   })
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OgProfile } from '../../utils/ogProfile'
+import type { Silhouette } from '#shared/utils/silhouette'
 import { OG_COLORS, OG_MARK_IMAGE, ogProfileImage } from '../../utils/ogProfile'
 
 // Social-share card for a segment page (issue #59 phase 2), repainted in the night
@@ -19,11 +19,11 @@ const props = defineProps<{
   frameName?: string
   wheelName?: string
   /**
-   * The segment's Silhouette - see `ogProfile`. Absent for membership
+   * The segment's Silhouette - see `OG_SILHOUETTE_SAMPLES`. Absent for membership
    * segments (no measured position on any route): the card renders without
    * one rather than faking a straight ramp.
    */
-  profile?: OgProfile
+  profile?: Silhouette
 }>()
 
 // Long segment names ("Temple KOM from Fishing Village side") step down instead of

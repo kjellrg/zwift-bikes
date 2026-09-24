@@ -1,4 +1,4 @@
-import { outlineRuns, type Silhouette, type SurfaceFamily } from '#shared/utils/silhouette'
+import { outlineRuns, silhouetteOutline, type Silhouette, type SurfaceFamily } from '#shared/utils/silhouette'
 
 /**
  * What the share cards draw, and what they draw it with. The cards render at
@@ -21,35 +21,12 @@ export const OG_COLORS = {
 
 const FAMILY_COLORS: Record<SurfaceFamily, string> = { tarmac: OG_COLORS.rule, dirt: OG_COLORS.dirt, rough: OG_COLORS.rough }
 
-/** The card's share of a Silhouette: heights 0..1 at even distances, and where each surface family runs. */
-export interface OgProfile {
-  heights: number[]
-  surfaces: { from: number, to: number, family: SurfaceFamily }[]
-  /** Where an unmeasured lead-in ends, as a fraction - see `Silhouette.approximatedUntil`; dashed on the card. */
-  approximatedUntil?: number
-}
-
 /**
- * A Silhouette as the cards carry it through `defineOgImage`: plain numbers,
- * rounded, so the prop payload stays small. Build the Silhouette with
- * `samples` (120 is plenty for a 1200 px card).
+ * Heights per share-card Silhouette: the same shape every listing draws, at
+ * the finer count a 1200 px card wants. The cards carry it through
+ * `defineOgImage` as plain props - `routeSilhouette(route, laps, OG_SILHOUETTE_SAMPLES)`.
  */
-export function ogProfile(shape: Silhouette | undefined): OgProfile | undefined {
-  if (!shape || shape.points.length < 2) return undefined
-  return {
-    heights: shape.points.map(point => Math.round(point.y * 1000) / 1000),
-    // Merged by family - all a card colours by - so the props stay short.
-    surfaces: shape.surfaces.reduce<OgProfile['surfaces']>((spans, span) => {
-      const from = Math.round(span.from * 1000) / 1000
-      const to = Math.round(span.to * 1000) / 1000
-      const previous = spans.at(-1)
-      if (previous && previous.family === span.family) previous.to = to
-      else if (to > from) spans.push({ from, to, family: span.family })
-      return spans
-    }, []),
-    ...(shape.approximatedUntil ? { approximatedUntil: Math.round(shape.approximatedUntil * 1000) / 1000 } : {})
-  }
-}
+export const OG_SILHOUETTE_SAMPLES = 120
 
 const dataUri = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
 
@@ -60,13 +37,12 @@ const dataUri = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(s
  * the page - and the surface strip beneath in the two surface colours when
  * the positions are known.
  */
-export function ogProfileImage(profile: OgProfile, width: number, height: number): string {
+export function ogProfileImage(profile: Silhouette, width: number, height: number): string {
   const stripHeight = profile.surfaces.length ? 10 : 0
   const plotHeight = height - stripHeight - (stripHeight ? 8 : 0)
-  const last = profile.heights.length - 1
   const coordinates = (points: readonly { x: number, y: number }[]) => points
     .map(point => `${(point.x * width).toFixed(1)},${(plotHeight - 4 - point.y * (plotHeight - 12)).toFixed(1)}`).join(' ')
-  const outline = profile.heights.map((y, index) => ({ x: index / last, y }))
+  const outline = silhouetteOutline(profile)
   const points = coordinates(outline)
   const lines = outlineRuns(outline, profile.approximatedUntil)
     .map(run => run.approximated

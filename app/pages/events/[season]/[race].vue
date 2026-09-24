@@ -474,7 +474,7 @@ defineOgImage('EventCard', {
   wheelName: ogTopCombo?.wheelset?.name,
   // The first Category group's course - the one selected at setup - as its
   // Silhouette, for its lap count with the lead-in once.
-  profile: routeInfo.value ? ogProfile(routeSilhouette(routeInfo.value, laps.value, { samples: 120 })) : undefined
+  profile: routeInfo.value ? routeSilhouette(routeInfo.value, laps.value, OG_SILHOUETTE_SAMPLES) : undefined
 }, {
   alt: `${raceTitle.value} on ${routeNamesLabel.value}: date, format and the fastest legal bike and wheel setup`
 })
