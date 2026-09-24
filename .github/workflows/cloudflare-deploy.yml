@@ -99,7 +99,10 @@ jobs:
   checks:
     name: Checks
     if: github.event.action != 'closed'
-    uses: ./.github/workflows/checks.yml
+    # `$/` is GitHub's self-repository form: resolved against this repository
+    # rather than the checked-out workspace, and counted as pinned (zizmor's
+    # self-repository audit).
+    uses: $/.github/workflows/checks.yml
     permissions:
       contents: read # Ceiling for the called workflow, which asks for the same.
 
