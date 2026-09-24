@@ -29,11 +29,18 @@ const props = defineProps<{
    * that mixes seasons. A season page names its series once, in its heading.
    */
   tag?: string
+  /**
+   * Listed under its own round's heading, which already says "Round 1", so
+   * the row says "Week 2" (`raceNameInRound`). The link's name keeps the full
+   * one: a list of links is also heard away from the headings above it.
+   */
+  inRound?: boolean
 }>()
 
 const href = computed(() => isRacePublishable(props.race) ? `/events/${props.seasonSlug}/${props.race.slug}` : undefined)
 
 const name = computed(() => [props.tag, raceDisplayName(props.race)].filter(Boolean).join(' '))
+const shownName = computed(() => props.inRound ? raceNameInRound(props.race) : raceDisplayName(props.race))
 const dates = computed(() => formatRaceDateRange(props.race.date, props.race.endDate))
 
 /**
@@ -42,7 +49,7 @@ const dates = computed(() => formatRaceDateRange(props.race.date, props.race.end
  * and the visible cue alone, "Fastest bike for it", would leave a list of
  * links all saying the same thing. So it is the race and its dates, then the
  * cue a rider sees, which keeps what a speech-control user reads on screen
- * inside the name they can say.
+ * inside the name they can say - "Week 2" is inside "Round 1 Week 2".
  */
 const linkLabel = computed(() => `${name.value}, ${dates.value} - Fastest bike for it`)
 
@@ -101,7 +108,7 @@ const courses = computed(() => raceCourseLines(props.race))
           <span
             v-if="tag"
             class="mr-1.5 text-sm font-medium text-muted"
-          >{{ tag }}</span>{{ raceDisplayName(race) }}
+          >{{ tag }}</span>{{ shownName }}
           <span class="ml-1 text-sm font-normal text-muted">{{ race.format ? RACE_FORMAT_LABELS[race.format] : 'Format to come' }}</span>
         </p>
         <p

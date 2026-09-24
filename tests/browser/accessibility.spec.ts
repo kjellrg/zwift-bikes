@@ -179,14 +179,14 @@ test.describe('accessibility', () => {
     await page.clock.setFixedTime(new Date('2026-09-25T12:00:00Z'))
     await visitPage(page, '/events/zrl-2026-27')
     const row = (name: string) => page.locator('li').filter({ hasText: name })
-    await expect(row('Round 1 Week 2').getByRole('link')).toHaveCount(1)
-    await expect(row('Round 1 Week 6').getByRole('link')).toHaveCount(0)
+    await expect(row('Week 2').getByRole('link')).toHaveCount(1)
+    await expect(row('Week 6').getByRole('link')).toHaveCount(0)
     // The tint is a different ground under the row's text, so its contrast
     // is scanned with the pointer on it.
-    await row('Round 1 Week 2').hover()
+    await row('Week 2').hover()
     await audit(page, 'hovered race row (dark)')
     await switchToLight(page)
-    await row('Round 1 Week 2').hover()
+    await row('Week 2').hover()
     await audit(page, 'hovered race row (light)')
   })
 

@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { EVENTS_SERVER_DAY, expectNoHorizontalOverflow, hydrated, servedEventsDay, visitPage } from './support'
 
 /**
- * The events Discovery pages (issues #216, #257, #276): the hub that lists
+ * The events Discovery pages (issues #216, #257, #276, #279): the hub that lists
  * Seasons and a season page that lists its Races (see `CONTEXT.md`). Both rank
  * nothing and neither has a filter - a journey here asserts what a rider scans
  * and what a crawler is served, not a ranking.
@@ -32,11 +32,14 @@ const STAGE_3_RUN = new Date('2026-09-28T00:30:00Z')
 /** Past every race in both curated seasons. */
 const AFTER = new Date('2027-05-01T12:00:00Z')
 
-const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
-/** A race's row on a season page, by the name it is listed under - rows are the items of a round section's list. */
+/** A race's row on a season page, by the name it is listed under ("Week 2", "Stage 3") - rows are the items of a round section's list. */
 const raceRow = (page: Page, name: RegExp) => page.locator('main section ol > li').filter({ hasText: name })
 /** The row's way into its race page - the whole row, and absent for a race with no page yet. */
 const raceLink = (page: Page, name: RegExp) => raceRow(page, name).getByRole('link')
+/** The header's counts of what is left, above the calendar. */
+const headerStats = (page: Page) => page.locator('main ul').first()
+/** A round with nothing announced, on its one line under "Not announced yet" - by its `#round-N` anchor. */
+const unannouncedRound = (page: Page, number: number) => page.locator(`main li#round-${number}`)
 /** Whatever used to hold, or label, what has been run. None of it is on either page any more. */
 async function expectNothingLabelledPast(page: Page) {
   await expect(page.getByRole('button', { name: /^Past (races|seasons)/ })).toHaveCount(0)
@@ -122,11 +125,13 @@ test.describe('event discovery', () => {
     await roundTile(page, 3, 'Racecraft Rush').click()
     await page.waitForURL(`**${SEASON}#round-3`)
     await hydrated(page)
-    // Landed at the round, and clear of the sticky header rather than under
-    // it - the heading's own `scroll-mt`.
-    const heading = page.getByRole('heading', { level: 2, name: 'Round 3: Racecraft Rush' })
-    await expect(heading).toBeInViewport()
-    expect((await heading.boundingBox())!.y).toBeGreaterThan(64)
+    // Nothing of round 3 is announced, so it is one line under "Not
+    // announced yet" - and that line is where the link lands, clear of the
+    // sticky header rather than under it: its own `scroll-mt`.
+    const line = unannouncedRound(page, 3)
+    await expect(line).toContainText('Round 3: Racecraft Rush')
+    await expect(line).toBeInViewport()
+    expect((await line.boundingBox())!.y).toBeGreaterThan(64)
   })
 
   test('drops a run round from the season page, and its tile from the hub', async ({ page }) => {
@@ -178,38 +183,38 @@ test.describe('event discovery', () => {
     await visitAt(page, SEASON, DURING)
     await expectNoHorizontalOverflow(page)
 
-    // The header's own numbers: the whole calendar, not the part still to
-    // come, and the days it spans end to end.
-    const stats = page.locator('main ul').first()
-    await expect(stats).toContainText('4 rounds')
-    await expect(stats).toContainText('24 races')
-    await expect(stats).toContainText('Tue 22 Sept - Tue 6 Apr')
+    // The header counts what is left - week 1 has been run - and says how
+    // far the calendar runs.
+    await expect(headerStats(page)).toHaveText(/^5 races left in Round 1\s*18 more in Rounds 2-4\s*Calendar runs to Tue 6 Apr$/)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zwift Racing League 2026/27 schedule')
+    // No search-result voice: this page has no filters.
+    await expect(page.getByText(/races? found/)).toHaveCount(0)
 
     await expect(page.getByRole('heading', { level: 2, name: 'Round 1: Fresh & Fast' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Round 2: Team Tempo' })).toBeVisible()
-    await expect(statusLine(page)).toHaveText(/^\d+ races found$/)
 
     // Week 1 has been run, so week 2 is marked the next race and week 1 is
     // nowhere on the page - not in its round, and not tucked away below.
-    const next = raceRow(page, /Round 1 Week 2/)
+    // Under its round's heading a row is named by its week alone.
+    const next = raceRow(page, /Week 2/)
     await expect(next).toContainText('Next race')
-    await expect(raceLink(page, /Round 1 Week 2/)).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
+    await expect(next).not.toContainText('Round 1 Week 2')
+    await expect(raceLink(page, /Week 2/)).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
     // A schedule row draws its primary route's Silhouette, as every listing does.
     await expect(next.locator('svg[data-silhouette]')).toHaveCount(1)
-    await expect(raceRow(page, /Round 1 Week 1/)).toHaveCount(0)
+    await expect(raceRow(page, /Week 1/)).toHaveCount(0)
     await expect(page.locator('a[href="/events/zrl-2026-27/round-1-week-1"]')).toHaveCount(0)
     await expectNothingLabelledPast(page)
   })
 
   test('makes the whole row of a race with a page its one way in', async ({ page }) => {
     await visitAt(page, SEASON, DURING)
-    const row = raceRow(page, /Round 1 Week 2/)
+    const row = raceRow(page, /Week 2/)
     // One link, named for the race rather than for the cue it shows, and
-    // no link inside it.
+    // no link inside it. The name is the race's full one, which holds the
+    // "Week 2" the row shows: a link is heard away from its round's heading.
     await expect(row.getByRole('link')).toHaveCount(1)
     await expect(row.locator('a a')).toHaveCount(0)
-    const link = raceLink(page, /Round 1 Week 2/)
+    const link = raceLink(page, /Week 2/)
     await expect(link).toHaveAccessibleName(/^Round 1 Week 2, Tue 29 Sept?\b.*Fastest bike for it$/)
     await expect(link).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
 
@@ -243,7 +248,7 @@ test.describe('event discovery', () => {
   test('keeps a race on a course we cannot rank as a plain row saying why', async ({ page }) => {
     await visitAt(page, SEASON, DURING)
     // Week 6 runs on one of WTRL's unlisted routes: nothing to rank, so no page.
-    const row = raceRow(page, /Round 1 Week 6/)
+    const row = raceRow(page, /Week 6/)
     await expect(row.getByRole('link')).toHaveCount(0)
     await expect(row).toContainText('ZRL Exclusive Route · 24.0 km / 284 m')
     await expect(row).toContainText('this course isn\'t in our route data')
@@ -253,21 +258,43 @@ test.describe('event discovery', () => {
     expect(await row.evaluate(element => getComputedStyle(element.firstElementChild!).backgroundColor)).toBe(resting)
   })
 
-  test('lists an unannounced race as a row with no page behind it', async ({ page }) => {
+  test('lists a round with nothing announced as one line, not a row per race', async ({ page }) => {
     await visitAt(page, SEASON, DURING)
-    // Round 2 is on the calendar with no format and no course yet, so it has
-    // no page - `isRacePublishable`. The row says what is known and says the
-    // rest is to come, rather than linking somewhere thin.
-    await expect(raceLink(page, /Round 2 Week 1/)).toHaveCount(0)
-    const row = raceRow(page, /Round 2 Week 1/)
-    await expect(row).toContainText('Format to come')
-    await expect(row).toContainText('Route to come')
-    await expect(row).toContainText('Details to come')
+    // Round 1 has what is left of it race by race: weeks 2-6, week 6 a row
+    // too although it can't be ranked.
+    const round1 = page.locator('main section').filter({ has: page.getByRole('heading', { level: 2, name: 'Round 1: Fresh & Fast' }) })
+    await expect(round1.locator('ol > li')).toHaveCount(5)
+    await expect(round1.locator('ol > li').first()).toContainText('Week 2')
+    await expect(round1.locator('ol > li').last()).toContainText('Week 6')
+
+    // Rounds 2-4 have dates and nothing else, so each is one line under a
+    // heading that counts their races - no heading per round, no placeholder rows.
+    const notAnnounced = page.locator('main section').filter({ has: page.getByRole('heading', { level: 2, name: 'Not announced yet' }) })
+    await expect(notAnnounced).toContainText('18 races')
+    await expect(notAnnounced.locator('li')).toHaveCount(3)
+    const round2 = unannouncedRound(page, 2)
+    await expect(round2).toContainText('Round 2: Team Tempo')
+    await expect(round2).toContainText('6 races, Tue 17 Nov - Tue 22 Dec')
+    await expect(round2).toContainText('Routes to come from WTRL')
+    await expect(unannouncedRound(page, 4)).toContainText('Round 4: Final Charge')
+    await expect(page.getByRole('heading', { name: /^Round [234]/ })).toHaveCount(0)
+    await expect(page.getByText('Format to come')).toHaveCount(0)
+  })
+
+  test('counts what is left from the rider\'s own clock once loaded', async ({ page, request }) => {
+    // Served on a day week 2 is still to come...
+    const html = await (await request.get(SEASON)).text()
+    expect(html).toMatch(/>5<\/span>\s*races left in Round 1/)
+    // ...and read on a day it has been run: one fewer left, and the row gone.
+    await visitAt(page, SEASON, new Date('2026-09-30T12:00:00Z'))
+    await expect(headerStats(page)).toHaveText(/^4 races left in Round 1\s*18 more in Rounds 2-4/)
+    await expect(raceRow(page, /Week 2/)).toHaveCount(0)
+    await expect(raceRow(page, /Week 3/)).toContainText('Next race')
   })
 
   test('reaches a race page from its row and comes back', async ({ page }) => {
     await visitAt(page, SEASON, DURING)
-    await raceLink(page, /Round 1 Week 2/).click()
+    await raceLink(page, /Week 2/).click()
     await page.waitForURL('**/events/zrl-2026-27/round-1-week-2')
     await hydrated(page)
     await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Zwift Racing League 2026/27' }).click()
@@ -304,7 +331,7 @@ test.describe('event discovery', () => {
 
     const notice = page.getByRole('alert').filter({ hasText: 'Couldn\'t load races.' })
     await expect(notice).toBeVisible()
-    await expect(raceRow(page, /Round 1 Week 2/)).toHaveCount(0)
+    await expect(raceRow(page, /Week 2/)).toHaveCount(0)
 
     await page.unroute('**/api/events/**')
     await page.unroute('**/_payload.json*')
@@ -312,7 +339,7 @@ test.describe('event discovery', () => {
     await notice.getByRole('button', { name: 'Try again' }).click()
     await responded
     await expect(notice).toHaveCount(0)
-    await expect(raceRow(page, /Round 1 Week 2/)).toContainText('Next race')
+    await expect(raceRow(page, /Week 2/)).toContainText('Next race')
   })
 
   test('serves real race links in the HTML a crawler reads, and none that has been run', async ({ page, request }) => {
@@ -323,6 +350,8 @@ test.describe('event discovery', () => {
       return {
         heading: doc.querySelector('h1')?.textContent?.trim(),
         raceLinks: [...doc.querySelectorAll('a[href^="/events/zrl-2026-27/"]')].map(link => link.getAttribute('href')),
+        rows: [...doc.querySelectorAll('main section ol > li')].map(row => row.textContent ?? ''),
+        stats: [...doc.querySelector('main ul')?.children ?? []].map(stat => stat.textContent?.replace(/\s+/g, ' ').trim()),
         text: doc.querySelector('main')?.textContent ?? ''
       }
     }, html)
@@ -333,8 +362,10 @@ test.describe('event discovery', () => {
     // so it has no page.)
     expect(served.raceLinks).toEqual([2, 3, 4, 5].map(week => `/events/zrl-2026-27/round-1-week-${week}`))
     // Week 1 was run on Tue 22 Sept, before the server's day, so the served
-    // page already leaves it out: a crawler never sees it.
-    expect(served.text).not.toContain('Round 1 Week 1')
+    // page already leaves it out and does not count it: a crawler never sees it.
+    expect(served.rows).toHaveLength(5)
+    expect(served.rows.join(' ')).not.toContain('Week 1')
+    expect(served.stats).toEqual(['5 races left in Round 1', '18 more in Rounds 2-4', 'Calendar runs to Tue 6 Apr'])
     expect(served.text).not.toMatch(/Past races|Completed/)
   })
 })

@@ -43,7 +43,9 @@ const props = defineProps<{
    * Whether the page prints the count line itself, beside its filters - the
    * homepage and the segments page keep the count on the filter row, so the
    * number sits with the controls that produced it. The words are the same
-   * either way: both come from `discoveryCountLine`.
+   * either way: both come from `discoveryCountLine`. A season page counts in
+   * its header instead, in its own words ("5 races left in Round 1"): it has
+   * no filters, so "found" is not its voice.
    */
   countElsewhere?: boolean
 }>()

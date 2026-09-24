@@ -536,8 +536,22 @@ export function isoDay(now: Date): string {
  * month, and the round's name supplies the month everywhere it's shown.
  */
 export function raceDisplayName(race: EventRace): string {
+  return raceStageName(race) ?? `Round ${race.round} Week ${race.week}`
+}
+
+/**
+ * How a race is named in a list under its own round's heading: `Week 2`, since
+ * "Round 1" is right above it, and `Stage 3` as everywhere else. Only there:
+ * anything that names a race away from its round - its page, breadcrumbs,
+ * share cards, structured data, the hub - wants `raceDisplayName`.
+ */
+export function raceNameInRound(race: EventRace): string {
+  return raceStageName(race) ?? `Week ${race.week}`
+}
+
+function raceStageName(race: EventRace): string | undefined {
   const stage = /^(?:[a-z]+-)?stage-(\d+)$/.exec(race.slug)
-  return stage ? `Stage ${stage[1]}` : `Round ${race.round} Week ${race.week}`
+  return stage ? `Stage ${stage[1]}` : undefined
 }
 
 /**
@@ -628,6 +642,38 @@ export function nextRaceToRun<Round extends Pick<EventRound, 'races'>>(rounds: R
 }
 
 /**
+ * Whether the organiser has announced anything of a Race: its format, or any
+ * of its Category groups. Not the same as having a page (`isRacePublishable`):
+ * a race WTRL has put on a course outside the public catalog is announced in
+ * full and still has nothing to rank.
+ */
+function isRaceAnnounced(race: Pick<EventRace, 'format' | 'categories'>): boolean {
+  return Boolean(race.format) || race.categories.length > 0
+}
+
+/**
+ * A season page's calendar, split into the Rounds with at least one Race
+ * announced and the Rounds with none. A round of placeholders - WTRL puts a
+ * whole round's dates on the calendar weeks before a single format or route -
+ * says nothing race by race that it can't say once, so the page lists it on
+ * one line, and a round with some races announced keeps a row per race, the
+ * rest saying why they have no page yet. A round with no races on it at all
+ * has nothing announced either, and a retired race announces nothing for its
+ * round.
+ *
+ * Both keep the order they were handed in, and the rounds come back as they
+ * were - generic for the same reason `roundsLeftToRun` is, which is what a
+ * season page hands this.
+ */
+export function groupRoundsByAnnouncement<Round extends Pick<EventRound, 'races'>>(rounds: Round[]): { announced: Round[], unannounced: Round[] } {
+  const isAnnounced = (round: Round) => round.races.some(race => !race.hidden && isRaceAnnounced(race))
+  return {
+    announced: rounds.filter(isAnnounced),
+    unannounced: rounds.filter(round => !isAnnounced(round))
+  }
+}
+
+/**
  * Whether a whole Season has been run: it has rounds, and every one of them
  * has been (`roundState`). A round the organiser hasn't filled in is still
  * ahead of the rider, so it keeps its season open; a season with no rounds
@@ -639,10 +685,10 @@ export function seasonHasBeenRun(season: Pick<EventSeason, 'rounds'>, today: str
 
 /**
  * What a Season's calendar adds up to: the days it spans and how much is on
- * it. The events hub prints this on a season card and the season page prints
- * it in its header, so one helper is what keeps the two from counting
- * differently - a retired race is on neither, and a round is counted whether
- * or not the organiser has filled it in yet.
+ * it, as the events hub prints it on a season card - a retired race is not
+ * on it, and a round is counted whether or not the organiser has filled it in
+ * yet. The season page's header counts what is left instead
+ * (`seasonStatsLeft` in `app/utils`).
  */
 export interface SeasonSummary {
   /** First and last day the rounds cover. Both absent for a season with no rounds announced yet. */

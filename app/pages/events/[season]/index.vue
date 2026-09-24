@@ -24,7 +24,6 @@ const { data: seasonData, status, refresh } = await useFetch(() => `/api/events/
 const rounds = computed(() => seasonData.value?.rounds ?? [])
 
 const title = computed(() => `${season.seriesName} ${season.label}`)
-const summary = computed(() => summariseSeason(season!))
 
 // Runtime site flags: with the events section hidden, this page swaps its
 // content for the unavailable notice post-mount, and /api/events/** answers
@@ -46,11 +45,28 @@ const today = useToday()
  * heading, dates and all (`roundsLeftToRun`). This page exists to get a rider
  * to a race's ranking, and a race that is over is not one they can ride.
  *
- * A round with no races yet stays: those dates are what a rider planning a
- * season has to go on, and `roundState` is written to say so.
+ * A round with no races yet stays, on its one line below: those dates are
+ * what a rider planning a season has to go on, and `roundState` is written to
+ * say so.
  */
 const listedRounds = computed(() => roundsLeftToRun(rounds.value, today.value))
 const upcomingCount = computed(() => listedRounds.value.reduce((total, round) => total + round.races.length, 0))
+
+/**
+ * The listed rounds, split: those with a race announced keep a row per race,
+ * and those with nothing announced collapse to a line each under "Not
+ * announced yet" (`groupRoundsByAnnouncement`). Eighteen rows of "Format to
+ * come · Route to come · Details to come" said one thing eighteen times.
+ */
+const roundGroups = computed(() => groupRoundsByAnnouncement(listedRounds.value))
+const unannouncedRaceCount = computed(() => roundGroups.value.unannounced.reduce((total, round) => total + round.races.length, 0))
+
+/**
+ * What the header says is left (`seasonStatsLeft`). Read off the calendar
+ * module rather than the fetch, like `seasonRun`, so it stands while the
+ * fetch is pending or has failed, and on the same day as the list below it.
+ */
+const stats = computed(() => seasonStatsLeft(season!.rounds, today.value))
 
 /** The first race still to be run, which a run race's page points to as well. A week-long stage that's mid-window still counts. */
 const nextRaceSlug = computed(() => nextRaceToRun(rounds.value, today.value)?.slug)
@@ -143,12 +159,23 @@ useHead(() => ({
       <p class="mt-4 max-w-3xl text-lg text-toned">
         {{ season!.description }}
       </p>
-      <!-- The whole season, not the part still to come: these say how big
-           the calendar is, and a race being run does not shrink it. -->
-      <ul class="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-md text-toned">
-        <li><span class="font-semibold text-highlighted">{{ summary.rounds }}</span> round{{ summary.rounds === 1 ? '' : 's' }}</li>
-        <li><span class="font-semibold text-highlighted">{{ summary.races }}</span> race{{ summary.races === 1 ? '' : 's' }}</li>
-        <li>{{ formatSeasonSpan(summary) ?? 'Dates to come' }}</li>
+      <!-- What is left, as the list below counts it: a race that has been
+           run is not listed, so it is not counted either. These are the
+           page's counts, so the list prints no "N races found" of its own. -->
+      <ul
+        v-if="stats.length"
+        class="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-md text-toned"
+      >
+        <li
+          v-for="stat in stats"
+          :key="stat.label"
+        >
+          <span
+            v-if="stat.value !== undefined"
+            class="font-semibold text-highlighted"
+          >{{ stat.value }}</span>
+          {{ stat.label }}
+        </li>
       </ul>
       <p class="mt-3 text-sm text-muted">
         Organised by
@@ -172,15 +199,18 @@ useHead(() => ({
       </SiteNotice>
     </div>
 
-    <!-- The count line, the pending skeletons and a failed fetch's retry are
+    <!-- The pending skeletons and a failed fetch's retry are
          `DiscoveryStatus`, shared with the homepage and the segments page;
-         the round groups it holds are this page's. -->
+         the round groups it holds are this page's. Its count line is not:
+         "N races found" is the voice of a filtered search, and this page has
+         no filters - its counts are in the header. -->
     <DiscoveryStatus
       v-if="showsStatus"
       class="mt-10"
       subject="races"
       :counts="[{ value: upcomingCount, noun: 'race' }]"
       :status="status"
+      count-elsewhere
       @retry="refresh"
     >
       <template #skeleton>
@@ -197,7 +227,7 @@ useHead(() => ({
              `#round-2`. `scroll-mt-24` clears the sticky header, and
              `tabindex="-1"` lands a keyboard rider here on a full load. -->
         <section
-          v-for="round in listedRounds"
+          v-for="round in roundGroups.announced"
           :id="`round-${round.number}`"
           :key="round.number"
           tabindex="-1"
@@ -212,15 +242,7 @@ useHead(() => ({
             </p>
           </div>
 
-          <!-- Listed for its dates - see `roundState` - so it says why it is
-               empty rather than leaving a heading over nothing. -->
-          <p
-            v-if="!round.races.length"
-            class="py-4 text-sm text-muted"
-          >
-            The organiser hasn't published this round's schedule yet.
-          </p>
-          <ol v-else>
+          <ol>
             <RaceCard
               v-for="race in round.races"
               :key="race.slug"
@@ -228,8 +250,57 @@ useHead(() => ({
               :season-slug="season!.slug"
               :next="race.slug === nextRaceSlug"
               :shape="race.silhouette"
+              in-round
             />
           </ol>
+        </section>
+
+        <!-- One line per round with nothing announced: its name, how many
+             races and when, and whose announcement it is waiting on. Each is
+             still the `#round-N` a link can land on, with the same clearance
+             under the sticky header. -->
+        <section
+          v-if="roundGroups.unannounced.length"
+          aria-labelledby="not-announced"
+        >
+          <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-accented pb-2">
+            <h2
+              id="not-announced"
+              class="text-2xl font-semibold font-heading text-highlighted"
+            >
+              Not announced yet
+            </h2>
+            <p
+              v-if="unannouncedRaceCount"
+              class="text-sm text-muted"
+            >
+              {{ unannouncedRaceCount }} race{{ unannouncedRaceCount === 1 ? '' : 's' }}
+            </p>
+          </div>
+          <ul>
+            <li
+              v-for="round in roundGroups.unannounced"
+              :id="`round-${round.number}`"
+              :key="round.number"
+              tabindex="-1"
+              class="grid scroll-mt-24 gap-x-4 gap-y-1 border-b border-default py-3.5 outline-none sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            >
+              <div>
+                <p class="font-semibold text-highlighted">
+                  {{ round.name ? `Round ${round.number}: ${round.name}` : `Round ${round.number}` }}
+                </p>
+                <p class="text-sm text-toned">
+                  <template v-if="round.races.length">
+                    {{ round.races.length }} race{{ round.races.length === 1 ? '' : 's' }},
+                  </template>
+                  {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
+                </p>
+              </div>
+              <p class="text-sm text-muted sm:text-right">
+                Routes to come from {{ season!.organizer }}
+              </p>
+            </li>
+          </ul>
         </section>
       </div>
     </DiscoveryStatus>

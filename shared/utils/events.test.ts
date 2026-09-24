@@ -12,6 +12,7 @@ import {
   getPublishableRaces,
   getSeasons,
   getUpcomingEventsForRoute,
+  groupRoundsByAnnouncement,
   hasBeenRun,
   hasSplitCourses,
   isRacePublishable,
@@ -20,6 +21,7 @@ import {
   primaryRouteSlug,
   raceCategoryGroupSchema,
   raceDisplayName,
+  raceNameInRound,
   raceEndDate,
   racePowerupsSchema,
   sortRacesByDate,
@@ -171,6 +173,13 @@ describe('derivations the pages are built from', () => {
     expect(raceDisplayName(testRace({ slug: 'anything-else', round: 3, week: 1 }))).toBe('Round 3 Week 1')
   })
 
+  it('names a race by its week under its round\'s heading, and a stage as it is', () => {
+    expect(raceNameInRound(testRace({ slug: 'round-1-week-2', round: 1, week: 2 }))).toBe('Week 2')
+    expect(raceNameInRound(testRace({ slug: 'round-3-week-6', round: 3, week: 6 }))).toBe('Week 6')
+    expect(raceNameInRound(testRace({ slug: 'stage-3', week: 3 }))).toBe('Stage 3')
+    expect(raceNameInRound(testRace({ slug: 'september-stage-1', week: 1 }))).toBe('Stage 1')
+  })
+
   it('a race\'s last day is endDate when set, else the race day - and a race stays upcoming through its whole window', () => {
     expect(raceEndDate(testRace())).toBe('2026-09-01')
     expect(raceEndDate(testRace({ endDate: '2026-09-07' }))).toBe('2026-09-07')
@@ -275,6 +284,29 @@ describe('what the events hub and a season page read off a Season', () => {
     expect(rounds[0]!.races).toHaveLength(2)
   })
 
+  it('sets apart the rounds the organiser has announced nothing of', () => {
+    // WTRL's placeholders: a date on the calendar, no format and no course.
+    const placeholder = (week: number) => testRace({ slug: `round-2-week-${week}`, round: 2, week, date: `2026-11-${10 + week}`, format: undefined, categories: [] })
+    const rounds = [
+      { number: 1, startDate: '2026-09-22', endDate: '2026-09-29', races: [testRace(), testRace({ slug: 'round-1-week-2', week: 2 })] },
+      { number: 2, startDate: '2026-11-11', endDate: '2026-11-12', races: [placeholder(1), placeholder(2)] },
+      // Partly announced: one race has its format and course, the other none yet.
+      { number: 3, startDate: '2027-01-12', endDate: '2027-01-19', races: [testRace({ slug: 'round-3-week-1', round: 3 }), testRace({ slug: 'round-3-week-2', round: 3, week: 2, format: undefined, categories: [] })] },
+      // A format alone is something announced, as is a course with no format.
+      { number: 4, startDate: '2027-03-02', endDate: '2027-03-02', races: [testRace({ slug: 'round-4-week-1', round: 4, categories: [] })] },
+      { number: 5, startDate: '2027-04-06', endDate: '2027-04-06', races: [testRace({ slug: 'round-5-week-1', round: 5, format: undefined })] },
+      // A round with no races on it yet has nothing announced either.
+      { number: 6, startDate: '2027-05-04', endDate: '2027-06-08', races: [] },
+      // A retired race is on no calendar, so it announces nothing for its round.
+      { number: 7, startDate: '2027-07-06', endDate: '2027-07-06', races: [placeholder(3), testRace({ slug: 'round-7-week-1', round: 7, hidden: true })] }
+    ]
+    const { announced, unannounced } = groupRoundsByAnnouncement(rounds)
+    expect(announced.map(round => round.number)).toEqual([1, 3, 4, 5])
+    expect(unannounced.map(round => round.number)).toEqual([2, 6, 7])
+    // The rounds come back whole, races and all, as they were handed in.
+    expect(announced[1]!.races).toHaveLength(2)
+  })
+
   it('names the first race still to run as a season\'s next race', () => {
     const first = testRace({ slug: 'round-1-week-1', date: '2026-09-22' })
     const retired = testRace({ slug: 'round-1-week-2', week: 2, date: '2026-09-29', hidden: true })
@@ -316,7 +348,7 @@ describe('what the events hub and a season page read off a Season', () => {
     expect(seasonHasBeenRun(testSeason('zrl-2027-28', []), '2030-01-01')).toBe(false)
   })
 
-  it('adds a season up to what the hub and the season header both report', () => {
+  it('adds a season up to what the hub\'s season card reports', () => {
     const season = eventSeasonSchema.parse({
       slug: 'zrl-2026-27',
       label: '2026/27',
