@@ -56,6 +56,56 @@ describe('whyThisWins', () => {
   })
 })
 
+describe('whyThisWins: the Wheel close call', () => {
+  const weights = { aero: 1, climb: 0 }
+  // Tempus Fugit in race drafting, measured on 2026-09-23 (issue #261).
+  const discFaster = {
+    own: { wheelsetName: 'Shimano C99/Disc', kind: 'disc' as const },
+    other: { wheelsetName: 'Enve SES 8.9', kind: 'regular' as const },
+    gapSec: 4.1,
+    massDeltaKg: 0.2934
+  }
+  const regularFaster = {
+    own: { wheelsetName: 'Princeton Wake 6560 White', kind: 'regular' as const },
+    other: { wheelsetName: 'Shimano C99/Disc', kind: 'disc' as const },
+    gapSec: 6.7,
+    massDeltaKg: -0.86
+  }
+  const why = (overrides: Partial<Parameters<typeof whyThisWins>[0]>) =>
+    whyThisWins({ ...base, weights, finishTimeSec: 1720.8, wheelChoice: discFaster, ...overrides })
+
+  it('states the gap and the weight when the two kinds finish within 0.3% of each other', () => {
+    expect(why({})).toMatch(/ Disc or regular wheels is a close call: the Shimano C99\/Disc is 4\.1 s faster than the Enve SES 8\.9, but 0\.29 kg heavier\.$/)
+    expect(why({ wheelChoice: regularFaster, category: 'mountainous', finishTimeSec: 4435 }))
+      .toMatch(/ Disc or regular wheels is a close call: the Princeton Wake 6560 White is 6\.7 s faster than the Shimano C99\/Disc here, and 0\.86 kg lighter\.$/)
+    expect(why({ wheelChoice: { ...discFaster, gapSec: 0.33 } })).toContain('is 0.33 s faster than')
+  })
+
+  it('says nothing past 0.3% of the finish time, or with no other kind to weigh', () => {
+    expect(why({ wheelChoice: { ...discFaster, gapSec: 1720.8 * 0.003 } })).toContain('close call')
+    expect(why({ wheelChoice: { ...discFaster, gapSec: 1720.8 * 0.0031 } })).not.toContain('close call')
+    expect(why({ wheelChoice: undefined })).not.toContain('close call')
+    expect(why({ finishTimeSec: undefined })).not.toContain('close call')
+  })
+
+  it('advises the disc only in a race on flat terrain, where the weight rarely costs the group', () => {
+    expect(why({ draftMode: 'race' })).toMatch(/heavier\. With this little climbing, the extra weight rarely costs you the group, so the disc is the pick as long as you stay in the draft, as these times assume\.$/)
+    // A race on climbing terrain states the fact: the numbers for the climbs
+    // are the Climb trade's to give. So do solo rides, TTTs, and a regular
+    // wheel that wins on the flat.
+    for (const overrides of [
+      { draftMode: 'race' as const, category: 'rolling' as const },
+      { draftMode: 'solo' as const },
+      { draftMode: 'ttt' as const },
+      { draftMode: 'race' as const, wheelChoice: { ...regularFaster, gapSec: 3 } },
+      // A disc that is somehow the lighter of the two has no extra weight to excuse.
+      { draftMode: 'race' as const, wheelChoice: { ...discFaster, massDeltaKg: -0.12 } }
+    ]) {
+      expect(why(overrides)).toMatch(/(heavier|lighter)\.$/)
+    }
+  })
+})
+
 describe('aeroShare', () => {
   it('splits aerodynamics against weight, and calls an empty split even', () => {
     expect(aeroShare({ aero: 0.75, climb: 0.25 })).toBe(0.75)

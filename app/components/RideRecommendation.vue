@@ -164,6 +164,8 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
         class="px-2 text-sm font-medium text-toned underline decoration-rule-strong hover:text-highlighted"
       >See the full ranking</a>
     </div>
-    <slot name="fastest-overall" />
+    <!-- The notes that go deeper into the answer: a quicker setup the rules
+         exclude, and the Climb trade. -->
+    <slot name="answer-notes" />
   </section>
 </template>

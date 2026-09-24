@@ -3,24 +3,33 @@ import type { RouteGeometry } from '../types/physics'
 import type { RecommendRide } from '../types/recommendRide'
 import { geometryForRouteLaps, geometryForSegment, geometryForWarmup } from './physics/routeGeometry'
 import { clampLaps } from './routeLaps'
+import { climbBoundariesM, climbTimesSec } from './climbTimes'
+import { expandClimbsForLaps } from './routeOccurrences'
 import { sliceSurfaceSegments } from './surfaceGeometry'
 
 export function rideForRoute(route: RouteWithMeta, requestedLaps?: number, excludeTT = false): RecommendRide {
   const laps = clampLaps(route, requestedLaps)
   let geometry: RouteGeometry | undefined
   const planGeometry = () => geometry ??= geometryForRouteLaps(route, laps)
+  // The same passes the Course hero draws, so a Climb trade names a band the
+  // rider can see.
+  const climbs = expandClimbsForLaps(route, laps)
+  const boundariesM = climbBoundariesM(climbs)
   return {
     route,
     laps,
     excludeTT,
+    climbs,
     timingMeta: { route: route.slug, distanceKm: Math.round(route.distance * laps * 10) / 10, laps },
     planGeometry,
     prepare: (simulate, rider) => {
       if (!rider) return {}
       const geometry = planGeometry()
       return {
-        simulateSec: ({ frame, wheelset, draft }) =>
-          simulate({ rider, frame, wheelset, geometry, powerSegmentsW: draft.plan?.powerSegmentsW, powerScaleAtSpeed: draft.powerScaleAtSpeed }).elapsedSec
+        timeCombo: ({ frame, wheelset, draft }) => {
+          const result = simulate({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: draft.plan?.powerSegmentsW, powerScaleAtSpeed: draft.powerScaleAtSpeed })
+          return { finishSec: result.elapsedSec, climbSec: climbTimesSec(climbs, result) }
+        }
       }
     }
   }
@@ -61,6 +70,7 @@ export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, w
     route: segmentRoute,
     laps: 1,
     excludeTT,
+    climbs: [],
     timingMeta: { segment: segmentRoute.slug, route: segmentRoute.slug, distanceKm: Math.round(segmentRoute.distance * 10) / 10 },
     planGeometry,
     prepare: (simulate, rider) => {
@@ -75,7 +85,7 @@ export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, w
         // group's) but never paced: the plan is in the timed run's coordinates.
         // Tight convergence prevents the warm-up shortcut from handing over
         // a still-accelerating speed (issue #199; docs/shared-ride-verification.md).
-        simulateSec: ({ frame, wheelset, draft }) => {
+        timeCombo: ({ frame, wheelset, draft }) => {
           const warmup = simulate({
             rider,
             frame,
@@ -84,7 +94,7 @@ export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, w
             powerScaleAtSpeed: draft.powerScaleAtSpeed,
             steadyStateToleranceMps2: WARMUP_STEADY_STATE_TOLERANCE_MPS2
           })
-          return simulate({
+          const timed = simulate({
             rider,
             frame,
             wheelset,
@@ -92,7 +102,8 @@ export function rideForSegment(segmentRoute: RouteWithMeta, excludeTT = false, w
             initialSpeedMps: warmup.finalSpeedMps,
             powerSegmentsW: draft.plan?.powerSegmentsW,
             powerScaleAtSpeed: draft.powerScaleAtSpeed
-          }).elapsedSec
+          })
+          return { finishSec: timed.elapsedSec, climbSec: [] }
         }
       }
     }

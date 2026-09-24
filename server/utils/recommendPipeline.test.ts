@@ -75,7 +75,7 @@ function query(params: Record<string, string> = {}): RecommendBaseQuery {
   return recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '175', powerW: '225', ...params })
 }
 
-/** Every `simulateSec` call the pipeline made, so the draft each timing was ridden under can be asserted. */
+/** Every `timeCombo` call the pipeline made, so the draft each timing was ridden under can be asserted. */
 type SimulateLog = Pick<SimulateComboOptions, 'draft'>[]
 
 function loggedRide(ride: RecommendRide, log: SimulateLog): RecommendRide {
@@ -83,12 +83,12 @@ function loggedRide(ride: RecommendRide, log: SimulateLog): RecommendRide {
     ...ride,
     prepare: (simulate, rider) => {
       const physics = ride.prepare(simulate, rider)
-      const { simulateSec } = physics
+      const { timeCombo } = physics
       return {
         ...physics,
-        simulateSec: simulateSec && ((options) => {
+        timeCombo: timeCombo && ((options) => {
           log.push({ draft: options.draft })
-          return simulateSec(options)
+          return timeCombo(options)
         })
       }
     }
@@ -227,6 +227,118 @@ describe('runRecommendPipeline', () => {
     expect(drillDown.combos.slice(1).every(combo => combo.upgradeFinishTimesSec === undefined)).toBe(true)
     // A drill-down is one frame's wheels: the list's own search has nothing to say about it.
     expect(drillDown.fastestOverall).toBeUndefined()
+  })
+
+  it('ranks the same rows at the same finish times whether or not the climbs are timed', async () => {
+    // Innsbruck KOM After Party's lap is measured, so its geometry never reads
+    // the named climbs - dropping them removes the climb boundaries and
+    // nothing else.
+    const kom = fixtureRoute('innsbruck-kom-after-party')
+    const params = { category: 'standard', includeHalo: 'false', maxWheelsetsPerFrame: '1', draftMode: 'race' }
+    const withClimbs = rideForRoute(kom, 1)
+    const withoutClimbs = rideForRoute({ ...kom, terrain: { ...kom.terrain, climbs: [] } }, 1)
+    expect(withClimbs.climbs.length).toBeGreaterThan(0)
+    expect(withoutClimbs.climbs).toEqual([])
+    const timed = await runRecommendPipeline(fakeEvent(), query(params), withClimbs)
+    const untimed = await runRecommendPipeline(fakeEvent(), query(params), withoutClimbs)
+    const rows = (result: RecommendPipelineResult) => result.combos.map(combo => [combo.frame.id, combo.wheelset?.key, combo.finishTimeSec])
+    expect(rows(timed)).toEqual(rows(untimed))
+  })
+
+  it('orders the wheel alternatives by simulated time past the six it shows', async () => {
+    // On Duchy Estate the estimate puts both of the frame's fastest discs
+    // below its sixth wheel; simulating six alone never found them.
+    const ride = () => rideForRoute(fixtureRoute('duchy-estate'), 1)
+    const params = { category: 'standard', includeHalo: 'false' }
+    const page = await runRecommendPipeline(fakeEvent(), query({ ...params, maxWheelsetsPerFrame: '1' }), ride())
+    const frame = page.combos[0]!.frame
+    const wheels = async (limit: number) => (await runRecommendPipeline(fakeEvent(), query({ ...params, wheelsForFrame: String(frame.id), limit: String(limit) }), ride()))
+      .combos.map(combo => [combo.wheelset?.key, combo.finishTimeSec])
+    const six = await wheels(6)
+    const nine = await wheels(RECOMMEND_MAX_LIMIT)
+    // What a rider is shown first cannot depend on how many they asked for.
+    expect(six).toEqual(nine.slice(0, 6))
+  })
+
+  it('always shows the fastest disc and the fastest regular wheels among a frame\'s alternatives', async () => {
+    // Ridden solo, London Loop's climbs put every disc below the frame's
+    // ninth-fastest wheel.
+    const ride = () => rideForRoute(fixtureRoute('london-loop'), 1)
+    const params = { category: 'standard', includeHalo: 'false' }
+    const page = await runRecommendPipeline(fakeEvent(), query({ ...params, maxWheelsetsPerFrame: '1' }), ride())
+    const frame = page.combos[0]!.frame
+    const wheels = await runRecommendPipeline(fakeEvent(), query({ ...params, wheelsForFrame: String(frame.id), limit: '6' }), ride())
+    const isDisc = (combo: { wheelset?: { rear: { category: string } } }) => combo.wheelset?.rear.category === 'disc'
+    expect(wheels.combos).toHaveLength(6)
+    expect(wheels.combos.some(isDisc)).toBe(true)
+    expect(wheels.combos.some(combo => !isDisc(combo))).toBe(true)
+    const times = wheels.combos.map(combo => combo.finishTimeSec!)
+    expect(times).toEqual([...times].sort((a, b) => a - b))
+  })
+
+  describe('the Climb trade', () => {
+    const kom = () => rideForRoute(fixtureRoute('innsbruck-kom-after-party'), 1)
+    const frameId = (name: string) => getFrames().find(frame => frame.name === name)!.id
+    // Issue #258's rider and garage: the Tron and the Aethos, at 240 W.
+    const garage = { powerW: '240', category: 'standard', includeHalo: 'false', maxWheelsetsPerFrame: '1', ownedOnly: 'true', owned: JSON.stringify({ [frameId('Zwift Concept Z1')]: 5, [frameId('Specialized Aethos S-Works')]: 5 }) }
+
+    it('names the lighter bike in the Garage that gets over the KOM sooner, and leaves the ranking alone', async () => {
+      const race = await runRecommendPipeline(fakeEvent(), query({ ...garage, draftMode: 'race' }), kom())
+      expect(race.combos[0]!.frame.name).toBe('Zwift Concept Z1')
+      expect(race.climbTrade).toMatchObject({ frameName: 'Specialized Aethos S-Works', sameFrame: false, climbName: 'Innsbruck KOM', passes: 1 })
+      // Measured on the live API: about 21 s on the KOM for about 8 s over the race.
+      expect(race.climbTrade!.gainSec).toBeGreaterThan(15)
+      expect(race.climbTrade!.costSec).toBeGreaterThan(0)
+      expect(race.climbTrade!.costSec).toBeLessThan(15)
+      const aethos = race.combos.find(combo => combo.frame.name === 'Specialized Aethos S-Works')!
+      expect(race.climbTrade!.costSec).toBeCloseTo(aethos.finishTimeSec! - race.combos[0]!.finishTimeSec!, 6)
+    })
+
+    it('has nothing to say solo, in a TTT, or on a later page', async () => {
+      // Keith Hill, where the Tron wins solo too and the Aethos is quicker on
+      // the climb by a margin the race page names - so only the draft mode
+      // keeps the trade off these.
+      const keith = () => rideForRoute(fixtureRoute('keith-hill-after-party'), 1)
+      const race = await runRecommendPipeline(fakeEvent(), query({ ...garage, draftMode: 'race' }), keith())
+      expect(race.climbTrade?.frameName).toBe('Specialized Aethos S-Works')
+      const settings: Record<string, string>[] = [{ draftMode: 'solo' }, { draftMode: 'ttt', tttRiders: '6', tttClimbWkg: '3.5' }, { draftMode: 'race', offset: '1' }]
+      for (const params of settings) {
+        const result = await runRecommendPipeline(fakeEvent(), query({ ...garage, ...params }), keith())
+        if (params.draftMode === 'solo') expect(result.combos[0]!.frame.name).toBe('Zwift Concept Z1')
+        expect(result.climbTrade).toBeUndefined()
+      }
+    })
+
+    it('never runs on a segment, which is one climb already', async () => {
+      const result = await runRecommendPipeline(fakeEvent(), query({ draftMode: 'race' }), segmentRide([]))
+      expect(result.climbTrade).toBeUndefined()
+    })
+  })
+
+  describe('the Wheel close call', () => {
+    it('weighs rank 1\'s own wheels against the other kind\'s fastest, which its Wheel alternatives list too', async () => {
+      const ride = () => rideForRoute(fixtureRoute('innsbruck-kom-after-party'), 1)
+      const params = { category: 'standard', includeHalo: 'false', draftMode: 'race' }
+      const page = await runRecommendPipeline(fakeEvent(), query({ ...params, maxWheelsetsPerFrame: '1' }), ride())
+      const rank1 = page.combos[0]!
+      const choice = page.wheelChoice!
+      expect(choice.own.wheelsetName).toBe(rank1.wheelset!.name)
+      expect(choice.own.kind).not.toBe(choice.other.kind)
+      expect(choice.gapSec).toBeGreaterThanOrEqual(0)
+      expect(Math.abs(choice.massDeltaKg)).toBeGreaterThan(0)
+
+      const wheels = await runRecommendPipeline(fakeEvent(), query({ ...params, wheelsForFrame: String(rank1.frame.id), limit: '6' }), ride())
+      const other = wheels.combos.find(combo => combo.wheelset?.name === choice.other.wheelsetName)
+      expect(other).toBeDefined()
+      expect(other!.finishTimeSec! - rank1.finishTimeSec!).toBeCloseTo(choice.gapSec, 6)
+    })
+
+    it('is not weighed for a frame whose wheels are fixed', async () => {
+      const tron = getFrames().find(frame => frame.name === 'Zwift Concept Z1')!
+      const result = await runRecommendPipeline(fakeEvent(), query({ ownedOnly: 'true', owned: JSON.stringify({ [tron.id]: 5 }) }), routeRide([]))
+      expect(result.combos[0]!.frame.id).toBe(tron.id)
+      expect(result.wheelChoice).toBeUndefined()
+    })
   })
 
   it('never simulates without a rider profile or in legacy mode', async () => {

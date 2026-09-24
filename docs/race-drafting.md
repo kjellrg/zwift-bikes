@@ -70,6 +70,13 @@ not of the simulation. A `dropAt` input was considered and rejected: it models a
 race the rider lost rather than the race they rode, and it makes the power
 multiplier discontinuous for no modelling gain.
 
+What the pages do instead is the **Climb trade** (#258, see `CONTEXT.md`): beside
+the Recommendation, one setup that is slower over the whole race but quicker
+over a named climb's last pass, with both numbers, cut from the same
+simulations that time the Ranking (`server/utils/climbTrade.ts`). It leaves the
+Ranking and every finish time alone; whether the climb is where the rider loses
+the group is theirs to judge.
+
 ## 3. The data it would be built on
 
 ### Per-position power savings
