@@ -7,6 +7,7 @@ import {
   eventRaceSchema,
   formatCategoryGroup,
   getAllSeasons,
+  getIndexedRaces,
   getNextUpcomingRace,
   getPublishableRaces,
   getSeasons,
@@ -14,6 +15,7 @@ import {
   hasBeenRun,
   hasSplitCourses,
   isRacePublishable,
+  nextRaceToRun,
   lapsForCategoryGroup,
   primaryRouteSlug,
   raceCategoryGroupSchema,
@@ -273,6 +275,29 @@ describe('what the events hub and a season page read off a Season', () => {
     expect(rounds[0]!.races).toHaveLength(2)
   })
 
+  it('names the first race still to run as a season\'s next race', () => {
+    const first = testRace({ slug: 'round-1-week-1', date: '2026-09-22' })
+    const retired = testRace({ slug: 'round-1-week-2', week: 2, date: '2026-09-29', hidden: true })
+    const third = testRace({ slug: 'round-1-week-3', week: 3, date: '2026-10-06' })
+    const stage = testRace({ slug: 'round-2-week-1', round: 2, date: '2026-09-23', endDate: '2026-09-29' })
+    // Rounds curated out of date order, as the organiser happened to publish them.
+    const rounds = [
+      { number: 2, startDate: '2026-09-23', endDate: '2026-09-29', races: [stage] },
+      { number: 1, startDate: '2026-09-22', endDate: '2026-10-06', races: [first, retired, third] }
+    ]
+    const next = (today: string) => nextRaceToRun(rounds, today)?.slug
+
+    // On race day the race itself is still the next one.
+    expect(next('2026-09-22')).toBe('round-1-week-1')
+    // A week-long stage is the next race through its last day.
+    expect(next('2026-09-23')).toBe('round-2-week-1')
+    expect(next('2026-09-29')).toBe('round-2-week-1')
+    // A retired race is on no calendar, so it is never next.
+    expect(next('2026-09-30')).toBe('round-1-week-3')
+    // Nothing left to run: no next race.
+    expect(next('2026-10-07')).toBeUndefined()
+  })
+
   it('calls a season run once every race on it has been, and not before', () => {
     const season = testSeason('zracing-2026', [
       { number: 8, startDate: '2026-08-11', endDate: '2026-09-06', races: [testRace({ date: '2026-08-11', endDate: '2026-09-06' })] },
@@ -329,6 +354,23 @@ describe('the curated seasons themselves', () => {
   it('getSeasons hides retired seasons; getAllSeasons keeps them for tooling', () => {
     expect(getSeasons().every(s => !s.hidden)).toBe(true)
     expect(getSeasons().length).toBeLessThanOrEqual(getAllSeasons().length)
+  })
+
+  it('indexes a race page until the race has been run, and not after', () => {
+    const indexed = (today: string) => getIndexedRaces(today).map(race => race.path)
+    const week1 = '/events/zrl-2026-27/round-1-week-1'
+    const week2 = '/events/zrl-2026-27/round-1-week-2'
+    const stage3 = '/events/zracing-2026/september-stage-3'
+    // Week 1 is raced on Tue 22 Sept: indexed that day, gone the next.
+    expect(indexed('2026-09-22')).toContain(week1)
+    expect(indexed('2026-09-23')).not.toContain(week1)
+    expect(indexed('2026-09-23')).toContain(week2)
+    // A week-long stage stays indexed through its last day (Sun 27 Sept).
+    expect(indexed('2026-09-27')).toContain(stage3)
+    expect(indexed('2026-09-28')).not.toContain(stage3)
+    // Only pages that exist: never a race with no page yet (round 2 is unannounced).
+    expect(indexed('2000-01-01')).toEqual(getPublishableRaces().map(race => race.path))
+    expect(indexed('2999-12-31')).toEqual([])
   })
 
   it('upcoming lookups honor the injected today and sort soonest first', () => {

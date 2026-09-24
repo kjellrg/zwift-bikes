@@ -380,6 +380,23 @@ export function getPublishableRaces(): PublishableRace[] {
 }
 
 /**
+ * The race pages the site puts forward to search engines on `today`: every
+ * page that exists, less the races that have been run. A run race keeps its
+ * page, so a link a rider shared still lands, but the page is marked noindex
+ * and leaves the sitemap and the prerender list. Both read this, so they
+ * cannot disagree, and it asks `hasBeenRun`, as the page's noindex does.
+ *
+ * Both are built once, at build time, so `today` is the build's day. A race
+ * run between two builds stays in both until the next one; its page is
+ * prerendered meanwhile, and says it has been run from the rider's clock
+ * once loaded. Leaving the prerender list is what hands a run race's page to
+ * the server, which renders it on the real day, noindex included.
+ */
+export function getIndexedRaces(today: string): PublishableRace[] {
+  return getPublishableRaces().filter(({ race }) => !hasBeenRun(race, today))
+}
+
+/**
  * How a format is named wherever one is shown or written out. Here beside
  * `RaceFormat` rather than in `app/utils/labels.ts`, where it used to live,
  * for the reason `formatDuration` moved to `shared/utils/duration.ts`: the
@@ -537,7 +554,7 @@ export function raceContextLabel(season: Pick<EventSeason, 'seriesName' | 'label
 }
 
 /** Sorts by race day, for "next race" lookups. Returns a new array. */
-export function sortRacesByDate(races: EventRace[]): EventRace[] {
+export function sortRacesByDate<Race extends Pick<EventRace, 'date'>>(races: Race[]): Race[] {
   return [...races].sort((a, b) => a.date.localeCompare(b.date))
 }
 
@@ -594,6 +611,18 @@ export function roundsLeftToRun<Round extends Pick<EventRound, 'races'>>(rounds:
   return rounds
     .filter(round => roundState(round, today) !== 'past')
     .map(round => ({ ...round, races: round.races.filter(race => !race.hidden && !hasBeenRun(race, today)) }))
+}
+
+/**
+ * A Season's next race: the first by date of the Races still to run on its
+ * calendar (`roundsLeftToRun`), so a week-long stage stays next through its
+ * last day and a retired race is never next. Undefined once nothing is left to
+ * run. The season page marks it in its list; a run race's page points to it.
+ *
+ * Generic over the round shape for the same reason `roundsLeftToRun` is.
+ */
+export function nextRaceToRun<Round extends Pick<EventRound, 'races'>>(rounds: Round[], today: string): Round['races'][number] | undefined {
+  return sortRacesByDate(roundsLeftToRun(rounds, today).flatMap(round => round.races))[0]
 }
 
 /**

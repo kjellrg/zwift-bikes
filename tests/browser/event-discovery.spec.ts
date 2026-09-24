@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { EVENTS_SERVER_DAY, expectNoHorizontalOverflow, hydrated, visitPage } from './support'
+import { EVENTS_SERVER_DAY, expectNoHorizontalOverflow, hydrated, servedEventsDay, visitPage } from './support'
 
 /**
  * The events Discovery pages (issues #216, #257, #276): the hub that lists
@@ -31,20 +31,6 @@ const DURING = new Date(`${EVENTS_SERVER_DAY}T12:00:00Z`)
 const STAGE_3_RUN = new Date('2026-09-28T00:30:00Z')
 /** Past every race in both curated seasons. */
 const AFTER = new Date('2027-05-01T12:00:00Z')
-
-/**
- * The day a served page was rendered on, read out of its Nuxt payload (the
- * `useToday` state), which travels as a flat array whose objects point at
- * their values by index.
- */
-function servedEventsDay(html: string): string | undefined {
-  const json = /<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/.exec(html)?.[1]
-  if (!json) return undefined
-  const data = JSON.parse(json) as unknown[]
-  const state = data.find((item): item is Record<string, number> =>
-    typeof item === 'object' && item !== null && !Array.isArray(item) && '$sevents-today' in item)
-  return state ? data[state['$sevents-today']!] as string : undefined
-}
 
 const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
 /** A race's row on a season page, by the name it is listed under - rows are the items of a round section's list. */

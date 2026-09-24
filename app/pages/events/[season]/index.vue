@@ -52,8 +52,8 @@ const today = useToday()
 const listedRounds = computed(() => roundsLeftToRun(rounds.value, today.value))
 const upcomingCount = computed(() => listedRounds.value.reduce((total, round) => total + round.races.length, 0))
 
-/** The first race still to be run. A week-long stage that's mid-window still counts. */
-const nextRaceSlug = computed(() => sortRacesByDate(listedRounds.value.flatMap(round => round.races))[0]?.slug)
+/** The first race still to be run, which a run race's page points to as well. A week-long stage that's mid-window still counts. */
+const nextRaceSlug = computed(() => nextRaceToRun(rounds.value, today.value)?.slug)
 
 /** Read off the calendar module rather than the fetch, so it holds while that is pending or has failed. */
 const seasonRun = computed(() => seasonHasBeenRun(season!, today.value))

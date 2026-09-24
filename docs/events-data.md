@@ -19,7 +19,7 @@ That makes the failure mode worth naming up front, because it isn't a crash. **A
 |---|---|
 | `shared/data/events/*.json` | The seasons themselves — the only files you edit to add or update races |
 | `shared/data/events/index.ts` | The registry: one explicit import per season file |
-| `shared/utils/events.ts` | The zod schema (field docs live here as comments), inferred types, and accessors (`getSeasons`, `getPublishableRaces`, `ttBikesAllowed`, …) |
+| `shared/utils/events.ts` | The zod schema (field docs live here as comments), inferred types, and accessors (`getSeasons`, `getPublishableRaces`, `getIndexedRaces`, `ttBikesAllowed`, …) |
 | `shared/types/events.ts` | The API-response join types (`EventSeasonWithRoutes`, …) |
 | `scripts/events/validate-events.mjs` | The validator — `npm run validate:events`, and the first step of `npm run build` |
 | `scripts/events/add-race.mjs` | Interactive scaffolder — `npm run events:add` |
@@ -108,9 +108,11 @@ Doing it by hand instead: find slugs with `npm run events:find-route -- "name"` 
 |---|---|---|---|
 | `hidden: true` on a race | row disappears | 404s | dropped |
 | `hidden: true` on a season | hub card and season page 404 | all 404 | all dropped |
-| (nothing — race just gets run) | row disappears, and its round with its last race; a season with none left is off the hub | stays up, "Completed" badge | stays |
+| (nothing — race just gets run) | row disappears, and its round with its last race; a season with none left is off the hub | stays up at the same URL, noindex, with a "This race has been run" notice | dropped |
 
 A race that has been run needs no flag: the events pages list only what is still to be run, and decide it twice by the same rule. The server renders with its own day - for a prerendered page, the build's - so the served HTML already leaves out everything that ended before the build; after load the rider's own clock (`useToday` in `app/composables/`) removes whatever has ended since.
+
+A run race's own page neither 404s nor redirects, so links riders shared still land. Above its title it says the race has been run and links to the season's next race (`nextRaceToRun`; the events hub once the season has nothing left) and to the primary route's page, and the ranking below works as before. The site stops promoting it: `getIndexedRaces(today)` is every race page less the races run by `today`, and it is what the sitemap and the prerender list read, both on the build's day. Off the prerender list, the page is rendered by the server on the real day, which is what puts `noindex, follow` in its served HTML and its `X-Robots-Tag` header. A race run between two builds stays prerendered, indexable and in the sitemap until the next build; meanwhile the rider's clock draws its notice after load. It has no share card of its own: cards are only generated for prerendered pages, so it falls back to the site's own card (`app.vue`) rather than an `og:image` whose image was never built.
 
 `hidden` retires a page without deleting its data — the entry stays in the file as a record. Note that hiding an already-indexed race starts returning 404s for a URL search engines know; that's the intended outcome for genuinely obsolete pages, but it isn't free. The validator still validates hidden entries: `hidden` is a display decision, not a way to smuggle broken data past the build.
 
