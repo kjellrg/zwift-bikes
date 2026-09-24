@@ -18,6 +18,7 @@ Racecraft
 rankable
 Strava
 supertuck
+typesafe
 unmodelled
 wheelset
 wheelsets

@@ -87,10 +87,10 @@
               "curatorNote": "ZwiftInsider styles the name \"WhatYumeziWe'reLost?\"; zwift-data (and the game) spell it WhatYumeziWereLost. Published figures match route + lead-in within 1%."
             }
           ],
-          "note": "The hilliest stage of the month: 288 m of climbing packed into under 18 km, over twice the gradient density of the other three stages. This is the week where climbing performance genuinely matters, and the Feather powerup doubles down on it. It is also the dirtiest stage - a quarter of the route is dirt, the surface that hurts road wheels most here, though not enough to beat them. Draft is the other powerup.",
+          "note": "The hilliest stage of the month: 288 m of climbing packed into under 18 km, over twice the gradient density of the other three stages. That makes it the month's closest call between aero and light: aero, climbing and all-rounder frames finish within seconds of each other, and a full aero build only just edges a pure climbing one - by less still for lighter riders. The Feather powerup rewards the climbs. It is also the dirtiest stage - a quarter of the route is dirt, the surface that hurts road wheels most here, though not enough to beat them. Draft is the other powerup.",
           "powerups": { "allowed": ["feather", "draft"] },
           "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
-          "updatedAt": "2026-08-16"
+          "updatedAt": "2026-09-23"
         },
         {
           "slug": "stage-4",
