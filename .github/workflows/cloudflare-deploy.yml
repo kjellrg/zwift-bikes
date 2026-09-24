@@ -1,13 +1,18 @@
 name: Cloudflare Workers CI/CD
 
-# The single PR/push entry point (it calls checks.yml once - see the note on
-# fork_build_job). Replaces the Azure Static Web Apps workflow: Azure keeps
-# serving whatever it last deployed, side by side, but nothing deploys there
-# anymore.
+# The single PR/push/schedule entry point (it calls checks.yml once - see the
+# note on fork_build_job). Replaces the Azure Static Web Apps workflow: Azure
+# keeps serving whatever it last deployed, side by side, but nothing deploys
+# there anymore.
 #
 # What deploys where:
 #   - push to main        -> the `zwift-bikes` Worker (production; the custom
 #                            domain is attached to it in the dashboard)
+#   - daily at 00:17 UTC  -> the same production deploy, rebuilt from main
+#     (schedule)             with nothing changed but the day (issue #278)
+#   - manual run          -> the same again, by hand from the Actions tab
+#     (workflow_dispatch)    ("Run workflow"); run from any branch but main,
+#                            it runs the checks and deploys nothing
 #   - non-fork PR         -> its own `zwift-bikes-pr-<n>` Worker at
 #                            https://zwift-bikes-pr-<n>.zwiftbikes.workers.dev,
 #                            linked from a sticky PR comment, redeployed on
@@ -17,6 +22,25 @@ name: Cloudflare Workers CI/CD
 #
 # `npm run build` runs the full validate suite first, so a deploy can never
 # outrun verification - merge protection on checks.yml covers the merge side.
+#
+# Why redeploy daily when nothing changed: every events page is prerendered,
+# and the build's own day decides which races it lists, which race pages are
+# prerendered and indexable, and what the sitemap holds (see
+# docs/events-data.md). Without a push, a race run on Monday would stay in
+# all of them until whoever next pushed. The scheduled build starts after
+# 00:00 UTC, so it is always on the new day (races are dated in UTC days, and
+# a schedule never fires early); 00:17 rather than 00:00 because GitHub
+# delays and drops the most runs at the top of the hour. The run needs
+# nothing new: the same secrets, the full checks and the full build, no
+# paths filter (the day is what changed, not a file), and no PR number, so
+# no preview Worker is touched. Same commit, same `buildSha`, so the
+# recommend edge cache (server/utils/recommendCache.ts) keeps its keys.
+#
+# A schedule only fires from the workflow file on the default branch, so it
+# takes effect once this is merged to main. GitHub mails a failed scheduled
+# run to whoever last changed the cron line, and turns schedules off in a
+# public repo after 60 days without activity - re-enable it in the Actions
+# tab if the site stops dropping run races.
 #
 # Secrets: CLOUDFLARE_API_TOKEN (Workers Scripts: Edit) and
 # CLOUDFLARE_ACCOUNT_ID, plus two mask-only secrets - CLOUDFLARE_ACCOUNT_EMAIL
@@ -33,6 +57,9 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+  schedule:
+    - cron: "17 0 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -40,6 +67,11 @@ permissions:
 # Superseded preview runs have nothing left to say, so cancel them. Pushes to
 # main are deliberately excluded: cancelling a half-finished production deploy
 # is a worse outcome than letting it finish and be replaced.
+#
+# A scheduled or manual run on main lands in the production group too, so it
+# queues behind a push deploy rather than racing it. GitHub keeps only the
+# newest waiting run per group, so a push arriving behind a waiting scheduled
+# run replaces it - which loses nothing: it builds newer code on the same day.
 #
 # `head_ref || ref`, not plain `ref`: for a CLOSED pull request the
 # `refs/pull/<n>/merge` test ref no longer exists, so `github.ref` falls back
@@ -64,18 +96,24 @@ jobs:
     permissions:
       pull-requests: read
     outputs:
-      app: ${{ steps.filter.outputs.app }}
+      # A scheduled or manual run always builds: the day is what changed, and
+      # the filter has no push range to diff for those events anyway.
+      app: >-
+        ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        && 'true' || steps.filter.outputs.app }}
     steps:
       # dorny/paths-filter only needs a checkout for non-PR triggers (push,
       # in this workflow's case) - it uses git diff/merge-base locally there
       # since there's no PR to query the GitHub API for instead. Omitting
       # this made push-to-main runs fail with "fatal: not a git repository".
       - name: Checkout repository
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 20
           persist-credentials: false
       - name: Filter relevant paths
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
@@ -110,8 +148,14 @@ jobs:
     # Fork PRs are excluded here and picked up by `fork_build_job` below: a
     # `pull_request` run from a fork gets no repository secrets, so
     # CLOUDFLARE_API_TOKEN is empty and the deploy can only fail.
+    #
+    # A manual run can be started from any branch; only main deploys, since
+    # with no PR number the deploy below would put that branch in production.
+    # A schedule always runs on the default branch, but gets the same guard.
     if: >-
       github.event_name == 'push'
+      || ((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      && github.ref == 'refs/heads/main')
       || (github.event_name == 'pull_request'
       && github.event.action != 'closed'
       && github.event.pull_request.head.repo.fork == false)
@@ -164,8 +208,8 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Empty on a push to main, which is what selects the production
-          # Worker name from wrangler.jsonc.
+          # Empty on a push to main and on a scheduled or manual run, which
+          # is what selects the production Worker name from wrangler.jsonc.
           PR_NUMBER: ${{ github.event.number }}
         # `--env preview` because production pins workers_dev off (see
         # wrangler.jsonc) and preview Workers have no other URL - the preview

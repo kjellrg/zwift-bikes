@@ -386,11 +386,13 @@ export function getPublishableRaces(): PublishableRace[] {
  * and leaves the sitemap and the prerender list. Both read this, so they
  * cannot disagree, and it asks `hasBeenRun`, as the page's noindex does.
  *
- * Both are built once, at build time, so `today` is the build's day. A race
- * run between two builds stays in both until the next one; its page is
- * prerendered meanwhile, and says it has been run from the rider's clock
- * once loaded. Leaving the prerender list is what hands a run race's page to
- * the server, which renders it on the real day, noindex included.
+ * Both are built once, at build time, so `today` is the build's day, and
+ * production rebuilds every day just after 00:00 UTC (the schedule in
+ * .github/workflows/cloudflare-deploy.yml). A race run between two builds
+ * stays in both until the next one; its page is prerendered meanwhile, and
+ * says it has been run from the rider's clock once loaded. Leaving the
+ * prerender list is what hands a run race's page to the server, which
+ * renders it on the real day, noindex included.
  */
 export function getIndexedRaces(today: string): PublishableRace[] {
   return getPublishableRaces().filter(({ race }) => !hasBeenRun(race, today))
