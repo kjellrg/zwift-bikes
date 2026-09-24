@@ -91,7 +91,9 @@ test.describe('route recommendation', () => {
   test('renders the same answer for riders and crawlers, from the server', async ({ page, request }) => {
     await visit(page, ROUTE)
     const visible = normalise(await answer(page).locator('p').allInnerTexts().then(lines => lines.join(' ')))
-    expect(visible).toMatch(/^Our model puts .+ fastest within the current filters for Watopia Hilly Route in Watopia, the best bike for it at \d+:\d\d/)
+    expect(visible).toMatch(/^ZwiftBikes predicts the .+ is the best bike and wheels for Watopia Hilly Route in Watopia: the fastest road setup for an? \d+ kg rider at \d+ W, finishing in \d+:\d\d/)
+    // Rank 2 and its gap, always: rank 1 alone would overstate a margin that is usually under a second.
+    expect(visible).toMatch(/ The .+ (is .+ behind|is tied with it)/)
     expect(normalise((await structuredAnswer(page)) ?? '')).toBe(visible)
     await expect(page).toHaveTitle(/^Fastest bike for Watopia Hilly Route in Watopia \| ZwiftBikes$/)
 
@@ -103,6 +105,7 @@ test.describe('route recommendation', () => {
         title: doc.title,
         heading: doc.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim(),
         answer: doc.querySelector('#ride-answer-heading + p')?.textContent,
+        description: doc.querySelector('meta[name="description"]')?.getAttribute('content'),
         facts: doc.querySelector('[aria-label="Ride facts"]')?.textContent,
         rows: doc.querySelectorAll('table[aria-label="Ranked setups"] tbody').length,
         canonical: doc.querySelector('link[rel="canonical"]')?.getAttribute('href'),
@@ -115,8 +118,11 @@ test.describe('route recommendation', () => {
     }, html)
     expect(served.title.toLowerCase()).toContain('fastest bike for')
     expect(served.heading).toBe('The fastest bike for Watopia Hilly Route')
-    expect(served.answer).toMatch(/^Our model puts /)
-    expect(served.faq).toMatch(/^Our model puts /)
+    expect(served.answer).toMatch(/^ZwiftBikes predicts the /)
+    expect(served.faq).toMatch(/^ZwiftBikes predicts the /)
+    // The search phrase, then the default rider's rank 1 - never a time.
+    expect(served.description).toMatch(/^The best bike and wheels for Watopia Hilly Route.*: ZwiftBikes predicts the .+, fastest on road bikes\.$/)
+    expect(served.description!.length).toBeLessThanOrEqual(160)
     expect(served.facts).toContain('m/km')
     expect(served.rows).toBeGreaterThan(1)
     expect(served.related).toBe(4)

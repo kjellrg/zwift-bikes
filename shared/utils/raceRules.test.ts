@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RACE_FORMAT_LABELS, raceFormatPhrase } from './labels'
+import { RACE_FORMAT_LABELS, raceFormatPhrase } from './events'
 import { rideRulesLine } from './raceRules'
 
 /**
@@ -15,7 +15,7 @@ describe('rideRulesLine', () => {
     expect(rideRulesLine('scratch')).toBe('TT bikes are disabled for this scratch race.')
     // WTRL's ban is a regulation, not the game disabling them - and drafting
     // being off is exactly what would otherwise argue FOR a TT bike.
-    expect(rideRulesLine('rot')).toBe('WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time below is ridden solo.')
+    expect(rideRulesLine('rot')).toBe('WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time is for riding solo.')
     expect(rideRulesLine('ttt')).toBe('TT bikes are allowed in this team time trial.')
   })
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BikeCategory } from '../../shared/types/catalog'
+import type { LeftOutSetup } from '../../shared/utils/recommendationAnswer'
 
 /**
  * "A bike your filters are hiding is faster" - shown with the recommendation
@@ -24,34 +24,26 @@ import type { BikeCategory } from '../../shared/types/catalog'
  * instead of how much quicker it is.
  */
 const props = defineProps<{
-  fastestOverall: {
-    frameName: string
-    category: BikeCategory
-    reason: 'category' | 'halo'
-    wheelsetName?: string
-    deltaSec?: number
-  }
+  fastestOverall: LeftOutSetup
 }>()
 
 defineEmits<{ showAll: [], includeHalo: [] }>()
 
-const equipment = computed(() => props.fastestOverall.wheelsetName
-  ? `${props.fastestOverall.frameName} with ${props.fastestOverall.wheelsetName}`
-  : props.fastestOverall.frameName)
+const equipment = computed(() => namedSetup(props.fastestOverall.frameName, props.fastestOverall.wheelsetName))
 
 /** The question the note answers, in the rider's words. */
 const lead = computed(() => props.fastestOverall.reason === 'halo'
   ? 'Halo bikes allowed?'
   : props.fastestOverall.category === 'tt' ? 'Time-trial bikes allowed?' : 'Other categories allowed?')
 
-// Same shape as the TTT saving line (see `formatTttTimeSaving`): whole
-// seconds under a minute, `m:ss` above it. Hundredths are noise at the scale
-// this gap lives at, and it's a headline, not a ranking key.
-const gapText = computed(() => {
-  if (props.fastestOverall.deltaSec === undefined) return undefined
-  const magnitude = Math.abs(props.fastestOverall.deltaSec)
-  return magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
-})
+// The gap reads exactly as the answer's own clause about this setup says it
+// (`buildRecommendationAnswer`), from the same formatter, so the note and the
+// sentence a crawler quotes cannot give two numbers for one fact. That
+// formatter keeps a decimal under ten seconds and never rounds a real gap to
+// nothing, which the whole-second form used here before did ("0s quicker").
+const gapText = computed(() => props.fastestOverall.deltaSec === undefined
+  ? undefined
+  : formatGapSeconds(props.fastestOverall.deltaSec))
 </script>
 
 <template>

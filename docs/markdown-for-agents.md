@@ -10,8 +10,13 @@ $ curl -H 'Accept: text/markdown' https://zwiftbikes.com/routes/hilly-route
 
 # What's the fastest bike for Watopia Hilly Route?
 
-Our model puts the **Specialized Tarmac SL9 with Shimano C99/Disc** fastest on
-Watopia Hilly Route: **17:42** (~32.9 km/h), under the assumptions below.
+ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99/Disc is the
+best bike and wheels for Watopia Hilly Route in Watopia: the fastest road setup
+for a 75 kg rider at 225 W, finishing in 17:42 (~32.9 km/h). The Canyon Aeroad
+2024 with Zipp 858/Super9 is 0.33 s behind.
+
+75 kg / 175 cm / 225 W / solo; 1 lap, including any lead-in once. Standard
+(Road); verified only; unowned Halo bikes excluded.
 ...
 ```
 

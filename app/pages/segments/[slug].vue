@@ -102,7 +102,7 @@ const ride = computed<Ride>(() => ({
 const request = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRide, appliedRestrictions,
+  combos, topCombo, fastestOverall, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRide, appliedRestrictions,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 await recommendReady
@@ -141,7 +141,13 @@ const metaDescription = computed(() => {
   if (!segmentData.value) return undefined
   const s = segmentData.value
   const stats = `${formatDistance(s.lengthKm)}${displayGradePercent.value ? ` at ${formatGrade(displayGradePercent.value)}` : ', flat'}${displayElevationM.value >= 10 ? `, ${formatElevation(displayElevationM.value)} of climbing` : ''}`
-  return `The best bike and wheels for the ${s.name} ${s.type} in ${s.worldName} - ${stats} - ranked by predicted time for your weight and power.`
+  return rideDescription({
+    ride: `the ${s.name} ${s.type}`,
+    world: s.worldName,
+    stats,
+    setup: topCombo.value ? setupName(topCombo.value) : undefined,
+    category: appliedInputs.value.category
+  })
 })
 
 useSeoMeta({
@@ -237,7 +243,8 @@ const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike 
 // results on first paint; during a refetch it keeps describing the results
 // still on screen, the same way the dimmed results do.
 const answer = useRecommendationAnswer({
-  combo: () => topCombo.value,
+  ranking: () => combos.value,
+  fastestOverall: () => fastestOverall.value,
   rideName: () => segmentData.value ? `the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}` : undefined,
   distanceKm: () => segmentData.value?.lengthKm,
   rider: () => appliedInputs.value,

@@ -395,6 +395,15 @@ export const RACE_FORMAT_LABELS: Record<RaceFormat, string> = {
 }
 
 /**
+ * The format for use mid-sentence. Every other label lowercases into ordinary
+ * prose ("this is a points race"); "Race of Truth" is a proper name and reads
+ * as gibberish if it doesn't keep its capitals.
+ */
+export function raceFormatPhrase(format: RaceFormat): string {
+  return format === 'rot' ? 'Race of Truth' : RACE_FORMAT_LABELS[format].toLowerCase()
+}
+
+/**
  * Zwift disables TT frames for points and scratch races and enables them
  * (with draft) for team time trials, so the format alone decides this - see
  * WTRL's ZRL rules. Unknown format is treated as "not allowed", matching the

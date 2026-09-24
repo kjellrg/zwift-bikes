@@ -90,7 +90,7 @@ const ride = computed<Ride | undefined>(() => selectedRouteSlug.value
 const request = useRecommendRequest(() => ride.value, { key: `recommend-race-${seasonSlug.value}-${raceSlug.value}` })
 const {
   ready: recommendReady, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRide, appliedRestrictions,
+  combos, topCombo, fastestOverall, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRide, appliedRestrictions,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 
@@ -428,7 +428,8 @@ const faqQuestion = computed(() => `What bike should I ride for ${raceTitle.valu
 // lap count and the rider the request was actually answered for - so what a
 // crawler reads is what a rider sees.
 const answer = useRecommendationAnswer({
-  combo: () => topCombo.value,
+  ranking: () => combos.value,
+  fastestOverall: () => fastestOverall.value,
   rideName: () => appliedRanking.value.course
     ? `${resultsLaps.value} lap${resultsLaps.value === 1 ? '' : 's'} of ${appliedRanking.value.course.name} in ${appliedRanking.value.course.worldName}`
     : undefined,

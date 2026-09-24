@@ -25,7 +25,7 @@ const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }
 const request = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
 const {
   ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRestrictions, appliedRide,
+  combos, topCombo, fastestOverall, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRestrictions, appliedRide,
   isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
 } = request
 
@@ -63,13 +63,23 @@ const metaStats = computed(() => {
   return `${formatDistance(totals.distanceKm)} with ${formatElevation(totals.elevationM)} of climbing`
 })
 
-// Titles and the H1 carry the phrase riders search for; "best bike" is kept
-// once, in the description, as it is in the answer.
+// Titles and the H1 carry the phrase riders search for; "best bike" leads
+// the description, which then names rank 1 - see `rideDescription`. The
+// prerender renders it for the default rider, as it does the answer.
+const metaDescription = computed(() => {
+  if (!routeData.value) return undefined
+  const totals = computeRouteTotals(routeData.value, 1)
+  return rideDescription({
+    ride: routeData.value.name,
+    world: routeData.value.worldName,
+    stats: `${formatDistance(totals.distanceKm)}, ${formatElevation(totals.elevationM)} of climbing`,
+    setup: topCombo.value ? setupName(topCombo.value) : undefined,
+    category: appliedInputs.value.category
+  })
+})
 useSeoMeta({
   title: () => routeData.value ? `Fastest bike for ${routeData.value.name} in ${routeData.value.worldName} | ZwiftBikes` : 'ZwiftBikes',
-  description: () => routeData.value
-    ? `The best bike and wheels for ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value} - ranked by predicted finish time for your weight and power.`
-    : undefined,
+  description: metaDescription,
   ogTitle: () => routeData.value ? `Fastest bike for ${routeData.value.name}` : undefined,
   ogDescription: () => routeData.value
     ? `Every Zwift frame and wheelset ranked by finish time on ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}.`
@@ -182,7 +192,8 @@ const faqQuestion = computed(() => routeData.value ? `What's the fastest bike fo
 // on first paint; during a refetch it keeps describing the results still on
 // screen, the same way the dimmed results do.
 const answer = useRecommendationAnswer({
-  combo: () => topCombo.value,
+  ranking: () => combos.value,
+  fastestOverall: () => fastestOverall.value,
   rideName: () => routeData.value ? `${routeData.value.name} in ${routeData.value.worldName}` : undefined,
   distanceKm: () => resultsTotals.value?.distanceKm ?? routeData.value?.distance,
   rider: () => appliedInputs.value,

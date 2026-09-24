@@ -121,13 +121,29 @@ describe('the route document', () => {
     // The same question the page publishes as FAQ structured data, so a
     // model and a crawler come away with one answer.
     expect(markdown.startsWith('# What\'s the fastest bike for Hilly Route?')).toBe(true)
-    expect(markdown).toContain('Our model puts the **Tron with Tron wheels** fastest on Hilly Route: **15:00**')
+    expect(markdown).toContain('ZwiftBikes predicts the Tron with Tron wheels is the best bike and wheels for Hilly Route in Watopia: '
+      + 'the fastest road setup for a 75 kg rider at 225 W, finishing in 15:00')
     expect(markdown).toContain('Canonical page: <https://zwiftbikes.com/routes/watopia-hilly-route>')
     // Links stay on the host that served it, the way the HTML's are relative.
     expect(markdown).toContain('https://zwift-bikes-pr-1.workers.dev/api/recommend/')
     // The MCP endpoint is gated at the edge, so a document must never send
     // an anonymous reader to it - the open JSON API is the only way in.
     expect(markdown).not.toContain('/api/mcp')
+  })
+
+  it('answers in the page\'s own words, runner-up and left-out setup included', async () => {
+    const runnerUp = { ...COMBO, frame: { ...COMBO.frame, id: 8, name: 'Tron Mk II' }, finishTimeSec: 900.42 } as ComboScore
+    stubFetch(path => (path.startsWith('/api/recommend/')
+      ? { ...rankingResponse([COMBO, runnerUp]), fastestOverall: { frameName: 'Zwift TT', category: 'tt', reason: 'category', deltaSec: 61 } }
+      : ROUTE))
+    const markdown = await markdownDocumentFor('/routes/watopia-hilly-route')!(CONTEXT)
+
+    // One builder with the page (`buildRecommendationAnswer`), so the
+    // visible answer, the FAQ structured data and this line are one text.
+    expect(markdown).toContain('finishing in 15:00 (~42.0 km/h). The Tron Mk II with Tron wheels is 0.42 s behind. '
+      + 'Where TT bikes are allowed, the Zwift TT is 1:01 quicker.')
+    expect(markdown).toContain('75 kg / 175 cm / 225 W / solo; 1 lap, including any lead-in once. Standard (Road); verified only; unowned Halo bikes excluded.')
+    expect(markdown).not.toMatch(/Our model|current filters/)
   })
 
   it('ranks the rider the prerendered HTML was rendered for', async () => {
@@ -190,6 +206,7 @@ describe('the segment document', () => {
     const markdown = await markdownDocumentFor('/segments/alpe-du-zwift')!(CONTEXT)
     expect(sprintSpy.mock.calls.find(([path]) => path.startsWith('/api/recommend/'))?.[1]?.query).toMatchObject({ powerW: 600 })
     expect(markdown).toContain('Ridden at sprint power')
+    expect(markdown).toContain('the best bike and wheels for the Alpe du Zwift sprint in Watopia: the fastest road setup for a 75 kg rider at 600 W')
   })
 
   it('links the routes the segment is ridden on', async () => {
@@ -216,6 +233,9 @@ describe('the race document', () => {
       .toMatchObject({ excludeTT: 'true' })
     expect(markdown).toContain('**TT frames**: barred')
     expect(markdown).toContain('**Drafting**: no - ridden solo')
+    // The page's own rules line leads the answer here too.
+    expect(markdown).toContain('WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time is for riding solo. '
+      + 'ZwiftBikes predicts the Tron with Tron wheels is the best bike and wheels for ')
   })
 
   it('ranks the first category group and names the others', async () => {

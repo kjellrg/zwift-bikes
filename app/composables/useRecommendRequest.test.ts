@@ -126,7 +126,8 @@ function setup(cached?: { envelope: RecommendEnvelope<RecommendResponse>, hydrat
   })
   const request = scope.run(() => useRecommendRequest(() => ride.value, { key: 'test' }))!
   const answer = scope.run(() => useRecommendationAnswer({
-    combo: () => request.topCombo.value,
+    ranking: () => request.combos.value,
+    fastestOverall: () => request.fastestOverall.value,
     rideName: () => 'Test route',
     distanceKm: () => 1,
     rider: () => request.appliedInputs.value,

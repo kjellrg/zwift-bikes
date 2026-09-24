@@ -106,7 +106,7 @@ test.describe('segment recommendation', () => {
   test('renders the same segment answer for riders and crawlers, from the server, with the host links', async ({ page, request }) => {
     await visit(page, CLIMB)
     const visible = normalise(await answer(page).locator('p').allInnerTexts().then(lines => lines.join(' ')))
-    expect(visible).toMatch(/^Our model puts .+ fastest within the current filters for the Alpe du Zwift climb in Watopia, the best bike for it at \d+:\d\d/)
+    expect(visible).toMatch(/^ZwiftBikes predicts the .+ is the best bike and wheels for the Alpe du Zwift climb in Watopia: the fastest road setup for an? \d+ kg rider at \d+ W, finishing in \d+:\d\d/)
     expect(visible).toContain('the timed segment, excluding warm-up')
     expect(normalise((await structuredAnswer(page)) ?? '')).toBe(visible)
 
@@ -118,6 +118,7 @@ test.describe('segment recommendation', () => {
         heading: doc.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim(),
         title: doc.title,
         answer: doc.querySelector('#ride-answer-heading + p')?.textContent,
+        description: doc.querySelector('meta[name="description"]')?.getAttribute('content'),
         canonical: doc.querySelector('link[rel="canonical"]')?.getAttribute('href'),
         hostLinks: [...doc.querySelectorAll('a[href^="/routes/"]')].map(link => link.getAttribute('href')),
         faq: [...doc.querySelectorAll('script[type="application/ld+json"]')]
@@ -127,8 +128,10 @@ test.describe('segment recommendation', () => {
     }, html)
     expect(served.heading).toBe('The fastest bike for Alpe du Zwift')
     expect(served.title.toLowerCase()).toContain('fastest bike for')
-    expect(served.answer).toMatch(/^Our model puts /)
-    expect(served.faq).toMatch(/^Our model puts /)
+    expect(served.answer).toMatch(/^ZwiftBikes predicts the /)
+    expect(served.faq).toMatch(/^ZwiftBikes predicts the /)
+    expect(served.description).toMatch(/^The best bike and wheels for the Alpe du Zwift climb.*: ZwiftBikes predicts the .+, fastest on road bikes\.$/)
+    expect(served.description!.length).toBeLessThanOrEqual(160)
     expect(served.canonical).toMatch(/\/segments\/alpe-du-zwift$/)
     expect(served.hostLinks).toContain('/routes/road-to-sky')
   })
@@ -285,7 +288,9 @@ test.describe('segment recommendation', () => {
     await page.goto(`${SPRINT}?rules=handicap`, { waitUntil: 'domcontentloaded' })
     await ready(page)
     await expect(rulesPicker(page)).toContainText('Not a race')
-    await expect(answer(page)).not.toContainText('TT bikes')
+    // No rules sentence leads the answer. The answer may still say where TT
+    // bikes are allowed, which is the left-out clause a route page carries too.
+    await expect(answer(page)).not.toContainText(/TT bikes are (disabled|allowed in)|bans TT bikes/)
   })
 
   test('tells a bike a format bars that it is illegal, not slow', async ({ page, isMobile }) => {
