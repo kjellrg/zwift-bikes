@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RecommendRequestState } from '../composables/useRecommendRequest'
 import type { useComparison } from '../composables/useComparison'
-import type { RecommendationAnswer } from '../utils/recommendationAnswer'
+import type { RecommendationAnswer } from '../../shared/utils/recommendationAnswer'
 import { rankingEvidence } from '../utils/rankingResults'
 
 /**

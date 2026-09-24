@@ -1,6 +1,6 @@
-import type { BikeCategory, BikeStyle, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
-import type { Powerup, RaceFormat, SeasonSummary } from '../../shared/utils/events'
-import { RACE_FORMAT_LABELS } from '#shared/utils/events'
+import type { BikeStyle, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import type { Powerup, SeasonSummary } from '../../shared/utils/events'
+import { RACE_FORMAT_LABELS, raceFormatPhrase } from '#shared/utils/events'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
 import { formatDuration, formatDurationGap } from '#shared/utils/duration'
@@ -19,14 +19,6 @@ export const DRAFT_MODE_LABELS: Record<DraftMode, string> = { solo: 'Solo', race
 
 /** The draft selects' items (`RiderProfileControls`, `ProfileContent`), in the order `DRAFT_MODES` lists the modes. */
 export const DRAFT_MODE_OPTIONS = DRAFT_MODES.map(value => ({ label: DRAFT_MODE_LABELS[value], value }))
-
-export const BIKE_CATEGORY_LABELS: Record<BikeCategory, string> = {
-  standard: 'Standard (Road)',
-  tt: 'Time Trial',
-  gravel: 'Gravel',
-  handbike: 'Hand Cycle',
-  funbike: 'Fun Bike'
-}
 
 /** A frame's style, as the Ranking's style column and the "why" sentence name it. */
 export const BIKE_STYLE_LABELS: Record<BikeStyle, string> = {
@@ -159,24 +151,6 @@ export function formatDurationDelta(seconds: number): string {
 }
 
 /**
- * A gap between two setups as a sentence says it - `0.33 s`, `4.1 s`, `22 s`,
- * `1:05` - with as many decimals as the gap needs to be told apart from
- * nothing and no more, since a sentence is read, not compared down a column.
- */
-export function formatGapSeconds(seconds: number): string {
-  const magnitude = Math.abs(seconds)
-  if (magnitude >= 59.5) return formatDuration(magnitude)
-  return `${magnitude < 1 ? magnitude.toFixed(2) : magnitude < 10 ? magnitude.toFixed(1) : Math.round(magnitude)} s`
-}
-
-/** Formats an average speed (route distance in km over a finish time in seconds), e.g. `32.4 km/h`. */
-export function formatSpeedKmh(distanceKm: number, seconds: number): string {
-  if (seconds <= 0) return '-'
-  const kmh = distanceKm / (seconds / 3600)
-  return `${kmh.toFixed(1)} km/h`
-}
-
-/**
  * The "riding as a TTT saves X vs solo" line for TTT draft mode - see the
  * recommend endpoints' `physics.ttt` block. Both rides are the same rider at
  * the same power with the same pacing; only the draft differs, so the gap is
@@ -212,20 +186,12 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
     : `A typical mass-start bunch is ~${formatted} slower here than riding alone at the same average power - this route is too steep for the draft to be worth anything.`
 }
 
-// `RACE_FORMAT_LABELS` now lives in `shared/utils/events.ts`, beside the
-// `RaceFormat` it names, so the markdown race document can write a format
-// out too - server code cannot import from `app/`. Re-exported here because
-// this module is where every page already reaches for a label.
-export { RACE_FORMAT_LABELS }
-
-/**
- * The format for use mid-sentence. Every other label lowercases into ordinary
- * prose ("this is a points race"); "Race of Truth" is a proper name and reads
- * as gibberish if it doesn't keep its capitals.
- */
-export function raceFormatPhrase(format: RaceFormat): string {
-  return format === 'rot' ? 'Race of Truth' : RACE_FORMAT_LABELS[format].toLowerCase()
-}
+// `RACE_FORMAT_LABELS` and `raceFormatPhrase` now live in
+// `shared/utils/events.ts`, beside the `RaceFormat` they name, so the
+// markdown race document can write a format out too - server code cannot
+// import from `app/`. Re-exported here because this module is where every
+// page already reaches for a label.
+export { RACE_FORMAT_LABELS, raceFormatPhrase }
 
 /**
  * Race day, e.g. `Tuesday 22 September 2026`.

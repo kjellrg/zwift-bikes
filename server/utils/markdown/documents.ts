@@ -1,5 +1,4 @@
-import type { ComboScore, RouteSummary, RouteWithMeta, SegmentSummary } from '../../../shared/types/catalog'
-import { formatDuration } from '../../../shared/utils/duration'
+import type { BikeCategory, ComboScore, RouteSummary, RouteWithMeta, SegmentSummary } from '../../../shared/types/catalog'
 import {
   categoryGroup,
   draftingAllowed,
@@ -14,6 +13,9 @@ import {
   raceDisplayName,
   ttBikesAllowed
 } from '../../../shared/utils/events'
+import { TTT_DEFAULT_RIDERS } from '../../../shared/utils/physics/draft'
+import { rideRulesLine } from '../../../shared/utils/raceRules'
+import { buildRecommendationAnswer } from '../../../shared/utils/recommendationAnswer'
 import { RECOMMEND_MAX_LIMIT } from '../../../shared/utils/recommendLimits'
 import { DEFAULT_HEIGHT_CM, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, DEFAULT_WEIGHT_KG } from '../../../shared/utils/riderBounds'
 import { computeRouteTotals, maxLapsForRoute } from '../../../shared/utils/routeLaps'
@@ -102,7 +104,7 @@ export type MarkdownDocument = (context: MarkdownRenderContext) => Promise<strin
  * the client silently makes this document a ranking no rider is shown.
  */
 interface RankingQuery {
-  category: string
+  category: BikeCategory
   limit: number
   maxWheelsetsPerFrame: number
   offset: number
@@ -146,24 +148,43 @@ function defaultRiderNote(powerW: number): string {
     + 'Every time below scales with those three numbers, so quote them alongside any time you repeat, and rank the reader\'s own with the API described at the end.'
 }
 
-/** `12.4 km/h`, the same one-decimal readout the pages show beside a time. */
-function formatSpeed(distanceKm: number, seconds: number): string | undefined {
-  if (seconds <= 0) return undefined
-  return `${(distanceKm / (seconds / 3600)).toFixed(1)} km/h`
-}
-
 /**
- * The answer sentence, from rank 1 of the ranking - the same fact the page
- * prints under its recommendation and publishes as FAQ structured data
- * (`faqScript` in `app/utils/rankingResults.ts`), so an agent reading this
- * document and a crawler reading the HTML come away with one answer.
+ * The answer, from the head of the ranking: the same builder the page's
+ * visible answer and its FAQ structured data come from
+ * (`buildRecommendationAnswer`), fed the same default rider and pool the
+ * prerendered HTML is rendered for (`defaultRankingQuery`), so an agent
+ * reading this document and a crawler reading the HTML come away with one
+ * answer. The assumptions line follows it, as it does on the page.
  */
-function answerLine(combos: ComboScore[], rideName: string, distanceKm: number | undefined): string | undefined {
-  const best = combos[0]
-  if (!best || best.finishTimeSec === undefined) return undefined
-  const equipment = best.wheelset ? `${best.frame.name} with ${best.wheelset.name}` : `${best.frame.name} (fixed wheels)`
-  const speed = distanceKm === undefined ? undefined : formatSpeed(distanceKm, best.finishTimeSec)
-  return `Our model puts the **${equipment}** fastest on ${rideName}: **${formatDuration(best.finishTimeSec)}**${speed ? ` (~${speed})` : ''}, under the assumptions below.`
+function answerLine(
+  ranking: RecommendRouteResponse | RecommendSegmentResponse,
+  ride: { rideName: string, distanceKm?: number, powerW: number, laps?: number, rideRules?: string }
+): string | undefined {
+  const query = defaultRankingQuery(ride.powerW)
+  const answer = buildRecommendationAnswer({
+    ranking: ranking.combos.slice(0, 2),
+    fastestOverall: ranking.fastestOverall,
+    distanceKm: ride.distanceKm,
+    rideName: ride.rideName,
+    rideRules: ride.rideRules,
+    rider: {
+      weightKg: query.weightKg,
+      heightCm: query.heightCm,
+      powerW: query.powerW,
+      draftMode: 'solo',
+      tttRiders: TTT_DEFAULT_RIDERS,
+      tttClimbWkg: undefined,
+      category: query.category
+    },
+    laps: ride.laps,
+    verifiedOnly: query.verifiedOnly === 'true',
+    includeHaloBikes: query.includeHalo === 'true',
+    myBikesOnly: false,
+    ownsFrames: false,
+    ownsWheels: false,
+    search: ''
+  })
+  return answer && `${answer.summary}\n\n${answer.assumptions}`
 }
 
 /**
@@ -309,7 +330,7 @@ async function renderRouteDocument(slug: string, { origin, siteUrl, recommendPau
 
   const unavailable = rankingUnavailable(ranking !== undefined, recommendPaused)
   const lines = [
-    ...rankingHeader(question, (ranking && answerLine(ranking.combos, route.name, totals.distanceKm)) ?? unavailable, canonical),
+    ...rankingHeader(question, (ranking && answerLine(ranking, { rideName: `${route.name} in ${route.worldName}`, distanceKm: totals.distanceKm, powerW: DEFAULT_POWER_W, laps: 1 })) ?? unavailable, canonical),
     '',
     `${route.name} is a ${route.terrain.category} route in ${route.worldName}: ${totals.distanceKm.toFixed(1)} km and ${Math.round(totals.elevationM)} m of climbing for one lap, lead-in included.`,
     ''
@@ -375,7 +396,7 @@ async function renderSegmentDocument(slug: string, { origin, siteUrl, recommendP
 
   const unavailable = rankingUnavailable(ranking !== undefined, recommendPaused)
   const lines = [
-    ...rankingHeader(question, (ranking && answerLine(ranking.combos, segment.name, segment.lengthKm)) ?? unavailable, canonical),
+    ...rankingHeader(question, (ranking && answerLine(ranking, { rideName: `the ${segment.name} ${segment.type} in ${segment.worldName}`, distanceKm: segment.lengthKm, powerW })) ?? unavailable, canonical),
     '',
     `${segment.name} is a ${segment.type} in ${segment.worldName}: ${segment.lengthKm.toFixed(1)} km at ${gradePercent}% average grade, ${elevationM} m of elevation.`,
     ''
@@ -480,7 +501,7 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, { origin
     : '_This group races a route the catalog does not carry, so no ranking can be computed for it._'
 
   const lines = [
-    ...rankingHeader(question, (ranking && answerLine(ranking.combos, rideName, totals?.distanceKm)) ?? unavailable, canonical),
+    ...rankingHeader(question, (ranking && course && answerLine(ranking, { rideName: `${rideName} in ${course.worldName}`, distanceKm: totals?.distanceKm, powerW: DEFAULT_POWER_W, laps, rideRules: rideRulesLine(race.format) })) ?? unavailable, canonical),
     '',
     `${title} is a ${RACE_FORMAT_LABELS[race.format].toLowerCase()} on ${race.date}${course ? `, over ${rideName} in ${course.worldName}` : ''}.`,
     ''

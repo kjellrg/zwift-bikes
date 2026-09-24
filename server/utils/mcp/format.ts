@@ -2,6 +2,7 @@ import type { ComboScore, RouteSummary, SegmentSummary, SurfaceEstimate } from '
 import type { RaceFormat } from '../../../shared/utils/events'
 import { formatDuration, formatDurationGap } from '../../../shared/utils/duration'
 import { RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
+import type { LeftOutSetup } from '../../../shared/utils/recommendationAnswer'
 
 /**
  * The shape the recommend endpoints return. Declared here rather than inferred
@@ -43,6 +44,8 @@ export interface RecommendPagination {
 export interface RecommendRouteResponse {
   route: RouteSummary
   combos: ComboScore[]
+  /** The faster setup the category or Halo rule left out - see `FastestOverall` in `recommendPipeline.ts`. */
+  fastestOverall?: LeftOutSetup
   physics?: RecommendPhysics
   pagination: RecommendPagination
 }
@@ -50,6 +53,8 @@ export interface RecommendRouteResponse {
 export interface RecommendSegmentResponse {
   segment: SegmentSummary
   combos: ComboScore[]
+  /** The faster setup the category or Halo rule left out - see `FastestOverall` in `recommendPipeline.ts`. */
+  fastestOverall?: LeftOutSetup
   physics?: RecommendPhysics
   pagination: RecommendPagination
 }

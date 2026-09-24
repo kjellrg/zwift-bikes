@@ -1,5 +1,5 @@
 import type { ClimbTrade } from '../../shared/types/rideNotes'
-import { formatGapSeconds } from './labels'
+import { formatGapSeconds } from '#shared/utils/duration'
 
 /**
  * A climb's name mid-sentence. Most are things - "the Innsbruck KOM", "the

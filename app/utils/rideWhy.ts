@@ -1,7 +1,8 @@
 import type { BikeCategory, BikeStyle, TerrainCategory, TerrainWeights } from '../../shared/types/catalog'
 import type { WheelChoice } from '../../shared/types/rideNotes'
 import type { DraftMode } from '../../shared/utils/physics/draft'
-import { BIKE_STYLE_LABELS, formatGapSeconds, TERRAIN_LABELS } from './labels'
+import { formatGapSeconds } from '#shared/utils/duration'
+import { BIKE_STYLE_LABELS, TERRAIN_LABELS } from './labels'
 
 /**
  * The sentences under "Why this bike wins here", assembled from fixed

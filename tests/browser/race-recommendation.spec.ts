@@ -322,7 +322,9 @@ test.describe('race recommendation', () => {
   test('serves the rules and the answer to a crawler, before any script runs', async ({ page, request }) => {
     await visit(page, SPLIT_BY_COURSE)
     const visible = normalise(await answer(page).locator('p').allInnerTexts().then(lines => lines.join(' ')))
-    expect(visible).toMatch(/^TT bikes are disabled for this points race\. Our model puts /)
+    expect(visible).toMatch(/^TT bikes are disabled for this points race\. ZwiftBikes predicts the /)
+    // TT frames are barred here, so the answer never offers one as the quicker setup.
+    expect(visible).not.toContain('Where TT bikes are allowed')
     expect(normalise((await structuredAnswer(page)) ?? '')).toBe(visible)
 
     const html = await (await request.get(SPLIT_BY_COURSE)).text()

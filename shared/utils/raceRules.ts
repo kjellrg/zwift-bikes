@@ -1,6 +1,4 @@
-import type { RaceFormat } from '#shared/utils/events'
-import { draftingAllowed, ttBikesAllowed } from '#shared/utils/events'
-import { raceFormatPhrase } from './labels'
+import { draftingAllowed, raceFormatPhrase, ttBikesAllowed, type RaceFormat } from './events'
 
 /**
  * What a Race format means for the bike, ahead of the recommendation and
@@ -19,16 +17,10 @@ import { raceFormatPhrase } from './labels'
  * the same rule. The rules themselves come from `ttBikesAllowed` /
  * `draftingAllowed`, never from a second reading of the format here.
  *
- * Its own module rather than a few more lines in `labels.ts`, for one reason:
- * it is the only piece of wording that needs the rules and not just the
- * vocabulary, so it is the only one that imports `shared/utils/events` as a
- * value - and that module validates the whole season calendar at import, which
- * is a side effect, so nothing tree-shakes it away. `labels.ts` is reached by
- * the shell and by both Discovery pages, which rank nothing and have no
- * business carrying a race calendar. Here, the only importers are the two
- * ranking pages that can be told a format, and both already load the events
- * module for their own reasons. `RACE_FORMAT_LABELS` and `raceFormatPhrase`
- * stay in `labels.ts`, where the events dependency is types only.
+ * Its own module rather than a few more lines in `events.ts`, because it is
+ * wording, not calendar data. In `shared/` because the markdown race
+ * document leads its answer with the same line as the page, through
+ * `buildRecommendationAnswer`, and server code cannot import from `app/`.
  */
 export function rideRulesLine(format: RaceFormat): string {
   const tt = ttBikesAllowed(format)
@@ -36,5 +28,5 @@ export function rideRulesLine(format: RaceFormat): string {
     : format === 'rot'
       ? 'WTRL bans TT bikes from its Race of Truth'
       : `TT bikes are disabled for this ${raceFormatPhrase(format)}`
-  return `${tt}${draftingAllowed(format) ? '' : ', and WTRL turns drafting off, so the time below is ridden solo'}.`
+  return `${tt}${draftingAllowed(format) ? '' : ', and WTRL turns drafting off, so the time is for riding solo'}.`
 }

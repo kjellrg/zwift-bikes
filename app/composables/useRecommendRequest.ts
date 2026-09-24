@@ -1,6 +1,7 @@
 import type { InternalApi } from 'nitropack/types'
 import type { ComboScore } from '../../shared/types/catalog'
 import type { ClimbTrade, WheelChoice } from '../../shared/types/rideNotes'
+import type { LeftOutSetup } from '../../shared/utils/recommendationAnswer'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import {
   buildRecommendQuery,
@@ -28,14 +29,8 @@ import {
  */
 export interface RecommendResponse {
   combos: ComboScore[]
-  fastestOverall?: {
-    frameName: string
-    category: ComboScore['frame']['category']
-    reason: 'category' | 'halo'
-    wheelsetName?: string
-    /** Absent when the filters left no rank 1 to measure the gap against - see `FastestOverall`. */
-    deltaSec?: number
-  }
+  /** The faster setup the category or Halo rule left out - see `FastestOverall` in `recommendPipeline.ts`. */
+  fastestOverall?: LeftOutSetup
   /** The numbers behind the Wheel close call - see `WheelChoice` in `shared/types/rideNotes.ts`. */
   wheelChoice?: WheelChoice
   /** The Climb trade - see `ClimbTrade` in `shared/types/rideNotes.ts`. Route and race pages only. */

@@ -1,5 +1,6 @@
 import type { ComboScore, EquipmentPhysicsDelta, RouteWithMeta } from '../../shared/types/catalog'
-import { BIKE_CATEGORY_LABELS, formatRaceTimeSaving, formatSurfaceTimePenalty, formatTttTimeSaving } from './labels'
+import { BIKE_CATEGORY_LABELS } from '#shared/utils/bikeCategories'
+import { formatRaceTimeSaving, formatSurfaceTimePenalty, formatTttTimeSaving } from './labels'
 import type { RiderInputs } from './recommendRequest'
 import { limitedCourseDataNote } from './rideCoverage'
 
