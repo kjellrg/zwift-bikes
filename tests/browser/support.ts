@@ -12,6 +12,15 @@ import { expect, type Locator, type Page, type Response } from '@playwright/test
  * selector breaks.
  */
 
+/**
+ * The day the dev server renders the events pages on, whatever the real date
+ * is: `playwright.config.ts` passes it to the server as `EVENTS_TODAY` (see
+ * `useToday`), and a journey pins the browser's clock with `page.clock` to
+ * this day or a later one. Mid-round 1 of ZRL 2026/27 and mid-window for
+ * ZRacing's September stage 3.
+ */
+export const EVENTS_SERVER_DAY = '2026-09-25'
+
 /** The listing body the ranking pages read - the fields a journey asserts on, not the whole response. */
 export interface ListingBody {
   combos: { frame: { name: string }, wheelset?: { name: string }, finishTimeSec?: number }[]

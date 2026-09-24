@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { expectNoHorizontalOverflow, hydrated, visitPage } from './support'
+import { EVENTS_SERVER_DAY, expectNoHorizontalOverflow, hydrated, visitPage } from './support'
 
 /**
  * The events Discovery pages (issues #216, #257, #276): the hub that lists
@@ -9,10 +9,11 @@ import { expectNoHorizontalOverflow, hydrated, visitPage } from './support'
  *
  * Both list only what is still to be run, decided twice: the server renders
  * with its own day (a build's, once prerendered), and after load the
- * browser's own clock takes over (`useToday`). The dev server's day is the
- * real one, which a test cannot move, so every journey pins the browser's
- * clock at a date on or after it and asserts what the page shows after load,
- * against the real curated calendars (`shared/data/events/`).
+ * browser's own clock takes over (`useToday`). Neither is the real date here.
+ * The dev server renders on `EVENTS_SERVER_DAY`, which `playwright.config.ts`
+ * pins, and every journey pins the browser's clock to that day or a later
+ * one - so what the served HTML holds and what the page shows after load are
+ * both fixed, against the real curated calendars (`shared/data/events/`).
  *
  * `setFixedTime` rather than `install`: only `Date` has to be deterministic
  * here, and freezing the timers with it would leave the app's own scheduling
@@ -25,11 +26,25 @@ const ZRACING = '/events/zracing-2026'
  * Mid-round 1: week 1 has been run, week 2 is next, rounds 2-4 are unannounced.
  * ZRacing's August round is over, and September's third stage is mid-window.
  */
-const DURING = new Date('2026-09-25T12:00:00Z')
+const DURING = new Date(`${EVENTS_SERVER_DAY}T12:00:00Z`)
 /** The day after ZRacing's September stage 3 closed (Sun 27 Sept). */
 const STAGE_3_RUN = new Date('2026-09-28T00:30:00Z')
 /** Past every race in both curated seasons. */
 const AFTER = new Date('2027-05-01T12:00:00Z')
+
+/**
+ * The day a served page was rendered on, read out of its Nuxt payload (the
+ * `useToday` state), which travels as a flat array whose objects point at
+ * their values by index.
+ */
+function servedEventsDay(html: string): string | undefined {
+  const json = /<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/.exec(html)?.[1]
+  if (!json) return undefined
+  const data = JSON.parse(json) as unknown[]
+  const state = data.find((item): item is Record<string, number> =>
+    typeof item === 'object' && item !== null && !Array.isArray(item) && '$sevents-today' in item)
+  return state ? data[state['$sevents-today']!] as string : undefined
+}
 
 const statusLine = (page: Page) => page.locator('p[aria-live="polite"]')
 /** A race's row on a season page, by the name it is listed under - rows are the items of a round section's list. */
@@ -61,6 +76,16 @@ const seasonCard = (page: Page, contents: { has?: Locator, hasText?: string }): 
 const tileWith = (page: Page, text: string): Locator => page.locator('article li').filter({ hasText: text })
 
 test.describe('event discovery', () => {
+  // A dev server already on the port is reused, and one not started by
+  // `playwright.config.ts` renders on the real date. Say so once, up front,
+  // rather than let every journey fail against the wrong calendar day.
+  test.beforeAll(async ({ playwright }, testInfo) => {
+    const request = await playwright.request.newContext({ baseURL: testInfo.project.use.baseURL })
+    const day = servedEventsDay(await (await request.get(SEASON)).text())
+    await request.dispose()
+    expect(day, `the dev server must be started with EVENTS_TODAY=${EVENTS_SERVER_DAY} - stop the one on the port and let Playwright start it`).toBe(EVENTS_SERVER_DAY)
+  })
+
   test('lists every series newest first, with the organiser behind each one', async ({ page }) => {
     await visitAt(page, '/events', DURING)
     await expectNoHorizontalOverflow(page)
@@ -146,10 +171,13 @@ test.describe('event discovery', () => {
     await expectNothingLabelledPast(page)
   })
 
-  test('drops a race that ends after the page was rendered, from the rider\'s own clock', async ({ page }) => {
-    // The server rendered this page on its own day. The browser's clock is
-    // the day after stage 3's window closed, which is what the page goes by
-    // once loaded: stage 3 goes and stage 4 becomes the next race.
+  test('drops a race that ends after the page was rendered, from the rider\'s own clock', async ({ page, request }) => {
+    // The server renders on a day stage 3 is mid-window, so the served page
+    // lists it as the next race.
+    const html = await (await request.get(ZRACING)).text()
+    expect(html).toContain('href="/events/zracing-2026/september-stage-3"')
+    // The browser's clock is the day after its window closed, which is what
+    // the page goes by once loaded: stage 3 goes and stage 4 becomes the next race.
     await visitAt(page, ZRACING, STAGE_3_RUN)
     await expect(raceRow(page, /Stage 4/)).toContainText('Next race')
     await expect(raceRow(page, /Stage 3/)).toHaveCount(0)
@@ -313,14 +341,13 @@ test.describe('event discovery', () => {
       }
     }, html)
     expect(served.heading).toBe('Zwift Racing League 2026/27 schedule')
-    // Round 1's rankable races still to run, every one a real destination in
-    // the served markup - the calendar is not an empty grid awaiting
-    // hydration. Week 5 is the last of them (week 6 is run on an unlisted
-    // route, so it has no page).
-    expect(served.raceLinks).toContain('/events/zrl-2026-27/round-1-week-5')
-    // Week 1 was run on Tue 22 Sept, before any day this server can render
-    // on, so the served page already leaves it out: a crawler never sees it.
-    expect(served.raceLinks).not.toContain('/events/zrl-2026-27/round-1-week-1')
+    // Round 1's rankable races still to run on the server's day, weeks 2-5,
+    // every one a real destination in the served markup - the calendar is not
+    // an empty grid awaiting hydration. (Week 6 is run on an unlisted route,
+    // so it has no page.)
+    expect(served.raceLinks).toEqual([2, 3, 4, 5].map(week => `/events/zrl-2026-27/round-1-week-${week}`))
+    // Week 1 was run on Tue 22 Sept, before the server's day, so the served
+    // page already leaves it out: a crawler never sees it.
     expect(served.text).not.toContain('Round 1 Week 1')
     expect(served.text).not.toMatch(/Past races|Completed/)
   })

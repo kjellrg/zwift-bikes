@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test'
+import { EVENTS_SERVER_DAY } from './tests/browser/support'
 
 /**
  * The browser journeys under `tests/browser/` - complete page flows through
@@ -42,6 +43,11 @@ export default defineConfig({
   ],
   webServer: {
     command: `npm run dev -- --port ${port}`,
+    // Pins the day the server renders the events pages on (`useToday`), so
+    // what they list does not move with the real date. A server already on
+    // the port was not started with it: `event-discovery.spec.ts` checks and
+    // says so rather than asserting against the wrong day.
+    env: { EVENTS_TODAY: EVENTS_SERVER_DAY },
     url: baseURL,
     reuseExistingServer: true,
     timeout: 300_000,

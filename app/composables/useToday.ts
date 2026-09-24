@@ -19,9 +19,25 @@
  * left open past midnight catches up on its next page.
  */
 export function useToday() {
-  const today = useState('events-today', () => isoDay(new Date()))
+  const today = useState('events-today', renderDay)
   onMounted(() => {
     today.value = isoDay(new Date())
   })
   return today
+}
+
+/**
+ * The day the page renders on. On the dev server `EVENTS_TODAY` (an ISO date)
+ * pins it, which is how the browser journeys hold the server to the same
+ * calendar day whatever the real date is: `playwright.config.ts` passes it to
+ * the dev server it starts. `import.meta.dev` is false in a production build,
+ * so the branch is compiled out there and no deployed environment can set it.
+ */
+function renderDay(): string {
+  if (import.meta.dev && import.meta.server && process.env.EVENTS_TODAY) {
+    const pinned = process.env.EVENTS_TODAY
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(pinned)) throw new Error(`EVENTS_TODAY must be an ISO date (YYYY-MM-DD), got "${pinned}"`)
+    return pinned
+  }
+  return isoDay(new Date())
 }
