@@ -2,8 +2,9 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { EVENTS_SERVER_DAY, expectNoHorizontalOverflow, hydrated, servedEventsDay, visitPage } from './support'
 
 /**
- * The events Discovery pages (issues #216, #257, #276, #279): the hub that lists
- * Seasons and a season page that lists its Races (see `CONTEXT.md`). Both rank
+ * The events Discovery pages (issues #216, #257, #276, #279, #280): the hub that
+ * lists every Race still to run across the Seasons, and a season page that
+ * lists its own (see `CONTEXT.md`). Both rank
  * nothing and neither has a filter - a journey here asserts what a rider scans
  * and what a crawler is served, not a ranking.
  *
@@ -45,24 +46,19 @@ async function expectNothingLabelledPast(page: Page) {
   await expect(page.getByRole('button', { name: /^Past (races|seasons)/ })).toHaveCount(0)
   await expect(page.getByText(/^(Past|Completed)$/)).toHaveCount(0)
 }
-/**
- * A round tile on a season card, by its number and name - the hub's way into
- * one round of a season page. Matched loosely between the two, because a
- * round's state ("Ongoing", "To come") is a text tag that sits between them.
- */
-const roundTile = (page: Page, number: number, name: string) =>
-  page.getByRole('link', { name: new RegExp(`^Round ${number}(?!\\d).*${name}`) })
-
 async function visitAt(page: Page, path: string, time: Date) {
   await page.clock.setFixedTime(time)
   await visitPage(page, path)
 }
 
-/** A season card on the hub, by what is inside it. */
-const seasonCard = (page: Page, contents: { has?: Locator, hasText?: string }): Locator =>
-  page.locator('article').filter(contents)
-/** A round tile, linked or not, by the text inside it. */
-const tileWith = (page: Page, text: string): Locator => page.locator('article li').filter({ hasText: text })
+/** One of the hub's date groups ("On now", "Next 7 days", "Later"), by its heading. */
+const hubGroup = (page: Page, title: string): Locator =>
+  page.locator('main section').filter({ has: page.getByRole('heading', { level: 2, name: title, exact: true }) })
+/** A group's rows, in order. */
+const hubRows = (page: Page, title: string): Locator => hubGroup(page, title).locator('ol > li')
+/** A series box under the hub's list, by its season's name. */
+const seriesBox = (page: Page, season: string): Locator =>
+  page.locator('main article').filter({ has: page.getByRole('link', { name: season, exact: true }) })
 
 test.describe('event discovery', () => {
   // A dev server already on the port is reused, and one not started by
@@ -75,56 +71,153 @@ test.describe('event discovery', () => {
     expect(day, `the dev server must be started with EVENTS_TODAY=${EVENTS_SERVER_DAY} - stop the one on the port and let Playwright start it`).toBe(EVENTS_SERVER_DAY)
   })
 
-  test('lists every series newest first, with the organiser behind each one', async ({ page }) => {
+  test('lists the races still to run by date, grouped on now, next 7 days and later, each tagged with its series', async ({ page }) => {
     await visitAt(page, '/events', DURING)
     await expectNoHorizontalOverflow(page)
 
-    await expect(page.getByRole('heading', { level: 2, name: 'Zwift Racing League' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'ZRacing' })).toBeVisible()
+    // The headline names the series we cover, and claims no more.
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('The fastest bike for ZRL and ZRacing races')
+    await expect(page.getByText(/every Zwift race/i)).toHaveCount(0)
+    // Events is a top-level nav item: no breadcrumb, and no season cards, round tiles or "Next race" strip.
+    await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Next race' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: /^Round \d/ })).toHaveCount(0)
 
-    const season = page.getByRole('link', { name: 'Zwift Racing League 2026/27' })
-    await expect(season).toHaveAttribute('href', SEASON)
-    // The stat row a rider picks a season by, on the card itself.
-    const card = seasonCard(page, { has: season })
-    await expect(card).toContainText('4 rounds')
-    await expect(card).toContainText('24 races')
-    await expect(card).toContainText('Round 1')
-    await expect(card).toContainText('Fresh & Fast')
-    // Each round tile is the way into that round of the season page.
-    await expect(roundTile(page, 1, 'Fresh & Fast')).toHaveAttribute('href', `${SEASON}#round-1`)
-    // We complement the organisers, so their own page is one click away.
-    await expect(page.getByRole('link', { name: 'WTRL' })).toHaveAttribute('href', /wtrl/)
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['On now', 'Next 7 days', 'Later', 'The series'])
+    await expect(hubGroup(page, 'On now')).toContainText('1 race')
+    await expect(hubGroup(page, 'Next 7 days')).toContainText('2 races')
+    await expect(hubGroup(page, 'Later')).toContainText('3 races')
 
-    // A round's state is a text tag, never a coloured badge.
-    await expect(roundTile(page, 1, 'Fresh & Fast')).toContainText('Ongoing')
-    await expect(roundTile(page, 2, 'Team Tempo')).toContainText('To come')
+    // One list across both series, by date, each row one link named with its tag.
+    const links = (title: string) => hubRows(page, title).getByRole('link')
+    await expect(links('On now')).toHaveAttribute('href', '/events/zracing-2026/september-stage-3')
+    await expect(links('On now')).toHaveAccessibleName(/^ZRacing Stage 3, 21-27 Sept?\b.*Fastest bike for it$/)
+    await expect(links('Next 7 days').nth(0)).toHaveAttribute('href', '/events/zracing-2026/september-stage-4')
+    await expect(links('Next 7 days').nth(1)).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
+    await expect(links('Next 7 days').nth(1)).toHaveAccessibleName(/^ZRL Round 1 Week 2, Tue 29 Sept?\b/)
+    expect(await links('Later').evaluateAll(anchors => anchors.map(anchor => anchor.getAttribute('href'))))
+      .toEqual([3, 4, 5].map(week => `/events/zrl-2026-27/round-1-week-${week}`))
+    // Week 6 is on a course we can't rank, so it has no page and no row; its series box says why.
+    await expect(page.locator('a[href="/events/zrl-2026-27/round-1-week-6"]')).toHaveCount(0)
 
-    // The next race is one strip with a link that asks the question.
-    const next = page.getByRole('region', { name: 'Next race' })
-    await expect(next).toBeVisible()
-    await expect(next.getByRole('link', { name: 'Fastest bike for it' })).toHaveAttribute('href', /^\/events\/[^/]+\/[^/]+$/)
+    // A row is the season page's: the course with distance / climbing per course, and the Silhouette.
+    const week2 = hubRows(page, 'Next 7 days').nth(1)
+    await expect(week2).toContainText('A/B: Innsbruckring, Innsbruck · 35.4 km / 309 m')
+    await expect(week2).toContainText('C/D: Innsbruckring, Innsbruck · 26.6 km / 232 m')
+    await expect(week2.locator('svg[data-silhouette]')).toHaveCount(1)
+    // Once loaded, each row says how far off it is, by the rider's clock.
+    await expect(hubRows(page, 'On now')).toContainText('ends Sun')
+    await expect(hubRows(page, 'Next 7 days').nth(0)).toContainText('starts Mon')
+    await expect(week2).toContainText('in 4 days')
+    await expect(hubRows(page, 'Later').nth(0)).toContainText('in 11 days')
 
     await expectNothingLabelledPast(page)
-    await season.click()
+    await week2.getByText('A/B: Innsbruckring').click()
+    await page.waitForURL('**/events/zrl-2026-27/round-1-week-2')
+  })
+
+  test('says where each series stands, and links to its season, its organiser and its schedule', async ({ page }) => {
+    await visitAt(page, '/events', DURING)
+    const zrl = seriesBox(page, 'Zwift Racing League 2026/27')
+    await expect(zrl.locator('li')).toHaveText([
+      'Round 1, Fresh & Fast, runs until Tue 27 Oct. Its last race is on a ZRL-only route, so we can\'t rank it.',
+      'Round 2, Team Tempo, starts Tue 17 Nov. WTRL hasn\'t announced its routes yet.'
+    ])
+    await expect(zrl.getByRole('link', { name: 'Zwift Racing League 2026/27' })).toHaveAttribute('href', SEASON)
+    // We complement the organisers, so their own page is one click away.
+    await expect(zrl.getByRole('link', { name: 'WTRL' })).toHaveAttribute('href', /wtrl/)
+    const zracing = seriesBox(page, 'ZRacing 2026')
+    await expect(zracing.locator('li')).toHaveText([
+      'September\'s stages, Zwift Racing Powered by DURA-ACE, run until Sun 4 Oct.',
+      'Zwift hasn\'t announced October\'s theme yet.'
+    ])
+    await expect(zracing.getByRole('link', { name: 'Zwift', exact: true })).toHaveAttribute('href', /zwift\.com/)
+
+    await zrl.getByRole('link', { name: 'Full ZRL schedule' }).click()
     await page.waitForURL(`**${SEASON}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zwift Racing League 2026/27 schedule')
+  })
+
+  test('serves the groups in the HTML a crawler reads, and the relative dates only after load', async ({ page, request }) => {
+    await visitAt(page, '/events', DURING)
+    const html = await (await request.get('/events')).text()
+    const served = await page.evaluate((html) => {
+      const doc = new DOMParser().parseFromString(html, 'text/html')
+      return {
+        heading: doc.querySelector('h1')?.textContent?.trim(),
+        groups: [...doc.querySelectorAll('main section')].map(section => ({
+          title: section.querySelector('h2')?.textContent?.trim(),
+          links: [...section.querySelectorAll('ol > li a')].map(link => link.getAttribute('href'))
+        })),
+        title: doc.title,
+        text: doc.querySelector('main')?.textContent ?? ''
+      }
+    }, html)
+    expect(served.heading).toBe('The fastest bike for ZRL and ZRacing races')
+    expect(served.title).toBe('The fastest bike for ZRL and ZRacing races | ZwiftBikes')
+    // On the server's day, as the build would serve it: every race a real link.
+    expect(served.groups).toEqual([
+      { title: 'On now', links: ['/events/zracing-2026/september-stage-3'] },
+      { title: 'Next 7 days', links: ['/events/zracing-2026/september-stage-4', '/events/zrl-2026-27/round-1-week-2'] },
+      { title: 'Later', links: [3, 4, 5].map(week => `/events/zrl-2026-27/round-1-week-${week}`) },
+      { title: 'The series', links: [] }
+    ])
+    // "In 4 days" holds on one day only, so the served page does not say it.
+    expect(served.text).not.toMatch(/ends Sun|starts Mon|in \d+ days|tomorrow/)
+    expect(served.text).not.toMatch(/Past (races|seasons)|Completed/)
+  })
+
+  test('regroups the races by the rider\'s own clock once loaded', async ({ page }) => {
+    // Served on a day stage 3 is on; read on the day after it closed.
+    await visitAt(page, '/events', STAGE_3_RUN)
+    await expect(page.locator('a[href="/events/zracing-2026/september-stage-3"]')).toHaveCount(0)
+    await expect(hubRows(page, 'On now')).toHaveCount(1)
+    await expect(hubRows(page, 'On now')).toContainText('Stage 4')
+    await expect(hubRows(page, 'On now')).toContainText('ends Sun')
+    await expect(hubRows(page, 'Next 7 days')).toHaveCount(1)
+    await expect(hubRows(page, 'Next 7 days')).toContainText('Round 1 Week 2')
+    await expect(hubRows(page, 'Next 7 days')).toContainText('tomorrow')
+    // Week 3 is eight days off, so it is still later.
+    await expect(hubRows(page, 'Later')).toHaveCount(3)
+    await expect(hubGroup(page, 'Later')).toContainText('3 races')
   })
 
   test('leaves a season off the hub once its last race has been run', async ({ page }) => {
     await visitAt(page, '/events', AFTER)
-    // Both curated seasons are over: neither they nor their series are
-    // listed, and the page says why it is empty rather than standing bare.
+    // Both curated seasons are over: no race, no series box, and the page
+    // says why it is empty rather than standing bare.
     await expect(page.getByText('No races are left to run on the calendars we cover.')).toBeVisible()
+    await expect(page.locator('main ol > li')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Zwift Racing League 2026/27' })).toHaveCount(0)
-    await expect(page.getByRole('heading', { level: 2, name: 'Zwift Racing League', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('heading', { level: 2, name: 'ZRacing', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('heading', { level: 2, name: 'The series' })).toHaveCount(0)
     await expectNothingLabelledPast(page)
   })
 
-  test('takes a round tile to that round of the season page', async ({ page }) => {
-    await visitAt(page, '/events', DURING)
-    await roundTile(page, 3, 'Racecraft Rush').click()
-    await page.waitForURL(`**${SEASON}#round-3`)
-    await hydrated(page)
+  test('keeps a failed fetch of the hub\'s races on screen with a retry, and the series boxes with it', async ({ page }) => {
+    // Arrives client-side, from a season page, for the reasons the season
+    // page's own test below gives.
+    await visitAt(page, SEASON, DURING)
+    await page.route('**/_payload.json*', route => route.abort())
+    await page.route('**/api/events/**', route => route.fulfill({ status: 500, body: '{}' }))
+    await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Events' }).click()
+    await page.waitForURL('**/events')
+
+    const notice = page.getByRole('alert').filter({ hasText: 'Couldn\'t load races.' })
+    await expect(notice).toBeVisible()
+    await expect(page.locator('main ol > li')).toHaveCount(0)
+    // The boxes are read off the calendar itself, so they stand meanwhile.
+    await expect(seriesBox(page, 'Zwift Racing League 2026/27')).toContainText('Round 1, Fresh & Fast, runs until Tue 27 Oct.')
+
+    await page.unroute('**/api/events/**')
+    await page.unroute('**/_payload.json*')
+    await notice.getByRole('button', { name: 'Try again' }).click()
+    await expect(notice).toHaveCount(0)
+    await expect(hubRows(page, 'On now')).toContainText('Stage 3')
+  })
+
+  test('lands a link to a round of the season page clear of the header', async ({ page }) => {
+    // A run race whose next race has no page yet links to its round (`nextRaceLink`).
+    await visitAt(page, `${SEASON}#round-3`, DURING)
     // Nothing of round 3 is announced, so it is one line under "Not
     // announced yet" - and that line is where the link lands, clear of the
     // sticky header rather than under it: its own `scroll-mt`.
@@ -134,7 +227,7 @@ test.describe('event discovery', () => {
     expect((await line.boundingBox())!.y).toBeGreaterThan(64)
   })
 
-  test('drops a run round from the season page, and its tile from the hub', async ({ page }) => {
+  test('drops a run round from the season page, and its races from the hub', async ({ page }) => {
     // ZRacing's August round finished on 6 September; its September round has
     // not. The run one is not on the calendar at all - no heading, no rows.
     await visitAt(page, ZRACING, DURING)
@@ -148,17 +241,10 @@ test.describe('event discovery', () => {
     await expect(raceRow(page, /Stage 3/)).toContainText('Next race')
     await expectNothingLabelledPast(page)
 
-    // On the hub its tile is gone too, rather than standing there as "Past".
+    // On the hub its stages are gone too, rather than standing there as "Past".
     await visitAt(page, '/events', DURING)
-    await expect(tileWith(page, 'August: Makuri Madness')).toHaveCount(0)
-    // The round being raced right now is still a way in, and says which it is.
-    const ongoing = roundTile(page, 9, 'DURA-ACE')
-    await expect(ongoing).toHaveAttribute('href', `${ZRACING}#round-9`)
-    await expect(ongoing).toContainText('Ongoing')
-    // A round still to come says so in the same quiet text.
-    const toCome = roundTile(page, 3, 'Racecraft Rush')
-    await expect(toCome).toContainText('To come')
-    await expect(toCome).not.toContainText('Ongoing')
+    await expect(page.locator('a[href^="/events/zracing-2026/stage-"]')).toHaveCount(0)
+    await expect(page.getByText('Makuri Madness')).toHaveCount(0)
     await expectNothingLabelledPast(page)
   })
 

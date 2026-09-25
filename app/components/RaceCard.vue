@@ -26,9 +26,16 @@ const props = defineProps<{
   shape?: Silhouette
   /**
    * A short series name set in front of the race's own ("ZRL"), for a list
-   * that mixes seasons. A season page names its series once, in its heading.
+   * that mixes seasons - the events hub's. A season page names its series
+   * once, in its heading.
    */
   tag?: string
+  /**
+   * How far off the race is, under its date: "in 5 days", "ends Sun" (see
+   * `relativeRaceDay`). The hub passes it once the page is on the rider's
+   * screen and not before, since the served HTML is the build's.
+   */
+  when?: string
   /**
    * Listed under its own round's heading, which already says "Round 1", so
    * the row says "Week 2" (`raceNameInRound`). The link's name keeps the full
@@ -92,6 +99,10 @@ const courses = computed(() => raceCourseLines(props.race))
           v-if="next"
           class="block text-xs text-muted"
         >Next race</span>
+        <span
+          v-if="when"
+          class="block text-xs text-muted"
+        >{{ when }}</span>
       </p>
       <!-- No route yet, no drawing: an empty slot keeps the schedule's columns. -->
       <RouteSilhouette
@@ -107,7 +118,7 @@ const courses = computed(() => raceCourseLines(props.race))
         <p class="font-semibold text-highlighted">
           <span
             v-if="tag"
-            class="mr-1.5 text-sm font-medium text-muted"
+            class="mr-2 rounded border border-accented px-1.5 text-xs font-semibold text-toned"
           >{{ tag }}</span>{{ shownName }}
           <span class="ml-1 text-sm font-normal text-muted">{{ race.format ? RACE_FORMAT_LABELS[race.format] : 'Format to come' }}</span>
         </p>

@@ -223,9 +223,10 @@ useHead(() => ({
       </template>
 
       <div class="space-y-10">
-        <!-- Each round is a destination: the hub's season cards link to
-             `#round-2`. `scroll-mt-24` clears the sticky header, and
-             `tabindex="-1"` lands a keyboard rider here on a full load. -->
+        <!-- Each round is a destination: a run race whose next race has no
+             page yet links to `#round-2` (`nextRaceLink`). `scroll-mt-24`
+             clears the sticky header, and `tabindex="-1"` lands a keyboard
+             rider here on a full load. -->
         <section
           v-for="round in roundGroups.announced"
           :id="`round-${round.number}`"

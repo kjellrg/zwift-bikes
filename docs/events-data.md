@@ -78,6 +78,7 @@ Valid names: `feather`, `aero`, `draft`, `ghost`, `anvil`, `steamroller`, `burri
 
 - **`note` vs `curatorNote`**: `note` is the rider-facing tactical text — it is what keeps a race page from being a template with a route name swapped in. `curatorNote` is for future curators (mapping reasoning, source quirks, documented divergences) and never renders. They exist at season, race, group and scoring-segment level.
 - **A season's `description` and `note`**: the `description` says what the series is, in a sentence or two, and is the text under the season page's title and on its share card. It does not describe the page ("every race day and route in one calendar"), which the page says for itself. The `note` is the "Season status" box at the top of the season page, and it holds **only what is still true and still ahead of the rider**: a week that splits the field, a race that can't be ranked, which rounds are still to be announced. Nothing about races that have been run: the page no longer lists them, so a note that walks through week 1, or points at last month's stages "below", points at nothing. Reread it whenever a round starts or ends, and cut whatever the calendar has overtaken.
+- **`seriesTag`** (required, per season): the series as a rider says it, short enough to go in front of a race's name — `ZRL`, `ZRacing`. The events hub lists every season's races in one list and tags each row with it, builds its headline, page title and meta description from the tags of the series on the calendar ("The fastest bike for ZRL and ZRacing races"), and names each series box's "Full ZRL schedule" link with it. Its series-box line about a race on a course outside the catalog says "a ZRL-only route". The schema fails without one, and the validator fails when two seasons of one series disagree on it or two series share one.
 - **`date` / `endDate`**: single-day races (ZRL) set only `date`. Week-long stages (ZRacing) set both; a race has been run once `endDate ?? date` is behind today (`hasBeenRun`, in UTC days), and the pages display the window as a range.
 - **`officialDistanceKm` / `officialElevationM`**: exactly as the organiser publishes them, display-only. A season page's race rows print them in place of this site's own totals wherever they are set. The physics runs on the route's own geometry. When the two diverge the race page shows both, and the group's `curatorNote` has to explain why — that is what downgrades the validator's error to a warning.
 
@@ -103,13 +104,19 @@ The scaffolder walks season → round → dates → format → category groups �
 
 Doing it by hand instead: find slugs with `npm run events:find-route -- "name"` (zwift-data's spelling is authoritative, not the organiser's prose), edit the season file, bump `updatedAt` (it drives the sitemap's `lastmod` — never let it claim a change that didn't happen), then `npm run validate:events`.
 
+## The events hub
+
+`app/pages/events/index.vue` lists **races, not seasons**: every race still to run that has a page, across every season, in one list by date, tagged with its `seriesTag`. It groups them on now (the race's window holds today), next 7 days (it starts on one of the seven days after today, so a race exactly a week out is in it) and later, in UTC days, each group with its count and an empty group left out (`raceWhen` in `shared/utils/events.ts`, `hubRaceGroups` in `app/utils/eventsHub.ts`). The groups go by the same two clocks as everything else: the served HTML by the build's day, then the rider's own after load. The line under each row's date ("ends Sun", "starts Mon", "in 5 days", `relativeRaceDay`) is drawn after load only, since it is true on one day alone. The rows' route data and Silhouettes come from `/api/events/[season]` for each season still running on the render day, the endpoint a season page reads; a season is a few KB of payload.
+
+Under the list, one box per season still running (`seriesStatusLines`) says where it stands, straight from the calendar: the round a rider is in and when it ends (or, between rounds, when the next starts), naming any of its races we can't rank or the organiser hasn't announced — a race without a page is what the list leaves out — then the next round and whether its routes are out, or that nothing after the calendar's last day is announced yet. A race with a format and a named course but no page is on a course outside the catalog, which the box calls "a ZRL-only route" after the series' tag. Nothing on the hub needs editing when a round starts or ends; the season's `note` does (above).
+
 ## Retiring races and seasons
 
 | Flag | Season calendar | Race page | Sitemap / prerender |
 |---|---|---|---|
 | `hidden: true` on a race | row disappears | 404s | dropped |
-| `hidden: true` on a season | hub card and season page 404 | all 404 | all dropped |
-| (nothing — race just gets run) | row disappears, and its round with its last race; a season with none left is off the hub | stays up at the same URL, noindex, with a "This race has been run" notice | dropped |
+| `hidden: true` on a season | its races and series box leave the hub; season page 404s | all 404 | all dropped |
+| (nothing — race just gets run) | row disappears here and on the hub, and its round with its last race; a season with none left loses its hub box | stays up at the same URL, noindex, with a "This race has been run" notice | dropped |
 
 A race that has been run needs no flag: the events pages list only what is still to be run, and decide it twice by the same rule. The server renders with its own day - for a prerendered page, the build's - so the served HTML already leaves out everything that ended before the build, which runs daily just after midnight UTC (see below); after load the rider's own clock (`useToday` in `app/composables/`) removes whatever has ended since.
 
@@ -120,8 +127,8 @@ A run race's own page neither 404s nor redirects, so links riders shared still l
 ## Adding a season or a new series
 
 1. Create `shared/data/events/<series>-<season>.json` and add one import line to `shared/data/events/index.ts`.
-2. A new series needs: `seriesSlug`/`seriesName`/`organizer` (+ `organizerUrl` — we link back to the organiser prominently; the disclaimer, the hub badge and the race pages' "Official event info" link all use it), a slug convention entry in the scaffolder and validator if it has one, and a decision on categories (pens vs `label` groups).
-3. ZRacing is modelled as **one season per calendar year**, each month a round (`number` = month number, `name` = "August: Makuri Madness"), weekly stages as races with `endDate`.
+2. A new series needs: `seriesSlug`/`seriesName`/`organizer` (+ `organizerUrl` — we link back to the organiser prominently; the disclaimer, the series box on the hub and the race pages' "Official event info" link all use it), a short `seriesTag` (below), a slug convention entry in the scaffolder and validator if it has one, and a decision on categories (pens vs `label` groups).
+3. ZRacing is modelled as **one season per calendar year**, each month a round (`number` = month number, `name` = "August: Makuri Madness"), weekly stages as races with `endDate`. Keep the round name as `<Month>: <theme>`: the hub's series box reads a name of that shape as a monthly round, so it says "September's stages, … run until Sun 4 Oct" and "Zwift hasn't announced October's theme yet" rather than "Round 9".
 4. Check the race-format enum covers the series' formats; extend it if not — see "What the format decides" above for everything a new format has to touch.
 
 ## The validator's rules

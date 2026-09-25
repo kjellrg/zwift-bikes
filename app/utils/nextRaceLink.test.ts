@@ -20,6 +20,7 @@ const season = eventSeasonSchema.parse({
   label: '2026/27',
   seriesSlug: 'zrl',
   seriesName: 'Zwift Racing League',
+  seriesTag: 'ZRL',
   organizer: 'WTRL',
   description: 'A season',
   rounds: [{

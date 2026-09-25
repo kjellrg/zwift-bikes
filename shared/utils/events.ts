@@ -238,6 +238,14 @@ export const eventSeasonSchema = z.strictObject({
   label: z.string().min(1),
   seriesSlug: z.string().min(1),
   seriesName: z.string().min(1),
+  /**
+   * The series as a rider says it, short enough to set in front of a race's
+   * name - `ZRL`, `ZRacing`. The events hub lists races from every season in
+   * one list and tags each row with it, and names the series it covers by it
+   * in its headline. Every season of a series carries the same one; the
+   * validator checks that, and that no two series share one.
+   */
+  seriesTag: z.string().min(1),
   organizer: z.string().min(1),
   /** The organiser's own page for the series - we complement the original sources, so link back to them prominently. */
   organizerUrl: z.url().optional(),
@@ -523,6 +531,32 @@ export function isoDay(now: Date): string {
   return now.toISOString().slice(0, 10)
 }
 
+/** The ISO date `days` after `isoDate`, in UTC days, so no clock change moves it. */
+export function addDays(isoDate: string, days: number): string {
+  return isoDay(new Date(Date.parse(`${isoDate}T00:00:00Z`) + days * 86_400_000))
+}
+
+/**
+ * Where a Race falls from `today`, as the events hub groups its list:
+ *
+ * - `on-now`: its window holds today - a week-long stage mid-week, or a
+ *   one-day race on its day;
+ * - `next-7-days`: it starts on one of the seven days after today, so a race
+ *   exactly a week out is in the coming week;
+ * - `later`: it starts after that.
+ *
+ * Undefined once it has been run (`hasBeenRun`), which is the same rule
+ * every other events surface leaves a race out by. Days are UTC days, and
+ * `today` is the caller's, as for `hasBeenRun`.
+ */
+export type RaceWhen = 'on-now' | 'next-7-days' | 'later'
+
+export function raceWhen(race: Pick<EventRace, 'date' | 'endDate'>, today: string): RaceWhen | undefined {
+  if (hasBeenRun(race, today)) return undefined
+  if (race.date <= today) return 'on-now'
+  return race.date <= addDays(today, 7) ? 'next-7-days' : 'later'
+}
+
 /**
  * How a race is named in headings and structured data: `Stage 3` for
  * ZRacing-convention slugs, `Round 1 Week 3` otherwise. Derived from the
@@ -599,9 +633,10 @@ function seasonStartDate(season: EventSeason): string {
  * Retired races count for neither end: a hidden race is not on the calendar,
  * so it can't start a round or hold one open.
  *
- * Both events pages ask this - which rounds a season page lists, and what a
- * round tile on the hub says - so neither can drift into its own idea of when
- * a round is on.
+ * Everything on the events pages that asks where a round stands asks this -
+ * which rounds a season page lists, and whether a series box on the hub says
+ * a round runs or starts - so none can drift into its own idea of when a round
+ * is on.
  */
 export type RoundState = 'upcoming' | 'ongoing' | 'past'
 
@@ -684,35 +719,11 @@ export function seasonHasBeenRun(season: Pick<EventSeason, 'rounds'>, today: str
 }
 
 /**
- * What a Season's calendar adds up to: the days it spans and how much is on
- * it, as the events hub prints it on a season card - a retired race is not
- * on it, and a round is counted whether or not the organiser has filled it in
- * yet. The season page's header counts what is left instead
- * (`seasonStatsLeft` in `app/utils`).
- */
-export interface SeasonSummary {
-  /** First and last day the rounds cover. Both absent for a season with no rounds announced yet. */
-  startDate?: string
-  endDate?: string
-  rounds: number
-  races: number
-}
-
-export function summariseSeason(season: EventSeason): SeasonSummary {
-  return {
-    startDate: seasonStartDate(season) || undefined,
-    endDate: season.rounds.map(round => round.endDate).sort().at(-1),
-    rounds: season.rounds.length,
-    races: getVisibleSeasonRaces(season).length
-  }
-}
-
-/**
- * Seasons newest first, which is the order the events hub lists a series in:
- * the season a rider is racing now leads, and finished ones follow it. The
- * files themselves are written oldest first (a new season is appended), and
- * `label` is the organiser's own string - "2026/27", "2026" - so it sorts
- * seasons no better than the file order does. Returns a new array.
+ * Seasons newest first, which is the order the events hub puts its series
+ * boxes in: the season that opened last leads. The files themselves are
+ * written oldest first (a new season is appended), and `label` is the
+ * organiser's own string - "2026/27", "2026" - so it sorts seasons no better
+ * than the file order does. Returns a new array.
  */
 export function sortSeasonsNewestFirst(seasons: EventSeason[]): EventSeason[] {
   return [...seasons].sort((a, b) => seasonStartDate(b).localeCompare(seasonStartDate(a)))
