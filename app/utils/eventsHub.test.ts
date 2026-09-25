@@ -115,7 +115,7 @@ describe('what a series box on the hub says', () => {
 
   it('reads the curated calendars as the design did on 2026-09-24', () => {
     expect(seriesStatusLines(getSeasonBySlug('zrl-2026-27')!, '2026-09-24')).toEqual([
-      'Round 1, Fresh & Fast, runs until Tue 27 Oct. Its last race is on a ZRL-only route, so we can\'t rank it.',
+      'Round 1, Fresh & Fast, runs until Tue 27 Oct. Its last race is on a course that isn\'t in our route data, so we can\'t rank it.',
       'Round 2, Team Tempo, starts Tue 17 Nov. WTRL hasn\'t announced its routes yet.'
     ])
     expect(seriesStatusLines(getSeasonBySlug('zracing-2026')!, '2026-09-24')).toEqual([
@@ -126,9 +126,9 @@ describe('what a series box on the hub says', () => {
 
   it('names which races of a round we can\'t rank, and which are not announced yet', () => {
     const season = zrl([round1([week(1, 1, '2026-09-22'), week(1, 2, '2026-09-29', 'exclusive'), week(1, 3, '2026-10-06', 'unannounced'), week(1, 4, '2026-10-13')]), round2()])
-    expect(seriesStatusLines(season, '2026-09-24')[0]).toBe('Round 1, Fresh & Fast, runs until Tue 13 Oct. Week 2 is on a ZRL-only route, so we can\'t rank it. WTRL hasn\'t announced Week 3 yet.')
+    expect(seriesStatusLines(season, '2026-09-24')[0]).toBe('Round 1, Fresh & Fast, runs until Tue 13 Oct. Week 2 is on a course that isn\'t in our route data, so we can\'t rank it. WTRL hasn\'t announced Week 3 yet.')
     const two = zrl([round1([week(1, 1, '2026-09-22'), week(1, 2, '2026-09-29', 'exclusive'), week(1, 3, '2026-10-06', 'exclusive'), week(1, 4, '2026-10-13')]), round2()])
-    expect(seriesStatusLines(two, '2026-09-24')[0]).toBe('Round 1, Fresh & Fast, runs until Tue 13 Oct. Week 2 and Week 3 are on ZRL-only routes, so we can\'t rank them.')
+    expect(seriesStatusLines(two, '2026-09-24')[0]).toBe('Round 1, Fresh & Fast, runs until Tue 13 Oct. Week 2 and Week 3 are on courses that aren\'t in our route data, so we can\'t rank them.')
     // Once it has been run, a race is no longer the round's to explain.
     expect(seriesStatusLines(season, '2026-10-07')[0]).toBe('Round 1, Fresh & Fast, runs until Tue 13 Oct.')
   })

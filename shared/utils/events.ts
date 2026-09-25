@@ -322,11 +322,6 @@ export function getSeasonRaces(season: EventSeason): EventRace[] {
   return season.rounds.flatMap(round => round.races)
 }
 
-/** Every race a visitor should see - the calendar, "next race", and so on. */
-export function getVisibleSeasonRaces(season: EventSeason): EventRace[] {
-  return getSeasonRaces(season).filter(race => !race.hidden)
-}
-
 export function getRaceBySlug(seasonSlug: string, raceSlug: string): EventRace | undefined {
   const season = getSeasonBySlug(seasonSlug)
   if (!season) return undefined
@@ -363,6 +358,26 @@ export function isRacePublishable(race: EventRace): race is EventRace & { format
     && race.categories.some(group => Boolean(group.routeSlug))
 }
 
+/**
+ * Whether a race has no page because its course isn't in our route data,
+ * rather than because the organiser has yet to announce it: it has a format
+ * and a named course, and still no page (`isRacePublishable`). ZRL's unlisted
+ * "exclusive" routes are the usual case, but a public route the catalog
+ * lacks reads the same.
+ *
+ * Keyed on a named course rather than on `categories.length`, because a group
+ * can exist with no course named at all, and calling that a course missing
+ * from our data would blame us for a schedule the organiser hasn't published.
+ * The one test both a season page's row and a hub series box give their
+ * reason by, so the two cannot disagree.
+ */
+export function isOnUnknownCourse(race: EventRace): boolean {
+  return !race.hidden
+    && !isRacePublishable(race)
+    && Boolean(race.format)
+    && race.categories.some(group => Boolean(group.routeName))
+}
+
 export interface PublishableRace {
   season: EventSeason
   round: EventRound
@@ -372,10 +387,10 @@ export interface PublishableRace {
 }
 
 /**
- * Every race that currently has a page, across all visible seasons. The
- * single source for both the sitemap (`server/api/__sitemap__/urls.ts`) and
- * the prerender list (`nuxt.config.ts`), so the two can't drift - the same
- * rule the route pages already follow.
+ * Every race that currently has a page, across all visible seasons, run or
+ * not. What the sitemap (`server/utils/sitemapUrls.ts`), the prerender list
+ * (`nuxt.config.ts`) and `/llms.txt` read, through `getIndexedRaces`, so they
+ * can't drift - the same rule the route pages already follow.
  */
 export function getPublishableRaces(): PublishableRace[] {
   return getSeasons().flatMap(season =>

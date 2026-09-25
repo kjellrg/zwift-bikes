@@ -6,8 +6,9 @@ import { EVENTS_SERVER_DAY, servedEventsDay, visit } from './support'
  * still lands, on a page that says the race has been run and points to the
  * season's next race and to the route, while the ranking below it works as
  * before. The site stops promoting it: the page is noindex, and it leaves the
- * sitemap and the prerender list (unit-tested in `shared/utils/events.test.ts`
- * through `getIndexedRaces`, which both read).
+ * sitemap and the prerender list (unit-tested with the day held, in
+ * `server/utils/sitemapUrls.test.ts` and, through `getIndexedRaces`, which
+ * both read, in `shared/utils/events.test.ts`).
  *
  * "Has been run" is decided the way the events Discovery pages decide it
  * (`event-discovery.spec.ts`): on the server's day, which the dev server pins
@@ -71,8 +72,11 @@ test.describe('a race that has been run', () => {
     expect(html.noticeBeforeHeading).toBe(true)
     expect(html.notice).toContain('Round 1 Week 1 was raced on Tue 22 Sept')
     expect(html.notice).toContain('still holds for this route under Race of Truth rules')
+    // The next race by its series' tag and its week: the notice has just
+    // named the round.
+    expect(html.notice).toContain('Next ZRL race: Week 2, Tue 29 Sept')
     expect(html.noticeLinks).toEqual([
-      { text: 'Round 1 Week 2, Tue 29 Sept', href: TO_RUN },
+      { text: 'Week 2, Tue 29 Sept', href: TO_RUN },
       { text: 'Fastest bike for Montmartre Mixer', href: '/routes/montmartre-mixer' }
     ])
     // The notice says it; the breadcrumb no longer does.
@@ -93,7 +97,7 @@ test.describe('a race that has been run', () => {
     await page.clock.setFixedTime(AFTER_WEEK_2)
     await visit(page, TO_RUN)
     await expect(notice(page)).toContainText('Round 1 Week 2 was raced on Tue 29 Sept')
-    const next = notice(page).getByRole('link', { name: 'Round 1 Week 3, Tue 6 Oct' })
+    const next = notice(page).getByRole('link', { name: 'Week 3, Tue 6 Oct', exact: true })
     await expect(next).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-3')
     // The ranking under it is the one it always was.
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Round 1 Week 2: Innsbruckring$/)

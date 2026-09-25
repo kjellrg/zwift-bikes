@@ -1,4 +1,4 @@
-import { groupRoundsByAnnouncement, hasBeenRun, isRacePublishable, raceEndDate, raceNameInRound, raceWhen, roundState, sortRacesByDate, type EventRace, type EventRound, type EventSeason, type RaceWhen } from '#shared/utils/events'
+import { groupRoundsByAnnouncement, hasBeenRun, isOnUnknownCourse, isRacePublishable, raceEndDate, raceNameInRound, raceWhen, roundState, sortRacesByDate, type EventRace, type EventRound, type EventSeason, type RaceWhen } from '#shared/utils/events'
 import { formatRaceDateShort } from './labels'
 
 /** A race on the events hub's list, with the season it links under and the tag its row carries. */
@@ -64,9 +64,10 @@ function weekday(isoDate: string): string {
 /**
  * The line under a hub row's date that says how far off the race is from
  * `today`: "today", "tomorrow" or "in 5 days" for a one-day race; "ends Sun"
- * for a stage on now, and "starts Mon" for one still to come. A stage gets a
- * weekday only within the coming week, where it can mean one day alone, and
- * a count of days further out. Nothing for a race that has been run.
+ * for a race over several days that is on now, and "starts Mon" for one
+ * still to come. Such a race gets a weekday only within the coming week,
+ * where it can mean one day alone, and a count of days further out. Nothing
+ * for a race that has been run.
  *
  * The hub shows it only once the page is on the rider's screen: the served
  * HTML is the build's, and "tomorrow" would be wrong the day after.
@@ -74,16 +75,16 @@ function weekday(isoDate: string): string {
 export function relativeRaceDay(race: Pick<EventRace, 'date' | 'endDate'>, today: string): string | undefined {
   if (hasBeenRun(race, today)) return undefined
   const end = raceEndDate(race)
-  const stage = end !== race.date
-  const inDays = (days: number, date: string) => days === 1 ? 'tomorrow' : days < 7 && stage ? weekday(date) : `in ${days} days`
+  const multiDay = end !== race.date
+  const inDays = (days: number, date: string) => days === 1 ? 'tomorrow' : days < 7 && multiDay ? weekday(date) : `in ${days} days`
 
   if (race.date <= today) {
-    if (!stage) return 'today'
+    if (!multiDay) return 'today'
     const days = daysFrom(today, end)
     return `ends ${days === 0 ? 'today' : inDays(days, end)}`
   }
   const days = daysFrom(today, race.date)
-  return stage ? `starts ${inDays(days, race.date)}` : inDays(days, race.date)
+  return multiDay ? `starts ${inDays(days, race.date)}` : inDays(days, race.date)
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -110,24 +111,24 @@ function joinNames(names: string[]): string {
  * What a round's races still to run say about it that the list above does
  * not: which of them we can't rank, and which the organiser hasn't announced.
  *
- * A race with a format and a named course that still has no page is on a
- * course outside the public catalog - WTRL's own "exclusive" routes, which is
- * why it is the series' own route. The same test as the one a season page's
- * row gives its reason by (`RaceCard`). Anything else without a page is
- * still to be announced.
+ * A race on a course that isn't in our route data (`isOnUnknownCourse`, the
+ * test a season page's row gives its reason by) is said to be that, as the
+ * row says it: usually one of WTRL's own "exclusive" routes, but it may be a
+ * public route our catalog lacks, which is no fault of the series. Anything
+ * else without a page is still to be announced.
  */
-function roundNotes(round: EventRound, left: EventRace[], organizer: string, tag: string): string[] {
+function roundNotes(round: EventRound, left: EventRace[], organizer: string): string[] {
   if (!left.length || groupRoundsByAnnouncement([round]).unannounced.length) return [`${organizer} hasn't announced its routes yet.`]
   const unpublished = left.filter(race => !isRacePublishable(race))
-  const unrankable = unpublished.filter(race => race.format && race.categories.some(group => group.routeName))
+  const unrankable = unpublished.filter(isOnUnknownCourse)
   const unannounced = unpublished.filter(race => !unrankable.includes(race))
   const notes: string[] = []
   if (unrankable.length === 1) {
     const race = unrankable[0]!
     const last = round.races.filter(r => !r.hidden).at(-1) === race
-    notes.push(`${last ? 'Its last race' : raceNameInRound(race)} is on a ${tag}-only route, so we can't rank it.`)
+    notes.push(`${last ? 'Its last race' : raceNameInRound(race)} is on a course that isn't in our route data, so we can't rank it.`)
   } else if (unrankable.length) {
-    notes.push(`${joinNames(unrankable.map(raceNameInRound))} are on ${tag}-only routes, so we can't rank them.`)
+    notes.push(`${joinNames(unrankable.map(raceNameInRound))} are on courses that aren't in our route data, so we can't rank them.`)
   }
   if (unannounced.length) notes.push(`${organizer} hasn't announced ${joinNames(unannounced.map(raceNameInRound))} yet.`)
   return notes
@@ -154,19 +155,19 @@ export function seriesStatusLines(season: EventSeason, today: string): string[] 
   if (!current) return []
   const next = rounds[rounds.indexOf(current) + 1]
 
-  const { organizer, seriesTag: tag } = season
+  const { organizer } = season
   const now = roundSubject(current.round)
   const ongoing = roundState(current.round, today) === 'ongoing'
   const currentLine = [
     ongoing
       ? `${now.subject} ${now.plural ? 'run' : 'runs'} until ${formatRaceDateShort(current.round.endDate)}.`
       : `${now.subject} ${now.plural ? 'start' : 'starts'} ${formatRaceDateShort(current.round.startDate)}.`,
-    ...roundNotes(current.round, current.left, organizer, tag)
+    ...roundNotes(current.round, current.left, organizer)
   ].join(' ')
 
   if (next) {
     const after = roundSubject(next.round)
-    const notes = roundNotes(next.round, next.left, organizer, tag)
+    const notes = roundNotes(next.round, next.left, organizer)
     return [currentLine, [
       `${after.subject} ${after.plural ? 'start' : 'starts'} ${formatRaceDateShort(next.round.startDate)}.`,
       ...(notes.length ? notes : ['Its races are listed above.'])

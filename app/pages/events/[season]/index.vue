@@ -105,7 +105,7 @@ useHead(() => ({
         '@type': 'BreadcrumbList',
         'itemListElement': [
           { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteConfig.url },
-          { '@type': 'ListItem', 'position': 2, 'name': 'Race calendars', 'item': `${siteConfig.url}/events` },
+          { '@type': 'ListItem', 'position': 2, 'name': 'Events', 'item': `${siteConfig.url}/events` },
           { '@type': 'ListItem', 'position': 3, 'name': title.value, 'item': seasonUrl.value }
         ]
       }).replace(/</g, '\\u003c')

@@ -378,14 +378,14 @@ test.describe('race recommendation', () => {
     await expect(analysis).toHaveAttribute('href', '/routes/makuri-40')
     await expect(analysis.locator('..')).toContainText('this race\'s rule is the race\'s, not the route\'s')
 
-    // The breadcrumb trail a crawler walks: home, calendars, season, race.
+    // The breadcrumb trail a crawler walks: home, events, season, race.
     expect(await page.evaluate(() => {
       for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
         const schema = JSON.parse(script.textContent ?? '{}')
         if (schema['@type'] === 'BreadcrumbList') return schema.itemListElement.map((item: { name: string }) => item.name)
       }
       return undefined
-    })).toEqual(['Home', 'Race calendars', 'Zwift Racing League 2026/27', 'Round 1 Week 3'])
+    })).toEqual(['Home', 'Events', 'Zwift Racing League 2026/27', 'Round 1 Week 3'])
   })
 
   test('keeps the split-course table and the dark Colour mode inside the viewport', async ({ page }) => {

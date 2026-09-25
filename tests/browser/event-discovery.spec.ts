@@ -120,7 +120,7 @@ test.describe('event discovery', () => {
     await visitAt(page, '/events', DURING)
     const zrl = seriesBox(page, 'Zwift Racing League 2026/27')
     await expect(zrl.locator('li')).toHaveText([
-      'Round 1, Fresh & Fast, runs until Tue 27 Oct. Its last race is on a ZRL-only route, so we can\'t rank it.',
+      'Round 1, Fresh & Fast, runs until Tue 27 Oct. Its last race is on a course that isn\'t in our route data, so we can\'t rank it.',
       'Round 2, Team Tempo, starts Tue 17 Nov. WTRL hasn\'t announced its routes yet.'
     ])
     await expect(zrl.getByRole('link', { name: 'Zwift Racing League 2026/27' })).toHaveAttribute('href', SEASON)

@@ -15,6 +15,7 @@ import {
   groupRoundsByAnnouncement,
   hasBeenRun,
   hasSplitCourses,
+  isOnUnknownCourse,
   isRacePublishable,
   nextRaceToRun,
   lapsForCategoryGroup,
@@ -131,6 +132,31 @@ describe('isRacePublishable', () => {
         { cats: ['C', 'D'], routeSlug: 'some-route', routeName: 'Some Route', laps: 1 }
       ]
     }))).toBe(true)
+  })
+})
+
+describe('isOnUnknownCourse', () => {
+  it('is a race announced in full whose course is not in our route data', () => {
+    // A ZRL exclusive: a format and a named course, but no catalog route.
+    expect(isOnUnknownCourse(testRace({ categories: [{ cats: ['A'], routeName: 'ZRL Exclusive', laps: 1 }] }))).toBe(true)
+  })
+
+  it('is not a race with a page, even with one group on an unknown course', () => {
+    expect(isOnUnknownCourse(testRace())).toBe(false)
+    expect(isOnUnknownCourse(testRace({
+      categories: [
+        { cats: ['A', 'B'], routeName: 'ZRL Exclusive', laps: 1 },
+        { cats: ['C', 'D'], routeSlug: 'some-route', routeName: 'Some Route', laps: 1 }
+      ]
+    }))).toBe(false)
+  })
+
+  it('is not a race the organiser has yet to announce, or one retired', () => {
+    expect(isOnUnknownCourse(testRace({ format: undefined, categories: [{ cats: ['A'], routeName: 'ZRL Exclusive', laps: 1 }] }))).toBe(false)
+    expect(isOnUnknownCourse(testRace({ categories: [] }))).toBe(false)
+    // A group with no course named yet is not a course missing from our data.
+    expect(isOnUnknownCourse(testRace({ categories: [{ cats: ['A'], laps: 1 }] }))).toBe(false)
+    expect(isOnUnknownCourse(testRace({ hidden: true, categories: [{ cats: ['A'], routeName: 'ZRL Exclusive', laps: 1 }] }))).toBe(false)
   })
 })
 

@@ -66,14 +66,11 @@ const linkLabel = computed(() => `${name.value}, ${dates.value} - Fastest bike f
  * is run on a course the public catalog doesn't contain (ZRL's unlisted
  * "exclusive" routes), which is a course nothing can be ranked on.
  *
- * Keyed on a named course rather than on `categories.length`, because a group
- * can exist with no course named at all - and telling that rider the course
- * is missing from our data would blame us for a schedule the organiser hasn't
- * published. This has to move with `isRacePublishable`, which is what
- * actually decides there is no page: a new condition there without one here
- * leaves this sentence naming the wrong culprit.
+ * `isOnUnknownCourse` tells the two apart, the same test a hub series box
+ * names such a race by, and it asks `isRacePublishable`, which is what
+ * actually decides there is no page.
  */
-const noPageReason = computed(() => props.race.format && props.race.categories.some(group => group.routeName ?? group.route?.name)
+const noPageReason = computed(() => isOnUnknownCourse(props.race)
   ? 'this course isn\'t in our route data, so there is nothing to rank on it'
   : 'the organiser hasn\'t published the details yet')
 

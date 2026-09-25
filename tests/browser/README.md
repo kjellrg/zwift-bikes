@@ -54,8 +54,9 @@ on the browser's own clock (`useToday`). Neither is the real date in this
 suite. `playwright.config.ts` starts the dev server with `EVENTS_TODAY` set to
 `EVENTS_SERVER_DAY` from `support.ts`, which pins the day the server renders on
 (a dev-server-only setting: a production build compiles it out), and
-`event-discovery.spec.ts`, `race-has-been-run.spec.ts` and
-`race-recommendation.spec.ts` pin the browser's clock with
+`event-discovery.spec.ts`, `race-has-been-run.spec.ts`,
+`race-recommendation.spec.ts` and `accessibility.spec.ts`'s scans of the
+events pages pin the browser's clock with
 `page.clock.setFixedTime` to that day or a later one before navigating. The
 first two check the served day first (`servedEventsDay`) and stop with a
 message if a dev server already on the port was started without it. `setFixedTime` rather than

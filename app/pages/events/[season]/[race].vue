@@ -390,7 +390,7 @@ const { picked: comparedCombos, clear: clearComparison, remove: removeFromCompar
  */
 const today = useToday()
 const hasRun = computed(() => hasBeenRun(race!, today.value))
-const nextRace = computed(() => nextRaceLink(season!, today.value))
+const nextRace = computed(() => nextRaceLink(season!, race!, today.value))
 /** The primary route's page - the ranking still holds there, raced or not. */
 const primaryGroup = race.categories.find(group => group.routeSlug)
 const raceRanOn = computed(() => race!.endDate
@@ -511,13 +511,14 @@ if (!hasRun.value) {
 useHead(() => {
   if (!routeInfo.value) return {}
   // The trail is this page's own - the deepest on the site, a race under its
-  // season under the calendars - and the envelope, the keying and the
-  // escaping are `rankingResults.ts`'s.
+  // season under the events hub, named "Events" as the visible trail and the
+  // nav name it - and the envelope, the keying and the escaping are
+  // `rankingResults.ts`'s.
   return {
     script: [
       breadcrumbScript([
         { name: 'Home', item: siteConfig.url },
-        { name: 'Race calendars', item: `${siteConfig.url}/events` },
+        { name: 'Events', item: `${siteConfig.url}/events` },
         { name: `${season!.seriesName} ${season!.label}`, item: `${siteConfig.url}/events/${season!.slug}` },
         { name: raceHeading.value, item: canonicalUrl.value }
       ]),
