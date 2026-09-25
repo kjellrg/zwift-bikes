@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { hydrated, visit, visitPage } from './support'
+import { EVENTS_SERVER_DAY, hydrated, visit, visitPage } from './support'
 
 /**
  * The accessibility gate (issue #218): axe-core over one page of every kind
@@ -28,20 +28,29 @@ const BLOCKING = new Set(['critical', 'serious'])
 const ROUTE = '/routes/hilly-route'
 
 /**
+ * The browser's clock for a scan of an events page. Those pages drop what
+ * has been run by the rider's clock after load (`useToday`), so an unpinned
+ * scan would read a different page as the real date moves on. Held to the
+ * day the dev server renders on, as `event-discovery.spec.ts` holds it.
+ */
+const EVENTS_DAY = new Date(`${EVENTS_SERVER_DAY}T12:00:00Z`)
+
+/**
  * One page per kind. The shell has no page of its own: its header, footer
  * and skip link are in every document below, so every scan covers it, and
  * the mobile menu gets its own test. A `ranking` page is opened with the
- * wait for its results.
+ * wait for its results; an `events` page with the browser's clock pinned.
  */
-const PAGES: { kind: string, path: string, ranking?: boolean }[] = [
+const PAGES: { kind: string, path: string, ranking?: boolean, events?: boolean }[] = [
   { kind: 'home', path: '/' },
   { kind: 'segments hub', path: '/segments' },
   { kind: 'route', path: ROUTE, ranking: true },
   { kind: 'climb segment', path: '/segments/alpe-du-zwift', ranking: true },
   { kind: 'sprint segment', path: '/segments/fuego-flats', ranking: true },
-  { kind: 'events hub', path: '/events' },
-  { kind: 'season', path: '/events/zrl-2026-27' },
-  { kind: 'race', path: '/events/zrl-2026-27/round-1-week-1', ranking: true },
+  { kind: 'events hub', path: '/events', events: true },
+  { kind: 'season', path: '/events/zrl-2026-27', events: true },
+  // Run before the pinned day, so the scan covers the notice above its title.
+  { kind: 'race', path: '/events/zrl-2026-27/round-1-week-1', ranking: true, events: true },
   { kind: 'profile page', path: '/profile' },
   { kind: 'garage page', path: '/garage' },
   { kind: 'about page', path: '/about' },
@@ -129,8 +138,9 @@ async function switchToLight(page: Page) {
 }
 
 test.describe('accessibility', () => {
-  for (const { kind, path, ranking } of PAGES) {
+  for (const { kind, path, ranking, events } of PAGES) {
     test(`${kind} has no blocking violations in either Colour mode`, async ({ page }) => {
+      if (events) await page.clock.setFixedTime(EVENTS_DAY)
       await (ranking ? visit : visitPage)(page, path)
       await expect(page.locator('html')).toHaveClass(/\bdark\b/)
       await audit(page, `${kind} (dark)`)
@@ -170,6 +180,24 @@ test.describe('accessibility', () => {
     await menuToggle(page).click()
     await expect(menu(page)).toBeVisible()
     await audit(page, 'mobile menu (light)')
+  })
+
+  test('a season page\'s race rows, linked and not, have no blocking violations while hovered', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a touch screen has no hover to scan')
+    // Pinned so the scan holds both kinds of row: week 2 has a page (the
+    // whole row is its link), week 6 is on a course with nothing to rank.
+    await page.clock.setFixedTime(EVENTS_DAY)
+    await visitPage(page, '/events/zrl-2026-27')
+    const row = (name: string) => page.locator('li').filter({ hasText: name })
+    await expect(row('Week 2').getByRole('link')).toHaveCount(1)
+    await expect(row('Week 6').getByRole('link')).toHaveCount(0)
+    // The tint is a different ground under the row's text, so its contrast
+    // is scanned with the pointer on it.
+    await row('Week 2').hover()
+    await audit(page, 'hovered race row (dark)')
+    await switchToLight(page)
+    await row('Week 2').hover()
+    await audit(page, 'hovered race row (light)')
   })
 
   test('the not-found page has no blocking violations in either Colour mode', async ({ page }) => {

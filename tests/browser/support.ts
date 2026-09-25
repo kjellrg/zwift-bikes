@@ -12,6 +12,30 @@ import { expect, type Locator, type Page, type Response } from '@playwright/test
  * selector breaks.
  */
 
+/**
+ * The day the dev server renders the events pages on, whatever the real date
+ * is: `playwright.config.ts` passes it to the server as `EVENTS_TODAY` (see
+ * `useToday`), and a journey pins the browser's clock with `page.clock` to
+ * this day or a later one. Mid-round 1 of ZRL 2026/27 and mid-window for
+ * ZRacing's September stage 3.
+ */
+export const EVENTS_SERVER_DAY = '2026-09-25'
+
+/**
+ * The day a served page was rendered on, read out of its Nuxt payload (the
+ * `useToday` state), which travels as a flat array whose objects point at
+ * their values by index. The events specs check it before any journey runs:
+ * a dev server already on the port may not have been started with the pin.
+ */
+export function servedEventsDay(html: string): string | undefined {
+  const json = /<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/.exec(html)?.[1]
+  if (!json) return undefined
+  const data = JSON.parse(json) as unknown[]
+  const state = data.find((item): item is Record<string, number> =>
+    typeof item === 'object' && item !== null && !Array.isArray(item) && '$sevents-today' in item)
+  return state ? data[state['$sevents-today']!] as string : undefined
+}
+
 /** The listing body the ranking pages read - the fields a journey asserts on, not the whole response. */
 export interface ListingBody {
   combos: { frame: { name: string }, wheelset?: { name: string }, finishTimeSec?: number }[]

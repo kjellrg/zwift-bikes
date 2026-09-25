@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { getRoutesWithMeta } from './shared/utils/catalog'
-import { getPublishableRaces, getSeasons } from './shared/utils/events'
+import { getIndexedRaces, getSeasons, isoDay } from './shared/utils/events'
 import { getAllSegmentSummaries } from './shared/utils/routeSegments'
 
 /**
@@ -131,8 +131,11 @@ export default defineNuxtConfig({
       //
       // Event pages prerender for the same reasons as routes: they take no
       // query parameters at all. Only races whose route, format and lap
-      // counts the organiser has actually published get a page -
-      // `getPublishableRaces()` is the same source the sitemap uses.
+      // counts the organiser has actually published get a page, and only
+      // races still to run on the build's day are prerendered -
+      // `getIndexedRaces()` is the same source the sitemap uses. A run race
+      // keeps its page, rendered by the server on the real day, which is what
+      // marks it noindex and gives it the notice that it has been run.
       routes: [
         '/robots.txt',
         '/about',
@@ -140,7 +143,7 @@ export default defineNuxtConfig({
         '/events',
         '/segments',
         ...getSeasons().map(season => `/events/${season.slug}`),
-        ...getPublishableRaces().map(race => race.path),
+        ...getIndexedRaces(isoDay(new Date())).map(race => race.path),
         ...getRoutesWithMeta().map(route => `/routes/${route.slug}`),
         ...getAllSegmentSummaries().map(segment => `/segments/${segment.slug}`)
       ]
@@ -191,7 +194,8 @@ export default defineNuxtConfig({
     // lands in the Worker bundle. That coupling is load-bearing: a page with
     // `defineOgImage` that is NOT prerendered would ship an og:image URL
     // whose asset was never generated (the module warns about "orphaned OG
-    // image" hashes at prerender:done).
+    // image" hashes at prerender:done). A race page off the list because its
+    // race has been run defines no card, and shares the site's own.
     zeroRuntime: true,
     // 1200x630 (not the module's 1200x600 default): the documented OG size
     // every large-card scraper (Facebook, Discord, Slack, X) crops to.

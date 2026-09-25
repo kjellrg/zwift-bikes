@@ -24,6 +24,10 @@
 //   - a race date outside its round's published start/end dates, an
 //     `endDate` before `date`, or one past the round's end
 //   - a scoring segment `slug` with no segment page (the link would 404)
+//   - a season without a `seriesTag` (the schema's), seasons of one series
+//     with different tags, or two series with the same one - the events hub
+//     tags every race row with it, so a tag has to say which series a row
+//     belongs to
 //   - published distance more than 5% off this site's own totals, UNLESS the
 //     group's `curatorNote` documents the divergence (ZwiftInsider's ZRacing
 //     figures include an event-pen lead-in and legitimately run ~2 km over
@@ -310,6 +314,22 @@ for (const season of getAllSeasons()) {
     if (visible.some((race, i) => i > 0 && ends[i - 1] >= race.date)) {
       errors.push(`${season.slug} round ${round.number}: a race window overlaps the one before it`)
     }
+  }
+}
+
+// The short series tag the events hub sets in front of every race and names
+// the covered series by. The schema requires one per season; what it can't
+// see is the seasons side by side.
+const tagsBySeries = new Map()
+for (const season of getAllSeasons()) {
+  tagsBySeries.set(season.seriesSlug, new Set([...(tagsBySeries.get(season.seriesSlug) ?? []), season.seriesTag]))
+}
+const seriesByTag = new Map()
+for (const [series, tags] of tagsBySeries) {
+  if (tags.size > 1) errors.push(`${series}: seasons disagree on the series tag (${[...tags].join(', ')}) - every season of a series carries the same one`)
+  for (const tag of tags) {
+    if (seriesByTag.has(tag)) errors.push(`${series}: series tag "${tag}" is already ${seriesByTag.get(tag)}'s - a hub row's tag has to say which series it is`)
+    else seriesByTag.set(tag, series)
   }
 }
 

@@ -1,5 +1,5 @@
 import type { RouteSummary, SegmentSummary } from '../../shared/types/catalog'
-import { getPublishableRaces, RACE_FORMAT_LABELS, raceContextLabel, raceDisplayName } from '../../shared/utils/events'
+import { getIndexedRaces, isoDay, RACE_FORMAT_LABELS, raceContextLabel, raceDisplayName } from '../../shared/utils/events'
 
 /**
  * `/llms.txt` - the site index written for a model rather than a crawler
@@ -49,9 +49,11 @@ export default defineEventHandler(async (event) => {
   ])
 
   // Straight from the curated calendar rather than over HTTP: the same
-  // `getPublishableRaces()` the sitemap and the prerender list read, so this
-  // index cannot advertise a race page that does not exist.
-  const races = getPublishableRaces()
+  // `getIndexedRaces()` the sitemap and the prerender list read, so this
+  // index cannot advertise a race page that does not exist, or a run race's
+  // page that says not to index it. Read on the day it is served rather than
+  // the build's, so a race run since the last build leaves here first.
+  const races = getIndexedRaces(isoDay(new Date()))
 
   const exampleRoute = exampleSlug(routes.map(route => route.slug), 'hilly-route')
   const exampleSegment = exampleSlug(segments.map(segment => segment.slug), 'alpe-du-zwift')

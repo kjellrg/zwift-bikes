@@ -48,13 +48,21 @@ that dismisses an Overlay is dispatched as real `Touch` objects in
 else, and the gesture on a real phone is a by-hand check the suite cannot
 discharge.
 
-The events pages resolve next/upcoming/past post-mount from the browser's own
-clock, because they are prerendered and a build-time answer would ship frozen.
-So `event-discovery.spec.ts` pins the clock with `page.clock.setFixedTime`
-before navigating, and asserts against the real curated calendars.
-`setFixedTime` rather than `clock.install`: only `Date` has to be
-deterministic here, and freezing the timers with it would leave the app's own
-scheduling waiting for a tick the test never grants.
+The events pages list only what is still to be run, and a race page says so
+once its race has been run, decided on the server's day and then, after load,
+on the browser's own clock (`useToday`). Neither is the real date in this
+suite. `playwright.config.ts` starts the dev server with `EVENTS_TODAY` set to
+`EVENTS_SERVER_DAY` from `support.ts`, which pins the day the server renders on
+(a dev-server-only setting: a production build compiles it out), and
+`event-discovery.spec.ts`, `race-has-been-run.spec.ts`,
+`race-recommendation.spec.ts` and `accessibility.spec.ts`'s scans of the
+events pages pin the browser's clock with
+`page.clock.setFixedTime` to that day or a later one before navigating. The
+first two check the served day first (`servedEventsDay`) and stop with a
+message if a dev server already on the port was started without it. `setFixedTime` rather than
+`clock.install`: only `Date` has to be deterministic here, and freezing the
+timers with it would leave the app's own scheduling waiting for a tick the
+test never grants.
 
 Failure traces and screenshots land in `test-results/`, which is gitignored:
 screenshots are local evidence, not fixtures, and none are committed.

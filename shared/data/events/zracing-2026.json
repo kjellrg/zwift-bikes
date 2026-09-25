@@ -3,10 +3,11 @@
   "label": "2026",
   "seriesSlug": "zracing",
   "seriesName": "ZRacing",
+  "seriesTag": "ZRacing",
   "organizer": "Zwift",
   "organizerUrl": "https://www.zwift.com/racing",
-  "description": "Zwift's own monthly race series - a themed set of week-long stages each month, open to everyone. Every stage's route in one calendar, with the fastest bike and wheel combo worked out for each.",
-  "note": "September is Zwift Racing Powered by DURA-ACE - four week-long stages, and the month ZRacing moves under Zwift's new Zwift Racing umbrella alongside Crit Club, Epic Race Club and TT Club events. The stages listed here are the ZRacing ones. Entry is by racing score - Women-Only, Range 1, Range 2 and Advanced - and every category rides the same course, so there is one bike answer per stage; GC is your best finishing time on each. August's Makuri Madness stages are below, completed. Later months are added when Zwift announces each theme.",
+  "description": "Zwift's own monthly race series - a themed set of week-long stages each month, open to everyone.",
+  "note": "September is Zwift Racing Powered by DURA-ACE: four week-long stages. Only the ZRacing stages are listed here, not the Crit Club, Epic Race Club or TT Club events that now share the Zwift Racing name. Entry is by racing score - Women-Only, Range 1, Range 2 and Advanced - and every category rides the same course, so there is one bike answer per stage; GC is your best finishing time on each. Later months are added when Zwift announces each theme.",
   "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time. From September the monthly series also carries Crit Club, Epic Race Club and TT Club events alongside the ZRacing stage; only the ZRacing stages are modelled here, since the stage slug convention (stage-{n}) assumes one race per week and the other three formats are separate weekly events with their own routes. If they are ever added they need their own slug convention, not a second race on the same week.",
   "sources": [
     { "url": "https://zwiftinsider.com/makuri-madness-2026/", "checkedAt": "2026-08-16" },

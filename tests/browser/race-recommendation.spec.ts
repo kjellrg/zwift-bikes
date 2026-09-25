@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { expectNoHorizontalOverflow, isListingResponse, isListingUrl, navigateUnderOverlay, ready, rerank, visit } from './support'
+import { EVENTS_SERVER_DAY, expectNoHorizontalOverflow, isListingResponse, isListingUrl, navigateUnderOverlay, ready, rerank, visit } from './support'
 
 /**
  * The race recommendation journey (issues #217, #257): a race page built from the
@@ -15,8 +15,13 @@ import { expectNoHorizontalOverflow, isListingResponse, isListingUrl, navigateUn
  * artefacts under `test-results/`, which is gitignored.
  */
 
-/** A scratch race: Zwift bars TT frames. One group, so no selector. */
-const SCRATCH = '/events/zracing-2026/stage-1'
+/**
+ * A scratch race: Zwift bars TT frames. One group, so no selector. Still to
+ * run on the pinned day, so nothing stands above its title: a run race's
+ * notice does (`race-has-been-run.spec.ts`), and pushes the time off a
+ * phone's first screen.
+ */
+const SCRATCH = '/events/zracing-2026/september-stage-4'
 /** WTRL's Race of Truth: drafting off, TT frames banned by regulation, scoring segments published. */
 const RACE_OF_TRUTH = '/events/zrl-2026-27/round-1-week-1'
 /** Split by laps on one course: A/B ride 4 of Innsbruckring, C/D ride 3. */
@@ -64,6 +69,15 @@ async function structuredAnswer(page: Page) {
 }
 
 test.describe('race recommendation', () => {
+  // A race page says so once its race has been run (issue #277), on the
+  // server's day and then on the browser's clock, so both are pinned: the
+  // server by `playwright.config.ts`, the browser here. Round 1 Week 1 has
+  // been run on that day; the rest of ZRL's round 1 and ZRacing's September
+  // stage 4 have not, whatever the real date is.
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date(`${EVENTS_SERVER_DAY}T12:00:00Z`))
+  })
+
   test('puts the answer under the course, the Rider card beside it, and the time on a phone\'s first screen', async ({ page, isMobile }) => {
     await visit(page, SCRATCH)
     await expect(finishTime(page)).toHaveText(/^\d+:\d\d(:\d\d)?$/)
@@ -364,14 +378,14 @@ test.describe('race recommendation', () => {
     await expect(analysis).toHaveAttribute('href', '/routes/makuri-40')
     await expect(analysis.locator('..')).toContainText('this race\'s rule is the race\'s, not the route\'s')
 
-    // The breadcrumb trail a crawler walks: home, calendars, season, race.
+    // The breadcrumb trail a crawler walks: home, events, season, race.
     expect(await page.evaluate(() => {
       for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
         const schema = JSON.parse(script.textContent ?? '{}')
         if (schema['@type'] === 'BreadcrumbList') return schema.itemListElement.map((item: { name: string }) => item.name)
       }
       return undefined
-    })).toEqual(['Home', 'Race calendars', 'Zwift Racing League 2026/27', 'Round 1 Week 3'])
+    })).toEqual(['Home', 'Events', 'Zwift Racing League 2026/27', 'Round 1 Week 3'])
   })
 
   test('keeps the split-course table and the dark Colour mode inside the viewport', async ({ page }) => {

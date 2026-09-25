@@ -381,11 +381,21 @@ const tttPlan = useTttPlan({
 const comparison = useComparison(() => combos.value)
 const { picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = comparison
 
-/** Only meaningful once the race window has closed - resolved client-side, see below. */
-const isPast = ref(false)
-onMounted(() => {
-  isPast.value = raceEndDate(race!) < new Date().toISOString().slice(0, 10)
-})
+/**
+ * Whether this Race has been run, on the day the page is rendered on and then
+ * on the rider's own clock - see `useToday`. A run race keeps its page, so a
+ * link a rider shared still lands, but the page says so above its title and
+ * points to the season's next race and to the route, and the site stops
+ * promoting it.
+ */
+const today = useToday()
+const hasRun = computed(() => hasBeenRun(race!, today.value))
+const nextRace = computed(() => nextRaceLink(season!, race!, today.value))
+/** The primary route's page - the ranking still holds there, raced or not. */
+const primaryGroup = race.categories.find(group => group.routeSlug)
+const raceRanOn = computed(() => race!.endDate
+  ? `was raced over ${formatRaceDateRange(race!.date, race!.endDate)}`
+  : `was raced on ${formatRaceDateShort(race!.date)}`)
 
 // The race's own rules, in the wording every page that can be told a format
 // shares - see `rideRulesLine`, which a segment page reached from here reads
@@ -455,6 +465,18 @@ useSeoMeta({
     : `The fastest legal bike and wheel combo for ${raceTitle.value} on ${routeNamesLabel.value}.`
 })
 
+if (hasRun.value) {
+  // Decided on the server's day, so the rule is in the served HTML and the
+  // X-Robots-Tag header, which is where a crawler reads it: the module owns
+  // the one robots tag and does not change it after load. A race
+  // run on the server's day is off the prerender list (`getIndexedRaces`), so
+  // its page is rendered by the server on the real day. A race run since the
+  // last build is still served prerendered and indexable until the next one,
+  // and its notice appears after load from the rider's clock meanwhile. Its
+  // links are still followed: they are where a rider should go next.
+  useRobotsRule('noindex, follow')
+}
+
 // Issue #59: a generated card replaces the old hotlinked world minimap.
 // Snapshotted once at setup - the build-time prerender pass (zeroRuntime
 // never re-renders) - so the combo is the DEFAULT rider profile's, matching
@@ -465,30 +487,38 @@ useSeoMeta({
 // so the fastest combo holds.
 const ogRouteCount = new Set(race!.categories.map(group => group.routeSlug ?? group.routeName ?? '')).size
 const ogTopCombo = ogRouteCount > 1 ? undefined : topCombo.value
-defineOgImage('EventCard', {
-  series: raceContextLabel(season!, round),
-  title: raceHeading.value,
-  course: `${routeNamesLabel.value} · ${formatLabel.value}`,
-  date: formatRaceDate(race!.date),
-  frameName: ogTopCombo?.frame.name,
-  wheelName: ogTopCombo?.wheelset?.name,
-  // The first Category group's course - the one selected at setup - as its
-  // Silhouette, for its lap count with the lead-in once.
-  profile: routeInfo.value ? routeSilhouette(routeInfo.value, laps.value, OG_SILHOUETTE_SAMPLES) : undefined
-}, {
-  alt: `${raceTitle.value} on ${routeNamesLabel.value}: date, format and the fastest legal bike and wheel setup`
-})
+// A card is only generated for a page that is prerendered (`zeroRuntime`), and
+// a run race's page is not, so a card defined here would be an og:image URL
+// whose image was never built. It gets none of its own and shares with the
+// site's own card (`app.vue`), as the pages that set nothing better do; its
+// title and description are still the race's.
+if (!hasRun.value) {
+  defineOgImage('EventCard', {
+    series: raceContextLabel(season!, round),
+    title: raceHeading.value,
+    course: `${routeNamesLabel.value} · ${formatLabel.value}`,
+    date: formatRaceDate(race!.date),
+    frameName: ogTopCombo?.frame.name,
+    wheelName: ogTopCombo?.wheelset?.name,
+    // The first Category group's course - the one selected at setup - as its
+    // Silhouette, for its lap count with the lead-in once.
+    profile: routeInfo.value ? routeSilhouette(routeInfo.value, laps.value, OG_SILHOUETTE_SAMPLES) : undefined
+  }, {
+    alt: `${raceTitle.value} on ${routeNamesLabel.value}: date, format and the fastest legal bike and wheel setup`
+  })
+}
 
 useHead(() => {
   if (!routeInfo.value) return {}
   // The trail is this page's own - the deepest on the site, a race under its
-  // season under the calendars - and the envelope, the keying and the
-  // escaping are `rankingResults.ts`'s.
+  // season under the events hub, named "Events" as the visible trail and the
+  // nav name it - and the envelope, the keying and the escaping are
+  // `rankingResults.ts`'s.
   return {
     script: [
       breadcrumbScript([
         { name: 'Home', item: siteConfig.url },
-        { name: 'Race calendars', item: `${siteConfig.url}/events` },
+        { name: 'Events', item: `${siteConfig.url}/events` },
         { name: `${season!.seriesName} ${season!.label}`, item: `${siteConfig.url}/events/${season!.slug}` },
         { name: raceHeading.value, item: canonicalUrl.value }
       ]),
@@ -507,13 +537,40 @@ useHead(() => {
     v-else
     class="pb-8"
   >
+    <!-- Above the title, so a rider who followed an old link reads it before
+         anything else. Served in the HTML when the race was run before the
+         page was rendered, and drawn after load when it has been run since. -->
+    <section
+      v-if="hasRun"
+      aria-label="This race has been run"
+      class="mt-5 sm:mt-8"
+    >
+      <SiteNotice title="This race has been run">
+        <p>
+          {{ raceHeading }} {{ raceRanOn }}. The ranking below still holds for {{ allRouteNames.length > 1 ? 'these routes' : 'this route' }} under {{ formatPhrase }} rules.
+        </p>
+        <p>
+          {{ nextRace.lead }}
+          <NuxtLink
+            :to="nextRace.to"
+            class="font-medium text-highlighted underline decoration-rule-strong"
+          >{{ nextRace.label }}</NuxtLink>
+        </p>
+        <p v-if="primaryGroup">
+          The route on its own:
+          <NuxtLink
+            :to="`/routes/${primaryGroup.routeSlug}`"
+            class="font-medium text-highlighted underline decoration-rule-strong"
+          >Fastest bike for {{ primaryGroup.routeName ?? 'this route' }}</NuxtLink>
+        </p>
+      </SiteNotice>
+    </section>
     <RideHeading
       :crumbs="[
         { label: 'Events', to: '/events' },
         { label: `${season!.seriesName} ${season!.label}`, to: `/events/${season!.slug}` },
         { label: formatLabel },
-        { label: raceDate },
-        ...(isPast ? [{ label: 'Completed' }] : [])
+        { label: raceDate }
       ]"
       :name="`${raceHeading}: ${displayRouteName}`"
     >

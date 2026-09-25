@@ -1,99 +1,89 @@
 <script setup lang="ts">
-import type { EventSeason } from '../../../shared/utils/events'
+import type { EventSeasonWithRoutes } from '../../../shared/types/events'
 
 /**
- * The Discovery page for Seasons (see `CONTEXT.md`): every racing calendar
- * this site covers, grouped by series and newest first. It ranks nothing and
- * has no filters - what it shows about a season is its identity and the
- * numbers a rider scans to pick one.
+ * The events hub, a Discovery page for Races (see `CONTEXT.md`): every race
+ * still to run that we can rank, across every Season, as one list by date -
+ * on now, in the next seven days, later - each row tagged with its series.
+ * Under it one box per Season still running says where it stands and what
+ * the organiser has yet to announce. It ranks nothing and has no filters.
  *
- * Imports the calendar module directly rather than fetching it -
- * `shared/utils/events` is a leaf (plain dates and strings, no route surface
- * data), so there's nothing here worth an API round trip.
+ * It used to list Seasons, and a rider went from a season card to a round
+ * tile to a season page before seeing a race. The list is the races
+ * themselves now, so the season cards, their round tiles and the "Next race"
+ * strip are gone; the "On now" group is what the strip was.
  */
 const seasons = getSeasons()
 
-/**
- * Seasons within a series, newest first - `sortSeasonsNewestFirst` asks the
- * round dates, since the files are written oldest first and `label` is the
- * organiser's own string ("2026/27", "2026"), which sorts nothing.
- */
-const seriesGroups = computed(() => {
-  const bySeries = new Map<string, { seriesSlug: string, seriesName: string, organizer: string, organizerUrl?: string, seasons: EventSeason[] }>()
-  for (const season of seasons) {
-    const group = bySeries.get(season.seriesSlug) ?? {
-      seriesSlug: season.seriesSlug,
-      seriesName: season.seriesName,
-      organizer: season.organizer,
-      organizerUrl: season.organizerUrl,
-      seasons: []
-    }
-    group.seasons.push(season)
-    bySeries.set(season.seriesSlug, group)
-  }
-  return [...bySeries.values()].map(group => ({ ...group, seasons: sortSeasonsNewestFirst(group.seasons) }))
-})
-
-/**
- * Fully-past seasons collapse out of the way. Resolved in `onMounted`, never
- * at render time: this page is prerendered, so "past" evaluated during the
- * build would be frozen into the shipped HTML. SSR and the first client
- * render show every season in place (content stays in the DOM for crawlers);
- * the regrouping is a brief post-mount reflow.
- */
 // Runtime site flags: with the events section hidden, this page swaps its
 // content for the unavailable notice post-mount (the prerendered HTML always
-// carries the content - same discipline as the "past seasons" regrouping
-// below). The section's data endpoints 503 meanwhile, so this isn't just
-// cosmetic - see server/middleware/site-flags-gate.ts.
+// carries the content). The section's data endpoints 503 meanwhile, so this
+// isn't just cosmetic - see server/middleware/site-flags-gate.ts.
 const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
+onMounted(loadSiteFlags)
 
-const pastSeasonSlugs = ref(new Set<string>())
 /**
- * Today, once the page is on a rider's screen. Handed to the season cards so
- * a round tile knows whether the round it points at is still on the season
- * page - the cards must not ask the clock themselves, for the same reason
- * this page resolves it here: it is prerendered, and a build-time answer
- * would ship frozen.
+ * The build's day while this page is prerendered, the rider's once it is on
+ * their screen - see `useToday`. The groups, their counts and the series
+ * boxes all ask it, so the served HTML is the build's day throughout, and
+ * hydration draws what was served.
  */
-const today = ref<string>()
+const today = useToday()
+
+/**
+ * The seasons still running on the day the page renders, each fetched joined
+ * to its routes: a row draws its course's world, this site's own distance
+ * and climbing where the organiser published none, and its Silhouette, none
+ * of which the calendar module holds (see its leaf rule). The season
+ * endpoint is the one a season page reads, and a season is a few KB of
+ * payload. Fixed at render: the rider's clock only ever takes races away.
+ */
+const fetchedSlugs = seasons.filter(season => !seasonHasBeenRun(season, today.value)).map(season => season.slug)
+const { data: calendars, status, refresh } = await useAsyncData(
+  'events-hub-calendars',
+  () => Promise.all(fetchedSlugs.map(slug => $fetch<EventSeasonWithRoutes>(`/api/events/${slug}`)))
+)
+
+/** The races, grouped by when they are run (`hubRaceGroups`): only those with a page, and nothing that has been run. */
+const groups = computed(() => hubRaceGroups(calendars.value ?? [], today.value))
+const listedCount = computed(() => groups.value.reduce((total, group) => total + group.races.length, 0))
+
+/**
+ * "In 5 days" is true on one day only, so it is not in the served HTML, which
+ * is the build's: each row's relative line is drawn once the page is on the
+ * rider's screen, from their clock.
+ */
+const mounted = ref(false)
 onMounted(() => {
-  loadSiteFlags()
-  today.value = new Date().toISOString().slice(0, 10)
-  pastSeasonSlugs.value = new Set(seasons
-    .filter(season => getVisibleSeasonRaces(season).every(race => raceEndDate(race) < today.value!))
-    .map(season => season.slug))
+  mounted.value = true
 })
-const isPastSeason = (season: EventSeason) => pastSeasonSlugs.value.has(season.slug)
-/**
- * A series is listed while any of its seasons is still running. One whose
- * every season has finished goes, seasons and all, into the collapsible
- * below - a heading with nothing under it reads as broken, the same rule the
- * segments page applies to a world its filters empty.
- */
-const activeSeriesGroups = computed(() => seriesGroups.value.filter(group => group.seasons.some(season => !isPastSeason(season))))
-/**
- * Finished seasons keep their series grouping inside the disclosure, rather
- * than becoming a flat list: the organiser badge hangs off the series
- * heading, and a series whose every season has finished is listed nowhere
- * else - so flattening this would take the only link to that organiser off
- * the page with it.
- */
-const pastSeriesGroups = computed(() => seriesGroups.value
-  .map(group => ({ ...group, seasons: sortSeasonsNewestFirst(group.seasons.filter(isPastSeason)) }))
-  .filter(group => group.seasons.length))
-const pastSeasonCount = computed(() => pastSeriesGroups.value.reduce((total, group) => total + group.seasons.length, 0))
 
+/**
+ * One box per Season still running, newest first, read off the calendar
+ * module rather than the fetch, so the boxes stand while it is pending or
+ * has failed. A season whose every race has been run has no box, and once
+ * none is left the page says so in a sentence.
+ */
+const runningSeasons = computed(() => sortSeasonsNewestFirst(seasons.filter(season => !seasonHasBeenRun(season, today.value))))
+
+/**
+ * The list's status belongs to the fetch: still loading, failed, or races to
+ * show. With the fetch in and nothing to list, the page says why in its own
+ * words instead of "No races match your filters" - it has no filters.
+ */
+const showsStatus = computed(() => status.value === 'pending' || status.value === 'error' || listedCount.value > 0)
+
+const copy = hubCopy(seasons)
 const siteConfig = useSiteConfig()
 
 useSeoMeta({
-  title: 'The fastest bike for every Zwift race | ZwiftBikes',
-  description: 'Race dates, routes and the fastest bike and wheel combo for every round of Zwift Racing League and every ZRacing stage.',
-  ogTitle: 'Zwift race calendars',
-  ogDescription: 'Race dates, routes and the fastest bike and wheel combo for every round of Zwift Racing League and every ZRacing stage.'
+  title: `${copy.headline} | ZwiftBikes`,
+  description: copy.description,
+  ogTitle: copy.ogTitle,
+  ogDescription: copy.description
 })
 
-defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - the fastest bike and wheelset for every race on the Zwift calendar' })
+defineOgImage('SiteCard', {}, { alt: copy.ogAlt })
 
 useHead({
   script: [{
@@ -103,7 +93,7 @@ useHead({
       '@type': 'BreadcrumbList',
       'itemListElement': [
         { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': siteConfig.url },
-        { '@type': 'ListItem', 'position': 2, 'name': 'Race calendars', 'item': `${siteConfig.url}/events` }
+        { '@type': 'ListItem', 'position': 2, 'name': 'Events', 'item': `${siteConfig.url}/events` }
       ]
     }).replace(/</g, '\\u003c')
   }]
@@ -119,96 +109,141 @@ useHead({
     v-else
     class="pb-8"
   >
+    <!-- No breadcrumb: Events is a top-level item in the site's nav. -->
     <div class="pt-8 sm:pt-12">
-      <nav aria-label="Breadcrumb">
-        <ol class="flex flex-wrap gap-x-3.5 text-sm text-muted">
-          <li>
-            <NuxtLink
-              to="/"
-              class="hover:text-highlighted"
-            >
-              All routes
-            </NuxtLink>
-          </li>
-          <li>Events</li>
-        </ol>
-      </nav>
-      <h1 class="mt-3 text-balance text-[clamp(2.25rem,6vw,3.75rem)] leading-none font-bold font-display tracking-[-0.01em] text-highlighted">
-        The fastest bike for every Zwift race
+      <h1 class="text-balance text-[clamp(2.25rem,6vw,3.75rem)] leading-none font-bold font-display tracking-[-0.01em] text-highlighted">
+        {{ copy.headline }}
       </h1>
       <p class="mt-4 max-w-2xl text-lg text-toned">
-        Every race day, the route it's run on, and the bike and wheel combo our physics model makes fastest for it - with the lap count and equipment rules the organisers actually set.
+        {{ copy.lede }}
       </p>
     </div>
 
-    <!-- The one race a rider is most likely here for is the next one, and it
-         is otherwise several rounds down a season page. It resolves and hides
-         itself (teasers off, section gated, calendars run dry). -->
-    <NextRaceCard class="mt-8" />
+    <!-- The skeleton and a failed fetch's retry are `DiscoveryStatus`, as on
+         a season page; the groups' headings carry the counts. -->
+    <DiscoveryStatus
+      v-if="showsStatus"
+      class="mt-10"
+      subject="races"
+      :counts="[{ value: listedCount, noun: 'race' }]"
+      :status="status"
+      count-elsewhere
+      @retry="refresh"
+    >
+      <template #skeleton>
+        <ul>
+          <RaceCardSkeleton
+            v-for="n in 5"
+            :key="n"
+          />
+        </ul>
+      </template>
 
-    <!-- Reachable by hiding every season - rare, but an empty page with a
-         heading and nothing under it reads as broken rather than deliberate. -->
+      <div class="space-y-10">
+        <section
+          v-for="group in groups"
+          :key="group.when"
+          :aria-labelledby="group.when"
+        >
+          <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-accented pb-2">
+            <h2
+              :id="group.when"
+              class="text-2xl font-semibold font-heading text-highlighted"
+            >
+              {{ group.title }}
+            </h2>
+            <p class="text-sm text-muted">
+              {{ group.races.length }} race{{ group.races.length === 1 ? '' : 's' }}
+            </p>
+          </div>
+          <ol>
+            <RaceCard
+              v-for="entry in group.races"
+              :key="`${entry.seasonSlug}/${entry.race.slug}`"
+              :race="entry.race"
+              :season-slug="entry.seasonSlug"
+              :shape="entry.race.silhouette"
+              :tag="entry.tag"
+              :when="mounted ? relativeRaceDay(entry.race, today) : undefined"
+            />
+          </ol>
+        </section>
+      </div>
+    </DiscoveryStatus>
+
+    <!-- Reachable between announcements, or once every season has been run -
+         rare, but a page with nothing under its headline reads as broken
+         rather than deliberate. -->
     <p
-      v-if="!seasons.length"
+      v-else
       class="mt-10 text-muted"
     >
-      No race calendars are being tracked at the moment. Check back when the next season is announced.
+      <template v-if="runningSeasons.length">
+        None of the races announced so far is one we can rank - the series below say what is coming.
+      </template>
+      <template v-else>
+        No races are left to run on the calendars we cover. Check back when the next season is announced.
+      </template>
     </p>
 
+    <!-- Where each series stands, and what its organiser has yet to
+         announce: the races the list above cannot hold. The organiser link
+         keeps its place here, since we complement their pages. -->
     <section
-      v-for="series in activeSeriesGroups"
-      :key="series.seriesSlug"
+      v-if="runningSeasons.length"
+      aria-labelledby="the-series"
       class="mt-12"
     >
-      <SeriesHeading
-        :series-name="series.seriesName"
-        :organizer="series.organizer"
-        :organizer-url="series.organizerUrl"
-      />
-      <div class="mt-4 space-y-4">
-        <SeasonCard
-          v-for="season in series.seasons.filter(s => !isPastSeason(s))"
+      <h2
+        id="the-series"
+        class="border-b border-accented pb-2 text-2xl font-semibold font-heading text-highlighted"
+      >
+        The series
+      </h2>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <article
+          v-for="season in runningSeasons"
           :key="season.slug"
-          :season="season"
-          :today="today"
-        />
+          class="flex flex-col items-start gap-3 rounded-xl border border-default bg-elevated p-5"
+        >
+          <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <h3 class="text-xl font-semibold font-heading">
+              <NuxtLink
+                :to="`/events/${season.slug}`"
+                class="text-highlighted underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+              >
+                {{ season.seriesName }} {{ season.label }}
+              </NuxtLink>
+            </h3>
+            <span class="text-sm text-muted">
+              by
+              <a
+                v-if="season.organizerUrl"
+                :href="season.organizerUrl"
+                target="_blank"
+                rel="noopener"
+                class="underline decoration-rule-strong hover:text-highlighted"
+              >{{ season.organizer }}</a>
+              <template v-else>{{ season.organizer }}</template>
+            </span>
+          </div>
+          <ul class="space-y-1.5 text-toned">
+            <li
+              v-for="line in seriesStatusLines(season, today)"
+              :key="line"
+            >
+              {{ line }}
+            </li>
+          </ul>
+          <NuxtLink
+            :to="`/events/${season.slug}`"
+            class="font-medium text-primary hover:underline"
+          >
+            Full {{ season.seriesTag }} schedule
+          </NuxtLink>
+        </article>
       </div>
     </section>
-
-    <UCollapsible
-      v-if="pastSeasonCount"
-      class="mt-12"
-    >
-      <UButton
-        color="neutral"
-        variant="outline"
-        trailing-icon="i-lucide-chevron-down"
-      >
-        Past seasons ({{ pastSeasonCount }})
-      </UButton>
-      <template #content>
-        <div class="mt-6 space-y-10">
-          <section
-            v-for="series in pastSeriesGroups"
-            :key="series.seriesSlug"
-          >
-            <SeriesHeading
-              :series-name="series.seriesName"
-              :organizer="series.organizer"
-              :organizer-url="series.organizerUrl"
-            />
-            <div class="mt-4 space-y-4">
-              <SeasonCard
-                v-for="season in series.seasons"
-                :key="season.slug"
-                :season="season"
-                :today="today"
-              />
-            </div>
-          </section>
-        </div>
-      </template>
-    </UCollapsible>
 
     <EventsDisclaimer class="mt-12" />
   </UContainer>

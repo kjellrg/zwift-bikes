@@ -238,6 +238,14 @@ export const eventSeasonSchema = z.strictObject({
   label: z.string().min(1),
   seriesSlug: z.string().min(1),
   seriesName: z.string().min(1),
+  /**
+   * The series as a rider says it, short enough to set in front of a race's
+   * name - `ZRL`, `ZRacing`. The events hub lists races from every season in
+   * one list and tags each row with it, and names the series it covers by it
+   * in its headline. Every season of a series carries the same one; the
+   * validator checks that, and that no two series share one.
+   */
+  seriesTag: z.string().min(1),
   organizer: z.string().min(1),
   /** The organiser's own page for the series - we complement the original sources, so link back to them prominently. */
   organizerUrl: z.url().optional(),
@@ -314,11 +322,6 @@ export function getSeasonRaces(season: EventSeason): EventRace[] {
   return season.rounds.flatMap(round => round.races)
 }
 
-/** Every race a visitor should see - the calendar, "next race", and so on. */
-export function getVisibleSeasonRaces(season: EventSeason): EventRace[] {
-  return getSeasonRaces(season).filter(race => !race.hidden)
-}
-
 export function getRaceBySlug(seasonSlug: string, raceSlug: string): EventRace | undefined {
   const season = getSeasonBySlug(seasonSlug)
   if (!season) return undefined
@@ -355,6 +358,26 @@ export function isRacePublishable(race: EventRace): race is EventRace & { format
     && race.categories.some(group => Boolean(group.routeSlug))
 }
 
+/**
+ * Whether a race has no page because its course isn't in our route data,
+ * rather than because the organiser has yet to announce it: it has a format
+ * and a named course, and still no page (`isRacePublishable`). ZRL's unlisted
+ * "exclusive" routes are the usual case, but a public route the catalog
+ * lacks reads the same.
+ *
+ * Keyed on a named course rather than on `categories.length`, because a group
+ * can exist with no course named at all, and calling that a course missing
+ * from our data would blame us for a schedule the organiser hasn't published.
+ * The one test both a season page's row and a hub series box give their
+ * reason by, so the two cannot disagree.
+ */
+export function isOnUnknownCourse(race: EventRace): boolean {
+  return !race.hidden
+    && !isRacePublishable(race)
+    && Boolean(race.format)
+    && race.categories.some(group => Boolean(group.routeName))
+}
+
 export interface PublishableRace {
   season: EventSeason
   round: EventRound
@@ -364,10 +387,10 @@ export interface PublishableRace {
 }
 
 /**
- * Every race that currently has a page, across all visible seasons. The
- * single source for both the sitemap (`server/api/__sitemap__/urls.ts`) and
- * the prerender list (`nuxt.config.ts`), so the two can't drift - the same
- * rule the route pages already follow.
+ * Every race that currently has a page, across all visible seasons, run or
+ * not. What the sitemap (`server/utils/sitemapUrls.ts`), the prerender list
+ * (`nuxt.config.ts`) and `/llms.txt` read, through `getIndexedRaces`, so they
+ * can't drift - the same rule the route pages already follow.
  */
 export function getPublishableRaces(): PublishableRace[] {
   return getSeasons().flatMap(season =>
@@ -377,6 +400,25 @@ export function getPublishableRaces(): PublishableRace[] {
         .map(race => ({ season, round, race, path: `/events/${season.slug}/${race.slug}` }))
     )
   )
+}
+
+/**
+ * The race pages the site puts forward to search engines on `today`: every
+ * page that exists, less the races that have been run. A run race keeps its
+ * page, so a link a rider shared still lands, but the page is marked noindex
+ * and leaves the sitemap and the prerender list. Both read this, so they
+ * cannot disagree, and it asks `hasBeenRun`, as the page's noindex does.
+ *
+ * Both are built once, at build time, so `today` is the build's day, and
+ * production rebuilds every day just after 00:00 UTC (the schedule in
+ * .github/workflows/cloudflare-deploy.yml). A race run between two builds
+ * stays in both until the next one; its page is prerendered meanwhile, and
+ * says it has been run from the rider's clock once loaded. Leaving the
+ * prerender list is what hands a run race's page to the server, which
+ * renders it on the real day, noindex included.
+ */
+export function getIndexedRaces(today: string): PublishableRace[] {
+  return getPublishableRaces().filter(({ race }) => !hasBeenRun(race, today))
 }
 
 /**
@@ -481,8 +523,53 @@ export function formatCategoryGroup(group: Pick<RaceCategoryGroup, 'cats' | 'lab
 }
 
 /** The race's last day - `date` itself for single-day races. */
-export function raceEndDate(race: EventRace): string {
+export function raceEndDate(race: Pick<EventRace, 'date' | 'endDate'>): string {
   return race.endDate ?? race.date
+}
+
+/**
+ * Whether a Race has been run: its last day is behind `today`, so a
+ * week-long stage is still to run on every day of its window. The one
+ * definition every events surface asks, so what a season page leaves out,
+ * what the hub leaves out and what counts as the next race cannot disagree.
+ *
+ * `today` is an ISO date in UTC - see `isoDay` - and which clock it comes
+ * from is the caller's business: the build's while a page is prerendered, the
+ * rider's once it is on their screen (`useToday` in the app).
+ */
+export function hasBeenRun(race: Pick<EventRace, 'date' | 'endDate'>, today: string): boolean {
+  return raceEndDate(race) < today
+}
+
+/** The UTC calendar day of an instant, as the ISO date every `today` here is. */
+export function isoDay(now: Date): string {
+  return now.toISOString().slice(0, 10)
+}
+
+/** The ISO date `days` after `isoDate`, in UTC days, so no clock change moves it. */
+export function addDays(isoDate: string, days: number): string {
+  return isoDay(new Date(Date.parse(`${isoDate}T00:00:00Z`) + days * 86_400_000))
+}
+
+/**
+ * Where a Race falls from `today`, as the events hub groups its list:
+ *
+ * - `on-now`: its window holds today - a week-long stage mid-week, or a
+ *   one-day race on its day;
+ * - `next-7-days`: it starts on one of the seven days after today, so a race
+ *   exactly a week out is in the coming week;
+ * - `later`: it starts after that.
+ *
+ * Undefined once it has been run (`hasBeenRun`), which is the same rule
+ * every other events surface leaves a race out by. Days are UTC days, and
+ * `today` is the caller's, as for `hasBeenRun`.
+ */
+export type RaceWhen = 'on-now' | 'next-7-days' | 'later'
+
+export function raceWhen(race: Pick<EventRace, 'date' | 'endDate'>, today: string): RaceWhen | undefined {
+  if (hasBeenRun(race, today)) return undefined
+  if (race.date <= today) return 'on-now'
+  return race.date <= addDays(today, 7) ? 'next-7-days' : 'later'
 }
 
 /**
@@ -498,8 +585,22 @@ export function raceEndDate(race: EventRace): string {
  * month, and the round's name supplies the month everywhere it's shown.
  */
 export function raceDisplayName(race: EventRace): string {
+  return raceStageName(race) ?? `Round ${race.round} Week ${race.week}`
+}
+
+/**
+ * How a race is named in a list under its own round's heading: `Week 2`, since
+ * "Round 1" is right above it, and `Stage 3` as everywhere else. Only there:
+ * anything that names a race away from its round - its page, breadcrumbs,
+ * share cards, structured data, the hub - wants `raceDisplayName`.
+ */
+export function raceNameInRound(race: EventRace): string {
+  return raceStageName(race) ?? `Week ${race.week}`
+}
+
+function raceStageName(race: EventRace): string | undefined {
   const stage = /^(?:[a-z]+-)?stage-(\d+)$/.exec(race.slug)
-  return stage ? `Stage ${stage[1]}` : `Round ${race.round} Week ${race.week}`
+  return stage ? `Stage ${stage[1]}` : undefined
 }
 
 /**
@@ -517,12 +618,8 @@ export function raceContextLabel(season: Pick<EventSeason, 'seriesName' | 'label
   return round?.name ? `${seasonLabel} - ${round.name}` : seasonLabel
 }
 
-/**
- * Sorts by race day. Used for "next race" lookups, which must only ever run
- * client-side: these pages are prerendered, so resolving "next" at render
- * time would freeze a build-time answer into the shipped HTML.
- */
-export function sortRacesByDate(races: EventRace[]): EventRace[] {
+/** Sorts by race day, for "next race" lookups. Returns a new array. */
+export function sortRacesByDate<Race extends Pick<EventRace, 'date'>>(races: Race[]): Race[] {
   return [...races].sort((a, b) => a.date.localeCompare(b.date))
 }
 
@@ -537,9 +634,8 @@ function seasonStartDate(season: EventSeason): string {
 }
 
 /**
- * Where a Round stands: still to come, on now, or run. `today` is an ISO date
- * and must come from the client, like every other past/upcoming question here
- * - these pages are prerendered, so a build-time answer would ship frozen.
+ * Where a Round stands: still to come, on now, or run. `today` is an ISO date,
+ * whose clock is the caller's to choose, as for `hasBeenRun`.
  *
  * Read off the Races, never the round's published window, so both ends of the
  * state come from one source: a window a curator opened early would otherwise
@@ -552,49 +648,97 @@ function seasonStartDate(season: EventSeason): string {
  * Retired races count for neither end: a hidden race is not on the calendar,
  * so it can't start a round or hold one open.
  *
- * Both events pages ask this - which rounds a season page lists, and what a
- * round tile on the hub says and whether it leads anywhere - so neither can
- * drift into its own idea of when a round is on.
+ * Everything on the events pages that asks where a round stands asks this -
+ * which rounds a season page lists, and whether a series box on the hub says
+ * a round runs or starts - so none can drift into its own idea of when a round
+ * is on.
  */
 export type RoundState = 'upcoming' | 'ongoing' | 'past'
 
 export function roundState(round: Pick<EventRound, 'races'>, today: string): RoundState {
   const races = round.races.filter(race => !race.hidden)
   if (!races.length) return 'upcoming'
-  if (races.every(race => raceEndDate(race) < today)) return 'past'
+  if (races.every(race => hasBeenRun(race, today))) return 'past'
   return races.some(race => race.date <= today) ? 'ongoing' : 'upcoming'
 }
 
 /**
- * What a Season's calendar adds up to: the days it spans and how much is on
- * it. The events hub prints this on a season card and the season page prints
- * it in its header, so one helper is what keeps the two from counting
- * differently - a retired race is on neither, and a round is counted whether
- * or not the organiser has filled it in yet.
+ * A Season's calendar as the events pages list it: what is still to be run,
+ * and nothing that has been. A Round whose Races have all been run leaves
+ * with them; the rest keep only their Races still to come. A round with no
+ * races yet stays, for the reason `roundState` gives. Hidden races are left
+ * out too, since they are on no calendar.
+ *
+ * Generic over the round shape so a season page can hand it the calendar
+ * joined to its routes (`EventRoundWithRoutes`) and get that shape back. The
+ * rounds handed in are not changed.
  */
-export interface SeasonSummary {
-  /** First and last day the rounds cover. Both absent for a season with no rounds announced yet. */
-  startDate?: string
-  endDate?: string
-  rounds: number
-  races: number
+export function roundsLeftToRun<Round extends Pick<EventRound, 'races'>>(rounds: Round[], today: string): Round[] {
+  return rounds
+    .filter(round => roundState(round, today) !== 'past')
+    .map(round => ({ ...round, races: round.races.filter(race => !race.hidden && !hasBeenRun(race, today)) }))
 }
 
-export function summariseSeason(season: EventSeason): SeasonSummary {
+/**
+ * A Season's next race: the first by date of the Races still to run on its
+ * calendar (`roundsLeftToRun`), so a week-long stage stays next through its
+ * last day and a retired race is never next. Undefined once nothing is left to
+ * run. The season page marks it in its list; a run race's page points to it.
+ *
+ * Generic over the round shape for the same reason `roundsLeftToRun` is.
+ */
+export function nextRaceToRun<Round extends Pick<EventRound, 'races'>>(rounds: Round[], today: string): Round['races'][number] | undefined {
+  return sortRacesByDate(roundsLeftToRun(rounds, today).flatMap(round => round.races))[0]
+}
+
+/**
+ * Whether the organiser has announced anything of a Race: its format, or any
+ * of its Category groups. Not the same as having a page (`isRacePublishable`):
+ * a race WTRL has put on a course outside the public catalog is announced in
+ * full and still has nothing to rank.
+ */
+function isRaceAnnounced(race: Pick<EventRace, 'format' | 'categories'>): boolean {
+  return Boolean(race.format) || race.categories.length > 0
+}
+
+/**
+ * A season page's calendar, split into the Rounds with at least one Race
+ * announced and the Rounds with none. A round of placeholders - WTRL puts a
+ * whole round's dates on the calendar weeks before a single format or route -
+ * says nothing race by race that it can't say once, so the page lists it on
+ * one line, and a round with some races announced keeps a row per race, the
+ * rest saying why they have no page yet. A round with no races on it at all
+ * has nothing announced either, and a retired race announces nothing for its
+ * round.
+ *
+ * Both keep the order they were handed in, and the rounds come back as they
+ * were - generic for the same reason `roundsLeftToRun` is, which is what a
+ * season page hands this.
+ */
+export function groupRoundsByAnnouncement<Round extends Pick<EventRound, 'races'>>(rounds: Round[]): { announced: Round[], unannounced: Round[] } {
+  const isAnnounced = (round: Round) => round.races.some(race => !race.hidden && isRaceAnnounced(race))
   return {
-    startDate: seasonStartDate(season) || undefined,
-    endDate: season.rounds.map(round => round.endDate).sort().at(-1),
-    rounds: season.rounds.length,
-    races: getVisibleSeasonRaces(season).length
+    announced: rounds.filter(isAnnounced),
+    unannounced: rounds.filter(round => !isAnnounced(round))
   }
 }
 
 /**
- * Seasons newest first, which is the order the events hub lists a series in:
- * the season a rider is racing now leads, and finished ones follow it. The
- * files themselves are written oldest first (a new season is appended), and
- * `label` is the organiser's own string - "2026/27", "2026" - so it sorts
- * seasons no better than the file order does. Returns a new array.
+ * Whether a whole Season has been run: it has rounds, and every one of them
+ * has been (`roundState`). A round the organiser hasn't filled in is still
+ * ahead of the rider, so it keeps its season open; a season with no rounds
+ * announced has not started, let alone finished.
+ */
+export function seasonHasBeenRun(season: Pick<EventSeason, 'rounds'>, today: string): boolean {
+  return season.rounds.length > 0 && season.rounds.every(round => roundState(round, today) === 'past')
+}
+
+/**
+ * Seasons newest first, which is the order the events hub puts its series
+ * boxes in: the season that opened last leads. The files themselves are
+ * written oldest first (a new season is appended), and `label` is the
+ * organiser's own string - "2026/27", "2026" - so it sorts seasons no better
+ * than the file order does. Returns a new array.
  */
 export function sortSeasonsNewestFirst(seasons: EventSeason[]): EventSeason[] {
   return [...seasons].sort((a, b) => seasonStartDate(b).localeCompare(seasonStartDate(a)))
@@ -608,7 +752,7 @@ export function sortSeasonsNewestFirst(seasons: EventSeason[]): EventSeason[] {
  */
 export function getUpcomingEventsForRoute(routeSlug: string, today: string): PublishableRace[] {
   return getPublishableRaces()
-    .filter(({ race }) => raceEndDate(race) >= today
+    .filter(({ race }) => !hasBeenRun(race, today)
       && race.categories.some(group => group.routeSlug === routeSlug))
     .sort((a, b) => a.race.date.localeCompare(b.race.date))
 }
@@ -616,6 +760,6 @@ export function getUpcomingEventsForRoute(routeSlug: string, today: string): Pub
 /** The next upcoming publishable race across all series, if any - the homepage teaser. Same client-only `today` rule as above. */
 export function getNextUpcomingRace(today: string): PublishableRace | undefined {
   return getPublishableRaces()
-    .filter(({ race }) => raceEndDate(race) >= today)
+    .filter(({ race }) => !hasBeenRun(race, today))
     .sort((a, b) => a.race.date.localeCompare(b.race.date))[0]
 }
