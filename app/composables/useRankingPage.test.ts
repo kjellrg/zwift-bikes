@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { computed, effectScope, ref, watch } from 'vue'
 import { getRouteBySlug } from '#shared/utils/catalog'
+import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
-import type { AppliedRiderInputs, Ride, RiderInputs } from '../utils/recommendRequest'
+import { rideRulesForFormat, type AppliedRiderInputs, type Ride, type RiderInputs } from '../utils/recommendRequest'
 import type { StructuredDataScript } from '../utils/rankingResults'
 import { useComparison } from './useComparison'
 import { useRankingPage, type RankingPageInputs } from './useRankingPage'
@@ -151,5 +152,47 @@ describe('useRankingPage', () => {
   it('leads the report line with the page\'s subject for the Applied Ride', () => {
     const { page } = setup({ reportSubject: ride => ride?.laps === 1 ? 'A/B' : undefined })
     expect(page.reportLine.value).toBe('A/B, 1 lap, 225 W, Solo')
+  })
+
+  describe('on a segment page', () => {
+    const fuego = routeWithMetaForSegment(getSegmentSummary('fuego-flats')!)
+    const sprint: Ride = { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }
+
+    // The segment page's own inputs: its words ignore the lap count, and the
+    // report line says which kind of segment the Applied Ride was.
+    function segmentSetup(ride: Ride) {
+      const page = setup({
+        key: 'recommend-segment-fuego-flats',
+        rideName: course => `the ${course.name} sprint in ${course.worldName}`,
+        faqQuestion: () => 'What\'s the fastest bike for the Fuego Flats sprint?',
+        reportSubject: applied => applied?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
+      })
+      page.liveRide.value = ride
+      page.appliedRide.value = ride
+      page.appliedCourse.value = fuego
+      page.appliedInputs.value = { ...page.appliedInputs.value, powerW: 800 }
+      return page
+    }
+
+    it('rides the segment once, and answers for its own length with no lap count', () => {
+      const { page } = segmentSetup(sprint)
+      expect(page.appliedLaps.value).toBe(1)
+      expect(page.answer.value?.text).toMatch(/^ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for the Fuego Flats sprint in Watopia: /)
+      expect(page.answer.value?.text).not.toMatch(/\blaps?\b/)
+      expect(page.courseAnalysis.value).toMatchObject({ route: fuego, resultsRoute: fuego, kind: 'sprint', laps: 1, resultsLaps: 1 })
+      expect(page.why.value.rideName).toBe('Fuego Flats')
+      expect(page.reportLine.value).toBe('Sprint segment, 800 W sprint power, Solo')
+    })
+
+    it('states the Race format\'s rules and hides the TT category when a link barred TT frames', () => {
+      const { page } = segmentSetup({ ...sprint, ...rideRulesForFormat('rot') })
+      expect(page.answer.value?.summary).toMatch(/^WTRL bans TT bikes from its Race of Truth.* ZwiftBikes predicts /)
+      expect(page.hideTtCategory.value).toBe(true)
+    })
+
+    it('keeps the TT category under a format that allows TT frames, and with no format at all', () => {
+      expect(segmentSetup({ ...sprint, ...rideRulesForFormat('ttt') }).page.hideTtCategory.value).toBe(false)
+      expect(segmentSetup(sprint).page.hideTtCategory.value).toBe(false)
+    })
   })
 })
