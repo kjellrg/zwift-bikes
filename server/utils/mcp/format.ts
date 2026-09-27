@@ -1,63 +1,18 @@
-import type { ComboScore, RouteSummary, SegmentSummary, SurfaceEstimate } from '../../../shared/types/catalog'
+import type { ComboScore, SurfaceEstimate } from '../../../shared/types/catalog'
 import type { RaceFormat } from '../../../shared/utils/events'
 import { formatDuration, formatDurationGap } from '../../../shared/utils/duration'
 import { RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
-import type { LeftOutSetup } from '../../../shared/utils/recommendationAnswer'
+import type { RouteRanking, RouteRankingPhysics, SegmentRankingPhysics } from '../rankRide'
 
 /**
- * The shape the recommend endpoints return. Declared here rather than inferred
- * from Nitro's generated `InternalApi` types so a change to either endpoint's
- * response surfaces as a type error in this file instead of silently reshaping
- * what the model is told.
+ * The Ranking the recommend tools format is the Ride ranking module's own
+ * (`RouteRanking` / `SegmentRanking` in `server/utils/rankRide.ts`), read
+ * straight off the module rather than declared again here: the tools call it
+ * in process, so a change to the Ranking is a type error in this file, not a
+ * silent reshaping of what the model is told.
  */
-export interface RecommendPhysics {
-  mode: 'dynamic' | 'legacy' | 'compare'
-  geometry?: 'measured' | 'known-climbs-compatibility' | 'aggregate-compatibility'
-  rider: { weightKg: number, heightCm: number, powerW: number }
-  note: string
-  /** Present only in TTT draft mode - see `shared/utils/physics/draft.ts`. `riderPowerW` is each rider's own rotation average; the pull/last-wheel figures are what that swings between. */
-  ttt?: {
-    riders: number
-    riderPowerW: number
-    frontPullPowerW: number
-    lastWheelPowerW: number
-    climbWkg?: number
-    soloFinishTimeSec?: number
-    tttSavedSec?: number
-  }
-  /** Present only in race draft mode - see `shared/utils/physics/draft.ts`. `riderPowerW` is the rider's own race average; `savingPct` is the field-calibrated flat-speed power saving the prediction applied. */
-  race?: {
-    savingPct: number
-    riderPowerW: number
-    soloFinishTimeSec?: number
-    raceSavedSec?: number
-  }
-}
-
-export interface RecommendPagination {
-  offset: number
-  limit: number
-  returned: number
-  hasMore: boolean
-}
-
-export interface RecommendRouteResponse {
-  route: RouteSummary
-  combos: ComboScore[]
-  /** The faster setup the category or Halo rule left out - see `FastestOverall` in `recommendPipeline.ts`. */
-  fastestOverall?: LeftOutSetup
-  physics?: RecommendPhysics
-  pagination: RecommendPagination
-}
-
-export interface RecommendSegmentResponse {
-  segment: SegmentSummary
-  combos: ComboScore[]
-  /** The faster setup the category or Halo rule left out - see `FastestOverall` in `recommendPipeline.ts`. */
-  fastestOverall?: LeftOutSetup
-  physics?: RecommendPhysics
-  pagination: RecommendPagination
-}
+type RankingPhysics = RouteRankingPhysics | SegmentRankingPhysics
+type RankingPagination = RouteRanking['pagination']
 
 /**
  * Gap to the fastest combo on the page, formatted exactly as the rider-facing
@@ -124,7 +79,7 @@ export function formatComboTable(combos: ComboScore[], startRank: number): strin
   ].join('\n')
 }
 
-export function formatPagination(pagination: RecommendPagination, total?: number): string {
+export function formatPagination(pagination: RankingPagination, total?: number): string {
   const first = pagination.offset + 1
   const last = pagination.offset + pagination.returned
   // At the offset cap, "call again with a higher offset" would send a model
@@ -151,7 +106,7 @@ export const CONFIDENCE_NOTE = '`measured` = frame/wheel performance solved from
  * semantics compactly; the endpoint's own `physics.note` carries the full
  * explanation.
  */
-export function formatTttAssumption(physics: RecommendPhysics | undefined): string | undefined {
+export function formatTttAssumption(physics: RankingPhysics | undefined): string | undefined {
   const ttt = physics?.ttt
   if (!ttt) return undefined
   const parts = [`- TTT draft mode: ${ttt.riders}-rider paceline; the rider's ${ttt.riderPowerW} W is their own rotation average, swinging between ~${ttt.frontPullPowerW} W on the front and ~${ttt.lastWheelPowerW} W in the last wheel`]
@@ -170,7 +125,7 @@ export function formatTttAssumption(physics: RecommendPhysics | undefined): stri
  * explicitly, because the one thing a model must not do with this number is
  * present it as a winning or breakaway time.
  */
-export function formatRaceAssumption(physics: RecommendPhysics | undefined): string | undefined {
+export function formatRaceAssumption(physics: RankingPhysics | undefined): string | undefined {
   const race = physics?.race
   if (!race) return undefined
   const parts = [`- Race draft mode: a typical mid-pack finish in a mass-start bunch (NOT a win or a breakaway); the rider's ${race.riderPowerW} W is their own race average, and the prediction applies the field-calibrated ~${race.savingPct}% flat-speed power saving`]

@@ -121,7 +121,7 @@ const DEFAULT_DT_SEC = 0.1
  * Thrown when the rider comes to a complete stop before the finish - their
  * power cannot hold the grade under them. Distinct from a generic `Error` so
  * the recommend endpoints can turn "this rider cannot finish this route"
- * into a client-facing status instead of a 500 (see `recommendCache.ts`).
+ * into a client-facing status instead of a 500 (see `server/utils/rankRide.ts`).
  */
 export class RouteSimulationStallError extends Error {
   constructor(rider: PhysicsRider, grade: number, distanceM: number, totalDistanceM: number) {

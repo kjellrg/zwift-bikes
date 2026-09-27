@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { getSiteFlags } from '../utils/siteFlags'
+import { getSiteFlags, KILL_SWITCH_RETRY_AFTER_SEC, RECOMMEND_PAUSED_MESSAGE } from '../utils/siteFlags'
 
 /**
  * Enforces the runtime site flags (`server/utils/siteFlags.ts`) at the API
@@ -20,17 +20,17 @@ import { getSiteFlags } from '../utils/siteFlags'
  * Prerender crawls and dev carry no KV binding, so `getSiteFlags` resolves
  * to defaults there and this middleware never blocks a build.
  *
- * The same absence applies to Nitro's in-process `$fetch`: an internal
- * event has no platform context, so the MCP tools' calls to
- * `/api/recommend/**` pass through here ungated. `mcp.post.ts` reads the
- * flags on the real request and the recommend tools refuse on
- * `RpcContext.recommendPaused` themselves (issue #154).
+ * Neither in-process caller of the ranking comes through here. The MCP
+ * tools and the markdown documents both rank in process, handing the flags
+ * their own middleware read on the real request (`mcp.post.ts`,
+ * `02.markdown.ts`) to the Ride ranking module (`server/utils/rankRide.ts`),
+ * which checks the kill switch for every caller, over HTTP or in process
+ * (issues #154, #288, #289, #290). For the recommend kill switch this gate
+ * is the fast path, not the only check.
  */
 
-const RETRY_AFTER_SEC = 300
-
 function unavailable(event: H3Event, message: string): never {
-  setResponseHeader(event, 'Retry-After', RETRY_AFTER_SEC)
+  setResponseHeader(event, 'Retry-After', KILL_SWITCH_RETRY_AFTER_SEC)
   throw createError({
     statusCode: 503,
     statusMessage: 'Service Unavailable',
@@ -48,9 +48,7 @@ export default defineEventHandler(async (event) => {
 
   const { killSwitches, sections } = await getSiteFlags(event)
   if (isRecommend && killSwitches.recommend) {
-    // No trailing "try again" imperative: useRefetchNotice shows this text
-    // verbatim in a toast and appends its own stale-results line.
-    unavailable(event, 'Recommendations are temporarily paused for maintenance.')
+    unavailable(event, RECOMMEND_PAUSED_MESSAGE)
   }
   if (isMcp && killSwitches.mcp) {
     unavailable(event, 'The MCP endpoint is temporarily paused for maintenance. Try again shortly.')

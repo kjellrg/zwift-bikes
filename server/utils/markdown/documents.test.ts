@@ -1,87 +1,45 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ComboScore } from '../../../shared/types/catalog'
+import type { H3Event } from 'h3'
+import { createError } from 'h3'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { RouteSimulationStallError, simulateRoute } from '../../../shared/utils/physics/simulator'
+import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, rideRulesForFormat, type RecommendQuery, type Ride } from '../../../shared/utils/recommendQuery'
+import { DEFAULT_SITE_FLAGS } from '../../../shared/utils/siteFlags'
 import { isWorkerFirstPath, markdownDocumentFor, MARKDOWN_WORKER_FIRST_RULES } from './documents'
 
 /**
- * The documents reach the catalog and the ranking through Nitro's `$fetch`,
- * which does not exist in this plain-node suite (see vitest.config.ts), so
- * every test installs its own stub as a global - the same arrangement
- * `server/utils/mcp/tools.test.ts` uses.
+ * The documents rank through the Ride ranking module in process
+ * (`server/utils/rankRide.ts`) and read the catalog directly, so these tests
+ * run the real ranking against the real catalog with no `$fetch` anywhere:
+ * Nitro's `$fetch` does not exist in this plain-node suite (see
+ * vitest.config.ts), so a document that still reached for it would throw.
+ *
+ * The simulator is wrapped, not replaced - the same arrangement as
+ * `server/utils/mcp/tools.test.ts`: every test runs the real physics except
+ * the ones that need the ranking to fail.
  */
-type FetchStub = (path: string, options?: { query?: Record<string, unknown> }) => unknown
-
-function stubFetch(handler: FetchStub) {
-  // Wrapped in an async function so the stub returns a real promise: the
-  // documents lean on `$fetch(...).catch(...)` to degrade when a ranking
-  // cannot be computed, and a bare value has no `.catch`.
-  const spy = vi.fn(async (path: string, options?: { query?: Record<string, unknown> }) => handler(path, options))
-  Reflect.set(globalThis, '$fetch', spy)
-  return spy
-}
-
-afterEach(() => {
-  Reflect.deleteProperty(globalThis, '$fetch')
-  vi.restoreAllMocks()
+vi.mock('../../../shared/utils/physics/simulator', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../shared/utils/physics/simulator')>()
+  return { ...actual, simulateRoute: vi.fn(actual.simulateRoute) }
 })
 
-const ROUTE = {
-  id: 1,
-  slug: 'watopia-hilly-route',
-  name: 'Hilly Route',
-  world: 'watopia',
-  worldName: 'Watopia',
-  distance: 9.1,
-  elevation: 105,
-  leadInDistance: 1.4,
-  leadInElevation: 8,
-  lap: true,
-  eventOnly: false,
-  sports: ['cycling'],
-  supportsTT: true,
-  terrain: { category: 'rolling', climbRatio: 11.5, climbs: [], elevationProfile: [[0, 10], [1, 20]] },
-  surface: { road: 100, gravel: 0, cobble: 0, confidence: 'measured' }
-}
-
-const SEGMENT = {
-  slug: 'alpe-du-zwift',
-  name: 'Alpe du Zwift',
-  type: 'climb',
-  climbType: 'HC',
-  world: 'watopia',
-  worldName: 'Watopia',
-  lengthKm: 12.2,
-  elevationM: 1035,
-  avgGradePercent: 8.5,
-  placement: 'positional',
-  hostRoutes: [{ slug: 'road-to-sky', name: 'Road to Sky' }],
-  route: { surface: { road: 100, gravel: 0, cobble: 0, confidence: 'measured' } }
-}
-
-const COMBO = {
-  frame: { id: 7, name: 'Tron', level: 5, category: 'standard', confidence: 'measured' },
-  wheelset: { key: 'tron', name: 'Tron wheels', confidence: 'measured' },
-  score: 100,
-  finishTimeSec: 900
-} as unknown as ComboScore
-
-function rankingResponse(combos: ComboScore[] = [COMBO]) {
-  return {
-    route: ROUTE,
-    segment: SEGMENT,
-    combos,
-    physics: { mode: 'dynamic', rider: { weightKg: 75, heightCm: 175, powerW: 225 }, note: 'Dynamic physics is active.' },
-    pagination: { offset: 0, limit: 9, returned: combos.length, hasMore: false }
-  }
-}
+afterEach(() => {
+  // Back to the real physics the mock was created around.
+  vi.mocked(simulateRoute).mockReset()
+  vi.unstubAllGlobals()
+})
 
 /**
  * A preview Worker: links are built from the host that served the request,
  * the canonical from the public site URL. The two differ here on purpose -
  * with one value they would agree by accident.
  */
-const CONTEXT = { origin: 'https://zwift-bikes-pr-1.workers.dev', siteUrl: 'https://zwiftbikes.com', recommendPaused: false }
+const CONTEXT = { origin: 'https://zwift-bikes-pr-1.workers.dev', siteUrl: 'https://zwiftbikes.com', killSwitches: DEFAULT_SITE_FLAGS.killSwitches }
+const PAUSED = { ...CONTEXT, killSwitches: { ...DEFAULT_SITE_FLAGS.killSwitches, recommend: true } }
+
+/** A short route with a lead-in, so a full ranking stays quick. */
+const ROUTE_PAGE = '/routes/hilly-route'
 
 describe('which paths have a markdown twin', () => {
   it('resolves every ranking page and the two discovery pages that lead to them', () => {
@@ -115,15 +73,13 @@ describe('which paths have a markdown twin', () => {
 
 describe('the route document', () => {
   it('leads with the question the page asks and answers it from rank 1', async () => {
-    stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : ROUTE))
-    const markdown = await markdownDocumentFor('/routes/watopia-hilly-route')!(CONTEXT)
+    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
 
     // The same question the page publishes as FAQ structured data, so a
     // model and a crawler come away with one answer.
-    expect(markdown.startsWith('# What\'s the fastest bike for Hilly Route?')).toBe(true)
-    expect(markdown).toContain('ZwiftBikes predicts the Tron with Tron wheels is the best bike and wheels for Hilly Route in Watopia: '
-      + 'the fastest road setup for a 75 kg rider at 225 W, finishing in 15:00')
-    expect(markdown).toContain('Canonical page: <https://zwiftbikes.com/routes/watopia-hilly-route>')
+    expect(markdown.startsWith('# What\'s the fastest bike for Watopia Hilly Route?')).toBe(true)
+    expect(markdown).toMatch(/ZwiftBikes predicts the .+ is the best bike and wheels for Watopia Hilly Route in Watopia: the fastest road setup for a 75 kg rider at 225 W, finishing in \d+:\d\d/)
+    expect(markdown).toContain('Canonical page: <https://zwiftbikes.com/routes/hilly-route>')
     // Links stay on the host that served it, the way the HTML's are relative.
     expect(markdown).toContain('https://zwift-bikes-pr-1.workers.dev/api/recommend/')
     // The MCP endpoint is gated at the edge, so a document must never send
@@ -131,88 +87,192 @@ describe('the route document', () => {
     expect(markdown).not.toContain('/api/mcp')
   })
 
-  it('answers in the page\'s own words, runner-up and left-out setup included', async () => {
-    const runnerUp = { ...COMBO, frame: { ...COMBO.frame, id: 8, name: 'Tron Mk II' }, finishTimeSec: 900.42 } as ComboScore
-    stubFetch(path => (path.startsWith('/api/recommend/')
-      ? { ...rankingResponse([COMBO, runnerUp]), fastestOverall: { frameName: 'Zwift TT', category: 'tt', reason: 'category', deltaSec: 61 } }
-      : ROUTE))
-    const markdown = await markdownDocumentFor('/routes/watopia-hilly-route')!(CONTEXT)
+  it('answers in the page\'s own words, runner-up and assumptions included', async () => {
+    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
 
     // One builder with the page (`buildRecommendationAnswer`), so the
     // visible answer, the FAQ structured data and this line are one text.
-    expect(markdown).toContain('finishing in 15:00 (~42.0 km/h). The Tron Mk II with Tron wheels is 0.42 s behind. '
-      + 'Where TT bikes are allowed, the Zwift TT is 1:01 quicker.')
+    expect(markdown).toMatch(/finishing in \d+:\d\d \(~[\d.]+ km\/h\)\. The .+ is [\d.]+ s behind\./)
     expect(markdown).toContain('75 kg / 175 cm / 225 W / solo; 1 lap, including any lead-in once. Standard (Road); verified only; unowned Halo bikes excluded.')
     expect(markdown).not.toMatch(/Our model|current filters/)
   })
 
-  it('ranks the rider the prerendered HTML was rendered for', async () => {
-    const fetchSpy = stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : ROUTE))
-    const markdown = await markdownDocumentFor('/routes/watopia-hilly-route')!(CONTEXT)
-
-    // A different query here would be a ranking no rider is ever shown -
-    // see `defaultRankingQuery` and `buildRecommendQuery` on the client.
-    const query = fetchSpy.mock.calls.find(([path]) => path.startsWith('/api/recommend/'))?.[1]?.query
-    expect(query).toMatchObject({
-      category: 'standard',
-      verifiedOnly: 'true',
-      includeHalo: 'false',
-      maxWheelsetsPerFrame: 1,
-      weightKg: 75,
-      heightCm: 175,
-      powerW: 225,
-      laps: 1
-    })
+  it('ranks the rider the prerendered HTML was rendered for, and says whose times they are', async () => {
+    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
     expect(markdown).toContain('75 kg, 175 cm, 225 W (3.00 W/kg)')
+    expect(markdown).toContain('## How these times were computed')
   })
 
   it('quotes the ride actually raced, lead-in included', async () => {
-    stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : ROUTE))
-    const markdown = await markdownDocumentFor('/routes/watopia-hilly-route')!(CONTEXT)
-    // 9.1 km + a 1.4 km lead-in, 105 m + 8 m.
-    expect(markdown).toContain('10.5 km and 113 m of climbing for one lap')
-    expect(markdown).toContain('**Lead-in** (ridden once): 1.4 km, 8 m')
+    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    // 9.2 km + a 0.5 km lead-in, 109 m + 1 m.
+    expect(markdown).toContain('9.7 km and 110 m of climbing for one lap')
+    expect(markdown).toContain('**Lead-in** (ridden once): 0.5 km, 1 m')
   })
 
-  it('still serves the route when the ranking fails', async () => {
-    stubFetch((path) => {
-      if (path.startsWith('/api/recommend/')) throw new Error('simulator refused')
-      return ROUTE
+  it('still serves the route when the ranking fails, and logs why', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(simulateRoute).mockImplementation(() => {
+      throw new Error('simulator refused')
     })
-    const markdown = await markdownDocumentFor('/routes/watopia-hilly-route')!(CONTEXT)
+    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
     expect(markdown).toContain('The ranking could not be computed')
     expect(markdown).toContain('## The route')
-    expect(markdown).toContain('`watopia-hilly-route`')
+    expect(markdown).toContain('`hilly-route`')
+    expect(markdown).not.toContain('## How these times were computed')
+
+    // The note cannot tell a fault from a stall; the log line can.
+    expect(log).toHaveBeenCalledTimes(1)
+    const line = JSON.parse(log.mock.calls[0]![0] as string)
+    expect(line).toMatchObject({ evt: 'markdown-ranking-error', course: 'route', slug: 'hilly-route', message: 'simulator refused' })
+    log.mockRestore()
+  })
+
+  it('still serves the route when the rider stalls', async () => {
+    // A stall is an outcome of the module, not a throw; the document says
+    // the same thing it says for any ranking it could not compute.
+    vi.mocked(simulateRoute).mockImplementation(() => {
+      throw new RouteSimulationStallError({ weightKg: 75, heightCm: 175, powerW: 225 }, 0.25, 1234, 5000)
+    })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    expect(markdown).toContain('The ranking could not be computed')
+    expect(markdown).toContain('## The route')
+    // A fact about the rider, not a fault: nothing to log.
+    expect(log).not.toHaveBeenCalled()
+    log.mockRestore()
   })
 
   it('does not rank at all while recommendations are paused', async () => {
-    const fetchSpy = stubFetch(() => ROUTE)
-    const markdown = await markdownDocumentFor('/routes/watopia-hilly-route')!({ ...CONTEXT, recommendPaused: true })
+    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(PAUSED)
 
-    // The kill switch is blind to this path's in-process fetches, so the
-    // document must refuse before making one - not after.
-    expect(fetchSpy.mock.calls.some(([path]) => path.startsWith('/api/recommend/'))).toBe(false)
+    // The module checks the switch before any ranking work - and before the
+    // cache, so a stored ranking cannot slip out of this side door either.
+    expect(simulateRoute).not.toHaveBeenCalled()
     expect(markdown).toContain('temporarily paused for maintenance')
+    expect(markdown).toContain('## The route')
+  })
+
+  it('404s a route the catalog does not have', async () => {
+    await expect(markdownDocumentFor('/routes/no-such-route')!(CONTEXT)).rejects.toMatchObject({ statusCode: 404 })
+  })
+})
+
+/**
+ * The anti-cloaking contract (docs/markdown-for-agents.md): a document shows
+ * the Ranking its prerendered page shows, from the same cache entry. The
+ * page's Ranking is what the browser asks the recommend endpoint for once it
+ * loads, before any stored profile, so these tests put a document and that
+ * request side by side against one cache and compare the keys each reached.
+ */
+describe('a document and its page share one cache entry', () => {
+  /** In-memory `caches.default`, recording every key read and written. */
+  function fakeCaches() {
+    const store = new Map<string, string>()
+    const reads: string[] = []
+    vi.stubGlobal('caches', {
+      default: {
+        match: async (key: string) => {
+          reads.push(key)
+          return store.has(key) ? { text: async () => store.get(key)! } : undefined
+        },
+        put: async (key: string, response: Response) => void store.set(key, await response.text())
+      }
+    })
+    return { store, reads }
+  }
+
+  const setResponseHeader = vi.fn()
+
+  beforeEach(() => {
+    setResponseHeader.mockClear()
+    vi.stubGlobal('useRuntimeConfig', () => ({ public: { buildSha: 'abc1234' } }))
+    // The Nitro auto-imports the recommend endpoint leans on, as
+    // `recommendHttp.test.ts` stands them in.
+    vi.stubGlobal('defineEventHandler', (handler: unknown) => handler)
+    vi.stubGlobal('getRouterParam', (event: H3Event) => /\/api\/recommend\/([^?/]+)/.exec(event.path)?.[1])
+    vi.stubGlobal('createError', createError)
+    vi.stubGlobal('setResponseHeader', setResponseHeader)
+  })
+
+  /**
+   * The URL the browser's `$fetch(endpoint, { query })` requests: ofetch
+   * appends the query with undefined keys dropped, in the builder's key order.
+   */
+  function browserUrl(endpoint: string, query: RecommendQuery): string {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) params.append(key, String(value))
+    }
+    return `${endpoint}?${params}`
+  }
+
+  /** The real route endpoint, answering the browser's request. */
+  async function askAsTheBrowser(url: string) {
+    const handler = (await import('../../api/recommend/[slug].get')).default as unknown as (event: H3Event) => Promise<unknown>
+    await handler({ path: url, context: {} } as unknown as H3Event)
+    return setResponseHeader.mock.calls.find(([, name]) => name === 'X-Recommend-Cache')?.[2]
+  }
+
+  it('a route document reaches the entry of the route page\'s request for the default rider', async () => {
+    // `app/pages/routes/[slug].vue`: the route at one lap, the lap picker's start.
+    const ride: Ride = { course: { kind: 'route', slug: 'hilly-route' }, laps: 1 }
+    const url = browserUrl('/api/recommend/hilly-route', buildRecommendQuery(DEFAULT_RIDER_INPUTS, ride))
+    // Written out, so a change to the page's default request is a change here too.
+    expect(url).toBe('/api/recommend/hilly-route?category=standard&limit=9&maxWheelsetsPerFrame=1&offset=0&verifiedOnly=true&includeHalo=false&defaultUnownedLevel=5&weightKg=75&heightCm=175&powerW=225&laps=1')
+
+    const { store, reads } = fakeCaches()
+    await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    expect(store.size).toBe(1)
+    const documentKey = [...store.keys()][0]
+
+    expect(await askAsTheBrowser(url)).toBe('hit')
+    expect(reads.at(-1)).toBe(documentKey)
+    expect(store.size).toBe(1)
+  })
+
+  it('a race document reaches the entry of the race page\'s request, and ranks a format with no draft solo', async () => {
+    // `app/pages/events/[season]/[race].vue`: the first Category group's
+    // course and laps, with the Race format's rules - a Race of Truth bars
+    // TT frames and turns drafting off.
+    const ride: Ride = { course: { kind: 'route', slug: 'montmartre-mixer' }, laps: 1, ...rideRulesForFormat('rot') }
+    const url = browserUrl('/api/recommend/montmartre-mixer', buildRecommendQuery({ ...DEFAULT_RIDER_INPUTS, draftMode: 'race' }, ride))
+    // Even a rider whose own draft mode is the bunch is asked for solo here:
+    // no `draftMode` key at all, which is what solo is on the wire.
+    expect(url).toBe('/api/recommend/montmartre-mixer?category=standard&limit=9&maxWheelsetsPerFrame=1&offset=0&verifiedOnly=true&includeHalo=false&defaultUnownedLevel=5&weightKg=75&heightCm=175&powerW=225&laps=1&excludeTT=true')
+
+    const { store, reads } = fakeCaches()
+    const markdown = await markdownDocumentFor('/events/zrl-2026-27/round-1-week-1')!(CONTEXT)
+    expect(store.size).toBe(1)
+    const documentKey = [...store.keys()][0]!
+    expect(JSON.parse(new URL(documentKey).searchParams.get('input')!).options.draft).toEqual({ mode: 'solo' })
+    expect(markdown).toContain('75 kg / 175 cm / 225 W / solo;')
+    expect(markdown).not.toMatch(/bunch|paceline/i)
+
+    expect(await askAsTheBrowser(url)).toBe('hit')
+    expect(reads.at(-1)).toBe(documentKey)
+    expect(store.size).toBe(1)
   })
 })
 
 describe('the segment document', () => {
   it('ranks a sprint at sprint power and a climb at race pace', async () => {
-    const climbSpy = stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : SEGMENT))
-    await markdownDocumentFor('/segments/alpe-du-zwift')!(CONTEXT)
-    expect(climbSpy.mock.calls.find(([path]) => path.startsWith('/api/recommend/'))?.[1]?.query).toMatchObject({ powerW: 225 })
+    const climb = await markdownDocumentFor('/segments/titans-grove-kom')!(CONTEXT)
+    expect(climb).toMatch(/the best bike and wheels for the Titans Grove KOM climb in Watopia: the fastest road setup for a 75 kg rider at 225 W/)
+    expect(climb).not.toContain('Ridden at sprint power')
 
-    const sprintSpy = stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : { ...SEGMENT, type: 'sprint', climbType: undefined }))
-    const markdown = await markdownDocumentFor('/segments/alpe-du-zwift')!(CONTEXT)
-    expect(sprintSpy.mock.calls.find(([path]) => path.startsWith('/api/recommend/'))?.[1]?.query).toMatchObject({ powerW: 600 })
-    expect(markdown).toContain('Ridden at sprint power')
-    expect(markdown).toContain('the best bike and wheels for the Alpe du Zwift sprint in Watopia: the fastest road setup for a 75 kg rider at 600 W')
+    const sprint = await markdownDocumentFor('/segments/alley-sprint')!(CONTEXT)
+    expect(sprint).toContain('Ridden at sprint power')
+    expect(sprint).toMatch(/the best bike and wheels for the Alley Sprint sprint in .+: the fastest road setup for a 75 kg rider at 600 W/)
   })
 
   it('links the routes the segment is ridden on', async () => {
-    stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : SEGMENT))
-    const markdown = await markdownDocumentFor('/segments/alpe-du-zwift')!(CONTEXT)
-    expect(markdown).toContain('- [Road to Sky](https://zwift-bikes-pr-1.workers.dev/routes/road-to-sky)')
+    const markdown = await markdownDocumentFor('/segments/titans-grove-kom')!(PAUSED)
+    expect(markdown).toMatch(/- \[.+\]\(https:\/\/zwift-bikes-pr-1\.workers\.dev\/routes\/[a-z0-9-]+\)/)
+  })
+
+  it('404s a segment the catalog does not have', async () => {
+    await expect(markdownDocumentFor('/segments/no-such-segment')!(CONTEXT)).rejects.toMatchObject({ statusCode: 404 })
   })
 })
 
@@ -224,23 +284,18 @@ describe('the race document', () => {
   const POINTS = '/events/zrl-2026-27/round-1-week-3' // points race, two groups on different courses
 
   it('bars TT frames where the format does, and says so', async () => {
-    const fetchSpy = stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : ROUTE))
     const markdown = await markdownDocumentFor(ROT)!(CONTEXT)
 
-    // A legality filter, not a display trim - a ranking without it would put
-    // a bike the rider cannot start on at the top.
-    expect(fetchSpy.mock.calls.find(([path]) => path.startsWith('/api/recommend/'))?.[1]?.query)
-      .toMatchObject({ excludeTT: 'true' })
     expect(markdown).toContain('**TT frames**: barred')
     expect(markdown).toContain('**Drafting**: no - ridden solo')
     // The page's own rules line leads the answer here too.
-    expect(markdown).toContain('WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time is for riding solo. '
-      + 'ZwiftBikes predicts the Tron with Tron wheels is the best bike and wheels for ')
+    expect(markdown).toMatch(/WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time is for riding solo\. ZwiftBikes predicts the .+ is the best bike and wheels for /)
   })
 
   it('ranks the first category group and names the others', async () => {
-    stubFetch(path => (path.startsWith('/api/recommend/') ? rankingResponse() : ROUTE))
-    const markdown = await markdownDocumentFor(POINTS)!(CONTEXT)
+    // Paused: what is under test is the groups, which the document lists
+    // whether or not there is a ranking to print above them.
+    const markdown = await markdownDocumentFor(POINTS)!(PAUSED)
 
     expect(markdown).toContain('What bike should I ride for')
     expect(markdown).toContain('A/B (ranked above)')
@@ -251,24 +306,19 @@ describe('the race document', () => {
   })
 
   it('404s a race the organiser has not published', async () => {
-    stubFetch(() => ROUTE)
-    await expect(markdownDocumentFor('/events/zrl-2026-27/not-a-race')!(CONTEXT)).rejects.toThrow()
+    await expect(markdownDocumentFor('/events/zrl-2026-27/not-a-race')!(CONTEXT)).rejects.toMatchObject({ statusCode: 404 })
   })
 })
 
 describe('the index documents', () => {
   it('lists the whole catalog with the slugs the API takes', async () => {
-    stubFetch(path => (path === '/api/routes'
-      ? { routes: [{ ...ROUTE }] }
-      : { segments: [SEGMENT] }))
-
     const home = await markdownDocumentFor('/')!(CONTEXT)
-    expect(home).toContain('## Every route (1)')
-    expect(home).toContain('[Hilly Route](https://zwift-bikes-pr-1.workers.dev/routes/watopia-hilly-route)')
-    expect(home).toContain('`watopia-hilly-route`')
+    expect(home).toMatch(/## Every route \(\d{3,}\)/)
+    expect(home).toContain('[Watopia Hilly Route](https://zwift-bikes-pr-1.workers.dev/routes/hilly-route)')
+    expect(home).toContain('`hilly-route`')
 
     const segments = await markdownDocumentFor('/segments')!(CONTEXT)
-    expect(segments).toContain('## Every climb and sprint (1)')
+    expect(segments).toMatch(/## Every climb and sprint \(\d{2,}\)/)
     expect(segments).toContain('[Alpe du Zwift](https://zwift-bikes-pr-1.workers.dev/segments/alpe-du-zwift)')
   })
 })

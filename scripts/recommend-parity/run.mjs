@@ -54,10 +54,13 @@ const load = specifier => jiti.import(path.join(repoRoot, specifier))
 const routeHandler = (await load('server/api/recommend/[slug].get.ts')).default
 const segmentHandler = (await load('server/api/recommend/segments/[slug].get.ts')).default
 const routeInfoHandler = (await load('server/api/routes/[slug].get.ts')).default
+const segmentInfoHandler = (await load('server/api/segments/[slug].get.ts')).default
 const timing = await load('server/utils/timing.ts')
 const catalog = await load('shared/utils/catalog.ts')
 const routeSegments = await load('shared/utils/routeSegments.ts')
 const mcpTools = await load('server/utils/mcp/tools.ts')
+const siteFlags = await load('shared/utils/siteFlags.ts')
+const markdownDocuments = await load('server/utils/markdown/documents.ts')
 
 // h3's `getQuery` reads `event.path`, and `markPhase`/`addTimingMeta` key off
 // the event object's identity - a plain object is all either needs.
@@ -238,9 +241,13 @@ await runCase('segment--stall-422', 'segment', 'alpe-du-zwift', STALLING_RIDER)
 cases += 2
 
 // ------------------------------------------------------------- the MCP tools
-// The MCP adapter reaches both endpoints over Nitro's in-process `$fetch`, so
-// dispatching that stub at the same handlers exercises the tools' formatting
-// against this tree's pipeline.
+// Since #289 the recommend tools rank in process through the Ride ranking
+// module, so on a tree from then on they never call `$fetch`. Before that
+// they reached both endpoints over Nitro's in-process `$fetch`; the stub
+// below dispatches those calls at the same handlers, so a baseline from
+// before #289 still exercises its tools against its own pipeline and the
+// two sides' tool output can be compared. Only such a baseline needs it: once
+// `main` is past #289 and #290, the stub can go.
 globalThis.$fetch = async (fetchPath, options = {}) => {
   const query = options.query ?? {}
   const search = new URLSearchParams()
@@ -261,6 +268,10 @@ globalThis.$fetch = async (fetchPath, options = {}) => {
     currentSlug = decodeURIComponent(fetchPath.slice('/api/routes/'.length))
     return routeInfoHandler(event)
   }
+  if (fetchPath.startsWith('/api/segments/')) {
+    currentSlug = decodeURIComponent(fetchPath.slice('/api/segments/'.length))
+    return segmentInfoHandler(event)
+  }
   throw new Error(`unstubbed $fetch: ${fetchPath}`)
 }
 
@@ -272,9 +283,47 @@ const mcpCases = [
   ['mcp--recommend_for_segment', 'recommend_for_segment', { segment: firstSegment, weightKg: 75, heightCm: 175, wkg: 8 }],
   ['mcp--recommend_for_segment-race', 'recommend_for_segment', { segment: firstSegment, weightKg: 75, heightCm: 175, wkg: 8, draftMode: 'race' }]
 ]
+// The flags the transport reads on the request: the defaults, nothing
+// paused. A tree from before #289 ignores `killSwitches` on the context.
+const mcpContext = { killSwitches: siteFlags.DEFAULT_SITE_FLAGS.killSwitches }
 for (const [name, tool, args] of mcpCases) {
-  const result = await mcpTools.callTool(tool, args, {})
+  const result = await mcpTools.callTool(tool, args, mcpContext)
   write(name, { tool, args, result })
+  cases++
+}
+
+// ------------------------------------------------------ the markdown documents
+// The ranking documents, whole: the ranking they print and every word around
+// it. Since #290 they rank in process through the Ride ranking module and
+// read the catalog directly; before that they `$fetch`ed the catalog and
+// recommend endpoints, which the stub above dispatches at the same handlers.
+// The context carries both spellings of "nothing paused": `killSwitches`
+// for a tree from #290 on, `recommendPaused` for one before it. The second
+// can go once `main` is past #290.
+const markdownContext = {
+  origin: 'https://zwiftbikes.com',
+  siteUrl: 'https://zwiftbikes.com',
+  killSwitches: siteFlags.DEFAULT_SITE_FLAGS.killSwitches,
+  recommendPaused: false
+}
+const sprintSegment = rides.find(r => r.kind === 'segment' && routeSegments.getSegmentSummary(r.slug)?.type === 'sprint')?.slug
+const markdownPages = [
+  `/routes/${firstRoute}`,
+  `/segments/${firstSegment}`,
+  ...(sprintSegment && sprintSegment !== firstSegment ? [`/segments/${sprintSegment}`] : []),
+  // A Race of Truth (no TT frames, no draft) and a points race (no TT frames).
+  '/events/zrl-2026-27/round-1-week-1',
+  '/events/zrl-2026-27/round-1-week-3'
+]
+for (const page of markdownPages) {
+  const render = markdownDocuments.markdownDocumentFor(page)
+  let record
+  try {
+    record = { ok: true, markdown: await render(markdownContext) }
+  } catch (error) {
+    record = { ok: false, error: { statusCode: error.statusCode ?? null, message: error.message ?? null } }
+  }
+  write(`markdown--${page.slice(1).replaceAll('/', '--')}`, { page, ...record })
   cases++
 }
 

@@ -67,7 +67,21 @@ If phase durations ever read as implausible zeros on a deployed Worker while
 
 Non-API requests (SSR page renders) get `path`, `status`, `totalMs` and an
 empty `phases` - useful on its own, since a page render's own internal API
-call is logged as its own nested line.
+call is logged as its own nested line. The in-process rankers are the
+exception: the MCP recommend tools and the markdown documents rank through
+the Ride ranking module with no internal API call, and pass it their own
+request, so a ranking asked for over MCP carries its phases and fields on the
+`/api/mcp` line itself (issue #289), and one a markdown document prints
+carries them on the page URL's line - `/routes/{slug}`, `/segments/{slug}`,
+`/events/{season}/{race}` (issue #290).
+
+Two error events sit beside the request lines, each one JSON line via
+`console.error` with `message` and `stack`: `mcp-tool-error` (with `tool`)
+when an MCP tool throws, and `markdown-ranking-error` (with `course` -
+`route` or `segment` - and its `slug`) when a markdown document's ranking
+throws. The document itself only says its ranking "could not be computed",
+the same words a rider who stalls gets, so the line is the only place a
+fault - the defaults drifting from the query schema, say - shows up.
 
 **Nothing rider-identifying is logged.** The query string is dropped before
 the line is written - `/api/recommend/*` carries weight, height and w/kg in

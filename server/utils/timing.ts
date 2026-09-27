@@ -109,10 +109,11 @@ export async function advanceClock(): Promise<void> {
  *
  * A no-op when no timer was started for this event, which is the normal case
  * during prerendering (the plugin sits out that pass entirely) - so handlers
- * can mark unconditionally.
+ * can mark unconditionally. Also a no-op with no event at all: a ranking run
+ * in process on behalf of no request (see `rankRide`) has nothing to time.
  */
-export async function markPhase(event: H3Event, phase: string): Promise<void> {
-  const timing = timings.get(event)
+export async function markPhase(event: H3Event | undefined, phase: string): Promise<void> {
+  const timing = event && timings.get(event)
   if (!timing) return
   await advanceClock()
   const now = performance.now()
@@ -121,8 +122,8 @@ export async function markPhase(event: H3Event, phase: string): Promise<void> {
 }
 
 /** Adds request-shape fields to the log line. Never anything rider-identifying - see the plugin. */
-export function addTimingMeta(event: H3Event, fields: Record<string, TimingMetaValue>): void {
-  const timing = timings.get(event)
+export function addTimingMeta(event: H3Event | undefined, fields: Record<string, TimingMetaValue>): void {
+  const timing = event && timings.get(event)
   if (!timing) return
   Object.assign(timing.meta, fields)
 }

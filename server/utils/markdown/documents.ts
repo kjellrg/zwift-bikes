@@ -1,4 +1,7 @@
-import type { BikeCategory, ComboScore, RouteSummary, RouteWithMeta, SegmentSummary } from '../../../shared/types/catalog'
+import type { H3Event } from 'h3'
+import { createError } from 'h3'
+import type { BikeCategory, ComboScore, RouteSummary } from '../../../shared/types/catalog'
+import { getRouteBySlug, getRoutesWithMeta, toRouteSummary } from '../../../shared/utils/catalog'
 import {
   categoryGroup,
   draftingAllowed,
@@ -13,22 +16,17 @@ import {
   raceDisplayName,
   ttBikesAllowed
 } from '../../../shared/utils/events'
-import { TTT_DEFAULT_RIDERS } from '../../../shared/utils/physics/draft'
+import { BIKE_CATEGORY_WORDS } from '../../../shared/utils/bikeCategories'
 import { rideRulesLine } from '../../../shared/utils/raceRules'
 import { buildRecommendationAnswer } from '../../../shared/utils/recommendationAnswer'
-import { RECOMMEND_MAX_LIMIT } from '../../../shared/utils/recommendLimits'
-import { DEFAULT_HEIGHT_CM, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, DEFAULT_WEIGHT_KG } from '../../../shared/utils/riderBounds'
+import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, riderInputsForRide, rideRulesForFormat, type AppliedRiderInputs, type Ride } from '../../../shared/utils/recommendQuery'
 import { computeRouteTotals, maxLapsForRoute } from '../../../shared/utils/routeLaps'
-import { DEFAULT_UNOWNED_LEVEL, MAX_UPGRADE_STAGE } from '../../../shared/utils/upgradeStage'
-import {
-  CONFIDENCE_NOTE,
-  formatComboTable,
-  formatRaceFormatAssumption,
-  formatSurface,
-  type RecommendPagination,
-  type RecommendRouteResponse,
-  type RecommendSegmentResponse
-} from '../mcp/format'
+import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
+import type { SiteFlags } from '../../../shared/utils/siteFlags'
+import { MAX_UPGRADE_STAGE } from '../../../shared/utils/upgradeStage'
+import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from '../apiQuerySchemas'
+import { CONFIDENCE_NOTE, formatComboTable, formatRaceFormatAssumption, formatSurface } from '../mcp/format'
+import { rankRideForQuery, type CourseToRank, type RankingFor, type RideForCourse, type RouteRanking, type SegmentRanking } from '../rankRide'
 
 /**
  * The markdown representation of the site's pages - what a caller that sent
@@ -38,11 +36,11 @@ import {
  *
  * **It is the page, not a summary of it.** A markdown twin that answered a
  * different question from the HTML would be cloaking, and the numbers on a
- * ranking page are the answer. So each ranking document is built from the
- * same endpoints, with the same query, for the same phantom default rider
- * (`shared/utils/riderBounds.ts`) that the prerendered HTML is rendered for -
- * see `defaultRankingQuery`. What a rider reads and what an agent reads are
- * the same ranking.
+ * ranking page are the answer. So each ranking document states its page's
+ * own Ride and ranks it for the rider the prerendered HTML is rendered for,
+ * through the query the page itself sends - see `rankAsThePage`. What a
+ * rider reads and what an agent reads are the same ranking, from the same
+ * cache entry.
  *
  * **It is written for a model deciding what to say next.** The table, the
  * confidence column and the "measured vs estimated" note are the MCP
@@ -50,11 +48,12 @@ import {
  * re-derived: the two surfaces answer the same question for the same kind of
  * reader, and one formatter means a fix to either lands in both.
  *
- * Reaching the catalog and the ranking through Nitro's in-process `$fetch`
- * is deliberate and mirrors the MCP adapter: the recommend orchestration has
- * exactly one implementation, and a ranking fetched this way rides the
- * endpoint's own edge cache (`server/utils/recommendCache.ts`), so the
- * expensive part of a markdown request is paid once per route per deploy.
+ * The catalog is read directly and the ranking comes from the Ride ranking
+ * module (`server/utils/rankRide.ts`) in process, as the MCP tools and the
+ * recommend endpoints get theirs (issue #290): one implementation of the
+ * ranking, its kill switch and its edge cache, so the expensive part of a
+ * markdown request is paid once per Ride per deploy - and not at all when
+ * the page's own request for the default rider already paid it.
  */
 
 /** What a document needs from the request it is being rendered for. */
@@ -73,15 +72,20 @@ export interface MarkdownRenderContext {
    */
   siteUrl: string
   /**
-   * Whether the recommend kill switch is on (`killSwitches.recommend` in
-   * `server/utils/siteFlags.ts`). Passed in rather than read here for the
-   * same reason the MCP tools take it on their `RpcContext`: this module
-   * reaches the ranking through Nitro's in-process `$fetch`, and an internal
-   * event carries no KV binding, so `site-flags-gate.ts` never fires for it.
-   * A data incident is exactly when a ranking must not slip out of a side
-   * door, and this is that door.
+   * The site flags' kill switches, as `getSiteFlags` read them on the
+   * request being answered. Handed to the Ride ranking module, which honours
+   * `killSwitches.recommend` itself, before its cache: a data incident is
+   * exactly when a ranking must not slip out of a side door, and a document
+   * never passes `site-flags-gate.ts`, which only guards the endpoints.
    */
-  recommendPaused: boolean
+  killSwitches: SiteFlags['killSwitches']
+  /**
+   * The request being answered, if any. The module writes its cache entry
+   * off the critical path through this request's `waitUntil`, and its
+   * timings land on this request's log line. Nothing in a document depends
+   * on it.
+   */
+  event?: H3Event
 }
 
 /**
@@ -92,46 +96,60 @@ export interface MarkdownRenderContext {
 export type MarkdownDocument = (context: MarkdownRenderContext) => Promise<string>
 
 /**
- * The query the prerendered HTML of a ranking page was rendered with:
- * `buildRecommendQuery` in `app/utils/recommendRequest.ts` applied to the
- * composable defaults, with no garage and no stored preferences, because
- * neither exists until the browser hydrates.
- *
- * Kept as its own function with this comment attached because the values are
- * a contract with the client, not choices: `category: 'standard'` and
- * `verifiedOnly` are `usePreferences`' seeds, `maxWheelsetsPerFrame: 1` and
- * `limit` are what one page of results is, and a change to any of them on
- * the client silently makes this document a ranking no rider is shown.
+ * A document's ranking: the page's, or why there is none to print.
  */
-interface RankingQuery {
-  category: BikeCategory
-  limit: number
-  maxWheelsetsPerFrame: number
-  offset: number
-  verifiedOnly: 'true' | 'false'
-  includeHalo: 'true' | 'false'
-  defaultUnownedLevel: number
-  weightKg: number
-  heightCm: number
-  powerW: number
-  /** Routes and races only; a segment is ridden once from its timed start. */
-  laps?: number
-  /** A LEGALITY filter a race format fixes, never a display trim - see `ttBikesAllowed`. */
-  excludeTT?: 'true'
-}
+type DocumentRanking<T extends RouteRanking | SegmentRanking>
+  = | { ranking: T }
+    | { unavailable: 'paused' | 'failed' }
 
-function defaultRankingQuery(powerW: number): RankingQuery {
-  return {
-    category: 'standard',
-    limit: RECOMMEND_MAX_LIMIT,
-    maxWheelsetsPerFrame: 1,
-    offset: 0,
-    verifiedOnly: 'true',
-    includeHalo: 'false',
-    defaultUnownedLevel: DEFAULT_UNOWNED_LEVEL,
-    weightKg: DEFAULT_WEIGHT_KG,
-    heightCm: DEFAULT_HEIGHT_CM,
-    powerW
+/**
+ * Ranks a page's own Ride the way the page does before any profile has
+ * loaded: `buildRecommendQuery` - the browser's own builder - applied to
+ * `DEFAULT_RIDER_INPUTS`, the seeds the page's composables start from, then
+ * parsed with the endpoint's own schema and handed to the Ride ranking
+ * module exactly as the endpoint hands it over (`rankRideForQuery`, as
+ * `recommendHttp.ts` calls it).
+ *
+ * That is the whole anti-cloaking contract in one function. The query is not
+ * a copy of the client's but the client's, and nothing here builds ranking
+ * options by hand, so the document ranks the rider, category, verification,
+ * Halo rule and Race format rules the page ranks - and reaches the cache
+ * entry the page's own request writes, since the module keys that on the
+ * parsed question.
+ *
+ * Every way of not answering leaves the document serving its facts: paused
+ * is the kill switch, and a stall (an outcome) or a throw (a fault) is a
+ * ranking that could not be computed. A throw is logged first, as one JSON
+ * line in the shape `mcp-tool-error` uses: the document's note reads the
+ * same for both, and without the line a fault - the defaults drifting from
+ * the schema, say - would turn every document into "could not be computed"
+ * with nothing to say why.
+ */
+async function rankAsThePage<C extends CourseToRank>(
+  course: C,
+  ride: Ride,
+  { killSwitches, event }: MarkdownRenderContext
+): Promise<DocumentRanking<RankingFor<RideForCourse<C>>>> {
+  const target = course as CourseToRank
+  try {
+    const query = target.kind === 'route'
+      ? recommendRouteQuerySchema.parse(buildRecommendQuery(DEFAULT_RIDER_INPUTS, ride))
+      : recommendSegmentQuerySchema.parse(buildRecommendQuery(DEFAULT_RIDER_INPUTS, ride))
+    const outcome = await rankRideForQuery(course, query, { killSwitches, event })
+    switch (outcome.status) {
+      case 'answer': return { ranking: outcome.ranking }
+      case 'paused': return { unavailable: 'paused' }
+      case 'stall': return { unavailable: 'failed' }
+    }
+  } catch (error) {
+    console.error(JSON.stringify({
+      evt: 'markdown-ranking-error',
+      course: target.kind,
+      slug: target.kind === 'route' ? target.route.slug : target.segment.slug,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    }))
+    return { unavailable: 'failed' }
   }
 }
 
@@ -142,47 +160,41 @@ function defaultRankingQuery(powerW: number): RankingQuery {
  * quoting a finish time has to be able to attribute it, or it will present
  * the default rider's time as the reader's.
  */
-function defaultRiderNote(powerW: number): string {
-  const wkg = (powerW / DEFAULT_WEIGHT_KG).toFixed(2)
-  return `Ranked for the site's default rider - ${DEFAULT_WEIGHT_KG} kg, ${DEFAULT_HEIGHT_CM} cm, ${powerW} W (${wkg} W/kg), riding solo - because a request carries no profile. `
+function defaultRiderNote(rider: AppliedRiderInputs): string {
+  const wkg = (rider.powerW / rider.weightKg).toFixed(2)
+  return `Ranked for the site's default rider - ${rider.weightKg} kg, ${rider.heightCm} cm, ${rider.powerW} W (${wkg} W/kg), ${draftWords(rider)} - because a request carries no profile. `
     + 'Every time below scales with those three numbers, so quote them alongside any time you repeat, and rank the reader\'s own with the API described at the end.'
 }
 
 /**
  * The answer, from the head of the ranking: the same builder the page's
  * visible answer and its FAQ structured data come from
- * (`buildRecommendationAnswer`), fed the same default rider and pool the
- * prerendered HTML is rendered for (`defaultRankingQuery`), so an agent
- * reading this document and a crawler reading the HTML come away with one
- * answer. The assumptions line follows it, as it does on the page.
+ * (`buildRecommendationAnswer`), fed what the page feeds it
+ * (`useRecommendationAnswer`, `rankingPageAnswerRide`) - the Applied rider
+ * for this Ride, the default restrictions and the Ride's own rules - so an
+ * agent reading this document and a crawler reading the HTML come away with
+ * one answer. The assumptions line follows it, as it does on the page.
  */
 function answerLine(
-  ranking: RecommendRouteResponse | RecommendSegmentResponse,
-  ride: { rideName: string, distanceKm?: number, powerW: number, laps?: number, rideRules?: string }
+  ranking: RouteRanking | SegmentRanking,
+  ride: Ride,
+  course: { rideName: string, distanceKm?: number }
 ): string | undefined {
-  const query = defaultRankingQuery(ride.powerW)
+  const restrictions = DEFAULT_RIDER_INPUTS
   const answer = buildRecommendationAnswer({
     ranking: ranking.combos.slice(0, 2),
     fastestOverall: ranking.fastestOverall,
-    distanceKm: ride.distanceKm,
-    rideName: ride.rideName,
-    rideRules: ride.rideRules,
-    rider: {
-      weightKg: query.weightKg,
-      heightCm: query.heightCm,
-      powerW: query.powerW,
-      draftMode: 'solo',
-      tttRiders: TTT_DEFAULT_RIDERS,
-      tttClimbWkg: undefined,
-      category: query.category
-    },
+    distanceKm: course.distanceKm,
+    rideName: course.rideName,
+    rideRules: ride.raceFormat ? rideRulesLine(ride.raceFormat) : undefined,
+    rider: riderInputsForRide(restrictions, ride),
     laps: ride.laps,
-    verifiedOnly: query.verifiedOnly === 'true',
-    includeHaloBikes: query.includeHalo === 'true',
-    myBikesOnly: false,
-    ownsFrames: false,
-    ownsWheels: false,
-    search: ''
+    verifiedOnly: restrictions.verifiedOnly,
+    includeHaloBikes: restrictions.includeHaloBikes,
+    myBikesOnly: restrictions.myBikesOnly,
+    ownsFrames: Object.keys(restrictions.owned).length > 0,
+    ownsWheels: Object.keys(restrictions.ownedWheels).length > 0,
+    search: restrictions.search
   })
   return answer && `${answer.summary}\n\n${answer.assumptions}`
 }
@@ -211,9 +223,9 @@ function nextSteps(origin: string): string[] {
  * be simulated (a rider who cannot hold the grade at that power), and an
  * agent that cannot distinguish them will retry the wrong one.
  */
-function rankingUnavailable(rankingAnswered: boolean, recommendPaused: boolean): string {
-  if (recommendPaused) return '_Rankings are temporarily paused for maintenance. The facts below are current; try again shortly._'
-  if (rankingAnswered) return '_No verified frame and wheel combination matched. Gravel and fun bikes have no bot-test data, so a verified-only ranking excludes them._'
+function rankingUnavailable(result: DocumentRanking<RouteRanking | SegmentRanking>): string {
+  if (!('unavailable' in result)) return '_No verified frame and wheel combination matched. Gravel and fun bikes have no bot-test data, so a verified-only ranking excludes them._'
+  if (result.unavailable === 'paused') return '_Rankings are temporarily paused for maintenance. The facts below are current; try again shortly._'
   return '_The ranking could not be computed for this request. Try again shortly, or use the API below._'
 }
 
@@ -225,7 +237,7 @@ function rankingUnavailable(rankingAnswered: boolean, recommendPaused: boolean):
  * with a higher `offset`", and there is no call and no argument here. A
  * document names the page and the endpoint that pages instead.
  */
-function depthNote(pagination: RecommendPagination, origin: string): string {
+function depthNote(pagination: RouteRanking['pagination'], origin: string): string {
   const last = pagination.offset + pagination.returned
   if (!pagination.hasMore) return `That is every combination that qualified (${last}).`
   return `These are the ${last} fastest; the page itself loads more on demand, and \`${origin}/api/recommend/...\` takes \`offset\` and \`limit\` for the rest.`
@@ -247,21 +259,64 @@ function rankingHeader(question: string, answer: string, canonical: string): str
 }
 
 /**
+ * How the default rider rides the Ride, as the rider note says it: the
+ * Applied draft mode, which is the default's own unless the Ride's Race
+ * format rules the draft out.
+ */
+function draftWords(rider: AppliedRiderInputs): string {
+  switch (rider.draftMode) {
+    case 'solo': return 'riding solo'
+    case 'ttt': return `riding in a ${rider.tttRiders}-rider TTT paceline`
+    case 'race': return 'riding in a race bunch'
+  }
+}
+
+/**
+ * The frame kinds the category line names, in the order it names them, as a
+ * sentence says each. Hand cycles are not named in the list, which has never
+ * named them.
+ */
+const CATEGORY_LINE_ORDER: readonly BikeCategory[] = ['standard', 'tt', 'gravel', 'funbike']
+const FRAME_KIND_WORDS: Record<BikeCategory, string> = { ...BIKE_CATEGORY_WORDS, funbike: 'fun' }
+
+/** "a, b and c". */
+function listWords(words: string[]): string {
+  return words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`
+}
+
+/** The category the ranking was drawn from - the default's, made legal for the Ride. */
+function categoryAssumption(category: BikeCategory | 'all'): string {
+  if (category === 'all') return '- Every bike category the ride allows.'
+  const word = BIKE_CATEGORY_WORDS[category]
+  const others = CATEGORY_LINE_ORDER.filter(other => other !== category).map(other => FRAME_KIND_WORDS[other])
+  return `- ${word.charAt(0).toUpperCase()}${word.slice(1)} bikes only (the site's default category); ${listWords(others)} frames are ranked when asked for explicitly.`
+}
+
+/**
  * Filters and assumptions the ranking was produced under, as bullets. Every
  * one of them narrows what "fastest" means, and a model relaying the answer
  * without them would overstate it - the same reasoning that puts these on
  * the page as the recommendation's small print.
+ *
+ * Each line follows `DEFAULT_RIDER_INPUTS` - the category and draft through
+ * the Applied rider, which is those defaults made legal for the Ride - so a
+ * changed default changes what the document says it ranked. The one line
+ * that does not is "one row per frame": that cap is `buildRecommendQuery`'s
+ * own, sent with every request, not a rider default.
  */
-function rankingAssumptions(powerW: number, extra: string[]): string[] {
+function rankingAssumptions(rider: AppliedRiderInputs, extra: string[]): string[] {
+  const { defaultUnownedLevel: stage, verifiedOnly, includeHaloBikes } = DEFAULT_RIDER_INPUTS
   return [
     '',
-    '- Road bikes only (the site\'s default category); TT, gravel and fun frames are ranked when asked for explicitly.',
-    '- Verified equipment only: frames and wheels whose numbers come from real ZwiftInsider bot tests.',
-    `- Every frame assumed at Zwift upgrade stage ${DEFAULT_UNOWNED_LEVEL} of ${MAX_UPGRADE_STAGE}${DEFAULT_UNOWNED_LEVEL === MAX_UPGRADE_STAGE ? ' (fully upgraded)' : DEFAULT_UNOWNED_LEVEL === 0 ? ' (stock, as bought)' : ''}, and unowned Halo frames excluded.`,
+    categoryAssumption(rider.category),
+    verifiedOnly
+      ? '- Verified equipment only: frames and wheels whose numbers come from real ZwiftInsider bot tests.'
+      : '- Verified and estimated equipment: frames and wheels with no bot-test data are ranked on heuristic estimates.',
+    `- Every frame assumed at Zwift upgrade stage ${stage} of ${MAX_UPGRADE_STAGE}${stage === MAX_UPGRADE_STAGE ? ' (fully upgraded)' : stage === 0 ? ' (stock, as bought)' : ''}${includeHaloBikes ? ', with the purchasable Halo frames included' : ', and unowned Halo frames excluded'}.`,
     '- One row per frame, paired with its own fastest wheelset for this ride.',
     ...extra,
     '',
-    defaultRiderNote(powerW)
+    defaultRiderNote(rider)
   ]
 }
 
@@ -278,9 +333,9 @@ function facts(entries: (string | undefined)[]): string[] {
  * ride does.
  */
 function rankingSection(
-  ranking: { combos: ComboScore[], pagination: RecommendPagination } | undefined,
+  ranking: { combos: ComboScore[], pagination: RouteRanking['pagination'] } | undefined,
   unavailable: string,
-  powerW: number,
+  rider: AppliedRiderInputs,
   extraAssumptions: (string | undefined)[],
   origin: string
 ): string[] {
@@ -288,7 +343,7 @@ function rankingSection(
   if (!ranking) return [heading, '', unavailable, '']
   return [
     heading,
-    ...rankingAssumptions(powerW, facts(extraAssumptions)),
+    ...rankingAssumptions(rider, facts(extraAssumptions)),
     '',
     formatComboTable(ranking.combos, ranking.pagination.offset + 1),
     '',
@@ -306,37 +361,38 @@ function physicsSection(ranking: { physics?: { note: string } } | undefined): st
   return ranking?.physics ? ['## How these times were computed', '', ranking.physics.note, ''] : []
 }
 
-async function renderRouteDocument(slug: string, { origin, siteUrl, recommendPaused }: MarkdownRenderContext): Promise<string> {
-  const route = await $fetch<RouteWithMeta>(`/api/routes/${encodeURIComponent(slug)}`)
+async function renderRouteDocument(slug: string, context: MarkdownRenderContext): Promise<string> {
+  const { origin, siteUrl } = context
+  const route = getRouteBySlug(slug)
+  if (!route) throw createError({ statusCode: 404, statusMessage: `Route "${slug}" not found` })
   const canonical = `${siteUrl}/routes/${route.slug}`
-  // One lap is what the page's lap picker starts on and therefore what its
-  // prerendered ranking is for; `computeRouteTotals` adds the lead-in, which
-  // is ridden once and is the difference between the route's published
-  // distance and the distance actually raced.
+  // The page's Ride (`app/pages/routes/[slug].vue`): one lap is what its lap
+  // picker starts on and therefore what its prerendered ranking is for.
+  // `computeRouteTotals` adds the lead-in, which is ridden once and is the
+  // difference between the route's published distance and the distance
+  // actually raced.
+  const ride: Ride = { course: { kind: 'route', slug: route.slug }, laps: 1 }
+  const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
   const totals = computeRouteTotals(route, 1)
   const question = `What's the fastest bike for ${route.name}?`
 
   // A ranking is the point of the page but not a precondition for the
-  // document: the kill switch can pause recommendations
-  // (`server/middleware/site-flags-gate.ts`) and a rider who cannot hold the
-  // grade makes the simulator refuse (422). Either way the route's own facts
-  // are still worth serving, and an agent gets an honest "not right now"
-  // instead of a 5xx.
-  const ranking = recommendPaused
-    ? undefined
-    : await $fetch<RecommendRouteResponse>(`/api/recommend/${encodeURIComponent(route.slug)}`, {
-        query: { ...defaultRankingQuery(DEFAULT_POWER_W), laps: 1 }
-      }).catch(() => undefined)
+  // document: the kill switch can pause recommendations and a rider who
+  // cannot hold the grade makes the simulator refuse. Either way the route's
+  // own facts are still worth serving, and an agent gets an honest "not
+  // right now" instead of a 5xx.
+  const result = await rankAsThePage({ kind: 'route', route }, ride, context)
+  const ranking = 'ranking' in result ? result.ranking : undefined
 
-  const unavailable = rankingUnavailable(ranking !== undefined, recommendPaused)
+  const unavailable = rankingUnavailable(result)
   const lines = [
-    ...rankingHeader(question, (ranking && answerLine(ranking, { rideName: `${route.name} in ${route.worldName}`, distanceKm: totals.distanceKm, powerW: DEFAULT_POWER_W, laps: 1 })) ?? unavailable, canonical),
+    ...rankingHeader(question, (ranking && answerLine(ranking, ride, { rideName: `${route.name} in ${route.worldName}`, distanceKm: totals.distanceKm })) ?? unavailable, canonical),
     '',
     `${route.name} is a ${route.terrain.category} route in ${route.worldName}: ${totals.distanceKm.toFixed(1)} km and ${Math.round(totals.elevationM)} m of climbing for one lap, lead-in included.`,
     ''
   ]
 
-  lines.push(...rankingSection(ranking, unavailable, DEFAULT_POWER_W, ['- One lap, including the lead-in once.'], origin))
+  lines.push(...rankingSection(ranking, unavailable, rider, ['- One lap, including the lead-in once.'], origin))
 
   lines.push(
     '## The route',
@@ -374,35 +430,36 @@ async function renderRouteDocument(slug: string, { origin, siteUrl, recommendPau
   return [...lines, ...nextSteps(origin), ''].join('\n')
 }
 
-async function renderSegmentDocument(slug: string, { origin, siteUrl, recommendPaused }: MarkdownRenderContext): Promise<string> {
-  // The segment endpoint carries the synthetic segment-as-route alongside the
-  // summary, which is where a climb's surface mix and terrain live.
-  const segment = await $fetch<SegmentSummary & { route: RouteWithMeta }>(`/api/segments/${encodeURIComponent(slug)}`)
+async function renderSegmentDocument(slug: string, context: MarkdownRenderContext): Promise<string> {
+  const { origin, siteUrl } = context
+  const segment = getSegmentSummary(slug)
+  if (!segment) throw createError({ statusCode: 404, statusMessage: `Segment "${slug}" not found` })
+  // The synthetic segment-as-route is where a climb's surface mix lives.
+  const surface = routeWithMetaForSegment(segment).surface
   const canonical = `${siteUrl}/segments/${segment.slug}`
-  // A sprint is ridden at the rider's sprint power, never at race pace - the
-  // same substitution `ridePowerW` makes for the page, and the reason a
-  // sprint document quotes a different W figure from a climb's.
-  const powerW = segment.type === 'sprint' ? DEFAULT_SPRINT_POWER_W : DEFAULT_POWER_W
+  // The page's Ride (`app/pages/segments/[slug].vue`), with no Race format -
+  // a clean link has no `?rules=`. A sprint is ridden at the rider's sprint
+  // power, never at race pace (`ridePowerW`), which is why a sprint document
+  // quotes a different W figure from a climb's.
+  const ride: Ride = { course: { kind: 'segment', slug: segment.slug }, power: segment.type === 'sprint' ? 'sprint' : 'race' }
+  const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
   const question = `What's the fastest bike for ${segment.name}?`
 
-  const ranking = recommendPaused
-    ? undefined
-    : await $fetch<RecommendSegmentResponse>(`/api/recommend/segments/${encodeURIComponent(segment.slug)}`, {
-        query: defaultRankingQuery(powerW)
-      }).catch(() => undefined)
+  const result = await rankAsThePage({ kind: 'segment', segment }, ride, context)
+  const ranking = 'ranking' in result ? result.ranking : undefined
 
   const elevationM = Math.round(segment.measuredElevationM ?? segment.elevationM)
   const gradePercent = (segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)
 
-  const unavailable = rankingUnavailable(ranking !== undefined, recommendPaused)
+  const unavailable = rankingUnavailable(result)
   const lines = [
-    ...rankingHeader(question, (ranking && answerLine(ranking, { rideName: `the ${segment.name} ${segment.type} in ${segment.worldName}`, distanceKm: segment.lengthKm, powerW })) ?? unavailable, canonical),
+    ...rankingHeader(question, (ranking && answerLine(ranking, ride, { rideName: `the ${segment.name} ${segment.type} in ${segment.worldName}`, distanceKm: segment.lengthKm })) ?? unavailable, canonical),
     '',
     `${segment.name} is a ${segment.type} in ${segment.worldName}: ${segment.lengthKm.toFixed(1)} km at ${gradePercent}% average grade, ${elevationM} m of elevation.`,
     ''
   ]
 
-  lines.push(...rankingSection(ranking, unavailable, powerW, [
+  lines.push(...rankingSection(ranking, unavailable, rider, [
     '- The timed segment only, excluding any warm-up: it is simulated after a flat run-up so it is entered at racing speed rather than from a standstill, which is how a Zwift or Strava segment is actually ridden.',
     segment.type === 'sprint' ? '- Ridden at sprint power, not race pace - a sprint is a different effort from a route.' : undefined
   ], origin))
@@ -416,7 +473,7 @@ async function renderSegmentDocument(slug: string, { origin, siteUrl, recommendP
       `- **World**: ${segment.worldName}`,
       `- **Length**: ${segment.lengthKm.toFixed(1)} km`,
       `- **Elevation**: ${elevationM} m at ${gradePercent}% average`,
-      `- **Surface**: ${formatSurface(segment.route.surface)}`,
+      `- **Surface**: ${formatSurface(surface)}`,
       // `membership` means no host route publishes where along itself the
       // segment sits, so its length and grade come from the segment's own
       // record - the page captions the ranking the same way rather than
@@ -456,7 +513,8 @@ async function renderSegmentDocument(slug: string, { origin, siteUrl, recommendP
  * one group is a complete answer for the riders in it, and the others are
  * listed beside it with their own courses and lap counts.
  */
-async function renderRaceDocument(seasonSlug: string, raceSlug: string, { origin, siteUrl, recommendPaused }: MarkdownRenderContext): Promise<string> {
+async function renderRaceDocument(seasonSlug: string, raceSlug: string, context: MarkdownRenderContext): Promise<string> {
+  const { origin, siteUrl } = context
   const season = getSeasonBySlug(seasonSlug)
   const race = season ? getRaceBySlug(seasonSlug, raceSlug) : undefined
   // The same gate the prerender list and the sitemap use: a race the
@@ -478,36 +536,34 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, { origin
   // A group whose course the catalog does not have (ZRL runs C/D on an
   // unlisted "exclusive" route in week 6) can still be described, just not
   // ranked - the page makes the same distinction.
-  const course = courseSlug
-    ? await $fetch<RouteWithMeta>(`/api/routes/${encodeURIComponent(courseSlug)}`).catch(() => undefined)
+  const course = courseSlug ? getRouteBySlug(courseSlug) : undefined
+  // The page's Ride (`app/pages/events/[season]/[race].vue`): the group's
+  // course and laps, and every rule the Race format fixes - the TT-frame bar
+  // AND the draft. `buildRecommendQuery` makes the default rider legal for
+  // them exactly as it does for the page's own request, so a format with no
+  // draft is ranked solo whatever the default draft mode is.
+  const ride: Ride | undefined = course
+    ? { course: { kind: 'route', slug: course.slug }, laps, ...rideRulesForFormat(race.format) }
     : undefined
+  const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
 
-  const ranking = recommendPaused || !course
-    ? undefined
-    : await $fetch<RecommendRouteResponse>(`/api/recommend/${encodeURIComponent(course.slug)}`, {
-        query: {
-          ...defaultRankingQuery(DEFAULT_POWER_W),
-          laps,
-          // Not a display trim: `category` cannot express "road AND gravel
-          // but never TT", which is what a points or scratch race allows.
-          excludeTT: ttBikesAllowed(race.format) ? undefined : 'true'
-        }
-      }).catch(() => undefined)
+  const result = course && ride ? await rankAsThePage({ kind: 'route', route: course }, ride, context) : undefined
+  const ranking = result && 'ranking' in result ? result.ranking : undefined
 
   const totals = course ? computeRouteTotals(course, laps) : undefined
   const rideName = course ? `${laps} lap${laps === 1 ? '' : 's'} of ${course.name}` : (group?.routeName ?? 'this race')
-  const unavailable = course
-    ? rankingUnavailable(ranking !== undefined, recommendPaused)
+  const unavailable = result
+    ? rankingUnavailable(result)
     : '_This group races a route the catalog does not carry, so no ranking can be computed for it._'
 
   const lines = [
-    ...rankingHeader(question, (ranking && course && answerLine(ranking, { rideName: `${rideName} in ${course.worldName}`, distanceKm: totals?.distanceKm, powerW: DEFAULT_POWER_W, laps, rideRules: rideRulesLine(race.format) })) ?? unavailable, canonical),
+    ...rankingHeader(question, (ranking && course && ride && answerLine(ranking, ride, { rideName: `${rideName} in ${course.worldName}`, distanceKm: totals?.distanceKm })) ?? unavailable, canonical),
     '',
     `${title} is a ${RACE_FORMAT_LABELS[race.format].toLowerCase()} on ${race.date}${course ? `, over ${rideName} in ${course.worldName}` : ''}.`,
     ''
   ]
 
-  lines.push(...rankingSection(ranking, unavailable, DEFAULT_POWER_W, [
+  lines.push(...rankingSection(ranking, unavailable, rider, [
     `- ${formatCategoryGroup(group ?? { cats: [], label: 'the first group' })}: ${laps} lap${laps === 1 ? '' : 's'}${totals ? `, ${totals.distanceKm.toFixed(1)} km and ${Math.round(totals.elevationM)} m` : ''}.`,
     // The format's consequence spelled out, from the same wording the MCP
     // tools give a model - an override a reader cannot see is one they will
@@ -559,7 +615,8 @@ function routeTable(routes: RouteSummary[], origin: string): string[] {
 }
 
 async function renderHomeDocument({ origin, siteUrl }: MarkdownRenderContext): Promise<string> {
-  const { routes } = await $fetch<{ routes: RouteSummary[] }>('/api/routes')
+  // What `/api/routes` lists with no filters: every route, by name.
+  const routes = getRoutesWithMeta().map(toRouteSummary).sort((a, b) => a.name.localeCompare(b.name))
   return [
     '# ZwiftBikes - the fastest bike and wheelset for any Zwift route',
     '',
@@ -593,7 +650,7 @@ async function renderHomeDocument({ origin, siteUrl }: MarkdownRenderContext): P
 }
 
 async function renderSegmentsDiscoveryDocument({ origin, siteUrl }: MarkdownRenderContext): Promise<string> {
-  const { segments } = await $fetch<{ segments: SegmentSummary[] }>('/api/segments')
+  const segments = getAllSegmentSummaries()
   return [
     '# Zwift climbs and sprints',
     '',

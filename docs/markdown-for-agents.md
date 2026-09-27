@@ -53,7 +53,7 @@ Every page with a markdown twin is prerendered. On Cloudflare Workers the
 make the `Accept` header unobservable from application code. So
 `assets.run_worker_first` in [wrangler.jsonc](../wrangler.jsonc) lists exactly
 those paths, the Worker runs first for them, and
-[`server/middleware/01.markdown.ts`](../server/middleware/01.markdown.ts)
+[`server/middleware/02.markdown.ts`](../server/middleware/02.markdown.ts)
 decides:
 
 | Request | What happens |
@@ -80,12 +80,43 @@ to the resolver means adding its path to both.**
 ## What a document contains
 
 The same ranking the HTML shows, for the same rider - not a summary of it.
-Each ranking document calls the same recommend endpoint with the same query
-the prerendered page was rendered with (`defaultRankingQuery`, mirroring
-`buildRecommendQuery` on the client) and for the same phantom default rider
-from [`shared/utils/riderBounds.ts`](../shared/utils/riderBounds.ts). Serving
-an agent a different answer from the one a person sees would be cloaking, and
-the numbers are the answer.
+Serving an agent a different answer from the one a person sees would be
+cloaking, and the numbers are the answer.
+
+A ranking document gets its ranking in process, from the Ride ranking module
+([`server/utils/rankRide.ts`](../server/utils/rankRide.ts)) - the same module
+the recommend endpoints and the MCP tools rank through - and never over HTTP.
+It builds its input the way its page's own request is built, from one source
+the page and the document share:
+
+1. **The page's Ride.** The route at one lap (the lap picker's start); the
+   segment at race pace, or at sprint power on a sprint; the race's first
+   Category group's course and laps, with every rule its Race format fixes -
+   the TT-frame bar *and* the draft (`rideRulesForFormat`).
+2. **The page's query.** `buildRecommendQuery` - the browser's own builder -
+   applied to `DEFAULT_RIDER_INPUTS`, the values the page's composables seed
+   their state with: the phantom 75 kg / 175 cm / 225 W rider, solo, road
+   frames, verified equipment only, Halo frames left out, upgrade stage 5,
+   no Garage. Both live in
+   [`shared/utils/recommendQuery.ts`](../shared/utils/recommendQuery.ts), so
+   there is no server-side copy of the client's defaults to drift.
+3. **The endpoint's parse.** The query is parsed with the endpoint's own zod
+   schema and ranked through `rankRideForQuery`, the call the HTTP adapter
+   makes, which translates it with `rankingRequestFromQuery`. Nothing builds
+   ranking options by hand.
+
+The module keys its edge cache on that parsed question, not on a URL, so a
+document and its page's browser request reach **one cache entry**:
+`documents.test.ts` renders a route and a race document and then sends the
+real route endpoint the query string the browser sends for the page, and
+checks the endpoint's cache read is the key the document wrote.
+
+A ranking that is not there leaves the document serving the page's facts
+with a note instead of the table: "temporarily paused" for the kill switch,
+and "could not be computed" for a rider who stalls (an outcome of the
+module) or any other failure (a throw). The note reads the same for both, so
+a throw is also logged as one `markdown-ranking-error` JSON line naming the
+course, its slug and the error - see [observability.md](observability.md).
 
 Three things are said out loud that the page can leave to its UI:
 
@@ -116,10 +147,9 @@ nothing, having been computed at build time.
 A zone rule matched on `/api/recommend`, and the path check in the
 Workers-binding middleware, both key on the request path - and a markdown
 request arrives as `GET /routes/x`. The pipeline run it triggers is invisible
-to the zone for a second and independent reason: it goes out over Nitro's
-in-process `$fetch`, which never crosses the edge and carries no platform
-context (that exemption is deliberate - it is what stops one MCP call costing
-one count per internal fetch it fans out into).
+to the zone for a second and independent reason: it is a function call inside
+the Worker that answered the page URL, so no request for it ever crosses the
+edge.
 
 Telling an agent from a reader needs the `Accept` header, and the path cannot
 stand in for it, because the same URL serves free prerendered HTML to
@@ -150,18 +180,23 @@ is not a negotiated page and runs no physics.
 
 **The recommend kill switch IS applied in app code.**
 `killSwitches.recommend` (see [site flags](site-flags.md)) is read on the
-real request and handed to the document, which then skips the ranking and
-says so — the gate cannot see the in-process `$fetch` either, the same hole
-`mcp.post.ts` closes the same way. Note this makes a paused ranking diverge
+real request and handed to the document, which passes it to the Ride ranking
+module; the module refuses before reading its cache, and the document serves
+its facts and says the ranking is paused. `site-flags-gate.ts` only guards
+the endpoints, which a document never calls - the module's own check is the
+one that counts, as it is for the MCP tools. Note this makes a paused ranking diverge
 from the prerendered HTML at the same URL, which still shows the ranking it
 was built with. That is accepted deliberately: the switch exists to stop
 *live* computation during an incident, and of the two representations only
 the markdown does any.
 
-Beyond that, the ranking rides the recommend endpoint's own edge cache
-(`server/utils/recommendCache.ts`), so the pipeline runs once per route per
-deploy per colo, not once per request. `/llms.txt` touches no physics at all
-and carries a one-hour `Cache-Control`.
+Beyond that, the ranking rides the module's edge cache
+(`server/utils/recommendCache.ts`), so the pipeline runs once per Ride per
+deploy per colo, not once per request - and not at all for a document whose
+page's own request for the default rider has already been answered there,
+since the two share an entry (see above). The document hands the module its request, so the cache write goes
+out through that request's `waitUntil`, off the critical path.
+`/llms.txt` touches no physics at all and carries a one-hour `Cache-Control`.
 
 ## Why not the Cloudflare zone feature
 
@@ -191,8 +226,9 @@ already answered `text/markdown`.
    ever checked.
 4. Rate limiting needs nothing: `01.rate-limit.ts` asks the same resolver,
    so a new document is metered the moment `markdownDocumentFor` knows it.
-5. Cover it in `documents.test.ts` - at minimum that the ranking it fetches is
-   the one the prerendered HTML was rendered with.
+5. Cover it in `documents.test.ts` - at minimum that its ranking reaches the
+   same cache entry as the prerendered page's own request, which it will if
+   it states the page's Ride and ranks it through `rankAsThePage`.
 
 `/about` has no twin on purpose: its content is hand-written prose in a Vue
 file, and a markdown copy would be a second one to keep in step. `/profile`

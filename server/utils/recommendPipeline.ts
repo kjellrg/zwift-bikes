@@ -6,20 +6,20 @@ import { getWheelsets } from '../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../shared/utils/scoring'
 import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../shared/utils/finishTime'
-import { comboPhysicsKey, confirmWheelPicks, draftOf, equipmentPhysics, fastestWheelOfEachKind, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, resolveDraft, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, WHEEL_OPTIONS_ORDER_MARGIN, wheelKind } from '../../shared/utils/physics'
+import { comboPhysicsKey, confirmWheelPicks, equipmentPhysics, fastestWheelOfEachKind, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, resolveDraft, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, WHEEL_OPTIONS_ORDER_MARGIN, wheelKind } from '../../shared/utils/physics'
 import type { RideDraft } from '../../shared/utils/physics'
 import type { ClimbTrade, WheelChoice } from '../../shared/types/rideNotes'
 import { CLIMB_TRADE_GARAGE_SIMS, pickClimbTrade } from './climbTrade'
-import type { RecommendBaseQuery } from './apiQuerySchemas'
+import type { PhysicsMode, RankingRequest } from './rankRide'
 import { addTimingMeta, markPhase } from './timing'
 import { upgradeFinishTimesSec } from './upgradeFinishTimes'
 
 export type { RecommendRide, RidePhysics, SimulateComboOptions } from '../../shared/types/recommendRide'
 
 /**
- * The one implementation of the recommend orchestration, shared by
- * `server/api/recommend/[slug].get.ts` and
- * `server/api/recommend/segments/[slug].get.ts` (issue #77).
+ * The one implementation of the recommend orchestration (issue #77), run by
+ * the Ride ranking module `server/utils/rankRide.ts` for every caller - the
+ * route and segment recommend endpoints are its HTTP adapter (issue #288).
  *
  * Ownership/verified/Halo filtering, ranking, the estimate re-rank,
  * search-vs-cap, the simulated-time re-ordering, pagination, the page's own
@@ -82,16 +82,20 @@ export interface RecommendPipelineResult {
    * `summary`/`note` sentences that describe how its own ride was modeled.
    */
   physics?: {
-    mode: RecommendBaseQuery['physics']
+    mode: PhysicsMode
     ttt?: TttDisclosure
     race?: RaceDisclosure
     rider: { weightKg: number, heightCm: number, powerW: number }
   }
 }
 
+/**
+ * `event` is only where the phase timings and the timing meta go - absent
+ * when the ranking answers no request of its own (see `markPhase`).
+ */
 export async function runRecommendPipeline(
-  event: H3Event,
-  query: RecommendBaseQuery,
+  event: H3Event | undefined,
+  request: RankingRequest,
   ride: RecommendRide
 ): Promise<RecommendPipelineResult> {
   const { route, laps } = ride
@@ -111,13 +115,15 @@ export async function runRecommendPipeline(
     return simulateRoute(options)
   }
 
+  const { options } = request
   const {
-    search: listSearch, category, limit, offset, verifiedOnly, includeHalo,
-    maxWheelsetsPerFrame, wheelsForFrame, ownedOnly, owned: ownedLevels, ownedWheels: ownedWheelKeys,
-    defaultUnownedLevel, physics: physicsMode
-  } = query
+    search: listSearch, category, verifiedOnly, includeHalo,
+    maxWheelsetsPerFrame, wheelsForFrame, unownedUpgradeStage, physics: physicsMode
+  } = options
+  const { offset, limit } = options.page
+  const { ownedOnly, frames: ownedStages, wheels: ownedWheelKeys } = options.garage
   // The Draft the rider chose (see `CONTEXT.md`), before it meets the ride.
-  const setting = draftOf(query)
+  const setting = options.draft
   // A drill-down ignores the list's `search`: the rider is asking what else
   // fits THIS bike, and a term that matched the frame's own name would
   // otherwise cut the wheel list down to the wheels that happen to share it.
@@ -133,19 +139,19 @@ export async function runRecommendPipeline(
   // added something of that kind - with no bikes (or no wheels) in the
   // garage yet, fall back to showing all of them instead of filtering down
   // to zero results.
-  const filterFramesByOwnership = ownedOnly && Object.keys(ownedLevels).length > 0
+  const filterFramesByOwnership = ownedOnly && Object.keys(ownedStages).length > 0
   const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
-  // The schema guarantees the profile arrives complete and in bounds or not
-  // at all. The zero fallbacks are never read: every consumer below is gated
-  // on `hasRiderProfile`, exactly as the old code's NaN values were.
-  const hasRiderProfile = query.weightKg !== undefined && query.heightCm !== undefined && query.powerW !== undefined
-  const weightKg = query.weightKg ?? 0
-  const heightCm = query.heightCm ?? 0
-  const powerW = query.powerW ?? 0
+  // The rider arrives complete or not at all (the query schema refuses a
+  // partial profile). The zero fallbacks are never read: every consumer below
+  // is gated on `hasRiderProfile`, exactly as the old code's NaN values were.
+  const hasRiderProfile = request.rider !== undefined
+  const weightKg = request.rider?.weightKg ?? 0
+  const heightCm = request.rider?.heightCm ?? 0
+  const powerW = request.rider?.powerW ?? 0
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
-  const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
+  const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedStages).map(f => f.name))
 
   // True when `frame` is a purchasable Halo bike the ranked pool should not
   // show. Bypassed while searching - a directed search must always be able to
@@ -169,12 +175,11 @@ export async function runRecommendPipeline(
     // bike's name. `fastestOverall` never sees the difference - it is gated
     // on an unsearched request.
     if (!search && isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
-    if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
+    if (filterFramesByOwnership && !(frame.id.toString() in ownedStages)) return false
     return true
   }).map((frame) => {
-    const ownedLevel = ownedLevels[frame.id.toString()]
-    const level = ownedLevel === undefined ? defaultUnownedLevel : ownedLevel
-    return level === 0 ? frame : classifyBikeFrame(frame, level)
+    const stage = ownedStages[frame.id.toString()] ?? unownedUpgradeStage
+    return stage === 0 ? frame : classifyBikeFrame(frame, stage)
   })
   let wheelsets = getWheelsets().filter((wheelset) => {
     if (filterWheelsetsByOwnership && !ownedWheelKeys.has(wheelset.key)) return false
@@ -514,7 +519,7 @@ export async function runRecommendPipeline(
   // timed once, for at most `CLIMB_TRADE_GARAGE_SIMS` of them.
   let climbTrade: ClimbTrade | undefined
   if (answersRank1 && setting.mode === 'race' && ride.climbs.length > 0) {
-    const garageFrameIds = new Set(Object.keys(ownedLevels).map(Number))
+    const garageFrameIds = new Set(Object.keys(ownedStages).map(Number))
     const candidates: ComboScore[] = []
     if (garageFrameIds.size > 0) {
       const seenFrames = new Set<number>()

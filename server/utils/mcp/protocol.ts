@@ -1,3 +1,5 @@
+import type { H3Event } from 'h3'
+import type { SiteFlags } from '../../../shared/utils/siteFlags'
 import { callTool, listTools } from './tools'
 
 /**
@@ -66,14 +68,21 @@ export interface JsonRpcResponse {
 export interface RpcContext {
   sessionId?: string
   /**
-   * `killSwitches.recommend` from the runtime site flags, read once per
-   * request by the transport. The recommend tools reach their endpoints
-   * through Nitro's in-process `$fetch`, whose events carry no Workers
-   * platform context and therefore no KV binding - so the middleware gate
-   * that 503s `/api/recommend/**` never sees those calls, and the flag has
-   * to travel with the request instead (issue #154).
+   * The runtime site flags' kill switches, read once per request by the
+   * transport (`getSiteFlags` on the `/api/mcp` request itself). The
+   * recommend tools hand them to the Ride ranking module, which answers
+   * `paused` under `killSwitches.recommend` - the same check the recommend
+   * endpoints go through, so a tool ranking in process cannot skip it
+   * (issues #154, #289).
    */
-  recommendPaused?: boolean
+  killSwitches: SiteFlags['killSwitches']
+  /**
+   * The `/api/mcp` request, when there is one: the Ride ranking module
+   * writes its cache off the critical path through the request's platform
+   * context, and records its phase timings on it. Nothing a tool answers
+   * depends on it.
+   */
+  event?: H3Event
 }
 
 export function errorResponse(id: string | number | null, code: number, message: string): JsonRpcResponse {

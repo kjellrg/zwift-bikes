@@ -54,14 +54,16 @@ import { getSiteFlags } from '../utils/siteFlags'
  * The budget is not at the zone because matching a header in a
  * rate-limiting rule needs Advanced Rate Limiting - full reasoning there.
  *
- * **The recommend kill switch IS applied here**, read on the real request
- * and handed to the document, for the same reason `mcp.post.ts` reads it
- * (issue #154): that same in-process `$fetch` carries no KV binding, so
- * `site-flags-gate.ts` is blind to it. This does mean a paused ranking
- * diverges from the prerendered HTML at the same URL, which still shows the
- * ranking it was built with - accepted on purpose. The switch exists to
- * stop LIVE computation during an incident, and the markdown is the only
- * one of the two representations doing any.
+ * **The recommend kill switch IS applied**, by the Ride ranking module the
+ * documents rank through in process (`server/utils/rankRide.ts`, issue
+ * #290): the flags are read here on the real request and handed to the
+ * document with the event, as `mcp.post.ts` does for the MCP tools, because
+ * `site-flags-gate.ts` only guards the endpoints and a document never
+ * passes it. This does mean a paused ranking diverges from the prerendered
+ * HTML at the same URL, which still shows the ranking it was built with -
+ * accepted on purpose. The switch exists to stop LIVE computation during an
+ * incident, and the markdown is the only one of the two representations
+ * doing any.
  */
 
 /**
@@ -137,7 +139,7 @@ export default defineEventHandler(async (event) => {
   // (it warns about exactly this in dev). nuxt.config.ts feeds both from one
   // literal, so they cannot drift.
   const siteUrl = useRuntimeConfig(event).siteUrl.replace(/\/+$/, '')
-  const markdown = await render({ origin, siteUrl, recommendPaused: killSwitches.recommend })
+  const markdown = await render({ origin, siteUrl, killSwitches, event })
 
   setResponseHeaders(event, {
     'Content-Type': MARKDOWN_CONTENT_TYPE,
