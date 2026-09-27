@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { eventSeasonSchema } from '#shared/utils/events'
-import { nextRaceLink } from './nextRaceLink'
+import { eventRaceSchema, eventSeasonSchema } from './events'
+import { nextRaceLink, runRaceNotice } from './runRaceNotice'
 
 function race(slug: string, round: number, week: number, date: string, published = true) {
   return {
@@ -95,5 +95,41 @@ describe('where a run race points a rider next', () => {
       label: 'Races still to come',
       to: '/events'
     })
+  })
+})
+
+/**
+ * The whole notice a run race's page shows above its title, and its markdown
+ * twin above its own: one builder, so the two say the same thing in the same
+ * words (issue #281).
+ */
+describe('what a run race\'s page says above its title', () => {
+  it('says when it was raced, where to go next and where the route is', () => {
+    expect(runRaceNotice(season, week1 as typeof week1 & { format: 'points' }, '2026-09-23')).toEqual({
+      title: 'This race has been run',
+      ranOn: 'Round 1 Week 1 was raced on Tue 22 Sept. The ranking below still holds for this route under points race rules.',
+      next: { lead: 'Next ZRL race:', label: 'Week 2, Tue 29 Sept', to: '/events/zrl-2026-27/round-1-week-2' },
+      route: { lead: 'The route on its own:', label: 'Fastest bike for Some Route', to: '/routes/some-route' }
+    })
+  })
+
+  it('gives a week-long stage its window, and says "these routes" when its groups ride more than one', () => {
+    const stage = eventRaceSchema.parse({
+      slug: 'september-stage-2',
+      round: 1,
+      week: 2,
+      date: '2026-09-14',
+      endDate: '2026-09-20',
+      format: 'rot',
+      categories: [
+        { cats: ['A', 'B'], routeSlug: 'first-route', routeName: 'First Route', laps: 1 },
+        { cats: ['C', 'D'], routeName: 'An Exclusive Route', laps: 1 }
+      ],
+      updatedAt: '2026-08-01'
+    })
+    const notice = runRaceNotice(season, stage as typeof stage & { format: 'rot' }, '2026-09-21')
+    expect(notice.ranOn).toBe('Stage 2 was raced over 14-20 Sept. The ranking below still holds for these routes under Race of Truth rules.')
+    // The route link is the first group the catalog has, as the page's is.
+    expect(notice.route).toEqual({ lead: 'The route on its own:', label: 'Fastest bike for First Route', to: '/routes/first-route' })
   })
 })

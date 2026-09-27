@@ -1,6 +1,6 @@
 import { getRoutesWithMeta } from '../../shared/utils/catalog'
 import { getAllSegmentSummaries } from '../../shared/utils/routeSegments'
-import { getIndexedRaces, getSeasons } from '../../shared/utils/events'
+import { getIndexedRaces, getIndexedSeasons } from '../../shared/utils/events'
 
 /** One entry in the sitemap. */
 export interface SitemapUrl {
@@ -17,7 +17,10 @@ export interface SitemapUrl {
 export function sitemapUrls(today: string): SitemapUrl[] {
   const routeUrls = getRoutesWithMeta().map(route => ({ loc: `/routes/${route.slug}` }))
   const segmentUrls = getAllSegmentSummaries().map(segment => ({ loc: `/segments/${segment.slug}` }))
-  const seasonUrls = getSeasons().map(season => ({ loc: `/events/${season.slug}` }))
+  // A season only while it has anything left to run, by the same rule as a
+  // race below: a run season's page stays up but is noindex.
+  // `getIndexedSeasons()` is the list the prerender list reads too.
+  const seasonUrls = getIndexedSeasons(today).map(season => ({ loc: `/events/${season.slug}` }))
   // Only races the organiser has actually published details for - an
   // unannounced race has no page to point at - and only while they are still
   // to run: a run race's page stays up but is noindex, and a sitemap that

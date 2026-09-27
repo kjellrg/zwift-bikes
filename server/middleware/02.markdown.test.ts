@@ -146,6 +146,15 @@ describe('a request that asked for markdown', () => {
     expect(event.responseHeaders.Link).toBe('<https://zwiftbikes.com/segments>; rel="canonical"')
   })
 
+  it('says nothing about the index for a page that is indexed', async () => {
+    Reflect.set(globalThis, '$fetch', vi.fn(async () => ({ segments: [] })))
+    const event = eventFor('/segments', 'text/markdown')
+
+    await handler(event)
+    // Exactly the headers every twin has always carried, and no robots rule.
+    expect(Object.keys(event.responseHeaders).sort()).toEqual(['Content-Type', 'Link', 'Vary', 'x-markdown-tokens'])
+  })
+
   it('is ignored on a method that cannot read a page', async () => {
     const { spy, binding } = assetsReturning(new Response('', { status: 405 }))
     const event = eventFor('/segments', 'text/markdown', { cloudflare: binding }, 'POST')
@@ -153,5 +162,41 @@ describe('a request that asked for markdown', () => {
     expect(await handler(event)).toBeUndefined()
     expect(spy).not.toHaveBeenCalled()
     expect(event.responseHeaders).toEqual({})
+  })
+})
+
+/**
+ * A run race's page is noindex, so its twin is too (issue #281): the header
+ * goes out only when the document reports it, decided on the real day the
+ * twin is rendered on, since a twin is never prerendered. The clock is held
+ * here, and only the clock - the ranking under it runs as it always does.
+ */
+describe('the twin of a race, on either side of race day', () => {
+  // Round 1 Week 1 of ZRL 2026/27, raced on Tue 22 Sept.
+  const WEEK_1 = '/events/zrl-2026-27/round-1-week-1'
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('carries no robots rule while the race is still to run', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-22T21:00:00Z') })
+    const event = eventFor(WEEK_1, 'text/markdown')
+
+    const body = await handler(event) as string
+    expect(body).not.toContain('This race has been run')
+    expect(event.responseHeaders['X-Robots-Tag']).toBeUndefined()
+  })
+
+  it('is noindex, follow the day after, as its page is', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-23T01:00:00Z') })
+    const event = eventFor(WEEK_1, 'text/markdown')
+
+    const body = await handler(event) as string
+    expect(body.startsWith('> **This race has been run**')).toBe(true)
+    expect(event.responseHeaders['X-Robots-Tag']).toBe('noindex, follow')
+    // Still the twin, with everything a twin carries.
+    expect(event.responseHeaders['Content-Type']).toBe('text/markdown; charset=utf-8')
+    expect(event.responseHeaders.Link).toBe(`<https://zwiftbikes.com${WEEK_1}>; rel="canonical"`)
   })
 })

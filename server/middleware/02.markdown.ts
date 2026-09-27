@@ -1,3 +1,4 @@
+import { eventsRenderDay } from '../../shared/utils/events'
 import { isWorkerFirstPath, markdownDocumentFor } from '../utils/markdown/documents'
 import { estimateTokens, MARKDOWN_CONTENT_TYPE, prefersMarkdown } from '../utils/markdown/negotiate'
 import { getSiteFlags } from '../utils/siteFlags'
@@ -139,7 +140,13 @@ export default defineEventHandler(async (event) => {
   // (it warns about exactly this in dev). nuxt.config.ts feeds both from one
   // literal, so they cannot drift.
   const siteUrl = useRuntimeConfig(event).siteUrl.replace(/\/+$/, '')
-  const markdown = await render({ origin, siteUrl, killSwitches, event })
+  // The real day, since a twin is never prerendered: a race's twin decides by
+  // it whether its race has been run, as its page does. On the dev server
+  // `EVENTS_TODAY` pins it, read the way `useToday` reads it for the pages,
+  // so a browser journey can ask for the twin of a race run on the pinned
+  // day. `import.meta.dev` compiles the pin out of a production build.
+  const today = eventsRenderDay(import.meta.dev ? process.env.EVENTS_TODAY : undefined)
+  const { markdown, noindex } = await render({ origin, siteUrl, killSwitches, today, event })
 
   setResponseHeaders(event, {
     'Content-Type': MARKDOWN_CONTENT_TYPE,
@@ -153,7 +160,11 @@ export default defineEventHandler(async (event) => {
     // markdown body has nowhere to put a `<link rel="canonical">`, and an
     // agent that indexes this needs to attribute it to the URL a person
     // would be sent to.
-    'Link': `<${siteUrl}${path}>; rel="canonical"`
+    'Link': `<${siteUrl}${path}>; rel="canonical"`,
+    // Only when the document says its page is noindex - a run race's, whose
+    // page sends the same rule - so every other twin's headers are what they
+    // always were. `follow`, as the page's: its links are where to go next.
+    ...(noindex ? { 'X-Robots-Tag': 'noindex, follow' } : {})
   })
   return markdown
 })

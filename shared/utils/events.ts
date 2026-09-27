@@ -430,6 +430,23 @@ export function getIndexedRaces(today: string): PublishableRace[] {
 }
 
 /**
+ * The season pages the site puts forward on `today`: every visible season
+ * less the seasons that have been run (`seasonHasBeenRun`), as
+ * `getIndexedRaces` is for race pages and for the same reasons. A run season
+ * keeps its page at its URL, where it says that it has finished and points to
+ * the hub, but the page is noindex, and the sitemap and the prerender list
+ * both read this, so neither lists it and the two cannot disagree. Off the
+ * prerender list, its page is rendered by the server on the real day, which
+ * is what puts the noindex in its served HTML and its header.
+ *
+ * `getSeasons()` keeps meaning every visible season, run or not: a season
+ * page and the hub read that, and decide what has been run themselves.
+ */
+export function getIndexedSeasons(today: string): EventSeason[] {
+  return getSeasons().filter(season => !seasonHasBeenRun(season, today))
+}
+
+/**
  * How a format is named wherever one is shown or written out. Here beside
  * `RaceFormat` rather than in `app/utils/labels.ts`, where it used to live,
  * for the reason `formatDuration` moved to `shared/utils/duration.ts`: the
@@ -513,6 +530,16 @@ export function categoryGroupRacing(race: EventRace, routeSlug: string | undefin
 }
 
 /**
+ * Every course the race's groups ride, by its published name, once each and
+ * in the order the organiser lists the groups. What a race's page names in its
+ * title and what its run notice counts ("this route" or "these routes"), so
+ * the two cannot disagree about how many courses a race has.
+ */
+export function raceRouteNames(race: Pick<EventRace, 'categories'>): string[] {
+  return [...new Set(race.categories.map(group => group.routeName).filter((name): name is string => Boolean(name)))]
+}
+
+/**
  * The race's primary route - the first group's, skipping any leading groups
  * on a route the catalog doesn't have, so a race whose A/B route is unlisted
  * still titles itself off a route that exists.
@@ -564,6 +591,25 @@ export function hasBeenRun(race: Pick<EventRace, 'date' | 'endDate'>, today: str
 /** The UTC calendar day of an instant, as the ISO date every `today` here is. */
 export function isoDay(now: Date): string {
   return now.toISOString().slice(0, 10)
+}
+
+/**
+ * The day the server renders the events pages on, and a race page's markdown
+ * twin: `pinned` when one is given, the real UTC day of `now` otherwise. One
+ * function so a page (`useToday` in the app) and a twin (the markdown
+ * middleware) read the dev pin the same way and cannot disagree about which
+ * races have been run.
+ *
+ * The pin is `EVENTS_TODAY`, and it is each caller's to read, behind
+ * `import.meta.dev`, so it is compiled out of a production build and no
+ * deployed environment can set it. That is how the browser journeys hold the
+ * dev server to one calendar day whatever the real date is. A pin that is not
+ * an ISO date throws, rather than rendering on a day nobody meant.
+ */
+export function eventsRenderDay(pinned: string | undefined, now: Date = new Date()): string {
+  if (!pinned) return isoDay(now)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(pinned)) throw new Error(`EVENTS_TODAY must be an ISO date (YYYY-MM-DD), got "${pinned}"`)
+  return pinned
 }
 
 /** The ISO date `days` after `isoDate`, in UTC days, so no clock change moves it. */

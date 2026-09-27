@@ -4,11 +4,13 @@ import {
   categoryGroup,
   categoryGroupRacing,
   eventSeasonSchema,
+  eventsRenderDay,
   draftingAllowed,
   eventRaceSchema,
   formatCategoryGroup,
   getAllSeasons,
   getIndexedRaces,
+  getIndexedSeasons,
   getNextUpcomingRace,
   getPublishableRaces,
   getSeasonBySlug,
@@ -481,5 +483,34 @@ describe('the curated seasons themselves', () => {
       const all = getPublishableRaces().map(r => r.race.date).sort((a, b) => a.localeCompare(b))
       expect(upcoming.race.date).toBe(all[0])
     }
+  })
+})
+
+describe('the seasons the site puts forward on a day', () => {
+  // ZRL 2026/27's last race is Round 4 Week 6, on Tue 6 Apr 2027, and every
+  // round on its calendar has races on it.
+  const indexed = (today: string) => getIndexedSeasons(today).map(season => season.slug)
+
+  it('puts a season forward through the day of its last race, and not after', () => {
+    expect(indexed('2027-04-06')).toContain('zrl-2026-27')
+    expect(indexed('2027-04-07')).not.toContain('zrl-2026-27')
+  })
+
+  it('puts every visible season forward before any of them has been run', () => {
+    expect(indexed('2000-01-01')).toEqual(getSeasons().map(season => season.slug))
+  })
+})
+
+describe('the day the events pages and a race\'s twin are rendered on', () => {
+  const now = new Date('2026-09-27T23:30:00Z')
+
+  it('is the real UTC day, unless a day is pinned', () => {
+    expect(eventsRenderDay(undefined, now)).toBe('2026-09-27')
+    expect(eventsRenderDay('', now)).toBe('2026-09-27')
+    expect(eventsRenderDay('2027-04-08', now)).toBe('2027-04-08')
+  })
+
+  it('refuses a pin that is not an ISO date, rather than render on a day nobody meant', () => {
+    expect(() => eventsRenderDay('8 April 2027', now)).toThrow('EVENTS_TODAY must be an ISO date (YYYY-MM-DD), got "8 April 2027"')
   })
 })

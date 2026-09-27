@@ -452,7 +452,11 @@ test.describe('event discovery', () => {
         raceLinks: [...doc.querySelectorAll('a[href^="/events/zrl-2026-27/"]')].map(link => link.getAttribute('href')),
         rows: [...doc.querySelectorAll('main section ol > li')].map(row => row.textContent ?? ''),
         stats: [...doc.querySelector('main ul')?.children ?? []].map(stat => stat.textContent?.replace(/\s+/g, ' ').trim()),
-        text: doc.querySelector('main')?.textContent ?? ''
+        text: doc.querySelector('main')?.textContent ?? '',
+        // The dev server marks every page noindex, nofollow (it is not the
+        // site) and keeps what production would say beside it.
+        robots: (robots => robots?.getAttribute('data-production-content') ?? robots?.getAttribute('content'))(doc.querySelector('meta[name="robots"]')),
+        structuredData: [...doc.querySelectorAll('script[type="application/ld+json"]')].map(script => JSON.parse(script.textContent ?? '{}')['@type'])
       }
     }, html)
     expect(served.heading).toBe('Zwift Racing League 2026/27 schedule')
@@ -467,5 +471,11 @@ test.describe('event discovery', () => {
     expect(served.rows.join(' ')).not.toContain('Week 1')
     expect(served.stats).toEqual(['5 races left in Round 1', '18 more in Rounds 2-4', 'Calendar runs to Tue 6 Apr'])
     expect(served.text).not.toMatch(/Past races|Completed/)
+    // A season with races still to come is put forward as it always was
+    // (issue #282 changes only a season that has been run, which the server's
+    // day here is months short of: that is held in `sitemapUrls.test.ts` and
+    // `events.test.ts`, through `getIndexedSeasons`).
+    expect(served.robots).toMatch(/^index, follow/)
+    expect(served.structuredData).toEqual(expect.arrayContaining(['BreadcrumbList', 'ItemList']))
   })
 })

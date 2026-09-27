@@ -1,5 +1,5 @@
 import { groupRoundsByAnnouncement, hasBeenRun, isOnUnknownCourse, isRacePublishable, raceEndDate, raceNameInRound, raceWhen, roundState, sortRacesByDate, type EventRace, type EventRound, type EventSeason, type RaceWhen } from '#shared/utils/events'
-import { formatRaceDateShort } from './labels'
+import { formatRaceDateShort } from '#shared/utils/raceDates'
 
 /** A race on the events hub's list, with the season it links under and the tag its row carries. */
 export interface HubRace<Race> {

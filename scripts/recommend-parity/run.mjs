@@ -299,12 +299,16 @@ for (const [name, tool, args] of mcpCases) {
 // recommend endpoints, which the stub above dispatches at the same handlers.
 // The context carries both spellings of "nothing paused": `killSwitches`
 // for a tree from #290 on, `recommendPaused` for one before it. The second
-// can go once `main` is past #290.
+// can go once `main` is past #290. `today` is held before every curated race,
+// so both trees render a race's live twin whatever the real date (from #281 a
+// run race's twin carries a notice above its title), and a tree before #281
+// ignores it.
 const markdownContext = {
   origin: 'https://zwiftbikes.com',
   siteUrl: 'https://zwiftbikes.com',
   killSwitches: siteFlags.DEFAULT_SITE_FLAGS.killSwitches,
-  recommendPaused: false
+  recommendPaused: false,
+  today: '2026-09-01'
 }
 const sprintSegment = rides.find(r => r.kind === 'segment' && routeSegments.getSegmentSummary(r.slug)?.type === 'sprint')?.slug
 const markdownPages = [
@@ -319,7 +323,10 @@ for (const page of markdownPages) {
   const render = markdownDocuments.markdownDocumentFor(page)
   let record
   try {
-    record = { ok: true, markdown: await render(markdownContext) }
+    // A document returns its markdown with its noindex from #281 on, and the
+    // bare markdown before it; the markdown is what is compared.
+    const rendered = await render(markdownContext)
+    record = { ok: true, markdown: typeof rendered === 'string' ? rendered : rendered.markdown }
   } catch (error) {
     record = { ok: false, error: { statusCode: error.statusCode ?? null, message: error.message ?? null } }
   }

@@ -1,5 +1,5 @@
 import { roundsLeftToRun, type EventRound } from '#shared/utils/events'
-import { formatRaceDateShort } from './labels'
+import { formatRaceDateShort } from '#shared/utils/raceDates'
 
 /** One figure in a season page's header: a number to set in bold, when there is one, and the words after it. */
 export interface SeasonStat {

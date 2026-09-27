@@ -193,48 +193,11 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
 // page already reaches for a label.
 export { RACE_FORMAT_LABELS, raceFormatPhrase }
 
-/**
- * Race day, e.g. `Tuesday 22 September 2026`.
- *
- * Locale and time zone are pinned rather than left to the runtime: these
- * pages are prerendered, so a build machine formatting in one locale and a
- * browser formatting in another produces a hydration mismatch. UTC also
- * keeps the ISO date in the calendar data from sliding a day either way.
- */
-export function formatRaceDate(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC'
-  })
-}
-
-/** Compact race day for dense listings, e.g. `Tue 22 Sep`. */
-export function formatRaceDateShort(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC'
-  })
-}
-
-/**
- * A race window for week-long stages (ZRacing), e.g. `10-16 Aug` or
- * `31 Aug - 6 Sep` across a month boundary. Single-day races just get their
- * short date. Same pinned-locale/UTC rules as `formatRaceDate`.
- */
-export function formatRaceDateRange(isoDate: string, isoEndDate?: string): string {
-  if (!isoEndDate || isoEndDate === isoDate) return formatRaceDateShort(isoDate)
-  const from = new Date(`${isoDate}T12:00:00Z`)
-  const to = new Date(`${isoEndDate}T12:00:00Z`)
-  const sameMonth = from.getUTCMonth() === to.getUTCMonth() && from.getUTCFullYear() === to.getUTCFullYear()
-  const day = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' })
-  const dayMonth = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-  return sameMonth ? `${day(from)}-${dayMonth(to)}` : `${dayMonth(from)} - ${dayMonth(to)}`
-}
+// `formatRaceDate`, `formatRaceDateShort` and `formatRaceDateRange` now live
+// in `shared/utils/raceDates.ts`, so the markdown twin of a run race can
+// write its dates in the page's own words (issue #281). Pages and components
+// now reach them through Nuxt's auto-import of `shared/utils`; plain modules
+// import them from `#shared/utils/raceDates`.
 
 /**
  * The six upgrade stages as every stage select lists them - the garage's,

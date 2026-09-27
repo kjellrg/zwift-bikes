@@ -22,10 +22,16 @@ describe('the sitemap on a given day', () => {
     expect(locs('2026-09-30')).not.toContain('/events/zrl-2026-27/round-1-week-2')
   })
 
-  it('keeps the pages that are not races, whatever the day', () => {
+  it('keeps a season page until its last race has been run, and drops it the day after', () => {
+    // ZRL 2026/27's last race is Round 4 Week 6, on Tue 6 Apr 2027. The page
+    // stays up, noindex, so the sitemap must not ask for it to be crawled.
+    expect(locs('2027-04-06')).toContain('/events/zrl-2026-27')
+    expect(locs('2027-04-07')).not.toContain('/events/zrl-2026-27')
+  })
+
+  it('keeps the pages that are neither races nor seasons, whatever the day', () => {
     const urls = locs('2027-05-01')
     expect(urls).toContain('/events')
-    expect(urls).toContain('/events/zrl-2026-27')
     expect(urls).toContain('/routes/hilly-route')
     expect(urls).toContain('/segments/alpe-du-zwift')
     expect(urls.filter(loc => /^\/events\/[^/]+\/[^/]+$/.test(loc))).toEqual([])

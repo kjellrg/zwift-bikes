@@ -9,6 +9,7 @@ import {
   getRaceBySlug,
   getRoundForRace,
   getSeasonBySlug,
+  hasBeenRun,
   isRacePublishable,
   RACE_FORMAT_LABELS,
   lapsForCategoryGroup,
@@ -18,6 +19,7 @@ import {
 } from '../../../shared/utils/events'
 import { BIKE_CATEGORY_WORDS } from '../../../shared/utils/bikeCategories'
 import { rideRulesLine } from '../../../shared/utils/raceRules'
+import { runRaceNotice, type NoticeLink, type RunRaceNotice } from '../../../shared/utils/runRaceNotice'
 import { buildRecommendationAnswer } from '../../../shared/utils/recommendationAnswer'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, riderInputsForRide, rideRulesForFormat, type AppliedRiderInputs, type Ride } from '../../../shared/utils/recommendQuery'
 import { computeRouteTotals, maxLapsForRoute } from '../../../shared/utils/routeLaps'
@@ -80,6 +82,14 @@ export interface MarkdownRenderContext {
    */
   killSwitches: SiteFlags['killSwitches']
   /**
+   * The day the document is rendered for, as an ISO date (`isoDay`): what a
+   * race's twin decides by whether its race has been run (`hasBeenRun`), as
+   * its page does. A twin is never prerendered, so the middleware supplies
+   * the real day - or the dev pin the pages honour (`eventsRenderDay`) - and a
+   * test holds it here rather than the document reading the clock.
+   */
+  today: string
+  /**
    * The request being answered, if any. The module writes its cache entry
    * off the critical path through this request's `waitUntil`, and its
    * timings land on this request's log line. Nothing in a document depends
@@ -89,11 +99,27 @@ export interface MarkdownRenderContext {
 }
 
 /**
+ * A rendered twin: its markdown, and whether its page is noindex. The
+ * document says so rather than the middleware re-deriving it, because only
+ * the document knows what its page decided and on which day - today that is
+ * a race page whose race has been run, and every other twin says `false`.
+ */
+export interface RenderedMarkdown {
+  markdown: string
+  noindex: boolean
+}
+
+/**
  * One page's markdown twin. Just the renderer: the path it was resolved from
  * is the caller's already, and handing it back would only invite the two to
  * disagree.
  */
-export type MarkdownDocument = (context: MarkdownRenderContext) => Promise<string>
+export type MarkdownDocument = (context: MarkdownRenderContext) => Promise<RenderedMarkdown>
+
+/** A page that is indexed, as every twin's but a run race's is. */
+function indexed(markdown: string): RenderedMarkdown {
+  return { markdown, noindex: false }
+}
 
 /**
  * A document's ranking: the page's, or why there is none to print.
@@ -500,6 +526,24 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
 }
 
 /**
+ * What a run race's page says above its title (`runRaceNotice`, which the
+ * page renders too), as a blockquote: the notice's title, then its three
+ * parts, each link on the request's origin as every link here is.
+ */
+function runRaceNoticeLines(notice: RunRaceNotice, origin: string): string[] {
+  const link = ({ lead, label, to }: NoticeLink) => `> ${lead} [${label}](${origin}${to})`
+  return [
+    `> **${notice.title}**`,
+    '>',
+    `> ${notice.ranOn}`,
+    '>',
+    link(notice.next),
+    ...(notice.route ? ['>', link(notice.route)] : []),
+    ''
+  ]
+}
+
+/**
  * One race, which is the ranking page a route page cannot stand in for: the
  * organiser's format decides what may be STARTED on, and a recommendation
  * that ignored it would put an illegal bike at the top of the list. That is
@@ -513,8 +557,8 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
  * one group is a complete answer for the riders in it, and the others are
  * listed beside it with their own courses and lap counts.
  */
-async function renderRaceDocument(seasonSlug: string, raceSlug: string, context: MarkdownRenderContext): Promise<string> {
-  const { origin, siteUrl } = context
+async function renderRaceDocument(seasonSlug: string, raceSlug: string, context: MarkdownRenderContext): Promise<RenderedMarkdown> {
+  const { origin, siteUrl, today } = context
   const season = getSeasonBySlug(seasonSlug)
   const race = season ? getRaceBySlug(seasonSlug, raceSlug) : undefined
   // The same gate the prerender list and the sitemap use: a race the
@@ -601,7 +645,14 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
 
   lines.push(...physicsSection(ranking))
 
-  return [...lines, ...nextSteps(origin), ''].join('\n')
+  // A race run by the day this is rendered for is what its page is on that
+  // day: the notice above the title, and noindex. Everything from the title
+  // down is the live twin's, since the page's ranking still holds.
+  const hasRun = hasBeenRun(race, today)
+  return {
+    markdown: [...(hasRun ? runRaceNoticeLines(runRaceNotice(season, race, today), origin) : []), ...lines, ...nextSteps(origin), ''].join('\n'),
+    noindex: hasRun
+  }
 }
 
 /** `| Slug | Name | ... |` for the route catalog, as the homepage lists it. */
@@ -689,18 +740,18 @@ async function renderSegmentsDiscoveryDocument({ origin, siteUrl }: MarkdownRend
  * happen keeps one canonical URL per document instead of two that answer.
  */
 export function markdownDocumentFor(path: string): MarkdownDocument | undefined {
-  if (path === '/') return renderHomeDocument
-  if (path === '/segments') return renderSegmentsDiscoveryDocument
+  if (path === '/') return async context => indexed(await renderHomeDocument(context))
+  if (path === '/segments') return async context => indexed(await renderSegmentsDiscoveryDocument(context))
 
   const route = /^\/routes\/([^/]+)$/.exec(path)
   if (route?.[1]) {
     const slug = decodeURIComponent(route[1])
-    return context => renderRouteDocument(slug, context)
+    return async context => indexed(await renderRouteDocument(slug, context))
   }
   const segment = /^\/segments\/([^/]+)$/.exec(path)
   if (segment?.[1]) {
     const slug = decodeURIComponent(segment[1])
-    return context => renderSegmentDocument(slug, context)
+    return async context => indexed(await renderSegmentDocument(slug, context))
   }
   const race = /^\/events\/([^/]+)\/([^/]+)$/.exec(path)
   if (race?.[1] && race[2]) {

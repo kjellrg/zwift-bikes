@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { getRoutesWithMeta } from './shared/utils/catalog'
-import { getIndexedRaces, getSeasons, isoDay } from './shared/utils/events'
+import { getIndexedRaces, getIndexedSeasons, isoDay } from './shared/utils/events'
 import { getAllSegmentSummaries } from './shared/utils/routeSegments'
 
 /**
@@ -135,14 +135,17 @@ export default defineNuxtConfig({
       // races still to run on the build's day are prerendered -
       // `getIndexedRaces()` is the same source the sitemap uses. A run race
       // keeps its page, rendered by the server on the real day, which is what
-      // marks it noindex and gives it the notice that it has been run.
+      // marks it noindex and gives it the notice that it has been run. A
+      // season follows the same rule through `getIndexedSeasons()`: once
+      // every one of its rounds has been run its page leaves this list, and
+      // the server renders it, noindex, on the real day.
       routes: [
         '/robots.txt',
         '/about',
         '/report',
         '/events',
         '/segments',
-        ...getSeasons().map(season => `/events/${season.slug}`),
+        ...getIndexedSeasons(isoDay(new Date())).map(season => `/events/${season.slug}`),
         ...getIndexedRaces(isoDay(new Date())).map(race => race.path),
         ...getRoutesWithMeta().map(route => `/routes/${route.slug}`),
         ...getAllSegmentSummaries().map(segment => `/segments/${segment.slug}`)
