@@ -67,7 +67,10 @@ If phase durations ever read as implausible zeros on a deployed Worker while
 
 Non-API requests (SSR page renders) get `path`, `status`, `totalMs` and an
 empty `phases` - useful on its own, since a page render's own internal API
-call is logged as its own nested line.
+call is logged as its own nested line. The MCP recommend tools are the
+exception: they rank in process, with no internal API call, so a ranking
+asked for over MCP carries its phases and fields on the `/api/mcp` line
+itself (issue #289).
 
 **Nothing rider-identifying is logged.** The query string is dropped before
 the line is written - `/api/recommend/*` carries weight, height and w/kg in

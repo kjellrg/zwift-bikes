@@ -21,13 +21,14 @@ import { getSiteFlags, KILL_SWITCH_RETRY_AFTER_SEC, RECOMMEND_PAUSED_MESSAGE } f
  * to defaults there and this middleware never blocks a build.
  *
  * The same absence applies to Nitro's in-process `$fetch`: an internal
- * event has no platform context, so the MCP tools' calls to
- * `/api/recommend/**` pass through here ungated. `mcp.post.ts` reads the
- * flags on the real request and the recommend tools refuse on
- * `RpcContext.recommendPaused` themselves (issue #154). For the recommend
- * kill switch this gate is the fast path, not the only check: the Ride
- * ranking module (`server/utils/rankRide.ts`) checks it again for every
- * caller, over HTTP or in process (issue #288).
+ * event has no platform context, so the markdown documents' calls to
+ * `/api/recommend/**` pass through here ungated, and the documents check
+ * the flag on their own render context (until #290). The MCP tools never
+ * come through here: they rank in process, handing the flags `mcp.post.ts`
+ * read on the real request to the Ride ranking module
+ * (`server/utils/rankRide.ts`), which checks the kill switch for every
+ * caller, over HTTP or in process (issues #154, #288, #289). For the
+ * recommend kill switch this gate is the fast path, not the only check.
  */
 
 function unavailable(event: H3Event, message: string): never {

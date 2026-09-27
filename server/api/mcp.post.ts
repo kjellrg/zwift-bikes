@@ -71,10 +71,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // A memo hit: the site-flags gate already read the flags for this very
-  // request. Passed down because the tools' internal fetches cannot read
-  // them - see `RpcContext.recommendPaused`.
+  // request. Passed down, with the request itself, to the Ride ranking
+  // module the recommend tools call - see `RpcContext`.
   const { killSwitches } = await getSiteFlags(event)
-  const response = await handleMessage(message, { sessionId, recommendPaused: killSwitches.recommend })
+  const response = await handleMessage(message, { sessionId, killSwitches, event })
 
   if (!response) {
     // A notification takes no reply at all.

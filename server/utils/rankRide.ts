@@ -170,6 +170,14 @@ export interface SegmentRanking extends RankingBase {
 export type RankingFor<R extends RideToRank> = R extends RouteRide ? RouteRanking : SegmentRanking
 
 /**
+ * What a stall is called wherever it is shown: the recommend endpoints' 422
+ * status text, and the MCP tools' error, each followed by the simulator's own
+ * account of where the rider stopped (the outcome's `message`). One wording
+ * for every course, as the site has always used.
+ */
+export const RIDER_STALLED_MESSAGE = 'Rider cannot finish this route at this power'
+
+/**
  * The three outcomes. `cache` says where an answer came from: `hit`/`miss`
  * against the edge cache, or `off` where there is no cache to use.
  */

@@ -58,6 +58,7 @@ const timing = await load('server/utils/timing.ts')
 const catalog = await load('shared/utils/catalog.ts')
 const routeSegments = await load('shared/utils/routeSegments.ts')
 const mcpTools = await load('server/utils/mcp/tools.ts')
+const siteFlags = await load('shared/utils/siteFlags.ts')
 
 // h3's `getQuery` reads `event.path`, and `markPhase`/`addTimingMeta` key off
 // the event object's identity - a plain object is all either needs.
@@ -238,9 +239,12 @@ await runCase('segment--stall-422', 'segment', 'alpe-du-zwift', STALLING_RIDER)
 cases += 2
 
 // ------------------------------------------------------------- the MCP tools
-// The MCP adapter reaches both endpoints over Nitro's in-process `$fetch`, so
-// dispatching that stub at the same handlers exercises the tools' formatting
-// against this tree's pipeline.
+// Since #289 the recommend tools rank in process through the Ride ranking
+// module, so on a tree from then on they never call `$fetch`. Before that
+// they reached both endpoints over Nitro's in-process `$fetch`; the stub
+// below dispatches those calls at the same handlers, so a baseline from
+// before #289 still exercises its tools against its own pipeline and the
+// two sides' tool output can be compared.
 globalThis.$fetch = async (fetchPath, options = {}) => {
   const query = options.query ?? {}
   const search = new URLSearchParams()
@@ -272,8 +276,11 @@ const mcpCases = [
   ['mcp--recommend_for_segment', 'recommend_for_segment', { segment: firstSegment, weightKg: 75, heightCm: 175, wkg: 8 }],
   ['mcp--recommend_for_segment-race', 'recommend_for_segment', { segment: firstSegment, weightKg: 75, heightCm: 175, wkg: 8, draftMode: 'race' }]
 ]
+// The flags the transport reads on the request: the defaults, nothing
+// paused. A tree from before #289 ignores `killSwitches` on the context.
+const mcpContext = { killSwitches: siteFlags.DEFAULT_SITE_FLAGS.killSwitches }
 for (const [name, tool, args] of mcpCases) {
-  const result = await mcpTools.callTool(tool, args, {})
+  const result = await mcpTools.callTool(tool, args, mcpContext)
   write(name, { tool, args, result })
   cases++
 }

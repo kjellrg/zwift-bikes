@@ -1,11 +1,17 @@
+import { z } from 'zod'
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
+import { getRouteBySlug, getRoutesWithMeta } from '../../../shared/utils/catalog'
 import type { RaceFormat } from '../../../shared/utils/events'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '../../../shared/utils/events'
 import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
 import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
 import { clampLaps, computeRouteTotals, MAX_LAPS, MAX_TOTAL_DISTANCE_KM, maxLapsForRoute } from '../../../shared/utils/routeLaps'
+import { getAllSegmentSummaries, getSegmentSummary } from '../../../shared/utils/routeSegments'
 import { DEFAULT_UNOWNED_LEVEL, toUpgradeStage } from '../../../shared/utils/upgradeStage'
-import { BIKE_CATEGORIES } from '../apiQuerySchemas'
+import type { RecommendBaseQuery } from '../apiQuerySchemas'
+import { BIKE_CATEGORIES, recommendRouteQuerySchema, recommendSegmentQuerySchema } from '../apiQuerySchemas'
+import type { RankingFor, RideToRank } from '../rankRide'
+import { rankingRequestFromQuery, rankRide, RIDER_STALLED_MESSAGE } from '../rankRide'
 import type { RpcContext } from './protocol'
 import {
   CONFIDENCE_NOTE,
@@ -14,9 +20,7 @@ import {
   formatSurface,
   formatRaceAssumption,
   formatRaceFormatAssumption,
-  formatTttAssumption,
-  type RecommendRouteResponse,
-  type RecommendSegmentResponse
+  formatTttAssumption
 } from './format'
 import { getRiderProfile, parseRiderProfile, setRiderProfile, type RiderProfile } from './session'
 
@@ -41,25 +45,14 @@ function failure(body: string): ToolResult {
   return { content: [{ type: 'text', text: body }], isError: true }
 }
 
-/** The wording the gate's own 503 uses, so a paused ranking reads the same from both surfaces. */
-const RECOMMEND_PAUSED_MESSAGE = 'Recommendations are temporarily paused for maintenance. Try again later.'
-
 /**
- * Every tool reaches the catalog and the ranking pipeline through the same
- * HTTP endpoints the web app uses, via Nitro's in-process `$fetch` (no network
- * hop). That keeps a single implementation of the recommend orchestration -
- * whose ordering is subtle enough that a second copy would drift (see the
- * comments in `server/utils/recommendPipeline.ts` about search, capping and
- * simulated-time re-ordering) - and means a filter added to an endpoint is
- * inherited here for free.
+ * The catalog tools (`list_*`, `get_route`) reach the same HTTP endpoints the
+ * web app uses, via Nitro's in-process `$fetch` (no network hop), so a filter
+ * added to an endpoint is inherited here for free.
  *
- * One thing is NOT inherited: the site-flags gate. An internal event carries
- * no Workers platform context, so `getSiteFlags` finds no KV binding on it
- * and resolves to the defaults - the `killSwitches.recommend` 503 never
- * fires for these calls. The recommend tools check the flag the transport
- * put on the context instead (`RpcContext.recommendPaused`), before any
- * fetch, so a paused ranking is refused here rather than served and
- * edge-cached.
+ * The recommend tools do not: they rank through the Ride ranking module
+ * (`server/utils/rankRide.ts`) in process, as the recommend endpoints do -
+ * see `rankForTool`.
  */
 async function fetchApi<T>(path: string, query: Record<string, unknown>): Promise<T> {
   return await $fetch<T>(path, { query })
@@ -71,27 +64,38 @@ function statusOf(error: unknown): number | undefined {
     : undefined
 }
 
-/** Turns an unknown slug into a short "did you mean" list instead of a bare 404. */
-async function suggestRoutes(slug: string): Promise<string> {
+/**
+ * The name to search for when a slug is unknown: its last long word, trimmed
+ * and lower-cased the way the `/api/routes` and `/api/segments` listings read
+ * a `search`. `undefined` where the listings would have refused it (over 200
+ * characters), which ends in the plain "call list_*" answer as it always has.
+ */
+function suggestionTerm(slug: string): string | undefined {
   const term = slug.split('-').filter(word => word.length > 3).pop() ?? slug
-  try {
-    const { routes } = await fetchApi<{ routes: RouteSummary[] }>('/api/routes', { search: term })
-    if (routes.length === 0) return 'Call `list_routes` to find the right slug.'
-    return `Did you mean: ${routes.slice(0, 5).map(route => `\`${route.slug}\` (${route.name})`).join(', ')}?`
-  } catch {
-    return 'Call `list_routes` to find the right slug.'
-  }
+  return term.length > 200 ? undefined : term.trim().toLowerCase()
 }
 
-async function suggestSegments(slug: string): Promise<string> {
-  const term = slug.split('-').filter(word => word.length > 3).pop() ?? slug
-  try {
-    const { segments } = await fetchApi<{ segments: SegmentSummary[] }>('/api/segments', { search: term })
-    if (segments.length === 0) return 'Call `list_segments` to find the right slug.'
-    return `Did you mean: ${segments.slice(0, 5).map(segment => `\`${segment.slug}\` (${segment.name})`).join(', ')}?`
-  } catch {
-    return 'Call `list_segments` to find the right slug.'
-  }
+/**
+ * Turns an unknown slug into a short "did you mean" list instead of a bare
+ * 404: the routes whose name contains the term, in the listing's name order.
+ */
+function suggestRoutes(slug: string): string {
+  const term = suggestionTerm(slug)
+  const routes = term === undefined
+    ? []
+    : getRoutesWithMeta().filter(route => route.name.toLowerCase().includes(term)).sort((a, b) => a.name.localeCompare(b.name))
+  if (routes.length === 0) return 'Call `list_routes` to find the right slug.'
+  return `Did you mean: ${routes.slice(0, 5).map(route => `\`${route.slug}\` (${route.name})`).join(', ')}?`
+}
+
+/** `suggestRoutes` for segments, in the segment listing's own order. */
+function suggestSegments(slug: string): string {
+  const term = suggestionTerm(slug)
+  const segments = term === undefined
+    ? []
+    : getAllSegmentSummaries().filter(segment => segment.name.toLowerCase().includes(term))
+  if (segments.length === 0) return 'Call `list_segments` to find the right slug.'
+  return `Did you mean: ${segments.slice(0, 5).map(segment => `\`${segment.slug}\` (${segment.name})`).join(', ')}?`
 }
 
 const NO_PROFILE_MESSAGE = 'No rider profile is set for this session, so finish times cannot be predicted - and a ranking without them would be a much coarser guess.\n\n'
@@ -151,8 +155,9 @@ function emptyVerifiedMessage(): string {
 
 /**
  * The upgrade stage this call assumes. Normalized here as well as in the
- * endpoints - the duplication buys a header that reports the stage actually
- * used, rather than echoing an out-of-range number back at the model.
+ * recommend query schema - the duplication buys a header that reports the
+ * stage actually used, rather than echoing an out-of-range number back at
+ * the model.
  *
  * Rounded as well as clamped, for the same reason: stages are whole numbers,
  * so `upgradeLevel: 3.5` used to render "All bikes assumed at upgrade stage
@@ -170,11 +175,11 @@ function upgradeLevelFor(args: Record<string, unknown>): number {
  * argument accepts. Absent is a real answer - "not a race", every frame legal
  * - and not a missing one.
  *
- * Validated here rather than forwarded, because unlike every other argument
- * this one never reaches an endpoint that would reject it: it is translated
- * into `excludeTT` and a draft mode, so a typo would silently produce a
- * ranking under no rules at all - exactly the silent wrongness issue #225 is
- * about.
+ * Validated here rather than passed on, because unlike every other argument
+ * this one never reaches the recommend query schema that would reject it: it
+ * is translated into `excludeTT` and a draft mode, so a typo would silently
+ * produce a ranking under no rules at all - exactly the silent wrongness
+ * issue #225 is about.
  */
 function resolveRaceFormat(args: Record<string, unknown>): { format?: RaceFormat } | { error: string } {
   const value = args.raceFormat
@@ -194,7 +199,13 @@ function resolveRaceFormat(args: Record<string, unknown>): { format?: RaceFormat
   return { format }
 }
 
-/** Query params shared by both recommend endpoints. */
+/**
+ * The recommend query both tools ask in, in the API's own terms - the same
+ * keys and values the recommend endpoints are called with over HTTP, so the
+ * tools validate, default and clamp exactly as those endpoints do: it is
+ * parsed with the endpoints' own schema and translated by
+ * `rankingRequestFromQuery`, never turned into ranking options by hand.
+ */
 function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, raceFormat?: RaceFormat): Record<string, unknown> {
   // The format WINS over `draftMode`: a Race of Truth has no draft at all, so
   // a paceline or bunch saving there would be minutes fast and could reorder
@@ -209,8 +220,8 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, ra
     weightKg: profile.weightKg,
     heightCm: profile.heightCm,
     // The MCP contract stays W/kg (how riders state their power in chat);
-    // the recommend endpoints take absolute watts and, since issue #186, only
-    // that - they would ignore a `wkg` key rather than convert it.
+    // the recommend query takes absolute watts and, since issue #186, only
+    // that - it would ignore a `wkg` key rather than convert it.
     powerW: Math.round(profile.wkg * profile.weightKg),
     // Falls back to the shared constant, not a local 0: the assumed stage
     // changes which frame wins, so an adapter picking its own default would
@@ -224,12 +235,12 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, ra
     // entirely while searching, where every real match should surface.
     maxWheelsetsPerFrame: 1,
     category: typeof args.category === 'string' ? args.category : undefined,
-    // Sent explicitly either way rather than relying on the endpoint default,
+    // Sent explicitly either way rather than relying on the schema's default,
     // so this adapter's behaviour can't drift if that default changes.
     verifiedOnly: isVerifiedOnly(args) ? 'true' : 'false',
     search: typeof args.search === 'string' && args.search ? args.search : undefined,
-    // Clamped before forwarding - the same courtesy `upgradeLevel` gets above.
-    // The endpoints now 400 on out-of-range values, and a model asking for
+    // Clamped before parsing - the same courtesy `upgradeLevel` gets above.
+    // The schema refuses out-of-range values, and a model asking for
     // limit 20 deserves the first 9 results, not an error to retry from.
     limit: Number.isFinite(Number(args.limit)) ? Math.min(RECOMMEND_MAX_LIMIT, Math.max(1, Math.floor(Number(args.limit)))) : RECOMMEND_MAX_LIMIT,
     offset: Number.isFinite(Number(args.offset)) ? Math.min(RECOMMEND_MAX_OFFSET, Math.max(0, Math.floor(Number(args.offset)))) : 0,
@@ -243,6 +254,44 @@ function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, ra
     draftMode,
     tttRiders: draftMode === 'ttt' && Number.isFinite(Number(args.tttRiders)) ? clampTttRiders(Number(args.tttRiders)) : undefined,
     tttClimbWkg: draftMode === 'ttt' && Number.isFinite(Number(args.tttClimbWkg)) ? clampTttClimbWkg(Number(args.tttClimbWkg)) : undefined
+  }
+}
+
+/**
+ * Parses a tool's recommend query with the endpoint's schema. A value the
+ * schema refuses is the same `Invalid arguments` tool error, with the same
+ * per-parameter text, that the endpoint's 400 used to come back as.
+ */
+function parseRecommendQuery<S extends typeof recommendRouteQuerySchema | typeof recommendSegmentQuerySchema>(
+  schema: S,
+  query: Record<string, unknown>
+): { query: z.output<S> } | { failure: ToolResult } {
+  const parsed = schema.safeParse(query)
+  return parsed.success
+    ? { query: parsed.data as z.output<S> }
+    : { failure: failure(`Invalid arguments: ${z.prettifyError(parsed.error)}`) }
+}
+
+/**
+ * Ranks a resolved Ride through the Ride ranking module, which checks the
+ * recommend kill switch and owns the cache. Its two refusals come back as
+ * tool errors carrying the site's own wording:
+ *
+ * - **paused**: the site's maintenance message, plus the "try again" a model
+ *   needs (the site's refetch toast adds its own line for the same reason);
+ * - **stall**: the recommend endpoints' 422 text and the simulator's account
+ *   of where the rider stopped - a fact about the rider and the course that
+ *   the model can act on, not a fault in this server.
+ */
+async function rankForTool<R extends RideToRank>(ride: R, query: RecommendBaseQuery, context: RpcContext): Promise<{ ranking: RankingFor<R> } | { failure: ToolResult }> {
+  const outcome = await rankRide({ ride, ...rankingRequestFromQuery(query), killSwitches: context.killSwitches, event: context.event })
+  switch (outcome.status) {
+    case 'paused':
+      return { failure: failure(`${outcome.message} Try again later.`) }
+    case 'stall':
+      return { failure: failure(`${RIDER_STALLED_MESSAGE}: ${outcome.message}.`) }
+    case 'answer':
+      return { ranking: outcome.ranking }
   }
 }
 
@@ -372,7 +421,7 @@ const TOOLS: ToolDefinition[] = [
       try {
         route = await fetchApi<RouteWithMeta>(`/api/routes/${encodeURIComponent(slug)}`, {})
       } catch (error) {
-        if (statusOf(error) === 404) return failure(`No route with slug "${slug}". ${await suggestRoutes(slug)}`)
+        if (statusOf(error) === 404) return failure(`No route with slug "${slug}". ${suggestRoutes(slug)}`)
         throw error
       }
 
@@ -525,33 +574,28 @@ const TOOLS: ToolDefinition[] = [
       additionalProperties: false
     },
     handler: async (args, context) => {
-      if (context.recommendPaused) return failure(RECOMMEND_PAUSED_MESSAGE)
       const slug = String(args.route ?? '')
       const resolved = resolveProfile(args, context)
       if ('error' in resolved) return failure(resolved.error)
       const raceFormat = resolveRaceFormat(args)
       if ('error' in raceFormat) return failure(raceFormat.error)
 
-      // Fetched first so an unknown slug fails with a suggestion before any
+      // Resolved first so an unknown slug fails with a suggestion before any
       // ranking work, and so the header can report the lap count and totals
-      // the endpoint will actually use - `RouteSummary` in its response
-      // carries no `lap` flag, and a point-to-point route is forced to 1 lap.
-      let route: RouteWithMeta
-      try {
-        route = await fetchApi<RouteWithMeta>(`/api/routes/${encodeURIComponent(slug)}`, {})
-      } catch (error) {
-        if (statusOf(error) === 404) return failure(`No route with slug "${slug}". ${await suggestRoutes(slug)}`)
-        throw error
-      }
+      // the ranking will actually use - `RouteSummary` in the Ranking carries
+      // no `lap` flag, and a point-to-point route is forced to 1 lap.
+      const route = getRouteBySlug(slug)
+      if (!route) return failure(`No route with slug "${slug}". ${suggestRoutes(slug)}`)
 
       const laps = clampLaps(route, Number(args.laps))
       const totals = computeRouteTotals(route, laps)
-      const response = await fetchApi<RecommendRouteResponse>(`/api/recommend/${encodeURIComponent(slug)}`, {
-        ...recommendQuery(args, resolved.profile, raceFormat.format),
-        laps
-      })
+      const parsed = parseRecommendQuery(recommendRouteQuerySchema, { ...recommendQuery(args, resolved.profile, raceFormat.format), laps })
+      if ('failure' in parsed) return parsed.failure
+      const { query } = parsed
+      const ranked = await rankForTool({ kind: 'route', route, laps: query.laps, excludeTT: query.excludeTT }, query, context)
+      if ('failure' in ranked) return ranked.failure
 
-      const { combos, physics, pagination } = response
+      const { combos, physics, pagination } = ranked.ranking
       const verifiedOnly = isVerifiedOnly(args)
       if (combos.length === 0 && verifiedOnly) return failure(emptyVerifiedMessage())
 
@@ -603,22 +647,22 @@ const TOOLS: ToolDefinition[] = [
       additionalProperties: false
     },
     handler: async (args, context) => {
-      if (context.recommendPaused) return failure(RECOMMEND_PAUSED_MESSAGE)
       const slug = String(args.segment ?? '')
       const resolved = resolveProfile(args, context)
       if ('error' in resolved) return failure(resolved.error)
       const raceFormat = resolveRaceFormat(args)
       if ('error' in raceFormat) return failure(raceFormat.error)
 
-      let response: RecommendSegmentResponse
-      try {
-        response = await fetchApi<RecommendSegmentResponse>(`/api/recommend/segments/${encodeURIComponent(slug)}`, recommendQuery(args, resolved.profile, raceFormat.format))
-      } catch (error) {
-        if (statusOf(error) === 404) return failure(`No segment with slug "${slug}". ${await suggestSegments(slug)}`)
-        throw error
-      }
+      const found = getSegmentSummary(slug)
+      if (!found) return failure(`No segment with slug "${slug}". ${suggestSegments(slug)}`)
 
-      const { segment, combos, physics, pagination } = response
+      const parsed = parseRecommendQuery(recommendSegmentQuerySchema, recommendQuery(args, resolved.profile, raceFormat.format))
+      if ('failure' in parsed) return parsed.failure
+      const { query } = parsed
+      const ranked = await rankForTool({ kind: 'segment', segment: found, excludeTT: query.excludeTT }, query, context)
+      if ('failure' in ranked) return ranked.failure
+
+      const { segment, combos, physics, pagination } = ranked.ranking
       const verifiedOnly = isVerifiedOnly(args)
       if (combos.length === 0 && verifiedOnly) return failure(emptyVerifiedMessage())
 
@@ -659,8 +703,8 @@ export async function callTool(name: string, args: Record<string, unknown>, cont
   try {
     return await tool.handler(args, context)
   } catch (error) {
-    // The endpoints validate their query params with zod and 400 on a bad
-    // value (see `server/utils/apiQuerySchemas.ts`). Surfaced as a normal
+    // The catalog endpoints validate their query params with zod and 400 on a
+    // bad value (see `server/utils/apiQuerySchemas.ts`). Surfaced as a normal
     // tool failure carrying zod's message - which names the parameter and
     // what it accepts - rather than bubbling up into the JSON-RPC layer's
     // "internal error, a bug in this server" response.

@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import type { RecommendBaseQuery } from './apiQuerySchemas'
 import type { RankingFor, RideToRank } from './rankRide'
-import { rankingRequestFromQuery, rankRide } from './rankRide'
+import { rankingRequestFromQuery, rankRide, RIDER_STALLED_MESSAGE } from './rankRide'
 import { getSiteFlags, KILL_SWITCH_RETRY_AFTER_SEC } from './siteFlags'
 
 /**
@@ -35,7 +35,7 @@ export async function answerRecommendRequest<R extends RideToRank>(
       setResponseHeader(event, 'Retry-After', KILL_SWITCH_RETRY_AFTER_SEC)
       throw createError({ statusCode: 503, statusMessage: 'Service Unavailable', message: outcome.message })
     case 'stall':
-      throw createError({ statusCode: 422, statusMessage: 'Rider cannot finish this route at this power', message: outcome.message })
+      throw createError({ statusCode: 422, statusMessage: RIDER_STALLED_MESSAGE, message: outcome.message })
     case 'answer':
       if (outcome.cache !== 'off') setResponseHeader(event, 'X-Recommend-Cache', outcome.cache)
       return outcome.ranking

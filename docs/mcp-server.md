@@ -11,14 +11,22 @@ answer "which bike is fastest for me on this route?" directly.
 
 ## Why this shape
 
-**It is an adapter, not a second implementation.** Every tool reaches the
-catalog and the ranking pipeline through the same HTTP endpoints the web app
-uses, via Nitro's in-process `$fetch`. The recommend orchestration is subtle -
-search must see the full candidate pool before any capping, and the reachable
-window is re-ordered by real simulated time before pagination (see the comments
-in [`server/utils/recommendPipeline.ts`](../server/utils/recommendPipeline.ts))
-- and a second copy of that sequencing would drift. A filter added to an
-endpoint is inherited by the MCP tools for free.
+**It is an adapter, not a second implementation.** The two recommend tools
+rank through the Ride ranking module,
+[`server/utils/rankRide.ts`](../server/utils/rankRide.ts), in process - the
+same module the recommend endpoints are the HTTP adapter of. They ask in the
+API's own terms: the tool builds the recommend query, parses it with the
+endpoint's own schema (so validation, defaults and clamps are the endpoint's),
+and hands the module the resolved route or segment. So they share the site's
+ranking, its cache entries and its kill switch. The recommend orchestration is
+subtle - search must see the full candidate pool before any capping, and the
+reachable window is re-ordered by real simulated time before pagination (see
+the comments in
+[`server/utils/recommendPipeline.ts`](../server/utils/recommendPipeline.ts))
+- and a second copy of that sequencing would drift. The catalog tools
+(`list_*`, `get_route`) reach the same HTTP endpoints the web app uses, via
+Nitro's in-process `$fetch`, so a filter added to one of those is inherited
+for free.
 
 **Responses are plain JSON, never an SSE stream.** The MCP spec permits a
 server to answer a POST with a single JSON-RPC message instead of opening a
@@ -76,8 +84,13 @@ counts as a valid profile.
 A valid profile can still be one the physics cannot ride: a rider whose power
 does not hold a route's grade stalls in the simulator, and the recommend
 endpoints answer that with a `422` ("Rider cannot finish this route at this
-power") rather than a time - the MCP recommend tools pass that status
-through as the tool error.
+power") rather than a time. The MCP recommend tools answer the same stall with
+an `isError` result in the same words, followed by the simulator's account of
+where the rider stopped - "Rider cannot finish this route at this power: Rider
+(75 kg, 225 W) stalled on a 25.0% grade at 1234 m of 5000 m." - for a route
+and a segment alike, as the site does. (At today's catalog and bounds no
+accepted profile actually stalls: the steepest grade is about 20%, which even
+0.3 W/kg holds.)
 
 ## Tools
 
@@ -263,10 +276,9 @@ curl -s localhost:3000/api/mcp \
   endpoint is gated at the edge, so the budget in
   `server/middleware/01.rate-limit.ts` deliberately skips it; what that
   middleware meters is `/api/recommend/**` and the markdown pages, per
-  client IP. Note the tools reach the pipeline over Nitro's in-process
-  `$fetch`, which is exempt by construction, so an authenticated MCP client
-  is not metered by the Worker at all - the edge is the only thing standing
-  in front of it. Where the budget does apply, past it a request gets a 429
+  client IP. Note the recommend tools rank in process and never request
+  `/api/recommend/**`, so an authenticated MCP client is not metered
+  by the Worker at all - the edge is the only thing standing in front of it. Where the budget does apply, past it a request gets a 429
   with a `Retry-After` header; counting is done by the Workers rate limiting
   binding (`ratelimits` in wrangler.jsonc), per Cloudflare location and
   eventually consistent, so the effective global ceiling is looser than the
@@ -274,13 +286,17 @@ curl -s localhost:3000/api/mcp \
 - **Sessions are best-effort**, for the reasons above.
 - **The recommend kill switch applies.** When `killSwitches.recommend` is
   set in the runtime site flags (see `docs/site-flags.md`), the two
-  recommend tools answer with the same maintenance message the website's
-  API returns, without ranking anything.
+  recommend tools answer with an `isError` result - the maintenance message
+  the website's API returns, followed by "Try again later." - without ranking
+  anything. The Ride ranking module checks the switch, not the tools, so no
+  in-process call can skip it; a call the tool would refuse anyway (no
+  profile, an unknown slug, a bad argument) gets that refusal first.
 - **Request bodies are capped at 16 KB** (`MCP_MAX_BODY_BYTES` in
   `server/utils/mcp/protocol.ts`); a larger one gets a 413 with a JSON-RPC
   error. The largest legitimate message is well under 2 KB.
 - **Internal failures are not echoed.** A bug in a tool answers with a
   generic JSON-RPC internal error; the message and stack go to Workers Logs
   as an `mcp-tool-error` line. Tool-level failures the model can act on (a
-  missing profile, an unknown slug, bad arguments) still come back as
-  `isError` results with their full text.
+  missing profile, an unknown slug, bad arguments, a rider who cannot finish
+  the Ride, a paused ranking) still come back as `isError` results with their
+  full text.
