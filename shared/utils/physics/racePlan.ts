@@ -31,11 +31,11 @@ export interface RacePlanOptions {
   /**
    * The Draft the plan is for, resolved on the SAME geometry the plan is
    * built on (`useTttPlan` resolves it on the Ride's `planGeometry()`, the
-   * geometry its times are simulated over) - the
-   * climb rows are the draft's own pacing plan, so the tab and the ranking
-   * cannot disagree about where the paceline breaks up. A TTT's rotation size
-   * prices the rough sectors: the group crosses one faster than a lone rider
-   * would, and the Crr penalty scales with speed.
+   * geometry its times are simulated over) - the climb rows are the draft's
+   * own pacing plan, so the tab and the ranking cannot disagree about where
+   * the paceline breaks up. A TTT's rotation size prices the rough sectors:
+   * the group crosses one faster than a lone rider would, and the Crr penalty
+   * scales with speed.
    */
   draft: RideDraft
   /** The combo the surface cost is quoted for - the same one the speed/surface chart uses, so the two tabs' watt figures are computed the same way. */

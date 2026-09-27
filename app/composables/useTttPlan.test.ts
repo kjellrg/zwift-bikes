@@ -48,10 +48,10 @@ describe('useTttPlan', () => {
       expect(climb!.note).toContain('team climb pace of 3.0 W/kg')
     })
 
-    it('reads the Ride\'s geometry, not the one the route-lap builder would make of the same course', () => {
+    it('reads the Ride\'s geometry, not the one `geometryForRouteLaps` would make of the same course', () => {
       // The same Alpe segment on a course record that also carries a 3 km
       // lead-in. A segment is timed from its own start, so `rideForSegment`
-      // never rides one; the route-lap builder would put it in front and move
+      // never rides one; `geometryForRouteLaps` would put it in front and move
       // the climb, and the draft's pacing plan with it, 3 km down the road.
       const withLeadIn = { ...alpe, leadInDistance: 3, leadInElevation: 0 }
       const ride = rideForSegment(withLeadIn)
@@ -86,7 +86,7 @@ describe('useTttPlan', () => {
   describe('on a route or a race', () => {
     // What the plan was built from before issue #284: the route's laps
     // geometry, lead-in once, with the draft resolved on the same geometry.
-    function lapsPlan(slug: string, laps: number) {
+    function routeLapsPlan(slug: string, laps: number) {
       const route = getRouteBySlug(slug)!
       const geometry = geometryForRouteLaps(route, laps)
       const sectors = buildRacePlan(geometry, {
@@ -108,7 +108,7 @@ describe('useTttPlan', () => {
     it.each([['lutscher', 2], ['road-to-sky', 1], ['electric-break', 1], ['makuri-madness', 1], ['hilly-route', 3]] as const)('keeps %s over %i laps exactly as it was', (slug, laps) => {
       const sectors = planFor(rideForRoute(getRouteBySlug(slug)!, laps)).sectors
       expect(sectors.length).toBeGreaterThan(1)
-      expect(sectors).toEqual(lapsPlan(slug, laps))
+      expect(sectors).toEqual(routeLapsPlan(slug, laps))
     })
 
     it('flags a lap\'s climb on every lap, after the lead-in', () => {

@@ -22,7 +22,7 @@ export interface TttPlan {
 /**
  * The one TTT plan a page computes, which the Fact row's TTT line and the
  * plan tab both read - so a lap or rider refresh can never leave the two
- * describing different results. Built from the APPLIED inputs: the top combo
+ * describing different results. Built from the APPLIED inputs: the Recommendation
  * on screen, the rider it was ranked for, and the Ride it was ranked on.
  * During a refresh those keep their previous values, so the plan keeps
  * describing the results still on screen, as the recommendation does.
