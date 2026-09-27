@@ -176,6 +176,12 @@ describe('what a series box on the hub says', () => {
       'Zwift hasn\'t announced October\'s theme yet.',
       'Zwift hasn\'t announced November\'s theme yet.'
     ])
+    // With only December left, its line already says what is missing; a
+    // second one about January would say it again, of next year's season.
+    const december = eventSeasonSchema.parse({ ...zracing, rounds: zracing.rounds.filter(round => round.number === 12) })
+    expect(seriesStatusLines(december, '2026-12-10')).toEqual([
+      'Zwift hasn\'t announced December\'s theme yet.'
+    ])
     // A month with its stages in but no theme yet goes by the month alone.
     const stages = eventSeasonSchema.parse({
       ...zracing,

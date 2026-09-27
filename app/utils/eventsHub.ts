@@ -90,29 +90,42 @@ export function relativeRaceDay(race: Pick<EventRace, 'date' | 'endDate'>, today
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 /**
+ * A monthly series' round name read as its month and theme. It names its
+ * rounds "September: Zwift Racing Powered by DURA-ACE" (see
+ * `docs/events-data.md`), and a month whose theme is not out yet by the month
+ * alone ("October"). Undefined for any other name.
+ */
+function monthlyRoundName(name: string | undefined): { month: number, theme?: string } | undefined {
+  const parts = name ? /^(\w+)(?:: (.+))?$/.exec(name) : null
+  const month = parts ? MONTHS.indexOf(parts[1]!) : -1
+  return month >= 0 ? { month, theme: parts![2] } : undefined
+}
+
+/**
  * A Round as a sentence starts on it, and whether the verb after it is
- * plural. A monthly series names its rounds "September: Zwift Racing
- * Powered by DURA-ACE" (see `docs/events-data.md`), and riders know those as
- * that month's stages, not as round 9; a month Zwift has not themed yet is
- * named by the month alone ("October"). The rest go by number and name.
+ * plural. Riders know a monthly series' rounds as that month's stages, not as
+ * round 9; the rest go by number and name.
  */
 function roundSubject(round: Pick<EventRound, 'number' | 'name'>): { subject: string, plural: boolean, month?: number } {
-  const monthly = round.name ? /^(\w+)(?:: (.+))?$/.exec(round.name) : null
-  const month = monthly ? MONTHS.indexOf(monthly[1]!) : -1
-  if (monthly && month >= 0) return { subject: monthly[2] ? `${monthly[1]}'s stages, ${monthly[2]},` : `${monthly[1]}'s stages`, plural: true, month }
+  const monthly = monthlyRoundName(round.name)
+  if (monthly) {
+    const stages = `${MONTHS[monthly.month]}'s stages`
+    return { subject: monthly.theme ? `${stages}, ${monthly.theme},` : stages, plural: true, month: monthly.month }
+  }
   return { subject: round.name ? `Round ${round.number}, ${round.name},` : `Round ${round.number}`, plural: false }
 }
 
 /**
  * The line for a month a monthly series has put on its calendar and nothing
- * else: named by the month alone, with no races. Its dates are ours, the
- * month's, not the organiser's, so the line says what is missing rather than
- * when the month starts - and says it the same on any day, since a round with
- * no races is still to come however far into its month we are.
+ * else: no theme, no races. Its dates are ours, the month's, not the
+ * organiser's, so the line says what is missing rather than when the month
+ * starts - and says it the same on any day, since a round with no races is
+ * still to come however far into its month we are.
  */
 function unthemedMonthLine(round: EventRound, organizer: string): string | undefined {
-  if (round.races.some(race => !race.hidden) || !round.name || !MONTHS.includes(round.name)) return undefined
-  return `${organizer} hasn't announced ${round.name}'s theme yet.`
+  const monthly = monthlyRoundName(round.name)
+  if (!monthly || monthly.theme || round.races.some(race => !race.hidden)) return undefined
+  return `${organizer} hasn't announced ${MONTHS[monthly.month]}'s theme yet.`
 }
 
 /** `A`, `A and B`, `A, B and C`. */
@@ -171,7 +184,8 @@ export function seriesStatusLines(season: EventSeason, today: string): string[] 
   const { organizer } = season
   const now = roundSubject(current.round)
   const ongoing = roundState(current.round, today) === 'ongoing'
-  const currentLine = unthemedMonthLine(current.round, organizer) ?? [
+  const unthemedNow = unthemedMonthLine(current.round, organizer)
+  const currentLine = unthemedNow ?? [
     ongoing
       ? `${now.subject} ${now.plural ? 'run' : 'runs'} until ${formatRaceDateShort(current.round.endDate)}.`
       : `${now.subject} ${now.plural ? 'start' : 'starts'} ${formatRaceDateShort(current.round.startDate)}.`,
@@ -188,6 +202,9 @@ export function seriesStatusLines(season: EventSeason, today: string): string[] 
       ...(notes.length ? notes : ['Its races are listed above.'])
     ].join(' ')]
   }
+  // A last month still waiting on its theme has said what is missing; the
+  // month after it belongs to next year's season.
+  if (unthemedNow) return [currentLine]
   const lastDay = rounds.map(entry => entry.round.endDate).sort().at(-1)!
   return [currentLine, now.month !== undefined
     ? `${organizer} hasn't announced ${MONTHS[(now.month + 1) % 12]}'s theme yet.`

@@ -204,7 +204,9 @@ useHead(() => ({
          `DiscoveryStatus`, shared with the homepage and the segments page;
          the round groups it holds are this page's. Its count line is not:
          "N races found" is the voice of a filtered search, and this page has
-         no filters - its counts are in the header. -->
+         no filters - its counts are in the header. So `counts` only tells it
+         whether there is anything to show, and that is counted in rounds, as
+         `showsStatus` is. -->
     <DiscoveryStatus
       v-if="showsStatus"
       class="mt-10"
