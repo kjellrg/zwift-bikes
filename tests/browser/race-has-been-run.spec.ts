@@ -20,8 +20,10 @@ import { EVENTS_SERVER_DAY, servedEventsDay, visit } from './support'
 const RUN = '/events/zrl-2026-27/round-1-week-1'
 /** Raced on Tue 29 Sept, after the server's day. */
 const TO_RUN = '/events/zrl-2026-27/round-1-week-2'
-/** The last race ZRacing 2026 has, a stage that closes on Sun 4 Oct. */
+/** The last race ZRacing 2026 has, a stage that closes on Sun 4 Oct; its months after that have none yet. */
 const LAST_STAGE = '/events/zracing-2026/september-stage-4'
+/** The last race of ZRL 2026/27 with a page, raced on Tue 20 Oct. */
+const LAST_ZRL_RACE = '/events/zrl-2026-27/round-1-week-5'
 
 /** The day after round 1 week 2 was raced. */
 const AFTER_WEEK_2 = new Date('2026-09-30T12:00:00Z')
@@ -110,9 +112,20 @@ test.describe('a race that has been run', () => {
 
   test('points to the events hub once its season has nothing left to run', async ({ page }) => {
     await page.clock.setFixedTime(AFTER)
-    await visit(page, LAST_STAGE)
+    await visit(page, LAST_ZRL_RACE)
     await expect(notice(page)).toContainText('Every race this season has been run.')
     await notice(page).getByRole('link', { name: 'Races still to come' }).click()
     await page.waitForURL('**/events')
+  })
+
+  test('points to the next round with nothing announced when no race is left but the season is not over', async ({ page }) => {
+    // ZRacing's September was its last month with stages; October-December
+    // are on the calendar without them, so the season is not over.
+    await page.clock.setFixedTime(new Date('2026-10-10T12:00:00Z'))
+    await visit(page, LAST_STAGE)
+    await expect(notice(page)).toContainText('Next ZRacing round:')
+    await expect(notice(page)).not.toContainText('Every race this season has been run')
+    await notice(page).getByRole('link', { name: 'October, not announced yet' }).click()
+    await page.waitForURL('**/events/zracing-2026#round-10')
   })
 })

@@ -63,8 +63,12 @@ _Avoid_: hub, list page, index page, landing page
 A page that ranks one Ride: a route, a segment or a Race. It states the Ride itself - its heading, selection control, Fact row and Course hero - and beneath that shows the Ranking results and the analysis of rank 1 the same way on every ranking page. It is the counterpart of a Discovery page, which lists Rides and ranks none.
 _Avoid_: detail page, ride page, results page
 
+**Twin**:
+The markdown representation of a page, served at the page's own URL to a caller that asks for markdown. It is the page, not a summary of it: whatever the page says about its Ride, its run state and whether it is indexed, the twin says too, on the day it is asked for.
+_Avoid_: markdown version, agent view, export
+
 **Season**:
-One organiser's run of rounds under a series name, with the dates the rounds span and the organiser's own note on where the season stands. A season page schedules it, round by round, and the events hub gives each season still running a box that says where it stands and what its organiser has yet to announce; its races go into the hub's one list with every other season's, each tagged with its series' short name. A season has been run once every one of its Rounds has been, and then it is not listed: the events hub leaves it out, and its season page says in one sentence that it has finished and points to the hub.
+One organiser's run of rounds under a series name, with the dates the rounds span and the organiser's own note on where the season stands. A season page schedules it, round by round, and the events hub gives each season still running a box that says where it stands and what its organiser has yet to announce; its races go into the hub's one list with every other season's, each tagged with its series' short name. A season has been run once every one of its Rounds has been, and a season whose organiser has months still to fill carries those as Rounds with nothing announced, so it stays open until they are run. A run season is not listed and not indexed: the events hub leaves it out and nothing links to it, but its page stays at its URL, says that it has finished and points to the hub.
 _Avoid_: series (the name a season runs under, not the season), calendar, event
 
 **Round**:

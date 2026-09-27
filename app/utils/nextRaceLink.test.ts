@@ -70,6 +70,25 @@ describe('where a run race points a rider next', () => {
     })
   })
 
+  it('points to a round with nothing announced yet when no race is left but the season is not over', () => {
+    // ZRacing's months before Zwift themes them: dates, no races.
+    const monthly = eventSeasonSchema.parse({
+      ...season,
+      slug: 'zracing-2026',
+      seriesTag: 'ZRacing',
+      rounds: [
+        { number: 9, startDate: '2026-09-28', endDate: '2026-10-04', races: [{ ...race('september-stage-4', 9, 4, '2026-09-28'), endDate: '2026-10-04' }] },
+        { number: 10, name: 'October', startDate: '2026-10-05', endDate: '2026-10-31', races: [] },
+        { number: 11, name: 'November', startDate: '2026-11-01', endDate: '2026-11-30', races: [] }
+      ]
+    })
+    expect(nextRaceLink(monthly, monthly.rounds[0]!.races[0]!, '2026-10-10')).toEqual({
+      lead: 'Next ZRacing round:',
+      label: 'October, not announced yet',
+      to: '/events/zracing-2026#round-10'
+    })
+  })
+
   it('sends a rider to the events hub once the season has nothing left to run', () => {
     expect(nextRaceLink(season, lastRace, '2026-11-18')).toEqual({
       lead: 'Every race this season has been run.',

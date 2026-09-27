@@ -223,9 +223,17 @@ export const eventRaceSchema = z.strictObject({
 
 export const eventRoundSchema = z.strictObject({
   number: z.number().int().min(1),
-  /** The organiser's own name for the round, e.g. "Fresh & Fast" - or the month + theme for ZRacing ("August: Makuri Madness"). */
+  /**
+   * The organiser's own name for the round, e.g. "Fresh & Fast" - or the month
+   * + theme for ZRacing ("August: Makuri Madness"), and the month alone
+   * ("October") while Zwift has not themed it.
+   */
   name: z.string().optional(),
-  /** ISO dates of the first and last race day in the round. */
+  /**
+   * ISO dates of the first and last race day in the round. A ZRacing month
+   * with no races yet carries the month's own dates, starting after the month
+   * before's last stage when that runs into it.
+   */
   startDate: isoDate,
   endDate: isoDate,
   races: z.array(eventRaceSchema)

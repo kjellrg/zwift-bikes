@@ -15,8 +15,9 @@ export interface SeasonStat {
  * the calendar.
  *
  * "Calendar runs to", not "Season ends": the calendar holds what the organiser
- * has announced, and ZRacing adds a month at a time, so its last day is not
- * the season's.
+ * has put on it, and a round's dates can move until its races are announced
+ * (ZRacing's months carry the month's own dates until Zwift themes them), so
+ * its last day is not a promise of the season's.
  *
  * Asks `roundsLeftToRun`, so it counts what the page lists, on the same day.
  * A round with no races on it yet counts no races, and is not "the round a

@@ -11,6 +11,7 @@ import {
   getIndexedRaces,
   getNextUpcomingRace,
   getPublishableRaces,
+  getSeasonBySlug,
   getSeasons,
   getUpcomingEventsForRoute,
   groupRoundsByAnnouncement,
@@ -448,6 +449,28 @@ describe('the curated seasons themselves', () => {
     // Only pages that exist: never a race with no page yet (round 2 is unannounced).
     expect(indexed('2000-01-01')).toEqual(getPublishableRaces().map(race => race.path))
     expect(indexed('2999-12-31')).toEqual([])
+  })
+
+  it('keeps ZRacing 2026 open through December, with the months Zwift has yet to theme as empty rounds', () => {
+    const season = getSeasonBySlug('zracing-2026')!
+    // One round per remaining month, numbered by the month; nothing on them
+    // until Zwift publishes the theme, so each is "Not announced yet".
+    const shells = season.rounds.filter(round => round.number >= 10)
+    expect(shells.map(round => round.number)).toEqual([10, 11, 12])
+    expect(shells.map(round => round.name)).toEqual(['October', 'November', 'December'])
+    expect(shells.every(round => round.races.length === 0)).toBe(true)
+    expect(shells.at(-1)!.endDate).toBe('2026-12-31')
+
+    // September's last stage ends Sun 4 Oct; the season is not over the day after.
+    expect(seasonHasBeenRun(season, '2026-10-05')).toBe(false)
+    // Once each month has its stages and December's have been run, it is.
+    const raced = {
+      rounds: season.rounds.map(round => round.races.length
+        ? round
+        : { ...round, races: [testRace({ slug: 'stage-1', round: round.number, date: round.startDate, endDate: round.endDate })] })
+    }
+    expect(seasonHasBeenRun(raced, '2026-12-31')).toBe(false)
+    expect(seasonHasBeenRun(raced, '2027-01-01')).toBe(true)
   })
 
   it('upcoming lookups honor the injected today and sort soonest first', () => {
