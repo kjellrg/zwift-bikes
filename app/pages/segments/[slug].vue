@@ -2,11 +2,7 @@
 import type { RaceFormat } from '#shared/utils/events'
 import type { Ride, RideCourse } from '../../utils/recommendRequest'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/events'
-import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
-import { rideForSegment } from '#shared/utils/recommendRide'
-import { routeSilhouette } from '#shared/utils/silhouette'
 import { rideRulesForFormat } from '../../utils/recommendRequest'
-import { breadcrumbScript, faqScript } from '../../utils/rankingResults'
 import { surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
 
 const route = useRoute()
@@ -23,8 +19,6 @@ const course = computed<RideCourse>(() => ({ kind: 'segment', slug: slug.value }
 const { ready: segmentReady, segment: segmentData, course: segmentRoute, error: segmentError } = useCourse(() => course.value)
 await segmentReady
 if (segmentError.value) throw createError({ statusCode: 404, statusMessage: 'Segment not found', fatal: true })
-
-const resolvedRide = computed(() => segmentRoute.value ? rideForSegment(segmentRoute.value) : undefined)
 
 // Sprint segments rank at the rider's separate sprint power (see
 // `sprintPowerW` in `useRiderProfile`); everything else at their normal
@@ -95,37 +89,40 @@ const ride = computed<Ride>(() => ({
   power: isSprint.value ? 'sprint' : 'race',
   ...rideRulesForFormat(raceFormat.value)
 }))
-// Handed whole to `RideResults`, which renders everything this page shows
-// about the Ranking; what is destructured here is what the page itself is
-// still about - its header, its race-format control, its Fact row and its
-// analysis.
-const request = useRecommendRequest(() => ride.value, { key: `recommend-segment-${slug.value}` })
-const {
-  ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestOverall, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRide, appliedRestrictions,
-  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
-} = request
-await recommendReady
 
-/**
- * What a report filed from this page says the ranking was ridden as - see
- * `formatRideLine`. The kind comes off the applied Ride rather than
- * `isSprint`, so the power and the word for it can never disagree.
- */
-const reportRideLine = computed(() => formatRideLine({
-  subject: appliedRide.value?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment',
-  ride: appliedRide.value,
-  rider: appliedInputs.value
-}))
+const siteConfig = useSiteConfig()
+const canonicalUrl = useCanonicalUrl()
+// Everything this page shows about its Ranking - see `useRankingPage`. What
+// stays here is what the page states itself: its header, its Race format
+// control, its Fact row and Course hero, and its share card. A segment Ride
+// has no lap count, so the module rides it once, times the answer over the
+// segment's own length and leaves the lap count out of the answer. Its course
+// analysis has no climbs tab; the speed chart and TTT plan simulate the
+// segment route-style, from a standing start, and their scope lines say so.
+const rankingPage = useRankingPage({
+  ride: () => ride.value,
+  key: `recommend-segment-${slug.value}`,
+  rideName: course => segmentData.value ? `the ${course.name} ${segmentData.value.type} in ${course.worldName}` : course.name,
+  faqQuestion: () => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined,
+  // A segment sits under the segments hub.
+  breadcrumbs: () => segmentData.value
+    ? [
+        { name: 'Home', item: siteConfig.url },
+        { name: 'Segments', item: `${siteConfig.url}/segments` },
+        { name: segmentData.value.name, item: canonicalUrl.value }
+      ]
+    : undefined,
+  // Off the Applied Ride rather than `isSprint`, so the power and the word
+  // for it can never disagree.
+  reportSubject: applied => applied?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
+})
+const { tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
+await rankingPage.ready
 
 // `?rules=points&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No
 // `laps`: there is no lap count here (see the Ride above). `rules` is this
 // page's one selection, and "not a race" is the clean URL its link keeps.
 useSharedView({ bikeSearch, bikeSearchDebounced }, { key: 'rules', value: raceFormat, values: RACE_FORMATS })
-
-// Read-only here: the levers that write them live in `RiderCard` and
-// `RideEquipmentFilters` - see the equivalent comment in `routes/[slug].vue`.
-const { weightKg, powerW } = useRiderProfile()
 
 // Stat-rich for SERP snippets: "12.2 km at 8.5%" is what long-tail queries
 // ("alpe du zwift gradient") actually contain, and numbers lift click-through
@@ -145,8 +142,8 @@ const metaDescription = computed(() => {
     ride: `the ${s.name} ${s.type}`,
     world: s.worldName,
     stats,
-    setup: topCombo.value ? setupName(topCombo.value) : undefined,
-    category: appliedInputs.value.category
+    setup: rankingPage.request.topCombo.value ? setupName(rankingPage.request.topCombo.value) : undefined,
+    category: rankingPage.request.appliedInputs.value.category
   })
 })
 
@@ -162,18 +159,16 @@ useSeoMeta({
 // Issue #59 phase 2: a generated card replaces the old hotlinked world
 // minimap, now that #56 made segment pages prerenderable. Snapshotted once
 // at setup, which is exactly the build-time prerender pass (zeroRuntime
-// never re-renders): the top combo is therefore the DEFAULT rider profile's
-// - the same ranking the prerendered page itself shows - and combo names,
-// not a finish time, go on the card because a time is only meaningful for a
-// specific rider. The profile strip is gated exactly like the page's own
-// chart: measured slice or nothing, never the 2-point synthetic ramp.
+// never re-renders): rank 1 is therefore the DEFAULT rider profile's - the
+// same ranking the prerendered page itself shows. See `RankingPageShareCard`,
+// whose Silhouette is the measured slice or nothing, like the page's own
+// chart - never the 2-point synthetic ramp.
 if (segmentData.value) {
-  const ogTopCombo = recommendData.value?.combos?.[0]
-  const measuredProfile = segmentRoute.value?.terrain.elevationProfile
   const climbType = segmentData.value.climbType
   const kind = segmentData.value.type === 'sprint'
     ? 'sprint'
     : climbType ? `${climbType === 'HC' ? 'HC' : `category ${climbType}`} climb` : 'climb'
+  const { frameName, wheelName, silhouette } = rankingPage.shareCard.value
   defineOgImage('SegmentCard', {
     title: segmentData.value.name,
     kind,
@@ -181,39 +176,13 @@ if (segmentData.value) {
     length: formatDistance(segmentData.value.lengthKm),
     elevation: formatElevation(displayElevationM.value),
     grade: displayGradePercent.value ? formatGrade(displayGradePercent.value) : 'Flat',
-    frameName: ogTopCombo?.frame.name,
-    wheelName: ogTopCombo?.wheelset?.name,
-    profile: measuredProfile && measuredProfile.length > 1
-      ? routeSilhouette(segmentRoute.value!, 1, OG_SILHOUETTE_SAMPLES)
-      : undefined
+    frameName,
+    wheelName,
+    profile: silhouette
   }, {
     alt: `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
   })
 }
-
-// Whether the team climb pace lever is worth showing - see the
-// `hasLongClimb` prop on `RiderCard`. Keyed on the rider's NORMAL
-// power, never on `tttClimbWkg`, so the climb pace can't decide its own
-// slider's visibility.
-const hasLongClimb = computed(() => resolvedRide.value
-  ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
-  : true)
-
-// One plan for the Fact row's TTT line and the TTT plan tab - see
-// `useTttPlan`. One lap: the timed segment, with no lead-in.
-const tttPlan = useTttPlan({
-  route: () => segmentRoute.value,
-  combo: () => topCombo.value,
-  rider: () => appliedInputs.value,
-  laps: () => 1,
-  loading: () => isFirstLoad.value
-})
-
-// Also handed whole to `RideResults`, so the recommendation and the rows
-// pick through one set of picks; the section they are compared in renders
-// below, in this page's own flow, which is where "Show comparison" scrolls.
-const comparison = useComparison(() => combos.value)
-const { picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = comparison
 
 /** The segment in the breadcrumb's words: "Climb, category 2", "Sprint". */
 const segmentKind = computed(() => {
@@ -233,46 +202,6 @@ const facts = computed<RideFact[]>(() => segmentData.value && segmentRoute.value
 /** Why a lever the Rider card would otherwise offer is fixed here - the format's own rules, in the card's words. */
 const ttBarredReason = computed(() => ttAllowed.value || !raceFormat.value ? undefined : `TT frames are barred when this is ridden as a ${raceFormatPhrase(raceFormat.value)}.`)
 const draftLockedReason = computed(() => draftAllowed.value ? undefined : 'There is no draft in a Race of Truth.')
-
-const faqQuestion = computed(() => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined)
-// The visible answer under the recommendation and the FAQ structured data
-// are one text (`answer.text`), built from the APPLIED ranking - the rider
-// the request was actually answered for, sprint power included - so what a
-// crawler reads is what a rider sees. No `laps`: the answer then
-// names the timed-segment scope instead. Renders from the prerendered
-// results on first paint; during a refetch it keeps describing the results
-// still on screen, the same way the dimmed results do.
-const answer = useRecommendationAnswer({
-  ranking: () => combos.value,
-  fastestOverall: () => fastestOverall.value,
-  rideName: () => segmentData.value ? `the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}` : undefined,
-  distanceKm: () => segmentData.value?.lengthKm,
-  rider: () => appliedInputs.value,
-  restrictions: () => appliedRestrictions.value,
-  // APPLIED, unlike the two control props above: this explains the times on
-  // screen, so it must name the format they were ranked under. Same wording
-  // as the race page's, from `rideRulesLine`.
-  rideRules: () => appliedRide.value?.raceFormat ? rideRulesLine(appliedRide.value.raceFormat) : undefined
-})
-const faqAnswer = computed(() => answer.value?.text)
-
-const siteConfig = useSiteConfig()
-const canonicalUrl = useCanonicalUrl()
-useHead(() => {
-  if (!segmentData.value) return {}
-  // The trail is this page's own - a segment sits under the segments hub -
-  // and the envelope, the keying and the escaping are `rankingResults.ts`'s.
-  return {
-    script: [
-      breadcrumbScript([
-        { name: 'Home', item: siteConfig.url },
-        { name: 'Segments', item: `${siteConfig.url}/segments` },
-        { name: segmentData.value.name, item: canonicalUrl.value }
-      ]),
-      faqScript(faqQuestion.value, faqAnswer.value)
-    ].filter(script => script !== undefined)
-  }
-})
 </script>
 
 <template>
@@ -339,27 +268,12 @@ useHead(() => {
       :name="segmentData.name"
     />
 
-    <RecommendDataNotice class="mt-6" />
-    <p
-      class="sr-only"
-      role="status"
-      aria-live="polite"
-    >
-      {{ resultsAnnouncement }}
-    </p>
-
-    <RideResults
-      :request="request"
-      :comparison="comparison"
-      :answer="answer"
-      :faq-question="faqQuestion"
-      :hide-tt-category="!ttAllowed"
-    >
-      <template #rider>
+    <RankingPageBody :page="rankingPage">
+      <template #rider="card">
         <RiderCard
-          :rider="appliedInputs"
-          :refreshing="isRefreshing"
-          :has-long-climb="hasLongClimb"
+          :rider="card.rider"
+          :refreshing="card.refreshing"
+          :has-long-climb="card.hasLongClimb"
           :sprint-power="isSprint"
           :draft-locked="draftLockedReason"
           :tt-barred="ttBarredReason"
@@ -367,55 +281,12 @@ useHead(() => {
         />
       </template>
 
-      <template #report-link>
+      <template #report-link="{ reportLine }">
         <ReportDataLink
           :item="segmentData?.name"
-          :ride="reportRideLine"
+          :ride="reportLine"
         />
       </template>
-    </RideResults>
-
-    <!-- A segment is ridden once, so both lap counts are 1 and there is no
-         climbs tab. The speed chart and TTT plan simulate the segment
-         route-style, from a standing start, and their scope lines say so. -->
-    <div class="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-2">
-      <RideWhy
-        :course="appliedRanking.course"
-        :combo="topCombo"
-        :ride-name="segmentData.name"
-        :physics-mode="physicsInfo?.mode"
-        :draft-mode="appliedInputs.draftMode"
-        :wheel-choice="wheelChoice"
-        :refreshing="isRefreshing"
-      />
-      <RideCourseAnalysis
-        :route="segmentRoute"
-        :results-route="appliedRanking.course"
-        :kind="segmentData.type"
-        :laps="1"
-        :results-laps="1"
-        :combo="topCombo"
-        :rider="appliedInputs"
-        :refreshing="isRefreshing"
-        :loading="isFirstLoad"
-        :plan="tttPlan"
-      />
-    </div>
-
-    <RideComparison
-      class="mt-16"
-      :combos="comparedCombos"
-      :fastest-time-sec="fastestTimeSec"
-      @clear="clearComparison"
-      @remove="removeFromComparison"
-    />
-
-    <PhysicsNote
-      v-if="physicsInfo"
-      class="mt-12"
-      :mode="physicsInfo.mode"
-      :summary="physicsInfo.summary"
-      :note="physicsInfo.note"
-    />
+    </RankingPageBody>
   </UContainer>
 </template>

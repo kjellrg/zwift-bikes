@@ -375,10 +375,10 @@ const CLIMB_BLOCK_MIN_DURATION_SEC = 150
  * `geometry.points` whose estimated speed at `powerW` is at or below
  * `CLIMB_BLOCK_MAX_SPEED_MPS` and which last at least
  * `CLIMB_BLOCK_MIN_DURATION_SEC`. See the constants above for why the test is
- * speed rather than grade. `powerW` is the rider's NORMAL power everywhere
- * this is called - the pace the formation would otherwise ride - never the
- * team climb power, which must not gate its own applicability (see
- * `tttPowerPlan`). Works on geometry positions directly (NOT
+ * speed rather than grade. `powerW` is the power the ride is ridden at - the
+ * rider's normal power, or their sprint power on a sprint segment - the pace
+ * the formation would otherwise ride, never the team climb power, which must
+ * not gate its own applicability (see `tttPowerPlan`). Works on geometry positions directly (NOT
  * `route.terrain.climbs`, whose per-lap km positions don't map onto
  * lap-repeated/lead-in-offset geometry). Adjacent stretches separated by less
  * than 200 m merge before the speed test runs.

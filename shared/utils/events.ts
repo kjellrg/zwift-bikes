@@ -493,6 +493,18 @@ export function lapsForCategoryGroup(race: EventRace, groupIndex = 0): number {
 }
 
 /**
+ * The Category group that races `routeSlug` over `laps` - the group a ranking
+ * fetched for that course and lap count was for, where a selector has since
+ * moved on. Groups that tie on both race identically, so the first of them
+ * names the ranking as well as any. A group on a route the catalog doesn't
+ * have is never matched: nothing was ranked for it.
+ */
+export function categoryGroupRacing(race: EventRace, routeSlug: string | undefined, laps: number | undefined): RaceCategoryGroup | undefined {
+  if (!routeSlug) return undefined
+  return race.categories.find(group => group.routeSlug === routeSlug && group.laps === laps)
+}
+
+/**
  * The race's primary route - the first group's, skipping any leading groups
  * on a route the catalog doesn't have, so a race whose A/B route is unlisted
  * still titles itself off a route that exists.
