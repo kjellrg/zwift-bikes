@@ -369,6 +369,14 @@ describe('the twin of a race that has been run', () => {
     expect(run.markdown).toContain(`> Next ZRL race: [Week 6, Tue 27 Oct](${ORIGIN}/events/zrl-2026-27#round-1)`)
   })
 
+  it('points to the next round with nothing announced once no race is left but its season is not over', async () => {
+    // ZRacing's September stage 4 closed on Sun 4 Oct; Zwift has themed
+    // nothing after it, so October-December are rounds with no races on them.
+    const run = await markdownDocumentFor('/events/zracing-2026/september-stage-4')!({ ...PAUSED, today: '2026-10-10' })
+    expect(run.noindex).toBe(true)
+    expect(run.markdown).toContain(`> Next ZRacing round: [October, not announced yet](${ORIGIN}/events/zracing-2026#round-10)`)
+  })
+
   it('points to the events hub once its season has nothing left to run', async () => {
     const run = await markdownDocumentFor('/events/zrl-2026-27/round-1-week-5')!({ ...PAUSED, today: '2027-04-07' })
     expect(run.markdown).toContain(`> Every race this season has been run. [Races still to come](${ORIGIN}/events)`)
