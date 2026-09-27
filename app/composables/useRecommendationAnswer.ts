@@ -13,8 +13,8 @@ export interface RecommendationAnswerOptions {
   distanceKm: () => number | undefined
   /** The rider the results on screen were computed for - `useRecommendRequest`'s `appliedInputs`, never the stored profile. */
   rider: () => AppliedRiderInputs
-  /** The applied lap count on a route page; omit on a segment page. */
-  laps?: () => number
+  /** The applied lap count where the Ride has laps; omit it, or answer undefined, on a segment, whose answer names its timed scope instead. */
+  laps?: () => number | undefined
   restrictions: () => RiderInputs
   /** The Ride's own equipment and drafting rules, ahead of the answer - a race has them, a route does not. */
   rideRules?: () => string | undefined

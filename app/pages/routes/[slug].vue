@@ -1,39 +1,45 @@
 <script setup lang="ts">
 import type { PublishableRace } from '../../../shared/utils/events'
 import type { Ride } from '../../utils/recommendRequest'
-import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
-import { rideForRoute } from '#shared/utils/recommendRide'
-import { routeSilhouette } from '#shared/utils/silhouette'
-import { breadcrumbScript, faqScript } from '../../utils/rankingResults'
 import { climbCountFact, surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-// Read-only here: the levers that write them live in `RiderCard` and
-// `RideEquipmentFilters`, which bind and persist this same `useState`-backed
-// state. `useRecommendRequest` reads it too, and owns
-// every refetch it triggers.
-const { weightKg, powerW } = useRiderProfile()
 const { showUpcomingRaces } = usePreferences()
 
 const laps = ref(1)
 const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }, laps: laps.value }))
-// Handed whole to `RideResults`, which renders everything this page shows
-// about the Ranking; what is destructured here is what the page itself is
-// still about - its header, its lap count, its Fact row and its course.
-const request = useRecommendRequest(() => ride.value, { key: `recommend-route-${slug.value}` })
-const {
-  ready: recommendReady, recommendData, physics: physicsInfo,
-  combos, topCombo, fastestOverall, fastestTimeSec, appliedInputs, appliedRanking, wheelChoice, appliedRestrictions, appliedRide,
-  isFirstLoad, isRefreshing, resultsAnnouncement, bikeSearch, bikeSearchDebounced
-} = request
+
+// The route the rider has selected, which the header, the Fact row and the
+// Course hero describe. The same lookup the ranking makes for its Applied
+// course, under the same key - see `useCourse`. Declared before the ranking
+// page module, whose head and answer read the page's own wording from it.
+const { ready: courseReady, course: routeData, error: routeError } = useCourse(() => ride.value.course)
+
+const siteConfig = useSiteConfig()
+const canonicalUrl = useCanonicalUrl()
+// Everything this page shows about its Ranking - see `useRankingPage`. What
+// stays here is what the page states itself: its header, its lap count, its
+// Fact row and Course hero, its related routes and its share card.
+const rankingPage = useRankingPage({
+  ride: () => ride.value,
+  key: `recommend-route-${slug.value}`,
+  rideName: course => `${course.name} in ${course.worldName}`,
+  faqQuestion: () => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined,
+  // A route sits directly under the home page.
+  breadcrumbs: () => routeData.value
+    ? [
+        { name: 'Home', item: siteConfig.url },
+        { name: routeData.value.name, item: canonicalUrl.value }
+      ]
+    : undefined
+})
+const { tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
 
 // Fired together (not sequentially): the recommendation depends on the Ride and the rider's own
-// stored state (both read inside `useRecommendRequest`), never on the route lookup resolving first.
-// The same lookup the request makes for its applied course, under the same key - see `useCourse`.
-const { ready: courseReady, course: routeData, error: routeError } = useCourse(() => ride.value.course)
-await Promise.all([courseReady, recommendReady])
+// stored state, never on the route lookup resolving first.
+await Promise.all([courseReady, rankingPage.ready])
 if (routeError.value) throw createError({ statusCode: 404, statusMessage: 'Route not found', fatal: true })
 
 // Per-route rather than a flat 1..MAX_LAPS: `maxLapsForRoute` also caps the
@@ -73,8 +79,8 @@ const metaDescription = computed(() => {
     ride: routeData.value.name,
     world: routeData.value.worldName,
     stats: `${formatDistance(totals.distanceKm)}, ${formatElevation(totals.elevationM)} of climbing`,
-    setup: topCombo.value ? setupName(topCombo.value) : undefined,
-    category: appliedInputs.value.category
+    setup: rankingPage.request.topCombo.value ? setupName(rankingPage.request.topCombo.value) : undefined,
+    category: rankingPage.request.appliedInputs.value.category
   })
 })
 useSeoMeta({
@@ -88,21 +94,20 @@ useSeoMeta({
 
 // Issue #59: a generated card replaces the old hotlinked world minimap.
 // Snapshotted once at setup, which is exactly the build-time prerender pass
-// (zeroRuntime never re-renders): the top combo is therefore the DEFAULT
-// rider profile's - the same ranking the prerendered page itself shows -
-// and combo names, not a finish time, go on the card because a time is only
-// meaningful for a specific rider.
+// (zeroRuntime never re-renders): rank 1 is therefore the DEFAULT rider
+// profile's - the same ranking the prerendered page itself shows - over one
+// lap, the lap count a clean link ranks. See `RankingPageShareCard`.
 if (routeData.value) {
   const totals = computeRouteTotals(routeData.value, 1)
-  const ogTopCombo = recommendData.value?.combos?.[0]
+  const { frameName, wheelName, silhouette } = rankingPage.shareCard.value
   defineOgImage('RouteCard', {
     title: routeData.value.name,
     world: routeData.value.worldName,
     distance: formatDistance(totals.distanceKm),
     elevation: formatElevation(totals.elevationM),
-    frameName: ogTopCombo?.frame.name,
-    wheelName: ogTopCombo?.wheelset?.name,
-    profile: routeSilhouette(routeData.value, 1, OG_SILHOUETTE_SAMPLES)
+    frameName,
+    wheelName,
+    profile: silhouette
   }, {
     alt: `Fastest bike for ${routeData.value.name} in ${routeData.value.worldName}: the route's profile and its fastest bike and wheel setup`
   })
@@ -147,77 +152,6 @@ const lapScope = computed(() => {
   return `${lapsText} plus a ${formatDistance(totals.leadInDistanceKm)} lead-in${climbing}, ridden once.`
 })
 const surfaceCoverage = computed(() => routeData.value ? surfaceCoverageLine(routeData.value.surface) : undefined)
-
-// The lap count the currently displayed combos were computed for - `laps`
-// itself moves the header stats immediately, but a speed readout must divide
-// a distance by a finish time computed for the SAME lap count. See
-// `appliedRide` on `useRecommendRequest`.
-const resultsLaps = computed(() => appliedRide.value?.laps ?? 1)
-
-/** What a report filed from this page says the ranking was ridden as - see `formatRideLine`. */
-const reportRideLine = computed(() => formatRideLine({ ride: appliedRide.value, rider: appliedInputs.value }))
-const resolvedRide = computed(() => routeData.value ? rideForRoute(routeData.value, resultsLaps.value) : undefined)
-const resultsTotals = computed(() => routeData.value ? computeRouteTotals(routeData.value, resultsLaps.value) : undefined)
-
-// Whether the team climb pace lever is worth showing at all - see the
-// `hasLongClimb` prop on `RiderCard`. Deliberately keyed on the
-// rider's NORMAL power, never on `tttClimbWkg`: the climb pace must not
-// decide its own slider's visibility, or the control vanishes under the
-// user's cursor as they drag it.
-const hasLongClimb = computed(() => resolvedRide.value
-  ? detectLongClimbBlocks(resolvedRide.value.planGeometry(), powerW.value, weightKg.value).length > 0
-  : true)
-
-// One plan for the Fact row's TTT line and the TTT plan tab, from the
-// applied results - see `useTttPlan`. Undefined outside TTT drafting.
-const tttPlan = useTttPlan({
-  route: () => routeData.value,
-  combo: () => topCombo.value,
-  rider: () => appliedInputs.value,
-  laps: () => resultsLaps.value,
-  loading: () => isFirstLoad.value
-})
-
-// Also handed whole to `RideResults`, so the recommendation and the rows
-// pick through one set of picks; the section they are compared in renders
-// below, in this page's own flow, which is where "Show comparison" scrolls.
-const comparison = useComparison(() => combos.value)
-const { picked: comparedCombos, clear: clearComparison, remove: removeFromComparison } = comparison
-
-const faqQuestion = computed(() => routeData.value ? `What's the fastest bike for ${routeData.value.name}?` : undefined)
-// The visible answer under the recommendation and the FAQ structured data
-// are one text (`answer.text`), built from the APPLIED ranking - the lagged
-// lap count and the rider the request was actually answered for - so what a
-// crawler reads is what a rider sees. Renders from the prerendered results
-// on first paint; during a refetch it keeps describing the results still on
-// screen, the same way the dimmed results do.
-const answer = useRecommendationAnswer({
-  ranking: () => combos.value,
-  fastestOverall: () => fastestOverall.value,
-  rideName: () => routeData.value ? `${routeData.value.name} in ${routeData.value.worldName}` : undefined,
-  distanceKm: () => resultsTotals.value?.distanceKm ?? routeData.value?.distance,
-  rider: () => appliedInputs.value,
-  laps: () => resultsLaps.value,
-  restrictions: () => appliedRestrictions.value
-})
-const faqAnswer = computed(() => answer.value?.text)
-
-const siteConfig = useSiteConfig()
-const canonicalUrl = useCanonicalUrl()
-useHead(() => {
-  if (!routeData.value) return {}
-  // The trail is this page's own - a route sits directly under the home page
-  // - and the envelope, the keying and the escaping are `rankingResults.ts`'s.
-  return {
-    script: [
-      breadcrumbScript([
-        { name: 'Home', item: siteConfig.url },
-        { name: routeData.value.name, item: canonicalUrl.value }
-      ]),
-      faqScript(faqQuestion.value, faqAnswer.value)
-    ].filter(script => script !== undefined)
-  }
-})
 </script>
 
 <template>
@@ -271,86 +205,32 @@ useHead(() => {
       :name="routeData.name"
     />
 
-    <RecommendDataNotice class="mt-6" />
-    <p
-      class="sr-only"
-      role="status"
-      aria-live="polite"
-    >
-      {{ resultsAnnouncement }}
-    </p>
-
-    <RideResults
-      :request="request"
-      :comparison="comparison"
-      :answer="answer"
-      :faq-question="faqQuestion"
-    >
-      <template #rider>
+    <RankingPageBody :page="rankingPage">
+      <template #rider="card">
         <RiderCard
           v-model:laps="laps"
-          :rider="appliedInputs"
-          :refreshing="isRefreshing"
-          :has-long-climb="hasLongClimb"
+          :rider="card.rider"
+          :refreshing="card.refreshing"
+          :has-long-climb="card.hasLongClimb"
           :lap-options="routeData.lap ? lapOptions : undefined"
-          :applied-laps="resultsLaps"
+          :applied-laps="card.appliedLaps"
         />
       </template>
 
-      <template #report-link>
+      <template #report-link="{ reportLine }">
         <ReportDataLink
           :item="routeData?.name"
-          :ride="reportRideLine"
+          :ride="reportLine"
         />
       </template>
-    </RideResults>
 
-    <div class="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-2">
-      <RideWhy
-        :course="appliedRanking.course"
-        :combo="topCombo"
-        :ride-name="routeData.name"
-        :physics-mode="physicsInfo?.mode"
-        :draft-mode="appliedInputs.draftMode"
-        :wheel-choice="wheelChoice"
-        :refreshing="isRefreshing"
-      />
-      <!-- The Ride-only tabs follow the picker `laps` like the hero; the
-           equipment views follow the applied results, like the answer. -->
-      <RideCourseAnalysis
-        :route="routeData"
-        :results-route="appliedRanking.course"
-        kind="route"
-        :laps="laps"
-        :results-laps="resultsLaps"
-        :combo="topCombo"
-        :rider="appliedInputs"
-        :refreshing="isRefreshing"
-        :loading="isFirstLoad"
-        :plan="tttPlan"
-      />
-    </div>
-
-    <RideComparison
-      class="mt-16"
-      :combos="comparedCombos"
-      :fastest-time-sec="fastestTimeSec"
-      @clear="clearComparison"
-      @remove="removeFromComparison"
-    />
-
-    <RelatedRoutes
-      :key="routeData.slug"
-      class="mt-16"
-      :route="routeData"
-    />
-
-    <PhysicsNote
-      v-if="physicsInfo"
-      class="mt-12"
-      :mode="physicsInfo.mode"
-      :summary="physicsInfo.summary"
-      :note="physicsInfo.note"
-    />
+      <template #related>
+        <RelatedRoutes
+          :key="routeData.slug"
+          class="mt-16"
+          :route="routeData"
+        />
+      </template>
+    </RankingPageBody>
   </UContainer>
 </template>
