@@ -1,8 +1,9 @@
 import type { H3Event } from 'h3'
 import { describe, expect, it } from 'vitest'
 import type { RouteWithMeta, SegmentSummary } from '../../shared/types/catalog'
-import type { RecommendBaseQuery } from './apiQuerySchemas'
 import { recommendRouteQuerySchema } from './apiQuerySchemas'
+import type { RankingRequest } from './rankRide'
+import { rankingRequestFromQuery } from './rankRide'
 import type { RecommendPipelineResult, RecommendRide, SimulateComboOptions } from './recommendPipeline'
 import { runRecommendPipeline } from './recommendPipeline'
 import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../shared/utils/recommendLimits'
@@ -71,8 +72,8 @@ function fixtureEquipment() {
 const fakeEvent = (): H3Event => ({ path: '/api/recommend/test', context: {} } as unknown as H3Event)
 
 /** Parsed the way a request is, so the tests read the same defaults the API applies. */
-function query(params: Record<string, string> = {}): RecommendBaseQuery {
-  return recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '175', powerW: '225', ...params })
+function query(params: Record<string, string> = {}): RankingRequest {
+  return rankingRequestFromQuery(recommendRouteQuerySchema.parse({ weightKg: '75', heightCm: '175', powerW: '225', ...params }))
 }
 
 /** Every `timeCombo` call the pipeline made, so the draft each timing was ridden under can be asserted. */
@@ -343,7 +344,7 @@ describe('runRecommendPipeline', () => {
 
   it('never simulates without a rider profile or in legacy mode', async () => {
     const withoutProfile: SimulateLog = []
-    const anonymous = await runRecommendPipeline(fakeEvent(), recommendRouteQuerySchema.parse({}), routeRide(withoutProfile))
+    const anonymous = await runRecommendPipeline(fakeEvent(), rankingRequestFromQuery(recommendRouteQuerySchema.parse({})), routeRide(withoutProfile))
     expect(withoutProfile).toHaveLength(0)
     expect(anonymous.physics).toBeUndefined()
     expect(anonymous.combos.every(combo => combo.finishTimeSec === undefined)).toBe(true)

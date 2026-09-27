@@ -26,6 +26,20 @@ interface SiteFlagsKvBinding {
 const KV_KEY = 'site-flags'
 
 /**
+ * The `Retry-After` every flag-driven 503 carries - the gate's and the
+ * recommend endpoints' own (`recommendHttp.ts`) alike.
+ */
+export const KILL_SWITCH_RETRY_AFTER_SEC = 300
+
+/**
+ * What a paused ranking answers with (`killSwitches.recommend`), from the
+ * gate and from the Ride ranking module alike. No trailing "try again"
+ * imperative: useRefetchNotice shows this text verbatim in a toast and
+ * appends its own stale-results line.
+ */
+export const RECOMMEND_PAUSED_MESSAGE = 'Recommendations are temporarily paused for maintenance.'
+
+/**
  * Both TTLs say the same thing - a flags change may take up to a minute to be
  * visible, which docs/site-flags.md documents as the contract. `cacheTtl` (60
  * is KV's minimum) serves repeat reads from the colo's edge cache; the

@@ -28,8 +28,9 @@ section of the README.
   table must be regenerated (`npm run equipment-physics:compute`), or
   `npm run validate` fails the build on the drift it detects. Any change to
   frame/wheel/route numbers also needs a verified source — see below.
-- **Recommend pipeline edits** (`server/utils/recommendPipeline.ts` or either
-  endpoint under `server/api/recommend/`) that are meant to change nothing
+- **Recommend pipeline edits** (`server/utils/recommendPipeline.ts`, the Ride
+  ranking module `server/utils/rankRide.ts`, or either endpoint under
+  `server/api/recommend/`) that are meant to change nothing
   get proved with `npm run parity:recommend`, which runs the real handlers on
   your tree and on the baseline commit and diffs every response — see
   [scripts/recommend-parity/](scripts/recommend-parity/README.md).

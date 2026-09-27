@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { getSiteFlags } from '../utils/siteFlags'
+import { getSiteFlags, KILL_SWITCH_RETRY_AFTER_SEC, RECOMMEND_PAUSED_MESSAGE } from '../utils/siteFlags'
 
 /**
  * Enforces the runtime site flags (`server/utils/siteFlags.ts`) at the API
@@ -24,13 +24,14 @@ import { getSiteFlags } from '../utils/siteFlags'
  * event has no platform context, so the MCP tools' calls to
  * `/api/recommend/**` pass through here ungated. `mcp.post.ts` reads the
  * flags on the real request and the recommend tools refuse on
- * `RpcContext.recommendPaused` themselves (issue #154).
+ * `RpcContext.recommendPaused` themselves (issue #154). For the recommend
+ * kill switch this gate is the fast path, not the only check: the Ride
+ * ranking module (`server/utils/rankRide.ts`) checks it again for every
+ * caller, over HTTP or in process (issue #288).
  */
 
-const RETRY_AFTER_SEC = 300
-
 function unavailable(event: H3Event, message: string): never {
-  setResponseHeader(event, 'Retry-After', RETRY_AFTER_SEC)
+  setResponseHeader(event, 'Retry-After', KILL_SWITCH_RETRY_AFTER_SEC)
   throw createError({
     statusCode: 503,
     statusMessage: 'Service Unavailable',
@@ -48,9 +49,7 @@ export default defineEventHandler(async (event) => {
 
   const { killSwitches, sections } = await getSiteFlags(event)
   if (isRecommend && killSwitches.recommend) {
-    // No trailing "try again" imperative: useRefetchNotice shows this text
-    // verbatim in a toast and appends its own stale-results line.
-    unavailable(event, 'Recommendations are temporarily paused for maintenance.')
+    unavailable(event, RECOMMEND_PAUSED_MESSAGE)
   }
   if (isMcp && killSwitches.mcp) {
     unavailable(event, 'The MCP endpoint is temporarily paused for maintenance. Try again shortly.')

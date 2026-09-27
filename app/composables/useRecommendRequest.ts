@@ -25,7 +25,10 @@ import {
  * course at runtime, so Nitro can't resolve it to one route's response type. The two assertions
  * below are what keep it honest - both endpoints must stay assignable to it,
  * so a renamed or dropped field on either is a type error here rather than a
- * page quietly rendering `undefined`.
+ * page quietly rendering `undefined`. What the endpoints return is declared
+ * once on the server, as `RouteRanking` and `SegmentRanking` in
+ * `server/utils/rankRide.ts`; Nitro's `InternalApi` carries those here as
+ * they arrive over the wire.
  */
 export interface RecommendResponse {
   combos: ComboScore[]

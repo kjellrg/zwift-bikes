@@ -160,8 +160,11 @@ the markdown does any.
 
 Beyond that, the ranking rides the recommend endpoint's own edge cache
 (`server/utils/recommendCache.ts`), so the pipeline runs once per route per
-deploy per colo, not once per request. `/llms.txt` touches no physics at all
-and carries a one-hour `Cache-Control`.
+deploy per colo, not once per request. The Ride ranking module
+(`server/utils/rankRide.ts`) keys that cache on the normalised question
+rather than the URL, so a document's request and the page's request for the
+same default rider reach one entry however their query strings are ordered.
+`/llms.txt` touches no physics at all and carries a one-hour `Cache-Control`.
 
 ## Why not the Cloudflare zone feature
 

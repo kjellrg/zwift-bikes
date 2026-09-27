@@ -16,10 +16,16 @@ response (see [scripts/recommend-parity/](../scripts/recommend-parity/README.md)
 ## 1. Request lifecycle
 
 The ranking pipeline itself is one module, `server/utils/recommendPipeline.ts`,
-shown below. Two thin endpoints hand it a ride: `server/api/recommend/[slug].get.ts`
-for whole routes, and `server/api/recommend/segments/[slug].get.ts` for
-individual climb/sprint segments, which differs only in how its geometry is
-built and how one combo is timed on it (section 6).
+shown below. It is run by the Ride ranking module, `server/utils/rankRide.ts`
+(`rankRide`), which takes a resolved Ride, the rider and the ranking options,
+and answers with the Ranking and its prose, a stall, or paused - owning the
+edge cache (keyed on the normalised input), the recommend kill switch and the
+response type on the way. Two thin endpoints are its HTTP adapter: they parse
+the query, resolve the Ride and hand it over -
+`server/api/recommend/[slug].get.ts` for whole routes, and
+`server/api/recommend/segments/[slug].get.ts` for individual climb/sprint
+segments, which differs only in how its geometry is built and how one combo
+is timed on it (section 6).
 
 ```mermaid
 %%{ init: { "flowchart": { "nodeSpacing": 30, "rankSpacing": 40 } } }%%
