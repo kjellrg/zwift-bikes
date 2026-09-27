@@ -104,9 +104,8 @@ useSeoMeta({
 const seasonRunOnRenderDay = seasonRun.value
 
 if (seasonRunOnRenderDay) {
-  // Decided on the server's day, as a run race's page decides it, so the rule
-  // is in the served HTML and the X-Robots-Tag header, and it is not changed
-  // after load. A season run on the server's day is off the prerender list
+  // In the served HTML and the X-Robots-Tag header, which is where a crawler
+  // reads it. A season run on the server's day is off the prerender list
   // (`getIndexedSeasons`), so its page is rendered by the server on the real
   // day. One run since the last build is still served prerendered and
   // indexable until the next one, a day at most. Its links are still

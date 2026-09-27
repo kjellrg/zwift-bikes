@@ -195,8 +195,9 @@ export { RACE_FORMAT_LABELS, raceFormatPhrase }
 
 // `formatRaceDate`, `formatRaceDateShort` and `formatRaceDateRange` now live
 // in `shared/utils/raceDates.ts`, so the markdown twin of a run race can
-// write its dates in the page's own words (issue #281). The pages reach them
-// through Nuxt's auto-import of `shared/utils`, as before.
+// write its dates in the page's own words (issue #281). Pages and components
+// now reach them through Nuxt's auto-import of `shared/utils`; plain modules
+// import them from `#shared/utils/raceDates`.
 
 /**
  * The six upgrade stages as every stage select lists them - the garage's,

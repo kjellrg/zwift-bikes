@@ -530,6 +530,16 @@ export function categoryGroupRacing(race: EventRace, routeSlug: string | undefin
 }
 
 /**
+ * Every course the race's groups ride, by its published name, once each and
+ * in the order the organiser lists the groups. What a race's page names in its
+ * title and what its run notice counts ("this route" or "these routes"), so
+ * the two cannot disagree about how many courses a race has.
+ */
+export function raceRouteNames(race: Pick<EventRace, 'categories'>): string[] {
+  return [...new Set(race.categories.map(group => group.routeName).filter((name): name is string => Boolean(name)))]
+}
+
+/**
  * The race's primary route - the first group's, skipping any leading groups
  * on a route the catalog doesn't have, so a race whose A/B route is unlisted
  * still titles itself off a route that exists.

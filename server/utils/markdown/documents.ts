@@ -19,7 +19,7 @@ import {
 } from '../../../shared/utils/events'
 import { BIKE_CATEGORY_WORDS } from '../../../shared/utils/bikeCategories'
 import { rideRulesLine } from '../../../shared/utils/raceRules'
-import { runRaceNotice, type NextRaceLink } from '../../../shared/utils/runRaceNotice'
+import { runRaceNotice, type NoticeLink, type RunRaceNotice } from '../../../shared/utils/runRaceNotice'
 import { buildRecommendationAnswer } from '../../../shared/utils/recommendationAnswer'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, riderInputsForRide, rideRulesForFormat, type AppliedRiderInputs, type Ride } from '../../../shared/utils/recommendQuery'
 import { computeRouteTotals, maxLapsForRoute } from '../../../shared/utils/routeLaps'
@@ -530,8 +530,8 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
  * page renders too), as a blockquote: the notice's title, then its three
  * parts, each link on the request's origin as every link here is.
  */
-function runRaceNoticeLines(notice: ReturnType<typeof runRaceNotice>, origin: string): string[] {
-  const link = ({ lead, label, to }: NextRaceLink) => `> ${lead} [${label}](${origin}${to})`
+function runRaceNoticeLines(notice: RunRaceNotice, origin: string): string[] {
+  const link = ({ lead, label, to }: NoticeLink) => `> ${lead} [${label}](${origin}${to})`
   return [
     `> **${notice.title}**`,
     '>',

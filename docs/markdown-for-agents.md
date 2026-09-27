@@ -145,8 +145,9 @@ the page says about its run state and whether it is indexed, the twin says
 too. Once a race has been run (`hasBeenRun`), its page shows a notice above
 its title and is `noindex, follow`; its twin begins with the same notice as a
 blockquote above its title - the raced-on date, the season's next race as a
-link (its page, its round on the season page when it has no page yet, or the
-events hub once the season has nothing left), and the route on its own as a
+link (its page, its round on the season page when it has no page yet, the
+next round with nothing announced once no race is left, or the events hub
+once the season has nothing left), and the route on its own as a
 link - and everything from the title down is the live twin's. The words come
 from one builder both read, `runRaceNotice` in
 [`shared/utils/runRaceNotice.ts`](../shared/utils/runRaceNotice.ts).

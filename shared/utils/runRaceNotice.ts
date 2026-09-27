@@ -1,4 +1,4 @@
-import { isRacePublishable, nextRaceToRun, raceDisplayName, raceFormatPhrase, raceNameInRound, roundsLeftToRun, type EventRace, type EventSeason, type RaceFormat } from './events'
+import { isRacePublishable, nextRaceToRun, raceDisplayName, raceFormatPhrase, raceNameInRound, raceRouteNames, roundsLeftToRun, type EventRace, type EventSeason, type RaceFormat } from './events'
 import { formatRaceDateRange, formatRaceDateShort } from './raceDates'
 
 /**
@@ -12,7 +12,7 @@ import { formatRaceDateRange, formatRaceDateShort } from './raceDates'
  */
 
 /** A link in a sentence: the words before it, and the link itself. */
-export interface NextRaceLink {
+export interface NoticeLink {
   lead: string
   label: string
   /** Site-relative, as the page's own links are; the twin prefixes its origin. */
@@ -42,7 +42,7 @@ export interface NextRaceLink {
  * renders, the rider's once it is on their screen, and the day a twin is
  * rendered on.
  */
-export function nextRaceLink(season: EventSeason, run: Pick<EventRace, 'round'>, today: string): NextRaceLink {
+export function nextRaceLink(season: EventSeason, run: Pick<EventRace, 'round'>, today: string): NoticeLink {
   const next = nextRaceToRun(season.rounds, today)
   if (!next) {
     // With no race left to run, what is left is rounds with none on them.
@@ -67,10 +67,10 @@ export interface RunRaceNotice {
   title: string
   /** When it was raced, and that the ranking below still holds. */
   ranOn: string
-  /** The season's next race, or the hub (`nextRaceLink`). */
-  next: NextRaceLink
+  /** The season's next race, its next round with nothing announced, or the hub (`nextRaceLink`). */
+  next: NoticeLink
   /** The primary route's own page, when a group rides a route the catalog has. */
-  route?: NextRaceLink
+  route?: NoticeLink
 }
 
 /**
@@ -85,13 +85,12 @@ export function runRaceNotice(season: EventSeason, race: EventRace & { format: R
   const ranOn = race.endDate
     ? `was raced over ${formatRaceDateRange(race.date, race.endDate)}`
     : `was raced on ${formatRaceDateShort(race.date)}`
-  const routeNames = new Set(race.categories.map(group => group.routeName).filter(Boolean))
   // The route page's ranking still holds, raced or not: the first group on a
   // route the catalog has, as the page's title and structured data use.
   const primaryGroup = race.categories.find(group => group.routeSlug)
   return {
     title: 'This race has been run',
-    ranOn: `${raceDisplayName(race)} ${ranOn}. The ranking below still holds for ${routeNames.size > 1 ? 'these routes' : 'this route'} under ${raceFormatPhrase(race.format)} rules.`,
+    ranOn: `${raceDisplayName(race)} ${ranOn}. The ranking below still holds for ${raceRouteNames(race).length > 1 ? 'these routes' : 'this route'} under ${raceFormatPhrase(race.format)} rules.`,
     next: nextRaceLink(season, race, today),
     route: primaryGroup
       ? { lead: 'The route on its own:', label: `Fastest bike for ${primaryGroup.routeName ?? 'this route'}`, to: `/routes/${primaryGroup.routeSlug}` }

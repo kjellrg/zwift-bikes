@@ -188,7 +188,7 @@ const officialDiffers = computed(() => {
  * this, a split race like Round 1 Week 3 advertised only A/B's course and
  * C/D's was invisible to search entirely.
  */
-const allRouteNames = computed(() => [...new Set(race!.categories.map(group => group.routeName).filter((name): name is string => Boolean(name)))])
+const allRouteNames = computed(() => raceRouteNames(race!))
 const routeNamesLabel = computed(() => allRouteNames.value.join(' & ') || 'Route TBC')
 /** `A/B on Makuri 40, C/D on Urumaze` - only worth saying when they differ. */
 const routeNamesByCategory = computed(() => race!.categories
