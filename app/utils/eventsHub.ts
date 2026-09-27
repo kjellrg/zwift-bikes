@@ -93,13 +93,26 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
  * A Round as a sentence starts on it, and whether the verb after it is
  * plural. A monthly series names its rounds "September: Zwift Racing
  * Powered by DURA-ACE" (see `docs/events-data.md`), and riders know those as
- * that month's stages, not as round 9; the rest go by number and name.
+ * that month's stages, not as round 9; a month Zwift has not themed yet is
+ * named by the month alone ("October"). The rest go by number and name.
  */
 function roundSubject(round: Pick<EventRound, 'number' | 'name'>): { subject: string, plural: boolean, month?: number } {
-  const monthly = round.name ? /^(\w+): (.+)$/.exec(round.name) : null
+  const monthly = round.name ? /^(\w+)(?:: (.+))?$/.exec(round.name) : null
   const month = monthly ? MONTHS.indexOf(monthly[1]!) : -1
-  if (monthly && month >= 0) return { subject: `${monthly[1]}'s stages, ${monthly[2]},`, plural: true, month }
+  if (monthly && month >= 0) return { subject: monthly[2] ? `${monthly[1]}'s stages, ${monthly[2]},` : `${monthly[1]}'s stages`, plural: true, month }
   return { subject: round.name ? `Round ${round.number}, ${round.name},` : `Round ${round.number}`, plural: false }
+}
+
+/**
+ * The line for a month a monthly series has put on its calendar and nothing
+ * else: named by the month alone, with no races. Its dates are ours, the
+ * month's, not the organiser's, so the line says what is missing rather than
+ * when the month starts - and says it the same on any day, since a round with
+ * no races is still to come however far into its month we are.
+ */
+function unthemedMonthLine(round: EventRound, organizer: string): string | undefined {
+  if (round.races.some(race => !race.hidden) || !round.name || !MONTHS.includes(round.name)) return undefined
+  return `${organizer} hasn't announced ${round.name}'s theme yet.`
 }
 
 /** `A`, `A and B`, `A, B and C`. */
@@ -158,7 +171,7 @@ export function seriesStatusLines(season: EventSeason, today: string): string[] 
   const { organizer } = season
   const now = roundSubject(current.round)
   const ongoing = roundState(current.round, today) === 'ongoing'
-  const currentLine = [
+  const currentLine = unthemedMonthLine(current.round, organizer) ?? [
     ongoing
       ? `${now.subject} ${now.plural ? 'run' : 'runs'} until ${formatRaceDateShort(current.round.endDate)}.`
       : `${now.subject} ${now.plural ? 'start' : 'starts'} ${formatRaceDateShort(current.round.startDate)}.`,
@@ -166,6 +179,8 @@ export function seriesStatusLines(season: EventSeason, today: string): string[] 
   ].join(' ')
 
   if (next) {
+    const unthemed = unthemedMonthLine(next.round, organizer)
+    if (unthemed) return [currentLine, unthemed]
     const after = roundSubject(next.round)
     const notes = roundNotes(next.round, next.left, organizer)
     return [currentLine, [

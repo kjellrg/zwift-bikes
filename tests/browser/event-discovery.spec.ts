@@ -30,7 +30,7 @@ const ZRACING = '/events/zracing-2026'
 const DURING = new Date(`${EVENTS_SERVER_DAY}T12:00:00Z`)
 /** The day after ZRacing's September stage 3 closed (Sun 27 Sept). */
 const STAGE_3_RUN = new Date('2026-09-28T00:30:00Z')
-/** Past every race in both curated seasons. */
+/** Past every race in both curated seasons (ZRacing's unthemed months have none). */
 const AFTER = new Date('2027-05-01T12:00:00Z')
 
 /** A race's row on a season page, by the name it is listed under ("Week 2", "Stage 3") - rows are the items of a round section's list. */
@@ -184,12 +184,14 @@ test.describe('event discovery', () => {
 
   test('leaves a season off the hub once its last race has been run', async ({ page }) => {
     await visitAt(page, '/events', AFTER)
-    // Both curated seasons are over: no race, no series box, and the page
-    // says why it is empty rather than standing bare.
-    await expect(page.getByText('No races are left to run on the calendars we cover.')).toBeVisible()
+    // ZRL's season is over: no race, no series box. ZRacing's is not: the
+    // months Zwift hasn't themed are rounds with no races, and those are still
+    // to come however late it gets, so its box stays and the page says why
+    // the list is empty rather than standing bare.
+    await expect(page.getByText('None of the races announced so far is one we can rank - the series below say what is coming.')).toBeVisible()
     await expect(page.locator('main ol > li')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Zwift Racing League 2026/27' })).toHaveCount(0)
-    await expect(page.getByRole('heading', { level: 2, name: 'The series' })).toHaveCount(0)
+    await expect(seriesBox(page, 'ZRacing 2026')).toBeVisible()
     await expectNothingLabelledPast(page)
   })
 
@@ -365,6 +367,18 @@ test.describe('event discovery', () => {
     await expect(unannouncedRound(page, 4)).toContainText('Round 4: Final Charge')
     await expect(page.getByRole('heading', { name: /^Round [234]/ })).toHaveCount(0)
     await expect(page.getByText('Format to come')).toHaveCount(0)
+  })
+
+  test('keeps a monthly season open past its last announced month, with the months to come not announced yet', async ({ page }) => {
+    // September's last stage ended Sun 4 Oct; Zwift has themed nothing after
+    // it, so October-December are rounds with dates and nothing else.
+    await visitAt(page, ZRACING, new Date('2026-10-10T12:00:00Z'))
+    await expect(page.getByText('Every race this season has been run')).toHaveCount(0)
+    const notAnnounced = page.locator('main section').filter({ has: page.getByRole('heading', { level: 2, name: 'Not announced yet' }) })
+    await expect(notAnnounced.locator('li')).toHaveCount(3)
+    await expect(unannouncedRound(page, 10)).toContainText('Round 10: October')
+    await expect(unannouncedRound(page, 10)).toContainText('Mon 5 Oct - Sat 31 Oct')
+    await expect(unannouncedRound(page, 12)).toContainText('Round 12: December')
   })
 
   test('counts what is left from the rider\'s own clock once loaded', async ({ page, request }) => {

@@ -50,7 +50,6 @@ const today = useToday()
  * say so.
  */
 const listedRounds = computed(() => roundsLeftToRun(rounds.value, today.value))
-const upcomingCount = computed(() => listedRounds.value.reduce((total, round) => total + round.races.length, 0))
 
 /**
  * The listed rounds, split: those with a race announced keep a row per race,
@@ -76,13 +75,15 @@ const seasonRun = computed(() => seasonHasBeenRun(season!, today.value))
 
 /**
  * The status block belongs to the fetch: still loading, failed, or a calendar
- * with races still to come. A season whose races have all been run is not an
- * empty search result - "0 races found" and "No races match your filters" are
- * the homepage's voice for a filter that matched nothing, and this page has
- * no filters at all. It says what has actually happened, in its own words,
- * below.
+ * with anything still to come. That is counted in rounds, not races: a round
+ * with no races yet (ZRacing's months before Zwift themes them) is still a
+ * line under "Not announced yet", and a calendar of nothing else is not empty.
+ * A season whose races have all been run is not an empty search result -
+ * "0 races found" and "No races match your filters" are the homepage's voice
+ * for a filter that matched nothing, and this page has no filters at all. It
+ * says what has actually happened, in its own words, below.
  */
-const showsStatus = computed(() => status.value === 'pending' || status.value === 'error' || upcomingCount.value > 0)
+const showsStatus = computed(() => status.value === 'pending' || status.value === 'error' || listedRounds.value.length > 0)
 
 const siteConfig = useSiteConfig()
 const seasonUrl = computed(() => `${siteConfig.url}/events/${season!.slug}`)
@@ -208,7 +209,7 @@ useHead(() => ({
       v-if="showsStatus"
       class="mt-10"
       subject="races"
-      :counts="[{ value: upcomingCount, noun: 'race' }]"
+      :counts="[{ value: listedRounds.length, noun: 'round' }]"
       :status="status"
       count-elsewhere
       @retry="refresh"

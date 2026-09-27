@@ -167,6 +167,23 @@ describe('what a series box on the hub says', () => {
     ])
   })
 
+  it('says a month Zwift has dated but not themed is waiting on its theme, on whatever day it is read', () => {
+    // The curated calendar carries October-December with dates and nothing
+    // else. Those dates are ours, not Zwift's, so the box names the month and
+    // says what is missing rather than when it starts.
+    const zracing = getSeasonBySlug('zracing-2026')!
+    expect(seriesStatusLines(zracing, '2026-10-10')).toEqual([
+      'Zwift hasn\'t announced October\'s theme yet.',
+      'Zwift hasn\'t announced November\'s theme yet.'
+    ])
+    // A month with its stages in but no theme yet goes by the month alone.
+    const stages = eventSeasonSchema.parse({
+      ...zracing,
+      rounds: [{ number: 10, name: 'October', startDate: '2026-10-05', endDate: '2026-10-11', races: [{ slug: 'october-stage-1', round: 10, week: 1, date: '2026-10-05', endDate: '2026-10-11', categories: [], updatedAt: '2026-08-01' }] }]
+    })
+    expect(seriesStatusLines(stages, '2026-10-01')[0]).toBe('October\'s stages start Mon 5 Oct. Zwift hasn\'t announced its routes yet.')
+  })
+
   it('says nothing once the season has been run', () => {
     expect(seriesStatusLines(zrl([round1([week(1, 1, '2026-09-22')])]), '2026-09-23')).toEqual([])
   })
