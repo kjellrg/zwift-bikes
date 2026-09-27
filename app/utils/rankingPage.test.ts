@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { getRouteBySlug } from '#shared/utils/catalog'
+import { categoryGroupRacing, formatCategoryGroup, getRaceBySlug, type EventRace } from '#shared/utils/events'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import type { ComboScore } from '../../shared/types/catalog'
-import { rankingPageAnalysisKind, rankingPageAnswerRide, rankingPageHasLongClimb, rankingPageLaps, rankingPageReportLine, rankingPageShareCard } from './rankingPage'
+import { rankingPageAnalysisKind, rankingPageAnswerRide, rankingPageHasLongClimb, rankingPageLaps, rankingPageReportLine, rankingPageShareCard, resolveRankingPageRide } from './rankingPage'
 import { rideRulesForFormat, type Ride } from './recommendRequest'
 
 // Real catalog courses: the long-climb check reads the geometry the server
@@ -166,5 +167,85 @@ describe('a segment\'s Ranking page', () => {
     // A positional sprint's measured slice may be two points, and still counts.
     expect(rankingPageShareCard(rank1, fuego, 1).silhouette?.heights).toHaveLength(120)
     expect(rankingPageShareCard(rank1, acropolis, 1)).toEqual({ frameName: 'Specialized Tarmac SL9', wheelName: 'Shimano C99/Disc', silhouette: undefined })
+  })
+})
+
+/**
+ * The race page's inputs, over real races and the catalog routes their
+ * Category groups race: a Ride per group, its laps the group's and its rules
+ * the Race format's, and the page's own words for it.
+ */
+describe('a race\'s Ranking page', () => {
+  // Same route, different laps: A/B 4 laps of Innsbruckring, C/D 3.
+  const byLaps = getRaceBySlug('zrl-2026-27', 'round-1-week-2')!
+  // Different routes: A/B on Makuri 40, C/D on Urumaze. A points race.
+  const byRoute = getRaceBySlug('zrl-2026-27', 'round-1-week-3')!
+  // A Race of Truth: no TT frames, no draft.
+  const rot = getRaceBySlug('zrl-2026-27', 'round-1-week-1')!
+  const innsbruckring = getRouteBySlug('innsbruckring')!
+  const makuri40 = getRouteBySlug('makuri-40')!
+  const urumaze = getRouteBySlug('4092230492')!
+  const groupRide = (race: EventRace, index: number): Ride => ({
+    course: { kind: 'route', slug: race.categories[index]!.routeSlug! },
+    laps: race.categories[index]!.laps,
+    ...rideRulesForFormat(race.format!)
+  })
+  // The race page's own words: the lap count leads, because the group fixes it.
+  const raceName = (course: { name: string, worldName: string }, laps: number) => `${laps} lap${laps === 1 ? '' : 's'} of ${course.name} in ${course.worldName}`
+  const raceSubject = (race: EventRace) => (ride: Ride | undefined) => {
+    const group = categoryGroupRacing(race, ride?.course.slug, ride?.laps)
+    return group ? formatCategoryGroup(group) : undefined
+  }
+
+  it('rides the Applied Category group\'s laps', () => {
+    expect(rankingPageLaps(groupRide(byLaps, 0))).toBe(4)
+    expect(rankingPageLaps(groupRide(byLaps, 1))).toBe(3)
+  })
+
+  it('answers for the Applied course over the Applied laps, timed with the lead-in once, under the Race format\'s rules', () => {
+    expect(rankingPageAnswerRide(groupRide(byLaps, 1), innsbruckring, raceName)).toEqual({
+      rideName: '3 laps of Innsbruckring in Innsbruck',
+      distanceKm: expect.closeTo(0.222 + 3 * 8.799, 6),
+      laps: 3,
+      rideRules: 'TT bikes are disabled for this scratch race.'
+    })
+  })
+
+  it('names the course the Applied Ranking was computed over, whichever group the selector has moved to', () => {
+    // The selector is on C/D (Urumaze); the ranking on screen is still A/B's.
+    const applied = groupRide(byRoute, 0)
+    expect(rankingPageAnswerRide(applied, makuri40, raceName)).toMatchObject({
+      rideName: '1 lap of Makuri 40 in Makuri Islands',
+      distanceKm: expect.closeTo(0.137 + 40.115, 6),
+      rideRules: 'TT bikes are disabled for this points race.'
+    })
+    expect(rankingPageAnswerRide(groupRide(byRoute, 1), urumaze, raceName)?.rideName).toBe('1 lap of Urumaze in Makuri Islands')
+  })
+
+  it('bars TT frames from the Ride under a format that bars them, and ranks a TTT with them', () => {
+    expect(resolveRankingPageRide(groupRide(byRoute, 0), makuri40)?.excludeTT).toBe(true)
+    expect(resolveRankingPageRide(groupRide(rot, 0), getRouteBySlug('montmartre-mixer')!)?.excludeTT).toBe(true)
+    const ttt = { ...groupRide(byLaps, 0), ...rideRulesForFormat('ttt') }
+    expect(resolveRankingPageRide(ttt, innsbruckring)?.excludeTT).toBe(false)
+  })
+
+  it('leads the Race of Truth\'s answer with its rules line', () => {
+    expect(rankingPageAnswerRide(groupRide(rot, 0), getRouteBySlug('montmartre-mixer')!, raceName)?.rideRules)
+      .toBe('WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time is for riding solo.')
+  })
+
+  it('leads the report line with the Applied Category group, matched on the Applied course and laps', () => {
+    const rider = { powerW: 250, draftMode: 'race' as const, tttRiders: 4 }
+    expect(rankingPageReportLine(groupRide(byLaps, 1), rider, raceSubject(byLaps))).toBe('C/D, ridden as a scratch race, 3 laps, 250 W, Race draft, TT frames barred')
+    expect(rankingPageReportLine(groupRide(byLaps, 0), rider, raceSubject(byLaps))).toBe('A/B, ridden as a scratch race, 4 laps, 250 W, Race draft, TT frames barred')
+    expect(rankingPageReportLine(groupRide(byRoute, 1), rider, raceSubject(byRoute))).toBe('C/D, ridden as a points race, 1 lap, 250 W, Race draft, TT frames barred')
+  })
+
+  it('draws the Applied group\'s course on the share card, for its laps', () => {
+    const rank1 = { frame: { name: 'Specialized Tarmac SL9' }, wheelset: { name: 'Shimano C99/Disc' } } as ComboScore
+    const card = rankingPageShareCard(rank1, innsbruckring, 4)
+    expect(card).toMatchObject({ frameName: 'Specialized Tarmac SL9', wheelName: 'Shimano C99/Disc' })
+    expect(card.silhouette?.heights).toHaveLength(120)
+    expect(card.silhouette).not.toEqual(rankingPageShareCard(rank1, innsbruckring, 1).silhouette)
   })
 })

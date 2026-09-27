@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { computed, effectScope, ref, watch } from 'vue'
 import { getRouteBySlug } from '#shared/utils/catalog'
+import { categoryGroupRacing, formatCategoryGroup, getRaceBySlug } from '#shared/utils/events'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import { rideRulesForFormat, type AppliedRiderInputs, type Ride, type RiderInputs } from '../utils/recommendRequest'
@@ -193,6 +194,69 @@ describe('useRankingPage', () => {
     it('keeps the TT category under a format that allows TT frames, and with no format at all', () => {
       expect(segmentSetup({ ...sprint, ...rideRulesForFormat('ttt') }).page.hideTtCategory.value).toBe(false)
       expect(segmentSetup(sprint).page.hideTtCategory.value).toBe(false)
+    })
+  })
+  describe('on a race page', () => {
+    // A/B race Makuri 40, C/D Urumaze - a points race, which bars TT frames.
+    const race = getRaceBySlug('zrl-2026-27', 'round-1-week-3')!
+    const makuri40 = getRouteBySlug('makuri-40')!
+    const urumaze = getRouteBySlug('4092230492')!
+    const groupRide = (index: number, format = race.format!): Ride => ({
+      course: { kind: 'route', slug: race.categories[index]!.routeSlug! },
+      laps: race.categories[index]!.laps,
+      ...rideRulesForFormat(format)
+    })
+
+    // The race page's own inputs: the lap count leads the name, and the
+    // report line names the Category group the Applied Ride was ranked for.
+    function raceSetup() {
+      const page = setup({
+        key: 'recommend-race-zrl-2026-27-round-1-week-3',
+        rideName: (course, laps) => `${laps} lap${laps === 1 ? '' : 's'} of ${course.name} in ${course.worldName}`,
+        faqQuestion: () => 'What bike should I ride for ZRL 2026/27 Round 1 Week 3?',
+        reportSubject: (applied) => {
+          const group = categoryGroupRacing(race, applied?.course.slug, applied?.laps)
+          return group ? formatCategoryGroup(group) : undefined
+        }
+      })
+      page.liveRide.value = groupRide(0)
+      page.appliedRide.value = groupRide(0)
+      page.appliedCourse.value = makuri40
+      return page
+    }
+
+    it('explains the ranking with the Applied Category group while the selector runs ahead to another', () => {
+      const { page, liveRide } = raceSetup()
+      liveRide.value = groupRide(1)
+      expect(page.answer.value?.text).toMatch(/^TT bikes are disabled for this points race\. ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for 1 lap of Makuri 40 in Makuri Islands: /)
+      // 40.252 km - the lap and the lead-in once - in 25:00.
+      expect(page.answer.value?.text).toContain('finishing in 25:00 (~96.6 km/h)')
+      expect(page.courseAnalysis.value).toMatchObject({ route: makuri40, resultsRoute: makuri40, kind: 'route', laps: 1 })
+      expect(page.reportLine.value).toBe('A/B, ridden as a points race, 1 lap, 225 W, Solo, TT frames barred')
+      expect(page.hideTtCategory.value).toBe(true)
+    })
+
+    it('names the group the selector moved to once its ranking has landed', () => {
+      const { page, liveRide, appliedRide, appliedCourse } = raceSetup()
+      liveRide.value = groupRide(1)
+      appliedRide.value = groupRide(1)
+      appliedCourse.value = urumaze
+      expect(page.answer.value?.text).toContain('for 1 lap of Urumaze in Makuri Islands: ')
+      expect(page.reportLine.value).toBe('C/D, ridden as a points race, 1 lap, 225 W, Solo, TT frames barred')
+      expect(page.why.value.rideName).toBe('Urumaze')
+    })
+
+    it('shows the TT category in a team time trial, whose format allows TT frames', () => {
+      const { page, liveRide } = raceSetup()
+      liveRide.value = groupRide(0, 'ttt')
+      expect(page.hideTtCategory.value).toBe(false)
+    })
+
+    it('ranks nothing for a Category group with no catalog route', () => {
+      const { page, liveRide, useRecommendRequest } = raceSetup()
+      liveRide.value = undefined
+      expect(useRecommendRequest.mock.calls[0]![0]()).toBeUndefined()
+      expect(page.hideTtCategory.value).toBe(false)
     })
   })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { EventRace } from './events'
 import {
   categoryGroup,
+  categoryGroupRacing,
   eventSeasonSchema,
   draftingAllowed,
   eventRaceSchema,
@@ -184,6 +185,21 @@ describe('derivations the pages are built from', () => {
     expect(categoryGroup(race, 5)).toBe(race.categories[0])
     expect(lapsForCategoryGroup(race)).toBe(2)
     expect(lapsForCategoryGroup(testRace({ categories: [] }))).toBe(1)
+  })
+
+  it('finds the Category group that races a course over a lap count, so a ranking names the group it was fetched for', () => {
+    const race = testRace({
+      categories: [
+        { cats: ['A', 'B'], routeSlug: 'innsbruckring', routeName: 'Innsbruckring', laps: 4 },
+        { cats: ['C', 'D'], routeSlug: 'innsbruckring', routeName: 'Innsbruckring', laps: 3 },
+        { cats: ['E'], routeName: 'ZRL Exclusive', laps: 3 }
+      ]
+    })
+    expect(categoryGroupRacing(race, 'innsbruckring', 3)).toBe(race.categories[1])
+    expect(categoryGroupRacing(race, 'innsbruckring', 4)).toBe(race.categories[0])
+    expect(categoryGroupRacing(race, 'innsbruckring', 2)).toBeUndefined()
+    // A group on a route the catalog does not have is never what a ranking was for.
+    expect(categoryGroupRacing(race, undefined, 3)).toBeUndefined()
   })
 
   it('names groups by label when curated, otherwise WTRL-style A/B', () => {
