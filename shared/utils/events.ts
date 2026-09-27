@@ -430,6 +430,23 @@ export function getIndexedRaces(today: string): PublishableRace[] {
 }
 
 /**
+ * The season pages the site puts forward on `today`: every visible season
+ * less the seasons that have been run (`seasonHasBeenRun`), as
+ * `getIndexedRaces` is for race pages and for the same reasons. A run season
+ * keeps its page at its URL, where it says that it has finished and points to
+ * the hub, but the page is noindex, and the sitemap and the prerender list
+ * both read this, so neither lists it and the two cannot disagree. Off the
+ * prerender list, its page is rendered by the server on the real day, which
+ * is what puts the noindex in its served HTML and its header.
+ *
+ * `getSeasons()` keeps meaning every visible season, run or not: a season
+ * page and the hub read that, and decide what has been run themselves.
+ */
+export function getIndexedSeasons(today: string): EventSeason[] {
+  return getSeasons().filter(season => !seasonHasBeenRun(season, today))
+}
+
+/**
  * How a format is named wherever one is shown or written out. Here beside
  * `RaceFormat` rather than in `app/utils/labels.ts`, where it used to live,
  * for the reason `formatDuration` moved to `shared/utils/duration.ts`: the

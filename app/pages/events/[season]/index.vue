@@ -95,7 +95,30 @@ useSeoMeta({
   ogDescription: () => season!.description
 })
 
-defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - the fastest bike and wheelset for every race on the calendar' })
+/**
+ * Whether the season had been run on the day this page renders on - the
+ * server's, which is what a crawler reads. The robots rule and the calendar's
+ * structured data follow it and are not changed after load, as a run race's
+ * page does with its own.
+ */
+const seasonRunOnRenderDay = seasonRun.value
+
+if (seasonRunOnRenderDay) {
+  // Decided on the server's day, as a run race's page decides it, so the rule
+  // is in the served HTML and the X-Robots-Tag header, and it is not changed
+  // after load. A season run on the server's day is off the prerender list
+  // (`getIndexedSeasons`), so its page is rendered by the server on the real
+  // day. One run since the last build is still served prerendered and
+  // indexable until the next one, a day at most. Its links are still
+  // followed: the one to the events hub is where a rider should go next.
+  useRobotsRule('noindex, follow')
+} else {
+  // A card is only generated for a page that is prerendered (`zeroRuntime`),
+  // and a run season's page is not, so it shares the site's own card
+  // (`app.vue`) rather than an og:image URL whose image was never built - as
+  // a run race's page does.
+  defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - the fastest bike and wheelset for every race on the calendar' })
+}
 
 useHead(() => ({
   script: [
@@ -111,22 +134,27 @@ useHead(() => ({
         ]
       }).replace(/</g, '\\u003c')
     },
-    {
-      type: 'application/ld+json' as const,
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'ItemList',
-        'name': `${title.value} race calendar`,
-        // What the page lists, so a race that has been run is not in the
-        // served markup under another name either.
-        'itemListElement': listedRounds.value.flatMap(round => round.races.map(race => ({ round, race }))).map(({ round, race }, index) => ({
-          '@type': 'ListItem',
-          'position': index + 1,
-          'name': `${round.name ? `${round.name} ` : ''}${raceDisplayName(race)}${race.categories[0]?.route ? ` - ${race.categories[0].route.name}` : ''}`,
-          ...(isRacePublishable(race) ? { item: `${seasonUrl.value}/${race.slug}` } : {})
-        }))
-      }).replace(/</g, '\\u003c')
-    }
+    // No calendar for a season that has been run: there is nothing left on it
+    // to list, and an empty ItemList describes a page that isn't there. Read
+    // on the render day, like the robots rule above.
+    ...(seasonRunOnRenderDay
+      ? []
+      : [{
+          type: 'application/ld+json' as const,
+          innerHTML: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            'name': `${title.value} race calendar`,
+            // What the page lists, so a race that has been run is not in the
+            // served markup under another name either.
+            'itemListElement': listedRounds.value.flatMap(round => round.races.map(race => ({ round, race }))).map(({ round, race }, index) => ({
+              '@type': 'ListItem',
+              'position': index + 1,
+              'name': `${round.name ? `${round.name} ` : ''}${raceDisplayName(race)}${race.categories[0]?.route ? ` - ${race.categories[0].route.name}` : ''}`,
+              ...(isRacePublishable(race) ? { item: `${seasonUrl.value}/${race.slug}` } : {})
+            }))
+          }).replace(/</g, '\\u003c')
+        }])
   ]
 }))
 </script>
