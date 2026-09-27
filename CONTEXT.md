@@ -108,7 +108,7 @@ The sentence in "Why this bike wins here" saying that rank 1's own wheels and th
 _Avoid_: disc note, wheel tip, disc or regular
 
 **Ranking results**:
-Everything a page shows about its Applied Ranking: the Recommendation, the evidence lines that say what its time rests on, the answer the page's title asks for, the ranking beneath it, and what all of that looks like while it is refreshing or when nothing matched. It is one thing, shown the same way wherever a ride is ranked, so what a rider learns on a route page is true on a segment or a race page. What a page states on its own is not part of it - its header, its selection control, its fact row, its course hero, its course analysis, and the decision of whether there is a ranking to show at all.
+Everything a page shows about its Applied Ranking: the Recommendation, the evidence lines that say what its time rests on, the answer the page's title asks for, the ranking beneath it, and what all of that looks like while it is refreshing or when nothing matched. It is one thing, shown the same way wherever a ride is ranked, so what a rider learns on a route page is true on a segment or a race page. What a page states on its own is not part of it - its header, its selection control, its fact row, its course hero, and the decision of whether there is a ranking to show at all; nor is the analysis of rank 1 that a Ranking page shows beneath them.
 _Avoid_: the results column, results section, results area, recommendation block
 
 **Wheel alternatives**:
