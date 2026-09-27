@@ -54,11 +54,13 @@ const load = specifier => jiti.import(path.join(repoRoot, specifier))
 const routeHandler = (await load('server/api/recommend/[slug].get.ts')).default
 const segmentHandler = (await load('server/api/recommend/segments/[slug].get.ts')).default
 const routeInfoHandler = (await load('server/api/routes/[slug].get.ts')).default
+const segmentInfoHandler = (await load('server/api/segments/[slug].get.ts')).default
 const timing = await load('server/utils/timing.ts')
 const catalog = await load('shared/utils/catalog.ts')
 const routeSegments = await load('shared/utils/routeSegments.ts')
 const mcpTools = await load('server/utils/mcp/tools.ts')
 const siteFlags = await load('shared/utils/siteFlags.ts')
+const markdownDocuments = await load('server/utils/markdown/documents.ts')
 
 // h3's `getQuery` reads `event.path`, and `markPhase`/`addTimingMeta` key off
 // the event object's identity - a plain object is all either needs.
@@ -265,6 +267,10 @@ globalThis.$fetch = async (fetchPath, options = {}) => {
     currentSlug = decodeURIComponent(fetchPath.slice('/api/routes/'.length))
     return routeInfoHandler(event)
   }
+  if (fetchPath.startsWith('/api/segments/')) {
+    currentSlug = decodeURIComponent(fetchPath.slice('/api/segments/'.length))
+    return segmentInfoHandler(event)
+  }
   throw new Error(`unstubbed $fetch: ${fetchPath}`)
 }
 
@@ -282,6 +288,40 @@ const mcpContext = { killSwitches: siteFlags.DEFAULT_SITE_FLAGS.killSwitches }
 for (const [name, tool, args] of mcpCases) {
   const result = await mcpTools.callTool(tool, args, mcpContext)
   write(name, { tool, args, result })
+  cases++
+}
+
+// ------------------------------------------------------ the markdown documents
+// The ranking documents, whole: the ranking they print and every word around
+// it. Since #290 they rank in process through the Ride ranking module and
+// read the catalog directly; before that they `$fetch`ed the catalog and
+// recommend endpoints, which the stub above dispatches at the same handlers.
+// The context carries both spellings of "nothing paused": `killSwitches`
+// for a tree from #290 on, `recommendPaused` for one before it.
+const markdownContext = {
+  origin: 'https://zwiftbikes.com',
+  siteUrl: 'https://zwiftbikes.com',
+  killSwitches: siteFlags.DEFAULT_SITE_FLAGS.killSwitches,
+  recommendPaused: false
+}
+const sprintSegment = rides.find(r => r.kind === 'segment' && routeSegments.getSegmentSummary(r.slug)?.type === 'sprint')?.slug
+const markdownPages = [
+  `/routes/${firstRoute}`,
+  `/segments/${firstSegment}`,
+  ...(sprintSegment && sprintSegment !== firstSegment ? [`/segments/${sprintSegment}`] : []),
+  // A Race of Truth (no TT frames, no draft) and a points race (no TT frames).
+  '/events/zrl-2026-27/round-1-week-1',
+  '/events/zrl-2026-27/round-1-week-3'
+]
+for (const page of markdownPages) {
+  const render = markdownDocuments.markdownDocumentFor(page)
+  let record
+  try {
+    record = { ok: true, markdown: await render(markdownContext) }
+  } catch (error) {
+    record = { ok: false, error: { statusCode: error.statusCode ?? null, message: error.message ?? null } }
+  }
+  write(`markdown--${page.slice(1).replaceAll('/', '--')}`, { page, ...record })
   cases++
 }
 

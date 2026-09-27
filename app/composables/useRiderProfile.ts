@@ -1,7 +1,8 @@
 import type { DraftMode } from '../../shared/utils/physics/draft'
-import { clampTttClimbWkg, clampTttRiders, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
-import { clampPowerW, clampSprintPowerW, DEFAULT_HEIGHT_CM, DEFAULT_POWER_W, DEFAULT_SPRINT_POWER_W, DEFAULT_WEIGHT_KG, storedPowerW } from '#shared/utils/riderBounds'
-import { DEFAULT_UNOWNED_LEVEL, toUpgradeStage } from '#shared/utils/upgradeStage'
+import { clampTttClimbWkg, clampTttRiders } from '#shared/utils/physics/draft'
+import { DEFAULT_RIDER_INPUTS } from '#shared/utils/recommendQuery'
+import { clampPowerW, clampSprintPowerW, storedPowerW } from '#shared/utils/riderBounds'
+import { toUpgradeStage } from '#shared/utils/upgradeStage'
 
 const STORAGE_KEY = 'zwift-bikes:rider-profile'
 
@@ -13,13 +14,14 @@ const STORAGE_KEY = 'zwift-bikes:rider-profile'
 const MIN_WEIGHT_KG = 40
 const MAX_WEIGHT_KG = 130
 const clampWeightKg = (value: number) => Math.min(MAX_WEIGHT_KG, Math.max(MIN_WEIGHT_KG, Math.round(value)))
-// The seeds below come from `shared/utils/riderBounds.ts`, alongside the
-// power defaults: the Worker renders the markdown twin of a prerendered page
-// for this same phantom rider, so the numbers cannot live only here.
-// `DEFAULT_UNOWNED_LEVEL` and the stage clamp deliberately aren't defined
-// here: the recommend endpoints and the MCP tools have to assume the same
-// stage and hold it to the same bounds, so both live in
-// `shared/utils/upgradeStage.ts` alongside the rest of the stage semantics.
+// The seeds below come from `DEFAULT_RIDER_INPUTS`
+// (`shared/utils/recommendQuery.ts`), which takes the numbers from
+// `shared/utils/riderBounds.ts` and `shared/utils/upgradeStage.ts`: the
+// Worker renders the markdown twin of a prerendered page for this same
+// phantom rider, so the numbers cannot live only here. The stage clamp
+// deliberately isn't defined here either: the recommend endpoints and the
+// MCP tools have to hold the stage to the same bounds, so it lives in
+// `upgradeStage.ts` alongside the rest of the stage semantics.
 
 /**
  * Tracks rider dimensions and power used by the route physics model.
@@ -36,25 +38,25 @@ export function useRiderProfile() {
    */
   const hasStoredProfile = useState<boolean>('rider-profile-stored', () => false)
 
-  const weightKg = useState<number>('rider-weight-kg', () => DEFAULT_WEIGHT_KG)
-  const heightCm = useState<number>('rider-height-cm', () => DEFAULT_HEIGHT_CM)
+  const weightKg = useState<number>('rider-weight-kg', () => DEFAULT_RIDER_INPUTS.weightKg)
+  const heightCm = useState<number>('rider-height-cm', () => DEFAULT_RIDER_INPUTS.heightCm)
   // Power is stored in absolute watts and stays put when weight changes -
   // the sliders show W/kg only as a derived readout. Sprint segments get
   // their own value: a sprint effort is a different physical quantity from
   // race-pace power, and cranking one must never drag the other along.
-  const powerW = useState<number>('rider-power-w', () => DEFAULT_POWER_W)
-  const sprintPowerW = useState<number>('rider-sprint-power-w', () => DEFAULT_SPRINT_POWER_W)
+  const powerW = useState<number>('rider-power-w', () => DEFAULT_RIDER_INPUTS.powerW)
+  const sprintPowerW = useState<number>('rider-sprint-power-w', () => DEFAULT_RIDER_INPUTS.sprintPowerW)
   // There is deliberately no separate "FTP" value: the profile page's slider
   // and the route/segment/event page sliders edit this same `powerW`, so the
   // number a rider sets in one place is the number every page ranks with. A
   // separate `ftpWatts` existed once and fed only the profile readout -
   // riders read that as "my FTP isn't being used", because it wasn't.
-  const defaultUnownedLevel = useState<number>('rider-default-unowned-level', () => DEFAULT_UNOWNED_LEVEL)
+  const defaultUnownedLevel = useState<number>('rider-default-unowned-level', () => DEFAULT_RIDER_INPUTS.defaultUnownedLevel)
   // Draft mode (see `shared/utils/physics/draft.ts`): 'solo' is a lone rider;
   // 'ttt' reads the entered watts as each rider's own rotation average; 'race'
   // reads them as the rider's own race average in a typical mass-start bunch
   // and needs no sub-state of its own (one field-calibrated constant).
-  const draftMode = useState<DraftMode>('rider-draft-mode', () => 'solo')
+  const draftMode = useState<DraftMode>('rider-draft-mode', () => DEFAULT_RIDER_INPUTS.draftMode)
   /**
    * The draft mode `persist()` writes: the rider's own, as last loaded or
    * set through `setDraftMode`. `draftMode` itself can hold a value a link
@@ -78,10 +80,10 @@ export function useRiderProfile() {
    * from storage and undid the link's mode. The first caller wins.
    */
   const loaded = useState<boolean>('rider-profile-loaded', () => false)
-  const tttRiders = useState<number>('rider-ttt-riders', () => TTT_DEFAULT_RIDERS)
+  const tttRiders = useState<number>('rider-ttt-riders', () => DEFAULT_RIDER_INPUTS.tttRiders)
   // Optional "avg W/kg on climbs over 3-4 min" (TTT only) - undefined means
   // the rider's normal power applies everywhere, climbs included.
-  const tttClimbWkg = useState<number | undefined>('rider-ttt-climb-wkg', () => undefined)
+  const tttClimbWkg = useState<number | undefined>('rider-ttt-climb-wkg', () => DEFAULT_RIDER_INPUTS.tttClimbWkg)
 
   function persist() {
     if (!import.meta.client) return

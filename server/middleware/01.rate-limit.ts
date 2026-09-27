@@ -49,17 +49,18 @@ import { prefersMarkdown } from '../utils/markdown/negotiate'
  *
  * A path-matched zone rule on `/api/recommend` does not catch the pipeline
  * run behind a markdown request either, for a second and independent reason:
- * it goes out over Nitro's in-process `$fetch` and never crosses the edge.
+ * it is a call to the Ride ranking module inside the Worker that answered
+ * the page URL (`server/utils/rankRide.ts`), so it never crosses the edge.
  *
  * ## Internal traffic is exempt by construction
  *
  * Nitro's in-process `$fetch` (SSR page renders, the prerender crawl, the
- * MCP tools' and the markdown documents' in-process API calls - which DO
- * pass through this middleware) never carries the Workers platform context,
- * so `limiter` resolves to undefined for it - and the same absence covers
- * `nuxt dev`, where no binding exists either. One external markdown page
- * request therefore costs exactly one count, not one per internal fetch it
- * fans out into.
+ * MCP catalog tools' in-process API calls - which DO pass through this
+ * middleware) never carries the Workers platform context, so `limiter`
+ * resolves to undefined for it - and the same absence covers `nuxt dev`,
+ * where no binding exists either. One external request therefore costs
+ * exactly one count, not one per internal fetch it fans out into. (A
+ * markdown document makes none: it reads the catalog and ranks in process.)
  *
  * ## Ordering
  *

@@ -46,7 +46,11 @@ a `wheelsForFrame` drill-down (dynamic and legacy) and an `ownedOnly` garage.
 Plus unknown slugs (404), a rider who cannot hold the grade (422), and four MCP
 tool calls. The tools rank in process through the Ride ranking module since
 #289; for a baseline from before that, whose tools still `$fetch`ed the
-endpoints, the script dispatches `$fetch` at the same handlers.
+endpoints, the script dispatches `$fetch` at the same handlers. Last, the
+markdown documents of a route, a segment (and a sprint, where the rides have
+one) and two races, whole: they rank in process since #290, and a baseline
+from before that reaches the catalog and recommend endpoints through the same
+`$fetch` dispatch.
 
 ## How it runs a handler without a server
 
@@ -55,8 +59,8 @@ the handlers and `server/utils/timing.ts` share one module instance and the
 script can read the timing meta a handler wrote. Nitro's auto-imported globals
 are stubbed to the minimum: `getRouterParam` returns the case's slug,
 `useRuntimeConfig` has no build SHA so the edge-cache wrapper falls through,
-and `$fetch` (for the MCP cases of a pre-#289 baseline) dispatches straight at
-the handlers. Nothing
+and `$fetch` (for the MCP cases of a pre-#289 baseline and the markdown cases
+of a pre-#290 one) dispatches straight at the handlers. Nothing
 in the ranking path is stubbed.
 
 ## Reading a non-zero result

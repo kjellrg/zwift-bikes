@@ -2,7 +2,7 @@ import type { ComboScore, SurfaceEstimate } from '../../../shared/types/catalog'
 import type { RaceFormat } from '../../../shared/utils/events'
 import { formatDuration, formatDurationGap } from '../../../shared/utils/duration'
 import { RECOMMEND_MAX_OFFSET } from '../../../shared/utils/recommendLimits'
-import type { RouteRanking, RouteRankingPhysics, SegmentRanking, SegmentRankingPhysics } from '../rankRide'
+import type { RouteRanking, RouteRankingPhysics, SegmentRankingPhysics } from '../rankRide'
 
 /**
  * The Ranking the recommend tools format is the Ride ranking module's own
@@ -13,15 +13,6 @@ import type { RouteRanking, RouteRankingPhysics, SegmentRanking, SegmentRankingP
  */
 type RankingPhysics = RouteRankingPhysics | SegmentRankingPhysics
 type RankingPagination = RouteRanking['pagination']
-
-/**
- * The names the markdown documents still import the Ranking by. Aliases of
- * the module's types, not declarations of their own; #290 moves the documents
- * onto the module and drops them.
- */
-export type RecommendRouteResponse = RouteRanking
-export type RecommendSegmentResponse = SegmentRanking
-export type RecommendPagination = RankingPagination
 
 /**
  * Gap to the fastest combo on the page, formatted exactly as the rider-facing

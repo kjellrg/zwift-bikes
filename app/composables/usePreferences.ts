@@ -1,5 +1,6 @@
 import type { BikeCategory } from '../../shared/types/catalog'
 import { BIKE_CATEGORY_FILTERS } from '#shared/types/catalog'
+import { DEFAULT_RIDER_INPUTS } from '#shared/utils/recommendQuery'
 
 const STORAGE_KEY = 'zwift-bikes:preferences'
 
@@ -7,10 +8,15 @@ const STORAGE_KEY = 'zwift-bikes:preferences'
  * Small general-purpose UI preferences that should persist across visits
  * (as opposed to `useGarage`/`useRiderProfile`, which track "who you are"
  * data). Persisted to localStorage only.
+ *
+ * The seeds that shape a Ranking come from `DEFAULT_RIDER_INPUTS`
+ * (`shared/utils/recommendQuery.ts`), not from literals here: the markdown
+ * twin of a prerendered page ranks for those same values on the server, and
+ * two copies would be two rankings of one page.
  */
 export function usePreferences() {
-  const verifiedOnly = useState<boolean>('pref-verified-only', () => true)
-  const myBikesOnly = useState<boolean>('pref-my-bikes-only', () => false)
+  const verifiedOnly = useState<boolean>('pref-verified-only', () => DEFAULT_RIDER_INPUTS.verifiedOnly)
+  const myBikesOnly = useState<boolean>('pref-my-bikes-only', () => DEFAULT_RIDER_INPUTS.myBikesOnly)
   /**
    * Which bike category the route/segment pages rank by. Defaults to
    * `standard`, NOT `all`: TT frames win outright on most routes but are
@@ -30,7 +36,7 @@ export function usePreferences() {
    * hydration flips the visible content and the rendered DOM stops matching
    * the prerendered HTML.
    */
-  const bikeCategory = useState<BikeCategory | 'all'>('pref-bike-category', () => 'standard')
+  const bikeCategory = useState<BikeCategory | 'all'>('pref-bike-category', () => DEFAULT_RIDER_INPUTS.bikeCategory)
   /**
    * The category `persist()` writes: the rider's own choice, as last loaded
    * or set through `setBikeCategory`. `bikeCategory` itself can hold a
@@ -82,7 +88,7 @@ export function usePreferences() {
    * behavior); the pages always send the param explicitly, so the two
    * defaults never meet.
    */
-  const includeHaloBikes = useState<boolean>('pref-include-halo-bikes', () => false)
+  const includeHaloBikes = useState<boolean>('pref-include-halo-bikes', () => DEFAULT_RIDER_INPUTS.includeHaloBikes)
   /**
    * Whether the Ranking table shows every column - the drag-area and mass
    * deltas, the wheel type and the data source - in a horizontally scrolling
