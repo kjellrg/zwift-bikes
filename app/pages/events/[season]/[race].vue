@@ -353,12 +353,12 @@ const draftHint = computed(() => {
  */
 const today = useToday()
 const hasRun = computed(() => hasBeenRun(race!, today.value))
-const nextRace = computed(() => nextRaceLink(season!, race!, today.value))
-/** The primary route's page - the ranking still holds there, raced or not. */
-const primaryGroup = race.categories.find(group => group.routeSlug)
-const raceRanOn = computed(() => race!.endDate
-  ? `was raced over ${formatRaceDateRange(race!.date, race!.endDate)}`
-  : `was raced on ${formatRaceDateShort(race!.date)}`)
+/**
+ * What it says above its title once it has been run, in the words its
+ * markdown twin uses too (`runRaceNotice`): the next race moves with the day,
+ * so the notice is read off the same `today`.
+ */
+const runNotice = computed(() => runRaceNotice(season!, race!, today.value))
 
 // The Fact row follows the group selector, like the hero: both describe the
 // race the rider has picked a group for.
@@ -463,23 +463,23 @@ if (!hasRun.value) {
       aria-label="This race has been run"
       class="mt-5 sm:mt-8"
     >
-      <SiteNotice title="This race has been run">
+      <SiteNotice :title="runNotice.title">
         <p>
-          {{ raceHeading }} {{ raceRanOn }}. The ranking below still holds for {{ allRouteNames.length > 1 ? 'these routes' : 'this route' }} under {{ formatPhrase }} rules.
+          {{ runNotice.ranOn }}
         </p>
         <p>
-          {{ nextRace.lead }}
+          {{ runNotice.next.lead }}
           <NuxtLink
-            :to="nextRace.to"
+            :to="runNotice.next.to"
             class="font-medium text-highlighted underline decoration-rule-strong"
-          >{{ nextRace.label }}</NuxtLink>
+          >{{ runNotice.next.label }}</NuxtLink>
         </p>
-        <p v-if="primaryGroup">
-          The route on its own:
+        <p v-if="runNotice.route">
+          {{ runNotice.route.lead }}
           <NuxtLink
-            :to="`/routes/${primaryGroup.routeSlug}`"
+            :to="runNotice.route.to"
             class="font-medium text-highlighted underline decoration-rule-strong"
-          >Fastest bike for {{ primaryGroup.routeName ?? 'this route' }}</NuxtLink>
+          >{{ runNotice.route.label }}</NuxtLink>
         </p>
       </SiteNotice>
     </section>

@@ -31,11 +31,17 @@ afterEach(() => {
 })
 
 /**
+ * The day the documents below are rendered for, unless a test says otherwise:
+ * before every curated race, so each race document is a live one.
+ */
+const BEFORE_ANY_RACE = '2026-09-01'
+
+/**
  * A preview Worker: links are built from the host that served the request,
  * the canonical from the public site URL. The two differ here on purpose -
  * with one value they would agree by accident.
  */
-const CONTEXT = { origin: 'https://zwift-bikes-pr-1.workers.dev', siteUrl: 'https://zwiftbikes.com', killSwitches: DEFAULT_SITE_FLAGS.killSwitches }
+const CONTEXT = { origin: 'https://zwift-bikes-pr-1.workers.dev', siteUrl: 'https://zwiftbikes.com', killSwitches: DEFAULT_SITE_FLAGS.killSwitches, today: BEFORE_ANY_RACE }
 const PAUSED = { ...CONTEXT, killSwitches: { ...DEFAULT_SITE_FLAGS.killSwitches, recommend: true } }
 
 /** A short route with a lead-in, so a full ranking stays quick. */
@@ -73,7 +79,7 @@ describe('which paths have a markdown twin', () => {
 
 describe('the route document', () => {
   it('leads with the question the page asks and answers it from rank 1', async () => {
-    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
 
     // The same question the page publishes as FAQ structured data, so a
     // model and a crawler come away with one answer.
@@ -88,7 +94,7 @@ describe('the route document', () => {
   })
 
   it('answers in the page\'s own words, runner-up and assumptions included', async () => {
-    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
 
     // One builder with the page (`buildRecommendationAnswer`), so the
     // visible answer, the FAQ structured data and this line are one text.
@@ -98,13 +104,13 @@ describe('the route document', () => {
   })
 
   it('ranks the rider the prerendered HTML was rendered for, and says whose times they are', async () => {
-    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
     expect(markdown).toContain('75 kg, 175 cm, 225 W (3.00 W/kg)')
     expect(markdown).toContain('## How these times were computed')
   })
 
   it('quotes the ride actually raced, lead-in included', async () => {
-    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
     // 9.2 km + a 0.5 km lead-in, 109 m + 1 m.
     expect(markdown).toContain('9.7 km and 110 m of climbing for one lap')
     expect(markdown).toContain('**Lead-in** (ridden once): 0.5 km, 1 m')
@@ -115,7 +121,7 @@ describe('the route document', () => {
     vi.mocked(simulateRoute).mockImplementation(() => {
       throw new Error('simulator refused')
     })
-    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
     expect(markdown).toContain('The ranking could not be computed')
     expect(markdown).toContain('## The route')
     expect(markdown).toContain('`hilly-route`')
@@ -135,7 +141,7 @@ describe('the route document', () => {
       throw new RouteSimulationStallError({ weightKg: 75, heightCm: 175, powerW: 225 }, 0.25, 1234, 5000)
     })
     const log = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
     expect(markdown).toContain('The ranking could not be computed')
     expect(markdown).toContain('## The route')
     // A fact about the rider, not a fault: nothing to log.
@@ -144,7 +150,7 @@ describe('the route document', () => {
   })
 
   it('does not rank at all while recommendations are paused', async () => {
-    const markdown = await markdownDocumentFor(ROUTE_PAGE)!(PAUSED)
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(PAUSED)).markdown
 
     // The module checks the switch before any ranking work - and before the
     // cache, so a stored ranking cannot slip out of this side door either.
@@ -242,7 +248,7 @@ describe('a document and its page share one cache entry', () => {
     expect(url).toBe('/api/recommend/montmartre-mixer?category=standard&limit=9&maxWheelsetsPerFrame=1&offset=0&verifiedOnly=true&includeHalo=false&defaultUnownedLevel=5&weightKg=75&heightCm=175&powerW=225&laps=1&excludeTT=true')
 
     const { store, reads } = fakeCaches()
-    const markdown = await markdownDocumentFor('/events/zrl-2026-27/round-1-week-1')!(CONTEXT)
+    const markdown = (await markdownDocumentFor('/events/zrl-2026-27/round-1-week-1')!(CONTEXT)).markdown
     expect(store.size).toBe(1)
     const documentKey = [...store.keys()][0]!
     expect(JSON.parse(new URL(documentKey).searchParams.get('input')!).options.draft).toEqual({ mode: 'solo' })
@@ -257,17 +263,17 @@ describe('a document and its page share one cache entry', () => {
 
 describe('the segment document', () => {
   it('ranks a sprint at sprint power and a climb at race pace', async () => {
-    const climb = await markdownDocumentFor('/segments/titans-grove-kom')!(CONTEXT)
+    const climb = (await markdownDocumentFor('/segments/titans-grove-kom')!(CONTEXT)).markdown
     expect(climb).toMatch(/the best bike and wheels for the Titans Grove KOM climb in Watopia: the fastest road setup for a 75 kg rider at 225 W/)
     expect(climb).not.toContain('Ridden at sprint power')
 
-    const sprint = await markdownDocumentFor('/segments/alley-sprint')!(CONTEXT)
+    const sprint = (await markdownDocumentFor('/segments/alley-sprint')!(CONTEXT)).markdown
     expect(sprint).toContain('Ridden at sprint power')
     expect(sprint).toMatch(/the best bike and wheels for the Alley Sprint sprint in .+: the fastest road setup for a 75 kg rider at 600 W/)
   })
 
   it('links the routes the segment is ridden on', async () => {
-    const markdown = await markdownDocumentFor('/segments/titans-grove-kom')!(PAUSED)
+    const markdown = (await markdownDocumentFor('/segments/titans-grove-kom')!(PAUSED)).markdown
     expect(markdown).toMatch(/- \[.+\]\(https:\/\/zwift-bikes-pr-1\.workers\.dev\/routes\/[a-z0-9-]+\)/)
   })
 
@@ -284,7 +290,7 @@ describe('the race document', () => {
   const POINTS = '/events/zrl-2026-27/round-1-week-3' // points race, two groups on different courses
 
   it('bars TT frames where the format does, and says so', async () => {
-    const markdown = await markdownDocumentFor(ROT)!(CONTEXT)
+    const markdown = (await markdownDocumentFor(ROT)!(CONTEXT)).markdown
 
     expect(markdown).toContain('**TT frames**: barred')
     expect(markdown).toContain('**Drafting**: no - ridden solo')
@@ -295,7 +301,7 @@ describe('the race document', () => {
   it('ranks the first category group and names the others', async () => {
     // Paused: what is under test is the groups, which the document lists
     // whether or not there is a ranking to print above them.
-    const markdown = await markdownDocumentFor(POINTS)!(PAUSED)
+    const markdown = (await markdownDocumentFor(POINTS)!(PAUSED)).markdown
 
     expect(markdown).toContain('What bike should I ride for')
     expect(markdown).toContain('A/B (ranked above)')
@@ -310,14 +316,84 @@ describe('the race document', () => {
   })
 })
 
+/**
+ * A twin is the page (see **Twin** in CONTEXT.md): once its race has been
+ * run, the page says so above its title and is noindex, so the twin says the
+ * same words above its own and reports the noindex for the middleware to
+ * send (issue #281). "Run" is decided on the day the document is rendered
+ * for, which the render context carries so these tests can hold it.
+ */
+describe('the twin of a race that has been run', () => {
+  const ORIGIN = 'https://zwift-bikes-pr-1.workers.dev'
+  // Round 1 Week 1, a Race of Truth on Montmartre Mixer, raced on Tue 22 Sept.
+  const WEEK_1 = '/events/zrl-2026-27/round-1-week-1'
+  const onDay = (today: string) => ({ ...CONTEXT, today })
+
+  it('is the live twin on race day, with nothing above its title and nothing to hide', async () => {
+    const live = await markdownDocumentFor(WEEK_1)!(onDay('2026-09-22'))
+    expect(live.noindex).toBe(false)
+    expect(live.markdown.startsWith('# What bike should I ride for Zwift Racing League 2026/27')).toBe(true)
+    expect(live.markdown).not.toContain('This race has been run')
+  })
+
+  it('says so above its title the day after, in the page\'s words, and reports its page noindex', async () => {
+    const run = await markdownDocumentFor(WEEK_1)!(onDay('2026-09-23'))
+    expect(run.noindex).toBe(true)
+    // The HTML notice's title and three parts, in its words and its links:
+    // the raced-on date, the season's next race, and the route on its own.
+    expect(run.markdown.startsWith([
+      '> **This race has been run**',
+      '>',
+      '> Round 1 Week 1 was raced on Tue 22 Sept. The ranking below still holds for this route under Race of Truth rules.',
+      '>',
+      `> Next ZRL race: [Week 2, Tue 29 Sept](${ORIGIN}/events/zrl-2026-27/round-1-week-2)`,
+      '>',
+      `> The route on its own: [Fastest bike for Montmartre Mixer](${ORIGIN}/routes/montmartre-mixer)`,
+      '',
+      '# What bike should I ride for Zwift Racing League 2026/27'
+    ].join('\n'))).toBe(true)
+  })
+
+  it('is the live twin from its title down, ranking and race facts included', async () => {
+    const live = (await markdownDocumentFor(WEEK_1)!(onDay('2026-09-22'))).markdown
+    const run = (await markdownDocumentFor(WEEK_1)!(onDay('2026-09-23'))).markdown
+    expect(run.slice(run.indexOf('\n# ') + 1)).toBe(live)
+    expect(live).toContain('## Fastest bike and wheel combinations')
+    expect(live).toMatch(/\| 1 \|/)
+    expect(live).toContain('## The race')
+  })
+
+  it('points to a next race with no page yet at its round on the season page', async () => {
+    // Round 1 Week 6, on Tue 27 Oct, is on a course the catalog doesn't carry.
+    const run = await markdownDocumentFor('/events/zrl-2026-27/round-1-week-5')!({ ...PAUSED, today: '2026-10-21' })
+    expect(run.markdown).toContain(`> Next ZRL race: [Week 6, Tue 27 Oct](${ORIGIN}/events/zrl-2026-27#round-1)`)
+  })
+
+  it('points to the events hub once its season has nothing left to run', async () => {
+    const run = await markdownDocumentFor('/events/zrl-2026-27/round-1-week-5')!({ ...PAUSED, today: '2027-04-07' })
+    expect(run.markdown).toContain(`> Every race this season has been run. [Races still to come](${ORIGIN}/events)`)
+  })
+})
+
+describe('the twins that are not races', () => {
+  it('say the same thing and nothing about the index, whatever the day', async () => {
+    for (const path of ['/', '/segments', ROUTE_PAGE, '/segments/titans-grove-kom']) {
+      const early = await markdownDocumentFor(path)!({ ...PAUSED, today: BEFORE_ANY_RACE })
+      const late = await markdownDocumentFor(path)!({ ...PAUSED, today: '2999-12-31' })
+      expect(early.noindex, path).toBe(false)
+      expect(late, path).toEqual(early)
+    }
+  })
+})
+
 describe('the index documents', () => {
   it('lists the whole catalog with the slugs the API takes', async () => {
-    const home = await markdownDocumentFor('/')!(CONTEXT)
+    const home = (await markdownDocumentFor('/')!(CONTEXT)).markdown
     expect(home).toMatch(/## Every route \(\d{3,}\)/)
     expect(home).toContain('[Watopia Hilly Route](https://zwift-bikes-pr-1.workers.dev/routes/hilly-route)')
     expect(home).toContain('`hilly-route`')
 
-    const segments = await markdownDocumentFor('/segments')!(CONTEXT)
+    const segments = (await markdownDocumentFor('/segments')!(CONTEXT)).markdown
     expect(segments).toMatch(/## Every climb and sprint \(\d{2,}\)/)
     expect(segments).toContain('[Alpe du Zwift](https://zwift-bikes-pr-1.workers.dev/segments/alpe-du-zwift)')
   })

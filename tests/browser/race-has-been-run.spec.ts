@@ -8,7 +8,11 @@ import { EVENTS_SERVER_DAY, servedEventsDay, visit } from './support'
  * before. The site stops promoting it: the page is noindex, and it leaves the
  * sitemap and the prerender list (unit-tested with the day held, in
  * `server/utils/sitemapUrls.test.ts` and, through `getIndexedRaces`, which
- * both read, in `shared/utils/events.test.ts`).
+ * both read, in `shared/utils/events.test.ts`). Its markdown twin says the
+ * same above its own title and is noindex too (issue #281; the document and
+ * the header are unit-tested with the day held, in
+ * `server/utils/markdown/documents.test.ts` and
+ * `server/middleware/02.markdown.test.ts`).
  *
  * "Has been run" is decided the way the events Discovery pages decide it
  * (`event-discovery.spec.ts`): on the server's day, which the dev server pins
@@ -108,6 +112,39 @@ test.describe('a race that has been run', () => {
     await next.click()
     await page.waitForURL('**/events/zrl-2026-27/round-1-week-3')
     await expect(notice(page)).toHaveCount(0)
+  })
+
+  test('has a markdown twin that says what its page says, and is noindex too', async ({ request }) => {
+    // A twin is the page (issue #281): the same notice above its title, in
+    // the same words and to the same places, decided on the same pinned day.
+    const response = await request.get(RUN, { headers: { accept: 'text/markdown' } })
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toContain('text/markdown')
+    expect(response.headers()['x-robots-tag']).toBe('noindex, follow')
+    const markdown = await response.text()
+    const origin = new URL(response.url()).origin
+    expect(markdown.startsWith([
+      '> **This race has been run**',
+      '>',
+      '> Round 1 Week 1 was raced on Tue 22 Sept. The ranking below still holds for this route under Race of Truth rules.',
+      '>',
+      `> Next ZRL race: [Week 2, Tue 29 Sept](${origin}${TO_RUN})`,
+      '>',
+      `> The route on its own: [Fastest bike for Montmartre Mixer](${origin}/routes/montmartre-mixer)`,
+      '',
+      '# What bike should I ride for'
+    ].join('\n'))).toBe(true)
+    // The ranking under it is still there.
+    expect(markdown).toContain('## Fastest bike and wheel combinations')
+  })
+
+  test('has a twin that says nothing of the kind while its race is still to run', async ({ request }) => {
+    const response = await request.get(TO_RUN, { headers: { accept: 'text/markdown' } })
+    expect(response.status()).toBe(200)
+    expect(response.headers()['x-robots-tag']).toBeUndefined()
+    const markdown = await response.text()
+    expect(markdown.startsWith('# What bike should I ride for')).toBe(true)
+    expect(markdown).not.toContain('This race has been run')
   })
 
   test('points to the events hub once its season has nothing left to run', async ({ page }) => {

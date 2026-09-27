@@ -32,12 +32,9 @@ export function useToday() {
  * calendar day whatever the real date is: `playwright.config.ts` passes it to
  * the dev server it starts. `import.meta.dev` is false in a production build,
  * so the branch is compiled out there and no deployed environment can set it.
+ * `eventsRenderDay` reads the pin, as the markdown middleware does for a
+ * race's twin, so the page and its twin agree on the day.
  */
 function renderDay(): string {
-  if (import.meta.dev && import.meta.server && process.env.EVENTS_TODAY) {
-    const pinned = process.env.EVENTS_TODAY
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(pinned)) throw new Error(`EVENTS_TODAY must be an ISO date (YYYY-MM-DD), got "${pinned}"`)
-    return pinned
-  }
-  return isoDay(new Date())
+  return eventsRenderDay(import.meta.dev && import.meta.server ? process.env.EVENTS_TODAY : undefined)
 }

@@ -28,6 +28,8 @@ for a 75 kg rider at 225 W, finishing in 17:42 (~32.9 km/h). The Canyon Aeroad
   that served the request - the rule `useCanonicalUrl` documents, so a preview
   Worker cannot nominate itself. Every other link in the document is built
   from the request's own origin, the way the HTML's links are relative.
+  A run race's twin also carries `X-Robots-Tag: noindex, follow`, as its page
+  does (see below); no other twin carries a robots header.
 - **Index:** [`/llms.txt`](https://zwiftbikes.com/llms.txt), the whole route
   and segment catalog with the contract above stated at the top
 - **HTML stays the default.** Only a request that names `text/markdown`
@@ -136,6 +138,33 @@ of reader, so a fix to either lands in both. The one piece deliberately not
 reused is the pagination line - it tells an MCP client to "call again with a
 higher `offset`", and a document has no call to make.
 
+## A race that has been run
+
+A twin is the page (see **Twin** in [CONTEXT.md](../CONTEXT.md)), so whatever
+the page says about its run state and whether it is indexed, the twin says
+too. Once a race has been run (`hasBeenRun`), its page shows a notice above
+its title and is `noindex, follow`; its twin begins with the same notice as a
+blockquote above its title - the raced-on date, the season's next race as a
+link (its page, its round on the season page when it has no page yet, or the
+events hub once the season has nothing left), and the route on its own as a
+link - and everything from the title down is the live twin's. The words come
+from one builder both read, `runRaceNotice` in
+[`shared/utils/runRaceNotice.ts`](../shared/utils/runRaceNotice.ts).
+
+The document reports that its page is noindex alongside its markdown
+(`RenderedMarkdown`), and the middleware sends `X-Robots-Tag: noindex, follow`
+only then, rather than re-deriving the run state itself. Every other twin
+reports `false` and its headers are what they always were.
+
+"Run" is decided on the day the twin is rendered for, which is part of the
+render context (`today`), so a test can hold it. A twin is never prerendered,
+so the middleware supplies the real UTC day; on the dev server the pages'
+`EVENTS_TODAY` pin applies to twins too, read through the same helper
+(`eventsRenderDay`), so a browser journey can ask for the twin of a run race.
+For up to a day after a race ends, the twin says it has been run while the
+still-prerendered HTML does not, until the rider's clock or the next daily
+build catches the page up: the twin is never staler than the page.
+
 ## Cost, and the rate limit
 
 Rendering a ranking document runs the recommend pipeline, which is the
@@ -215,7 +244,8 @@ already answered `text/markdown`.
 ## Adding a page
 
 1. Write the renderer in `server/utils/markdown/documents.ts` and add the path
-   to `markdownDocumentFor`.
+   to `markdownDocumentFor`. It returns its markdown and whether its page is
+   noindex, which is `false` unless the page itself says otherwise.
 2. Add the path to `MARKDOWN_WORKER_FIRST_RULES` **and** to
    `assets.run_worker_first` in wrangler.jsonc. `documents.test.ts` fails if
    the two disagree, which is the only thing standing between a new page and a
