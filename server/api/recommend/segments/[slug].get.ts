@@ -17,5 +17,5 @@ export default defineEventHandler(async (event): Promise<SegmentRanking> => {
   // `recommendSegmentQuerySchema` and its field comments in
   // `server/utils/apiQuerySchemas.ts`. An invalid value throws a 400 here.
   const q = parseQuery(event, recommendSegmentQuerySchema)
-  return answerRecommendRequest(event, { kind: 'segment', segment, excludeTT: q.excludeTT }, q)
+  return answerRecommendRequest(event, { kind: 'segment', segment }, q)
 })

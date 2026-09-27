@@ -110,7 +110,8 @@ describe('the route document', () => {
     expect(markdown).toContain('**Lead-in** (ridden once): 0.5 km, 1 m')
   })
 
-  it('still serves the route when the ranking fails', async () => {
+  it('still serves the route when the ranking fails, and logs why', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(simulateRoute).mockImplementation(() => {
       throw new Error('simulator refused')
     })
@@ -119,6 +120,12 @@ describe('the route document', () => {
     expect(markdown).toContain('## The route')
     expect(markdown).toContain('`hilly-route`')
     expect(markdown).not.toContain('## How these times were computed')
+
+    // The note cannot tell a fault from a stall; the log line can.
+    expect(log).toHaveBeenCalledTimes(1)
+    const line = JSON.parse(log.mock.calls[0]![0] as string)
+    expect(line).toMatchObject({ evt: 'markdown-ranking-error', course: 'route', slug: 'hilly-route', message: 'simulator refused' })
+    log.mockRestore()
   })
 
   it('still serves the route when the rider stalls', async () => {
@@ -127,9 +134,13 @@ describe('the route document', () => {
     vi.mocked(simulateRoute).mockImplementation(() => {
       throw new RouteSimulationStallError({ weightKg: 75, heightCm: 175, powerW: 225 }, 0.25, 1234, 5000)
     })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
     const markdown = await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)
     expect(markdown).toContain('The ranking could not be computed')
     expect(markdown).toContain('## The route')
+    // A fact about the rider, not a fault: nothing to log.
+    expect(log).not.toHaveBeenCalled()
+    log.mockRestore()
   })
 
   it('does not rank at all while recommendations are paused', async () => {

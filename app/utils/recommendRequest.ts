@@ -15,7 +15,10 @@ import type { AppliedRiderInputs, RecommendQuery, Ride, RideCourse, RiderInputs 
  * The first two - the query a Ride and a rider become, and the rider a fresh
  * visitor starts from - live in `shared/utils/recommendQuery.ts`, because the
  * markdown documents build the very same query on the server (issue #290).
- * They are re-exported here so the pages keep one import for the request.
+ * They are re-exported here so the pages and composables that deal in the
+ * whole request import it from one file; a composable that only needs the
+ * shared defaults (`usePreferences`, `useRiderProfile`) imports those from
+ * `#shared/utils/recommendQuery` directly.
  */
 export {
   buildRecommendQuery,

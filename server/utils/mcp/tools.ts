@@ -8,10 +8,9 @@ import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../../shared/utils
 import { clampLaps, computeRouteTotals, MAX_LAPS, MAX_TOTAL_DISTANCE_KM, maxLapsForRoute } from '../../../shared/utils/routeLaps'
 import { getAllSegmentSummaries, getSegmentSummary } from '../../../shared/utils/routeSegments'
 import { DEFAULT_UNOWNED_LEVEL, toUpgradeStage } from '../../../shared/utils/upgradeStage'
-import type { RecommendBaseQuery } from '../apiQuerySchemas'
 import { BIKE_CATEGORIES, recommendRouteQuerySchema, recommendSegmentQuerySchema } from '../apiQuerySchemas'
-import type { RankingFor, RideToRank } from '../rankRide'
-import { rankingRequestFromQuery, rankRide, RIDER_STALLED_MESSAGE } from '../rankRide'
+import type { CourseToRank, RankingFor, RecommendQueryToRank, RideForCourse } from '../rankRide'
+import { rankRideForQuery, RIDER_STALLED_MESSAGE } from '../rankRide'
 import type { RpcContext } from './protocol'
 import {
   CONFIDENCE_NOTE,
@@ -203,8 +202,8 @@ function resolveRaceFormat(args: Record<string, unknown>): { format?: RaceFormat
  * The recommend query both tools ask in, in the API's own terms - the same
  * keys and values the recommend endpoints are called with over HTTP, so the
  * tools validate, default and clamp exactly as those endpoints do: it is
- * parsed with the endpoints' own schema and translated by
- * `rankingRequestFromQuery`, never turned into ranking options by hand.
+ * parsed with the endpoints' own schema and ranked through
+ * `rankRideForQuery`, never turned into ranking options by hand.
  */
 function recommendQuery(args: Record<string, unknown>, profile: RiderProfile, raceFormat?: RaceFormat): Record<string, unknown> {
   // The format WINS over `draftMode`: a Race of Truth has no draft at all, so
@@ -273,8 +272,9 @@ function parseRecommendQuery<S extends typeof recommendRouteQuerySchema | typeof
 }
 
 /**
- * Ranks a resolved Ride through the Ride ranking module, which checks the
- * recommend kill switch and owns the cache. Its two refusals come back as
+ * Ranks a resolved course for the tool's parsed query through the Ride
+ * ranking module (`rankRideForQuery`, the call the recommend endpoints
+ * make), which checks the recommend kill switch and owns the cache. Its two refusals come back as
  * tool errors carrying the site's own wording:
  *
  * - **paused**: the site's maintenance message, plus the "try again" a model
@@ -283,8 +283,8 @@ function parseRecommendQuery<S extends typeof recommendRouteQuerySchema | typeof
  *   of where the rider stopped - a fact about the rider and the course that
  *   the model can act on, not a fault in this server.
  */
-async function rankForTool<R extends RideToRank>(ride: R, query: RecommendBaseQuery, context: RpcContext): Promise<{ ranking: RankingFor<R> } | { failure: ToolResult }> {
-  const outcome = await rankRide({ ride, ...rankingRequestFromQuery(query), killSwitches: context.killSwitches, event: context.event })
+async function rankForTool<C extends CourseToRank>(course: C, query: RecommendQueryToRank, context: RpcContext): Promise<{ ranking: RankingFor<RideForCourse<C>> } | { failure: ToolResult }> {
+  const outcome = await rankRideForQuery(course, query, context)
   switch (outcome.status) {
     case 'paused':
       return { failure: failure(`${outcome.message} Try again later.`) }
@@ -592,7 +592,7 @@ const TOOLS: ToolDefinition[] = [
       const parsed = parseRecommendQuery(recommendRouteQuerySchema, { ...recommendQuery(args, resolved.profile, raceFormat.format), laps })
       if ('failure' in parsed) return parsed.failure
       const { query } = parsed
-      const ranked = await rankForTool({ kind: 'route', route, laps: query.laps, excludeTT: query.excludeTT }, query, context)
+      const ranked = await rankForTool({ kind: 'route', route }, query, context)
       if ('failure' in ranked) return ranked.failure
 
       const { combos, physics, pagination } = ranked.ranking
@@ -659,7 +659,7 @@ const TOOLS: ToolDefinition[] = [
       const parsed = parseRecommendQuery(recommendSegmentQuerySchema, recommendQuery(args, resolved.profile, raceFormat.format))
       if ('failure' in parsed) return parsed.failure
       const { query } = parsed
-      const ranked = await rankForTool({ kind: 'segment', segment: found, excludeTT: query.excludeTT }, query, context)
+      const ranked = await rankForTool({ kind: 'segment', segment: found }, query, context)
       if ('failure' in ranked) return ranked.failure
 
       const { segment, combos, physics, pagination } = ranked.ranking

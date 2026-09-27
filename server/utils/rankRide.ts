@@ -187,9 +187,9 @@ export type RideRankingOutcome<T extends RouteRanking | SegmentRanking = RouteRa
     | { status: 'paused', message: string }
 
 /**
- * The rider and options a parsed recommend query asks for - how the HTTP
- * adapter, and any caller holding a query in the API's own terms, turns one
- * into the module's input. The query keys stay the published contract; this
+ * The rider and options a parsed recommend query asks for - how a caller
+ * holding a query in the API's own terms (through `rankRideForQuery`) turns
+ * one into the module's input. The query keys stay the published contract; this
  * is only their translation.
  */
 export function rankingRequestFromQuery(query: RecommendBaseQuery): RankingRequest {
@@ -350,4 +350,41 @@ export async function rankRide<R extends RideToRank>(input: RankRideInput<R>): P
 
   if (cache && key) await cache.write(key, JSON.stringify(ranking))
   return { status: 'answer', ranking: ranking as RankingFor<R>, cache: cache ? 'miss' : 'off' }
+}
+
+/**
+ * The course a Ride names - which route or which segment, resolved against
+ * the catalog - before a query has said how it is ridden (its laps and its
+ * TT bar).
+ */
+export type CourseToRank = Pick<RouteRide, 'kind' | 'route'> | Pick<SegmentRide, 'kind' | 'segment'>
+
+/** The Ride a course becomes once a query has said how it is ridden. */
+export type RideForCourse<C extends CourseToRank> = C extends { kind: 'route' } ? RouteRide : SegmentRide
+
+/**
+ * A parsed recommend query as a caller holds it: the shared keys, the TT bar
+ * both endpoints take, and the lap count only a route's schema has.
+ */
+export type RecommendQueryToRank = RecommendBaseQuery & { excludeTT: boolean, laps?: number }
+
+/**
+ * Ranks a course for a query parsed with the recommend endpoints' own schema
+ * - the one sequence every caller holding a query runs: the Ride that course
+ * and query make (the laps and TT bar come from the query), the rider and
+ * options `rankingRequestFromQuery` translates, and the caller's kill
+ * switches and request. The HTTP adapter, the MCP tools and the markdown
+ * documents all rank through this, each left with only its own reading of
+ * the outcome.
+ */
+export function rankRideForQuery<C extends CourseToRank>(
+  course: C,
+  query: RecommendQueryToRank,
+  { killSwitches, event }: Pick<RankRideInput, 'killSwitches' | 'event'>
+): Promise<RideRankingOutcome<RankingFor<RideForCourse<C>>>> {
+  const target = course as CourseToRank
+  const ride: RideToRank = target.kind === 'route'
+    ? { kind: 'route', route: target.route, laps: query.laps, excludeTT: query.excludeTT }
+    : { kind: 'segment', segment: target.segment, excludeTT: query.excludeTT }
+  return rankRide({ ride: ride as RideForCourse<C>, ...rankingRequestFromQuery(query), killSwitches, event })
 }

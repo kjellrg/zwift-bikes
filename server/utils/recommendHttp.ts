@@ -1,14 +1,13 @@
 import type { H3Event } from 'h3'
-import type { RecommendBaseQuery } from './apiQuerySchemas'
-import type { RankingFor, RideToRank } from './rankRide'
-import { rankingRequestFromQuery, rankRide, RIDER_STALLED_MESSAGE } from './rankRide'
+import type { CourseToRank, RankingFor, RecommendQueryToRank, RideForCourse } from './rankRide'
+import { rankRideForQuery, RIDER_STALLED_MESSAGE } from './rankRide'
 import { getSiteFlags, KILL_SWITCH_RETRY_AFTER_SEC } from './siteFlags'
 
 /**
  * The HTTP half of the recommend endpoints, shared by the route and the
- * segment endpoint so the two cannot drift apart on it: the parsed query
- * becomes the Ride ranking module's input, and the module's outcome becomes a
- * response.
+ * segment endpoint so the two cannot drift apart on it: the resolved course
+ * and the parsed query go to the Ride ranking module (`rankRideForQuery`),
+ * and the module's outcome becomes a response.
  *
  * - **answer** is the body, with `X-Recommend-Cache: hit|miss` wherever
  *   there was a cache to ask.
@@ -22,13 +21,13 @@ import { getSiteFlags, KILL_SWITCH_RETRY_AFTER_SEC } from './siteFlags'
  * The flags are read on the request itself (`getSiteFlags`), so the module's
  * kill-switch check sees exactly what the gate saw.
  */
-export async function answerRecommendRequest<R extends RideToRank>(
+export async function answerRecommendRequest<C extends CourseToRank>(
   event: H3Event,
-  ride: R,
-  query: RecommendBaseQuery
-): Promise<RankingFor<R>> {
+  course: C,
+  query: RecommendQueryToRank
+): Promise<RankingFor<RideForCourse<C>>> {
   const { killSwitches } = await getSiteFlags(event)
-  const outcome = await rankRide({ ride, ...rankingRequestFromQuery(query), killSwitches, event })
+  const outcome = await rankRideForQuery(course, query, { killSwitches, event })
 
   switch (outcome.status) {
     case 'paused':

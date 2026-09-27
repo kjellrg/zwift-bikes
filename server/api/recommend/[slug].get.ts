@@ -17,5 +17,5 @@ export default defineEventHandler(async (event): Promise<RouteRanking> => {
   // `recommendRouteQuerySchema` and its field comments in
   // `server/utils/apiQuerySchemas.ts`. An invalid value throws a 400 here.
   const q = parseQuery(event, recommendRouteQuerySchema)
-  return answerRecommendRequest(event, { kind: 'route', route, laps: q.laps, excludeTT: q.excludeTT }, q)
+  return answerRecommendRequest(event, { kind: 'route', route }, q)
 })

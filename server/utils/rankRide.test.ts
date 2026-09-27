@@ -5,7 +5,7 @@ import { getSegmentSummary } from '../../shared/utils/routeSegments'
 import { DEFAULT_SITE_FLAGS } from '../../shared/utils/siteFlags'
 import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from './apiQuerySchemas'
 import type { RankingOptions, RankRideInput, RouteRide } from './rankRide'
-import { rankingRequestFromQuery, rankRide } from './rankRide'
+import { rankRide, rankRideForQuery } from './rankRide'
 import { RECOMMEND_PAUSED_MESSAGE } from './siteFlags'
 
 /**
@@ -249,11 +249,7 @@ describe('rankRide with the edge cache', () => {
     vi.stubGlobal('caches', caches)
     const fromQuery = (raw: string) => {
       const query = recommendRouteQuerySchema.parse(Object.fromEntries(new URLSearchParams(raw)))
-      return rankRide({
-        ride: { kind: 'route', route: flatRoute, laps: query.laps, excludeTT: query.excludeTT },
-        ...rankingRequestFromQuery(query),
-        killSwitches: KILL_SWITCHES_OFF
-      })
+      return rankRideForQuery({ kind: 'route', route: flatRoute }, query, { killSwitches: KILL_SWITCHES_OFF })
     }
 
     const first = await fromQuery('category=standard&limit=3&verifiedOnly=true&includeHalo=false&maxWheelsetsPerFrame=1')
@@ -268,7 +264,7 @@ describe('rankRide with the edge cache', () => {
     const { caches, store } = fakeCaches()
     vi.stubGlobal('caches', caches)
     const query = recommendSegmentQuerySchema.parse({ limit: '3' })
-    await rankRide({ ride: { kind: 'segment', segment: sprint, excludeTT: false }, ...rankingRequestFromQuery(query), killSwitches: KILL_SWITCHES_OFF })
+    await rankRideForQuery({ kind: 'segment', segment: sprint }, query, { killSwitches: KILL_SWITCHES_OFF })
     await rankRide(routeInput({ rider: undefined }))
     expect(store.size).toBe(2)
   })

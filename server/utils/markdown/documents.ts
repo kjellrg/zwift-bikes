@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { createError } from 'h3'
-import type { ComboScore, RouteSummary, RouteWithMeta, SegmentSummary } from '../../../shared/types/catalog'
+import type { BikeCategory, ComboScore, RouteSummary } from '../../../shared/types/catalog'
 import { getRouteBySlug, getRoutesWithMeta, toRouteSummary } from '../../../shared/utils/catalog'
 import {
   categoryGroup,
@@ -16,6 +16,7 @@ import {
   raceDisplayName,
   ttBikesAllowed
 } from '../../../shared/utils/events'
+import { BIKE_CATEGORY_WORDS } from '../../../shared/utils/bikeCategories'
 import { rideRulesLine } from '../../../shared/utils/raceRules'
 import { buildRecommendationAnswer } from '../../../shared/utils/recommendationAnswer'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, riderInputsForRide, rideRulesForFormat, type AppliedRiderInputs, type Ride } from '../../../shared/utils/recommendQuery'
@@ -25,7 +26,7 @@ import type { SiteFlags } from '../../../shared/utils/siteFlags'
 import { MAX_UPGRADE_STAGE } from '../../../shared/utils/upgradeStage'
 import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from '../apiQuerySchemas'
 import { CONFIDENCE_NOTE, formatComboTable, formatRaceFormatAssumption, formatSurface } from '../mcp/format'
-import { rankingRequestFromQuery, rankRide, type RideRankingOutcome, type RouteRanking, type SegmentRanking } from '../rankRide'
+import { rankRideForQuery, type CourseToRank, type RankingFor, type RideForCourse, type RouteRanking, type SegmentRanking } from '../rankRide'
 
 /**
  * The markdown representation of the site's pages - what a caller that sent
@@ -106,7 +107,8 @@ type DocumentRanking<T extends RouteRanking | SegmentRanking>
  * loaded: `buildRecommendQuery` - the browser's own builder - applied to
  * `DEFAULT_RIDER_INPUTS`, the seeds the page's composables start from, then
  * parsed with the endpoint's own schema and handed to the Ride ranking
- * module exactly as the endpoint hands it over (`recommendHttp.ts`).
+ * module exactly as the endpoint hands it over (`rankRideForQuery`, as
+ * `recommendHttp.ts` calls it).
  *
  * That is the whole anti-cloaking contract in one function. The query is not
  * a copy of the client's but the client's, and nothing here builds ranking
@@ -117,33 +119,38 @@ type DocumentRanking<T extends RouteRanking | SegmentRanking>
  *
  * Every way of not answering leaves the document serving its facts: paused
  * is the kill switch, and a stall (an outcome) or a throw (a fault) is a
- * ranking that could not be computed.
+ * ranking that could not be computed. A throw is logged first, as one JSON
+ * line in the shape `mcp-tool-error` uses: the document's note reads the
+ * same for both, and without the line a fault - the defaults drifting from
+ * the schema, say - would turn every document into "could not be computed"
+ * with nothing to say why.
  */
-async function rankAsThePage<T extends RouteRanking | SegmentRanking>(rank: () => Promise<RideRankingOutcome<T>>): Promise<DocumentRanking<T>> {
+async function rankAsThePage<C extends CourseToRank>(
+  course: C,
+  ride: Ride,
+  { killSwitches, event }: MarkdownRenderContext
+): Promise<DocumentRanking<RankingFor<RideForCourse<C>>>> {
+  const target = course as CourseToRank
   try {
-    const outcome = await rank()
+    const query = target.kind === 'route'
+      ? recommendRouteQuerySchema.parse(buildRecommendQuery(DEFAULT_RIDER_INPUTS, ride))
+      : recommendSegmentQuerySchema.parse(buildRecommendQuery(DEFAULT_RIDER_INPUTS, ride))
+    const outcome = await rankRideForQuery(course, query, { killSwitches, event })
     switch (outcome.status) {
       case 'answer': return { ranking: outcome.ranking }
       case 'paused': return { unavailable: 'paused' }
       case 'stall': return { unavailable: 'failed' }
     }
-  } catch {
+  } catch (error) {
+    console.error(JSON.stringify({
+      evt: 'markdown-ranking-error',
+      course: target.kind,
+      slug: target.kind === 'route' ? target.route.slug : target.segment.slug,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    }))
     return { unavailable: 'failed' }
   }
-}
-
-function rankRoutePage(route: RouteWithMeta, ride: Ride, { killSwitches, event }: MarkdownRenderContext): Promise<DocumentRanking<RouteRanking>> {
-  return rankAsThePage(async () => {
-    const query = recommendRouteQuerySchema.parse(buildRecommendQuery(DEFAULT_RIDER_INPUTS, ride))
-    return rankRide({ ride: { kind: 'route', route, laps: query.laps, excludeTT: query.excludeTT }, ...rankingRequestFromQuery(query), killSwitches, event })
-  })
-}
-
-function rankSegmentPage(segment: SegmentSummary, ride: Ride, { killSwitches, event }: MarkdownRenderContext): Promise<DocumentRanking<SegmentRanking>> {
-  return rankAsThePage(async () => {
-    const query = recommendSegmentQuerySchema.parse(buildRecommendQuery(DEFAULT_RIDER_INPUTS, ride))
-    return rankRide({ ride: { kind: 'segment', segment, excludeTT: query.excludeTT }, ...rankingRequestFromQuery(query), killSwitches, event })
-  })
 }
 
 /**
@@ -155,7 +162,7 @@ function rankSegmentPage(segment: SegmentSummary, ride: Ride, { killSwitches, ev
  */
 function defaultRiderNote(rider: AppliedRiderInputs): string {
   const wkg = (rider.powerW / rider.weightKg).toFixed(2)
-  return `Ranked for the site's default rider - ${rider.weightKg} kg, ${rider.heightCm} cm, ${rider.powerW} W (${wkg} W/kg), riding solo - because a request carries no profile. `
+  return `Ranked for the site's default rider - ${rider.weightKg} kg, ${rider.heightCm} cm, ${rider.powerW} W (${wkg} W/kg), ${draftWords(rider)} - because a request carries no profile. `
     + 'Every time below scales with those three numbers, so quote them alongside any time you repeat, and rank the reader\'s own with the API described at the end.'
 }
 
@@ -252,18 +259,60 @@ function rankingHeader(question: string, answer: string, canonical: string): str
 }
 
 /**
+ * How the default rider rides the Ride, as the rider note says it: the
+ * Applied draft mode, which is the default's own unless the Ride's Race
+ * format rules the draft out.
+ */
+function draftWords(rider: AppliedRiderInputs): string {
+  switch (rider.draftMode) {
+    case 'solo': return 'riding solo'
+    case 'ttt': return `riding in a ${rider.tttRiders}-rider TTT paceline`
+    case 'race': return 'riding in a race bunch'
+  }
+}
+
+/**
+ * The frame kinds the category line names, in the order it names them, as a
+ * sentence says each. Hand cycles are not named in the list, which has never
+ * named them.
+ */
+const CATEGORY_LINE_ORDER: readonly BikeCategory[] = ['standard', 'tt', 'gravel', 'funbike']
+const FRAME_KIND_WORDS: Record<BikeCategory, string> = { ...BIKE_CATEGORY_WORDS, funbike: 'fun' }
+
+/** "a, b and c". */
+function listWords(words: string[]): string {
+  return words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`
+}
+
+/** The category the ranking was drawn from - the default's, made legal for the Ride. */
+function categoryAssumption(category: BikeCategory | 'all'): string {
+  if (category === 'all') return '- Every bike category the ride allows.'
+  const word = BIKE_CATEGORY_WORDS[category]
+  const others = CATEGORY_LINE_ORDER.filter(other => other !== category).map(other => FRAME_KIND_WORDS[other])
+  return `- ${word.charAt(0).toUpperCase()}${word.slice(1)} bikes only (the site's default category); ${listWords(others)} frames are ranked when asked for explicitly.`
+}
+
+/**
  * Filters and assumptions the ranking was produced under, as bullets. Every
  * one of them narrows what "fastest" means, and a model relaying the answer
  * without them would overstate it - the same reasoning that puts these on
  * the page as the recommendation's small print.
+ *
+ * Each line follows `DEFAULT_RIDER_INPUTS` - the category and draft through
+ * the Applied rider, which is those defaults made legal for the Ride - so a
+ * changed default changes what the document says it ranked. The one line
+ * that does not is "one row per frame": that cap is `buildRecommendQuery`'s
+ * own, sent with every request, not a rider default.
  */
 function rankingAssumptions(rider: AppliedRiderInputs, extra: string[]): string[] {
-  const stage = DEFAULT_RIDER_INPUTS.defaultUnownedLevel
+  const { defaultUnownedLevel: stage, verifiedOnly, includeHaloBikes } = DEFAULT_RIDER_INPUTS
   return [
     '',
-    '- Road bikes only (the site\'s default category); TT, gravel and fun frames are ranked when asked for explicitly.',
-    '- Verified equipment only: frames and wheels whose numbers come from real ZwiftInsider bot tests.',
-    `- Every frame assumed at Zwift upgrade stage ${stage} of ${MAX_UPGRADE_STAGE}${stage === MAX_UPGRADE_STAGE ? ' (fully upgraded)' : stage === 0 ? ' (stock, as bought)' : ''}, and unowned Halo frames excluded.`,
+    categoryAssumption(rider.category),
+    verifiedOnly
+      ? '- Verified equipment only: frames and wheels whose numbers come from real ZwiftInsider bot tests.'
+      : '- Verified and estimated equipment: frames and wheels with no bot-test data are ranked on heuristic estimates.',
+    `- Every frame assumed at Zwift upgrade stage ${stage} of ${MAX_UPGRADE_STAGE}${stage === MAX_UPGRADE_STAGE ? ' (fully upgraded)' : stage === 0 ? ' (stock, as bought)' : ''}${includeHaloBikes ? ', with the purchasable Halo frames included' : ', and unowned Halo frames excluded'}.`,
     '- One row per frame, paired with its own fastest wheelset for this ride.',
     ...extra,
     '',
@@ -332,7 +381,7 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
   // cannot hold the grade makes the simulator refuse. Either way the route's
   // own facts are still worth serving, and an agent gets an honest "not
   // right now" instead of a 5xx.
-  const result = await rankRoutePage(route, ride, context)
+  const result = await rankAsThePage({ kind: 'route', route }, ride, context)
   const ranking = 'ranking' in result ? result.ranking : undefined
 
   const unavailable = rankingUnavailable(result)
@@ -396,7 +445,7 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
   const question = `What's the fastest bike for ${segment.name}?`
 
-  const result = await rankSegmentPage(segment, ride, context)
+  const result = await rankAsThePage({ kind: 'segment', segment }, ride, context)
   const ranking = 'ranking' in result ? result.ranking : undefined
 
   const elevationM = Math.round(segment.measuredElevationM ?? segment.elevationM)
@@ -498,7 +547,7 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
     : undefined
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
 
-  const result = course && ride ? await rankRoutePage(course, ride, context) : undefined
+  const result = course && ride ? await rankAsThePage({ kind: 'route', route: course }, ride, context) : undefined
   const ranking = result && 'ranking' in result ? result.ranking : undefined
 
   const totals = course ? computeRouteTotals(course, laps) : undefined

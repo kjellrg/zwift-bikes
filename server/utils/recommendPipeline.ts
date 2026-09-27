@@ -118,10 +118,10 @@ export async function runRecommendPipeline(
   const { options } = request
   const {
     search: listSearch, category, verifiedOnly, includeHalo,
-    maxWheelsetsPerFrame, wheelsForFrame, unownedUpgradeStage: defaultUnownedLevel, physics: physicsMode
+    maxWheelsetsPerFrame, wheelsForFrame, unownedUpgradeStage, physics: physicsMode
   } = options
   const { offset, limit } = options.page
-  const { ownedOnly, frames: ownedLevels, wheels: ownedWheelKeys } = options.garage
+  const { ownedOnly, frames: ownedStages, wheels: ownedWheelKeys } = options.garage
   // The Draft the rider chose (see `CONTEXT.md`), before it meets the ride.
   const setting = options.draft
   // A drill-down ignores the list's `search`: the rider is asking what else
@@ -139,7 +139,7 @@ export async function runRecommendPipeline(
   // added something of that kind - with no bikes (or no wheels) in the
   // garage yet, fall back to showing all of them instead of filtering down
   // to zero results.
-  const filterFramesByOwnership = ownedOnly && Object.keys(ownedLevels).length > 0
+  const filterFramesByOwnership = ownedOnly && Object.keys(ownedStages).length > 0
   const filterWheelsetsByOwnership = ownedOnly && ownedWheelKeys.size > 0
   // The rider arrives complete or not at all (the query schema refuses a
   // partial profile). The zero fallbacks are never read: every consumer below
@@ -151,7 +151,7 @@ export async function runRecommendPipeline(
 
   // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
   // know whether a cosmetic re-skin was explicitly added before it earns a row.
-  const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedLevels).map(f => f.name))
+  const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedStages).map(f => f.name))
 
   // True when `frame` is a purchasable Halo bike the ranked pool should not
   // show. Bypassed while searching - a directed search must always be able to
@@ -175,12 +175,11 @@ export async function runRecommendPipeline(
     // bike's name. `fastestOverall` never sees the difference - it is gated
     // on an unsearched request.
     if (!search && isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
-    if (filterFramesByOwnership && !(frame.id.toString() in ownedLevels)) return false
+    if (filterFramesByOwnership && !(frame.id.toString() in ownedStages)) return false
     return true
   }).map((frame) => {
-    const ownedLevel = ownedLevels[frame.id.toString()]
-    const level = ownedLevel === undefined ? defaultUnownedLevel : ownedLevel
-    return level === 0 ? frame : classifyBikeFrame(frame, level)
+    const stage = ownedStages[frame.id.toString()] ?? unownedUpgradeStage
+    return stage === 0 ? frame : classifyBikeFrame(frame, stage)
   })
   let wheelsets = getWheelsets().filter((wheelset) => {
     if (filterWheelsetsByOwnership && !ownedWheelKeys.has(wheelset.key)) return false
@@ -520,7 +519,7 @@ export async function runRecommendPipeline(
   // timed once, for at most `CLIMB_TRADE_GARAGE_SIMS` of them.
   let climbTrade: ClimbTrade | undefined
   if (answersRank1 && setting.mode === 'race' && ride.climbs.length > 0) {
-    const garageFrameIds = new Set(Object.keys(ownedLevels).map(Number))
+    const garageFrameIds = new Set(Object.keys(ownedStages).map(Number))
     const candidates: ComboScore[] = []
     if (garageFrameIds.size > 0) {
       const seenFrames = new Set<number>()

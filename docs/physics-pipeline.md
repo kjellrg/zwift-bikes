@@ -6,7 +6,8 @@ this one explains *how a request actually flows through the code* — which
 module runs, in what order, and what each one is allowed to decide.
 
 Read this before changing anything in `shared/utils/physics/`, `finishTime.ts`,
-`scoring.ts`, or either recommend endpoint. Most of the historical bugs in this
+`scoring.ts`, or the Ride ranking module (`server/utils/rankRide.ts`) and the
+callers that rank through it. Most of the historical bugs in this
 app were not physics errors — they were ordering errors: a step that ran before
 the step whose output it depended on. A change that is meant to keep every
 answer the same gets proved rather than argued: `npm run parity:recommend`
@@ -20,12 +21,18 @@ shown below. It is run by the Ride ranking module, `server/utils/rankRide.ts`
 (`rankRide`), which takes a resolved Ride, the rider and the ranking options,
 and answers with the Ranking and its prose, a stall, or paused - owning the
 edge cache (keyed on the normalised input), the recommend kill switch and the
-response type on the way. Two thin endpoints are its HTTP adapter: they parse
-the query, resolve the Ride and hand it over -
-`server/api/recommend/[slug].get.ts` for whole routes, and
-`server/api/recommend/segments/[slug].get.ts` for individual climb/sprint
-segments, which differs only in how its geometry is built and how one combo
-is timed on it (section 6).
+response type on the way. Every caller holding a recommend query - the two
+endpoints, the MCP recommend tools, the markdown documents - ranks through its
+`rankRideForQuery`, which makes the Ride from the course and the query. The
+two thin endpoints are its HTTP adapter (`server/utils/recommendHttp.ts` holds
+the half they share): each resolves the course from its slug, then parses the
+query, and hands both over. The course comes first, as it did before the
+module existed: a URL naming no route or segment is not found whatever its
+query says, so an unknown slug with a bad parameter is a 404, not a 400.
+`server/api/recommend/[slug].get.ts` ranks whole routes, and
+`server/api/recommend/segments/[slug].get.ts` individual climb/sprint
+segments, whose Ride differs only in how its geometry is built and how one
+combo is timed on it (section 6).
 
 ```mermaid
 %%{ init: { "flowchart": { "nodeSpacing": 30, "rankSpacing": 40 } } }%%
@@ -119,7 +126,8 @@ because breaking it shipped a real bug:
 
 | Module | Owns | Called by |
 |---|---|---|
-| [catalog.ts](../shared/utils/catalog.ts) | Route/frame lookup over `zwift-data`, cached; applies `routeEventLeadIns.ts` so every consumer sees one ridden distance | `recommendPipeline.ts`, both recommend endpoints |
+| [rankRide.ts](../server/utils/rankRide.ts) | The Ride ranking module: the Ride made from a resolved course (`recommendRide.ts`), the edge cache, the recommend kill switch, the response type and its prose; runs `recommendPipeline.ts` | `rankRideForQuery`, called by both recommend endpoints (via `recommendHttp.ts`), the MCP recommend tools and the markdown documents |
+| [catalog.ts](../shared/utils/catalog.ts) | Route/frame lookup over `zwift-data`, cached; applies `routeEventLeadIns.ts` so every consumer sees one ridden distance | `recommendPipeline.ts`, `rankRide.ts`, and whatever resolves a course for it (the route endpoint, the MCP tools, the markdown documents) |
 | [routeEventLeadIns.ts](../shared/data/routeEventLeadIns.ts) | Event lead-in corrections for the few routes where Zwift's own published figure is wrong (see race-drafting.md §5) | `catalog.ts` |
 | [routeTerrain.ts](../shared/utils/routeTerrain.ts) | Climb ratio, terrain weights, surface composition + its confidence level | `catalog.ts` |
 | [classifyBikeFrame.ts](../shared/utils/classifyBikeFrame.ts) | Category/style, 0-100 scores, `confidence`, solved CdA/mass/Crr delta, per-scheme garage-level staging | `catalog.ts` |
@@ -129,7 +137,7 @@ because breaking it shipped a real bug:
 | [finishTime.ts](../shared/utils/finishTime.ts) | The cheap closed-form estimate + the isolated surface penalty | `recommendPipeline.ts` |
 | [physics/forces.ts](../shared/utils/physics/forces.ts) | `calculateForces`, `powerForSpeed`, `speedForPower`, the physical constants | Simulator, equipment solver, `finishTime.ts` |
 | [physics/equipment.ts](../shared/utils/physics/equipment.ts) | CdA and bike mass for a combo; rider frontal area; the gap-seconds inversion | Simulator, `finishTime.ts`, classifiers |
-| [physics/routeGeometry.ts](../shared/utils/physics/routeGeometry.ts) | Turning a route + lap count into simulator geometry | Both recommend endpoints |
+| [physics/routeGeometry.ts](../shared/utils/physics/routeGeometry.ts) | Turning a route + lap count into simulator geometry | `recommendRide.ts`'s Ride builders, run by `rankRide.ts` |
 | [physics/simulator.ts](../shared/utils/physics/simulator.ts) | The integration loop | Everything that needs a real time |
 | [physics/simulatedOrdering.ts](../shared/utils/physics/simulatedOrdering.ts) | Which combos are worth really simulating, and dedup by physics key | `recommendPipeline.ts` |
 | [physics/routeSurfaceSpeedProfile.ts](../shared/utils/physics/routeSurfaceSpeedProfile.ts) | Speed-vs-distance chart data, from one instrumented simulation run | Route page chart |
@@ -399,8 +407,9 @@ is fully paved.
 
 `server/api/recommend/segments/[slug].get.ts` runs the identical pipeline -
 literally the same module - but a segment is entered at speed rather than from
-a standing start. Both endpoints use the builders in
-`shared/utils/recommendRide.ts`. The ride owns lazy, memoised `planGeometry()`
+a standing start. The Ride ranking module (`rankRide.ts`) builds both kinds of
+Ride with the builders in `shared/utils/recommendRide.ts` (`rideForRoute`,
+`rideForSegment`). The ride owns lazy, memoised `planGeometry()`
 for the pipeline and the ranking pages; `prepare(simulate, rider)` only
 prepares per-combo timing. Legacy mode uses the same measured geometry for
 pacing plans, even though it retains the old finish-time model.

@@ -246,7 +246,8 @@ cases += 2
 // they reached both endpoints over Nitro's in-process `$fetch`; the stub
 // below dispatches those calls at the same handlers, so a baseline from
 // before #289 still exercises its tools against its own pipeline and the
-// two sides' tool output can be compared.
+// two sides' tool output can be compared. Only such a baseline needs it: once
+// `main` is past #289 and #290, the stub can go.
 globalThis.$fetch = async (fetchPath, options = {}) => {
   const query = options.query ?? {}
   const search = new URLSearchParams()
@@ -297,7 +298,8 @@ for (const [name, tool, args] of mcpCases) {
 // read the catalog directly; before that they `$fetch`ed the catalog and
 // recommend endpoints, which the stub above dispatches at the same handlers.
 // The context carries both spellings of "nothing paused": `killSwitches`
-// for a tree from #290 on, `recommendPaused` for one before it.
+// for a tree from #290 on, `recommendPaused` for one before it. The second
+// can go once `main` is past #290.
 const markdownContext = {
   origin: 'https://zwiftbikes.com',
   siteUrl: 'https://zwiftbikes.com',

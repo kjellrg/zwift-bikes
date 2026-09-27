@@ -87,10 +87,10 @@ endpoints answer that with a `422` ("Rider cannot finish this route at this
 power") rather than a time. The MCP recommend tools answer the same stall with
 an `isError` result in the same words, followed by the simulator's account of
 where the rider stopped - "Rider cannot finish this route at this power: Rider
-(75 kg, 225 W) stalled on a 25.0% grade at 1234 m of 5000 m." - for a route
-and a segment alike, as the site does. (At today's catalog and bounds no
-accepted profile actually stalls: the steepest grade is about 20%, which even
-0.3 W/kg holds.)
+(75 kg, 225 W) stalled on a 25.0% grade at 1234 m of 5000 m." (an illustrative
+message; the numbers are made up) - for a route and a segment alike, as the
+site does. (At today's catalog and bounds no accepted profile actually stalls:
+the steepest grade is about 20%, which even 0.3 W/kg holds.)
 
 ## Tools
 

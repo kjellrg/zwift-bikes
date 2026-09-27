@@ -101,8 +101,9 @@ the page and the document share:
    [`shared/utils/recommendQuery.ts`](../shared/utils/recommendQuery.ts), so
    there is no server-side copy of the client's defaults to drift.
 3. **The endpoint's parse.** The query is parsed with the endpoint's own zod
-   schema and translated by `rankingRequestFromQuery`, exactly as the HTTP
-   adapter does it. Nothing builds ranking options by hand.
+   schema and ranked through `rankRideForQuery`, the call the HTTP adapter
+   makes, which translates it with `rankingRequestFromQuery`. Nothing builds
+   ranking options by hand.
 
 The module keys its edge cache on that parsed question, not on a URL, so a
 document and its page's browser request reach **one cache entry**:
@@ -113,7 +114,9 @@ checks the endpoint's cache read is the key the document wrote.
 A ranking that is not there leaves the document serving the page's facts
 with a note instead of the table: "temporarily paused" for the kill switch,
 and "could not be computed" for a rider who stalls (an outcome of the
-module) or any other failure (a throw).
+module) or any other failure (a throw). The note reads the same for both, so
+a throw is also logged as one `markdown-ranking-error` JSON line naming the
+course, its slug and the error - see [observability.md](observability.md).
 
 Three things are said out loud that the page can leave to its UI:
 
@@ -225,8 +228,7 @@ already answered `text/markdown`.
    so a new document is metered the moment `markdownDocumentFor` knows it.
 5. Cover it in `documents.test.ts` - at minimum that its ranking reaches the
    same cache entry as the prerendered page's own request, which it will if
-   it states the page's Ride and ranks it through `rankRoutePage` or
-   `rankSegmentPage`.
+   it states the page's Ride and ranks it through `rankAsThePage`.
 
 `/about` has no twin on purpose: its content is hand-written prose in a Vue
 file, and a markdown copy would be a second one to keep in step. `/profile`
