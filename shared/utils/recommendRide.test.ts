@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { getFrames, getRouteBySlug } from './catalog'
+import { getFrames, getRouteBySlug, getRoutesWithMeta } from './catalog'
 import { rideForRoute, rideForSegment } from './recommendRide'
 import { getSegmentSummary, routeWithMetaForSegment } from './routeSegments'
-import { resolveDraft, simulateRoute } from './physics'
+import { geometryForRouteLaps, resolveDraft, simulateRoute } from './physics'
+import { maxLapsForRoute } from './routeLaps'
 import { getWheelsets } from './wheelsets'
 
 describe('rideForRoute', () => {
@@ -18,6 +19,16 @@ describe('rideForRoute', () => {
     expect(rideForRoute({ ...route, distance: 60, leadInDistance: 30 }, 15).laps).toBe(2)
     expect(rideForRoute(route, Number.NaN).laps).toBe(1)
     expect(rideForRoute(route, Number.POSITIVE_INFINITY).laps).toBe(1)
+  })
+
+  it('rides the route\'s laps geometry, lead-in once, for every route and every lap count it allows', () => {
+    // What the TTT plan was built from before it read the Ride (issue #284):
+    // route and race pages' plans stay as they were only while this holds.
+    for (const route of getRoutesWithMeta()) {
+      for (let laps = 1; laps <= maxLapsForRoute(route); laps++) {
+        expect(rideForRoute(route, laps).planGeometry(), `${route.slug} x${laps}`).toEqual(geometryForRouteLaps(route, laps))
+      }
+    }
   })
 
   const rider = { weightKg: 75, heightCm: 175, powerW: 225 }

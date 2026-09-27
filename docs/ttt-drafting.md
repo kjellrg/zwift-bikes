@@ -201,4 +201,4 @@ Stated plainly, because these are the limits of the claim:
 | Ranking-key equivalent | `estimateFinishTimeSec` in `shared/utils/finishTime.ts`, handed the draft's `estimate` twin |
 | Request wiring, "saves vs solo" comparison | `server/utils/recommendPipeline.ts` resolves the draft once per request and times the comparison under `draft.solo`; the geometry wiring is in `server/api/recommend/[slug].get.ts` and `.../segments/[slug].get.ts` |
 | Speed chart + solo overlay | `shared/utils/physics/routeSurfaceSpeedProfile.ts`, resolving the same `Draft` on its single-lap geometry |
-| TTT plan | `shared/utils/physics/racePlan.ts`, reading the `RideDraft` that `app/composables/useTttPlan.ts` resolves on the laps geometry |
+| TTT plan | `shared/utils/physics/racePlan.ts`, reading the `RideDraft` that `app/composables/useTttPlan.ts` resolves on the Ride's own geometry (`RecommendRide.planGeometry`, the one its times are simulated over: a route's laps with the lead-in once, a segment's own stretch of road) |

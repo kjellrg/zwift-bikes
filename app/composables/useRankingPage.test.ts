@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { computed, effectScope, ref, watch } from 'vue'
-import { getRouteBySlug } from '#shared/utils/catalog'
+import { getFrames, getRouteBySlug } from '#shared/utils/catalog'
 import { categoryGroupRacing, formatCategoryGroup, getRaceBySlug } from '#shared/utils/events'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
+import { getWheelsets } from '#shared/utils/wheelsets'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import { rideRulesForFormat, type AppliedRiderInputs, type Ride, type RiderInputs } from '../utils/recommendRequest'
 import type { StructuredDataScript } from '../utils/rankingResults'
@@ -13,6 +14,12 @@ import { useTttPlan } from './useTttPlan'
 
 const hilly = getRouteBySlug('hilly-route')!
 const rank1 = { frame: { name: 'Specialized Tarmac SL9' }, wheelset: { name: 'Shimano C99/Disc' }, finishTimeSec: 1500 } as ComboScore
+/** A rank 1 with real frame physics, for the TTT plan's sectors. */
+const zwiftCarbon = {
+  frame: getFrames().find(frame => frame.name === 'Zwift Carbon')!,
+  wheelset: getWheelsets().find(wheelset => wheelset.name === 'Zwift 32mm Carbon')!,
+  finishTimeSec: 1500
+} as ComboScore
 const restrictions = {
   verifiedOnly: true, includeHaloBikes: false, myBikesOnly: false, owned: {}, ownedWheels: {}, search: ''
 } as unknown as RiderInputs
@@ -123,6 +130,15 @@ describe('useRankingPage', () => {
     expect(page.tttPlan.value).toMatchObject({ sectors: [], hasSetup: false, loading: false, riders: 5 })
   })
 
+  it('plans a TTT over the Applied laps of the route, lead-in once', () => {
+    const { page, appliedRide, appliedInputs, combos } = setup()
+    combos.value = [zwiftCarbon]
+    appliedRide.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 3 }
+    appliedInputs.value = { ...appliedInputs.value, draftMode: 'ttt' }
+    // The KOM once a lap, the first just past the 0.5 km lead-in.
+    expect(page.tttPlan.value?.sectors.map(sector => [sector.type, sector.fromKm.toFixed(1)])).toEqual([['climb', '1.4'], ['climb', '10.6'], ['climb', '19.8']])
+  })
+
   it('explains the times with the Applied Ride while the live one runs ahead', () => {
     const { page, liveRide } = setup()
     liveRide.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 3, ttFramesAllowed: false }
@@ -189,6 +205,23 @@ describe('useRankingPage', () => {
       const { page } = segmentSetup({ ...sprint, ...rideRulesForFormat('rot') })
       expect(page.answer.value?.summary).toMatch(/^WTRL bans TT bikes from its Race of Truth.* ZwiftBikes predicts /)
       expect(page.hideTtCategory.value).toBe(true)
+    })
+
+    it('plans a TTT on the segment\'s own geometry, the one its times are simulated over', () => {
+      const alpe = routeWithMetaForSegment(getSegmentSummary('alpe-du-zwift')!)
+      const { page, appliedCourse, appliedInputs, combos } = segmentSetup({ course: { kind: 'segment', slug: 'alpe-du-zwift' } })
+      combos.value = [zwiftCarbon]
+      appliedInputs.value = { ...appliedInputs.value, powerW: 225, draftMode: 'ttt', tttClimbWkg: 3 }
+      // A course record carrying a lead-in the segment is never ridden with:
+      // the route-lap builder would move the climb 3 km down the road.
+      for (const course of [alpe, { ...alpe, leadInDistance: 3, leadInElevation: 0 }]) {
+        appliedCourse.value = course
+        const [climb, ...rest] = page.tttPlan.value!.sectors
+        expect(rest).toEqual([])
+        expect(climb).toMatchObject({ type: 'climb', detail: '12.1 km at 8.5%, est. 1 h 8 min' })
+        expect(climb!.fromKm).toBeCloseTo(0.022, 3)
+        expect(climb!.toKm).toBeCloseTo(12.134, 3)
+      }
     })
 
     it('keeps the TT category under a format that allows TT frames, and with no format at all', () => {
