@@ -1,8 +1,8 @@
-import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { ComboScore } from '../../shared/types/catalog'
+import type { RecommendRide } from '../../shared/types/recommendRide'
 import type { AppliedRiderInputs } from '../utils/recommendRequest'
 import { draftOf, resolveDraft } from '#shared/utils/physics/draft'
 import { buildRacePlan, type RacePlanItem } from '#shared/utils/physics/racePlan'
-import { geometryForRouteLaps } from '#shared/utils/physics/routeGeometry'
 import { coveredSectors, tttPlanCoverage, type TttPlanCoverage } from '../utils/tttPlan'
 
 /** The TTT plan (see `CONTEXT.md`): the Ride's sectors for the applied setup, with what the model could not analyse beside them. */
@@ -23,38 +23,45 @@ export interface TttPlan {
  * The one TTT plan a page computes, which the Fact row's TTT line and the
  * plan tab both read - so a lap or rider refresh can never leave the two
  * describing different results. Built from the APPLIED inputs: the top combo
- * on screen, the rider and lap count it was ranked at (a segment passes 1).
+ * on screen, the rider it was ranked for, and the Ride it was ranked on.
  * During a refresh those keep their previous values, so the plan keeps
  * describing the results still on screen, as the recommendation does.
+ *
+ * The sectors, and the Draft they are priced under, are read off the Ride's
+ * own geometry (`RecommendRide.planGeometry`) - the one its times were
+ * simulated over and its Draft resolved on, as the server does. A segment is
+ * a segment's own stretch of road entered at speed, never a lap of a route,
+ * so the plan cannot be rebuilt from the course and a lap count (issue #284).
+ *
  * Undefined outside TTT drafting: race drafting models a bunch, not a
  * paceline, and has no plan.
  */
 export function useTttPlan(inputs: {
-  route: () => RouteWithMeta | undefined
+  /** The Applied Ride resolved against its course, as the server times it - `resolveRankingPageRide`. */
+  ride: () => RecommendRide | undefined
   combo: () => ComboScore | undefined
   /** The rider the combo was ranked for - `useRecommendRequest().appliedInputs`. */
   rider: () => AppliedRiderInputs
-  laps: () => number
   /** Whether the first ranking is still pending - nothing on screen yet, as opposed to zero matches. */
   loading: () => boolean
 }) {
   return computed<TttPlan | undefined>(() => {
-    const route = inputs.route()
+    const ride = inputs.ride()
     const rider = inputs.rider()
-    if (!route || rider.draftMode !== 'ttt') return undefined
-    const coverage = tttPlanCoverage(route)
+    if (!ride || rider.draftMode !== 'ttt') return undefined
+    const coverage = tttPlanCoverage(ride.route)
     const combo = inputs.combo()
     // Pure closed-form (no simulation - see `buildRacePlan`), cheap enough to compute eagerly.
     const sectors = combo && !coverage.withheld
-      ? coveredSectors(sectorsFor(route, inputs.laps(), rider, combo), coverage)
+      ? coveredSectors(sectorsFor(ride, rider, combo), coverage)
       : []
     return { sectors, coverage, hasSetup: Boolean(combo), loading: inputs.loading(), riders: rider.tttRiders, climbWkg: rider.tttClimbWkg }
   })
 }
 
-/** The plan's sectors, with the applied draft resolved on the same laps geometry the plan is built on - the one rule `RacePlanOptions.draft` asks for. */
-function sectorsFor(route: RouteWithMeta, laps: number, rider: AppliedRiderInputs, combo: ComboScore): RacePlanItem[] {
-  const geometry = geometryForRouteLaps(route, laps)
+/** The plan's sectors, with the applied draft resolved on the same Ride geometry the plan is built on - the one rule `RacePlanOptions.draft` asks for. */
+function sectorsFor(ride: RecommendRide, rider: AppliedRiderInputs, combo: ComboScore): RacePlanItem[] {
+  const geometry = ride.planGeometry()
   return buildRacePlan(geometry, {
     weightKg: rider.weightKg,
     heightCm: rider.heightCm,

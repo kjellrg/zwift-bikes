@@ -7,6 +7,7 @@ import {
   rankingPageLaps,
   rankingPageReportLine,
   rankingPageShareCard,
+  resolveRankingPageRide,
   type RankingPageReportSubject,
   type RankingPageRideName
 } from '../utils/rankingPage'
@@ -70,13 +71,14 @@ export function useRankingPage(inputs: RankingPageInputs) {
 
   const hasLongClimb = computed(() => rankingPageHasLongClimb(appliedRide.value, appliedCourse.value, appliedInputs.value))
 
-  // One plan for the Fact row's TTT line and the TTT plan tab. Undefined
-  // outside TTT drafting.
+  // One plan for the Fact row's TTT line and the TTT plan tab, built on the
+  // Applied Ride resolved as the server times it - a segment on its own
+  // geometry, a route over its laps - so its sectors are where the times
+  // beside them were simulated. Undefined outside TTT drafting.
   const tttPlan = useTttPlan({
-    route: () => appliedCourse.value,
+    ride: () => resolveRankingPageRide(appliedRide.value, appliedCourse.value),
     combo: () => topCombo.value,
     rider: () => appliedInputs.value,
-    laps: () => appliedLaps.value,
     loading: () => isFirstLoad.value
   })
 

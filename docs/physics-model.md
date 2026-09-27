@@ -183,7 +183,8 @@ ridden. Switching the draft mode to **TTT paceline** models a rotating team:
   one `useTttPlan` result) lists the sectors where the paceline may
   split or slow: long climbs and sustained rough-surface sectors (extra
   rolling resistance and reduced draft), ignoring stretches too short to
-  matter. It
+  matter. It is built on the geometry the times were simulated over - the
+  Ride's own, so a segment's plan is the segment's, not a lap of it. It
   discloses what it could not analyse: with no elevation profile it is
   withheld, without positioned surfaces only climbs are flagged, and a lead-in
   modelled from totals rather than a measured trace has nothing flagged inside
