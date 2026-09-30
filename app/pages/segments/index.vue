@@ -276,7 +276,7 @@ useHead({
             <h3 class="mt-4 text-sm font-semibold text-muted">
               Climbs
             </h3>
-            <ul class="mt-1">
+            <ul class="mt-1 max-w-2xl">
               <li
                 v-for="segment in group.climbs"
                 :key="segment.slug"

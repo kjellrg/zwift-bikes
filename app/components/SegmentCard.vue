@@ -32,21 +32,23 @@ const shape = computed(() => wedgeShape(props.segment, props.scale))
   <NuxtLink
     v-if="segment.type === 'climb'"
     :to="`/segments/${segment.slug}`"
-    class="group flex items-center justify-between gap-4 border-b border-default py-2.5"
+    class="group flex items-center justify-between gap-4 border-b border-default py-2"
   >
     <span class="min-w-0">
       <span class="block font-semibold text-highlighted group-hover:underline">{{ segment.name }}</span>
       <span class="block text-sm text-muted">{{ category }} · {{ segment.lengthKm.toFixed(1) }} km · {{ Math.round(segment.measuredElevationM ?? segment.elevationM) }} m · {{ grade ? formatGrade(grade) : 'Flat' }}</span>
     </span>
+    <!-- A track with a baseline, the wedge standing on it from the left: a
+         climb's rise to the right, drawn the same way for every climb. -->
     <span
-      class="relative h-8 w-24 shrink-0"
+      class="relative h-10 w-24 shrink-0 border-b border-accented sm:w-40"
       aria-hidden="true"
     >
       <span
-        class="absolute right-0 bottom-0 bg-ink-toned transition-colors group-hover:bg-primary"
+        class="absolute bottom-0 left-0 bg-ink-toned transition-colors group-hover:bg-primary"
         :style="{
           width: `${(shape.width * 100).toFixed(1)}%`,
-          height: `${Math.max(shape.height * 100, 6).toFixed(1)}%`,
+          height: `${Math.max(shape.height * 100, 4).toFixed(1)}%`,
           clipPath: 'polygon(0 100%, 100% 100%, 100% 0)'
         }"
       />
