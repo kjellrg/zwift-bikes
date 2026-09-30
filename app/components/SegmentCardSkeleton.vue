@@ -1,13 +1,13 @@
 <template>
-  <!-- `SegmentCard`'s own shape: the name line and the three numbers. -->
+  <!-- `SegmentCard`'s own shape for a climb: the name, the muted line, the wedge. -->
   <div
-    class="h-full rounded-xl border border-default bg-elevated px-4 py-3.5"
+    class="flex items-center justify-between gap-4 border-b border-default py-2.5"
     aria-hidden="true"
   >
-    <div class="flex justify-between gap-2">
-      <USkeleton class="h-4 w-36" />
-      <USkeleton class="h-4 w-14" />
+    <div class="space-y-1.5">
+      <USkeleton class="h-4 w-44" />
+      <USkeleton class="h-3.5 w-52 max-w-full" />
     </div>
-    <USkeleton class="mt-2 h-4 w-40" />
+    <USkeleton class="h-8 w-24 shrink-0" />
   </div>
 </template>

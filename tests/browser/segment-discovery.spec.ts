@@ -26,8 +26,8 @@ const notice = (page: Page) => page.getByRole('alert')
 const cards = (page: Page) => page.locator('main li > a[href^="/segments/"]')
 const worldHeadings = (page: Page) => page.getByRole('heading', { level: 2 })
 const finishTime = (page: Page) => page.locator('#ride-finish-time')
-/** A card's segment name, as the card prints it. */
-const cardName = async (card: Locator) => (await card.getByRole('heading').innerText()).trim()
+/** A row's segment name, as the row prints it: its first line. */
+const cardName = async (card: Locator) => (await card.innerText()).split('\n')[0]!.trim()
 
 /** Runs `action` and waits for the segment list the change asks for. */
 async function refilter(page: Page, action: () => Promise<void>) {
@@ -77,8 +77,11 @@ test.describe('segment discovery', () => {
     await pickFilter(page, 'Show', 'Sprints')
     await expect(page).toHaveURL(/[?&]kind=sprint/)
     await expect(statusLine(page)).toHaveText(/^\d+ sprints? found$/)
-    // Exact: the badge, not the "Sprint" in a name like "Alley Sprint".
-    await expect(cards(page).first().getByText('Sprint', { exact: true })).toBeVisible()
+    // A sprint is a name and a length in the Sprints list, with no climbing or grade.
+    await expect(page.getByRole('heading', { level: 3, name: 'Sprints' }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Climbs' })).toHaveCount(0)
+    await expect(cards(page).first()).toHaveText(/\d+\.\d km$/)
+    await expect(cards(page).first()).not.toContainText(/ m\b|%|Flat/)
 
     const opened = cards(page).first()
     const href = (await opened.getAttribute('href'))!
@@ -97,15 +100,20 @@ test.describe('segment discovery', () => {
     await expect(filter(page, 'Show')).toHaveText('Sprints')
   })
 
-  test('lists every segment as plain numbers with its kind as text, and no drawn shape', async ({ page }) => {
+  test('lists climbs by shape and sprints as a plain list, with no drawn road', async ({ page }) => {
     await visitPage(page, '/segments')
     const count = await cards(page).count()
     expect(count).toBeGreaterThan(20)
     await expect(cards(page).locator('svg[data-silhouette]')).toHaveCount(0)
-    for (const text of await cards(page).allInnerTexts()) {
-      expect(text).toMatch(/\b(Climb|Sprint)\b/)
-      expect(text).toMatch(/\d+\.\d km/)
-    }
+    for (const text of await cards(page).allInnerTexts()) expect(text).toMatch(/\d+\.\d km/)
+
+    // A world's climbs come most climbing first, and each has its line of numbers.
+    const world = page.locator('main section').first()
+    const climbs = world.getByRole('list').first().getByRole('link')
+    const lines = await climbs.allInnerTexts()
+    expect(lines.length).toBeGreaterThan(1)
+    const gains = lines.map(text => Number(text.match(/(\d+) m\b/)![1]))
+    expect(gains).toEqual([...gains].sort((a, b) => b - a))
     await expectNoHorizontalOverflow(page)
   })
 
@@ -126,7 +134,7 @@ test.describe('segment discovery', () => {
     await expect(page).toHaveURL(/\/segments$/)
   })
 
-  test('reaches the search, the filters and the first card from the skip link', async ({ page }) => {
+  test('reaches the search, the filters and the first row from the skip link', async ({ page }) => {
     await visitPage(page, '/segments')
     await page.keyboard.press('Tab')
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
@@ -145,7 +153,7 @@ test.describe('segment discovery', () => {
     await page.waitForURL(`**${href}`)
   })
 
-  test('wraps a long climb name inside its own card', async ({ page }) => {
+  test('wraps a long climb name inside its own row', async ({ page }) => {
     await visitPage(page, '/segments')
     await refilter(page, () => searchBox(page).fill('temple kom'))
     const long = page.locator(`a[href="${TEMPLE_KOM}"]`)
@@ -206,20 +214,19 @@ test.describe('segment discovery', () => {
     expect(served.silhouettes).toBe(0)
   })
 
-  test('puts the cards on the dark ground, and lifts them off it on a switch to light', async ({ page }) => {
+  test('sits the rows on the dark ground, and switches to light with the name in ink', async ({ page }) => {
     await visitPage(page, '/segments')
-    const cardGround = () => cards(page).first().evaluate(element => getComputedStyle(element).backgroundColor)
     const bodyGround = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-    // A first visit is dark: the page on the palette's deepest neutral, a
-    // card one step up on the raised surface.
+    const nameInk = () => cards(page).first().locator('span').first().evaluate(element => getComputedStyle(element).color)
+    // A first visit is dark: the page on the palette's deepest neutral.
     await expect(page.locator('html')).toHaveClass(/\bdark\b/)
     expect(await bodyGround()).toBe(await resolvedColor(page, 'var(--ui-color-neutral-950)'))
-    expect(await cardGround()).toBe(await resolvedColor(page, 'var(--ui-color-neutral-900)'))
+    const darkInk = await nameInk()
 
     await page.getByRole('banner').getByRole('button', { name: 'Switch to light mode' }).click()
     await expect(page.locator('html')).toHaveClass(/\blight\b/)
-    expect(await cardGround()).toBe('rgb(255, 255, 255)')
-    expect(await bodyGround()).not.toBe(await cardGround())
+    expect(await bodyGround()).not.toBe(await resolvedColor(page, 'var(--ui-color-neutral-950)'))
+    expect(await nameInk()).not.toBe(darkInk)
     await expectNoHorizontalOverflow(page)
   })
 })

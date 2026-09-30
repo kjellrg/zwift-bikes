@@ -1,37 +1,63 @@
 <script setup lang="ts">
 import type { SegmentSummary } from '../../shared/types/catalog'
+import { segmentGrade, wedgeShape, type WedgeScale } from '../utils/segmentWedge'
 
 /**
- * A segment as the segments page lists it: what it is (name, world, climb or
- * sprint and its category) and the three numbers a rider picks a climb or a
- * sprint by, as plain text - climb or sprint is a small text tag, never a
- * coloured badge. No Silhouette: the listing carries a segment's length,
- * climbing and grade, not its shape, and a drawing made up from three
- * numbers would be a shape nobody has ridden.
+ * A segment as the segments page lists it. A climb is a row: its name, a
+ * muted line of category, length, climbing and grade, and a wedge that draws
+ * its shape from the two numbers that make one - width is length, height is
+ * average grade, both on the page's one scale (`wedgeScale`), so the wedge's
+ * area is the climbing it holds. A sprint is a name and a length in a compact
+ * list: it has no climbing or grade worth a line. Climb or sprint is said by
+ * the section a segment is in, not by a tag on it.
  *
+ * The wedge is a shape made of two numbers, not a silhouette of the road -
+ * the listing carries a segment's length, climbing and grade, not its shape.
  * Elevation and grade prefer the measured pair over `zwift-data`'s published
  * scalars wherever both exist - see `SegmentSummary`: every display surface
- * does, and a card that disagreed with the segment page it links to would be
+ * does, and a row that disagreed with the segment page it links to would be
  * the one place a rider could catch the site contradicting itself.
  */
-defineProps<{
+const props = defineProps<{
   segment: SegmentSummary
+  scale: WedgeScale
 }>()
+
+const category = computed(() => props.segment.climbType ? (props.segment.climbType === 'HC' ? 'HC' : `Cat ${props.segment.climbType}`) : 'Climb')
+const grade = computed(() => segmentGrade(props.segment))
+const shape = computed(() => wedgeShape(props.segment, props.scale))
 </script>
 
 <template>
   <NuxtLink
+    v-if="segment.type === 'climb'"
     :to="`/segments/${segment.slug}`"
-    class="block h-full rounded-xl border border-default bg-elevated px-4 py-3.5 transition-colors hover:border-accented"
+    class="group flex items-center justify-between gap-4 border-b border-default py-2.5"
   >
-    <span class="flex items-baseline justify-between gap-2">
-      <h3 class="min-w-0 font-semibold text-highlighted">{{ segment.name }}</h3>
-      <span class="shrink-0 text-xs text-muted">{{ segment.type === 'climb' ? (segment.climbType ? (segment.climbType === 'HC' ? 'Climb, HC' : `Climb, cat ${segment.climbType}`) : 'Climb') : 'Sprint' }}</span>
+    <span class="min-w-0">
+      <span class="block font-semibold text-highlighted group-hover:underline">{{ segment.name }}</span>
+      <span class="block text-sm text-muted">{{ category }} · {{ segment.lengthKm.toFixed(1) }} km · {{ Math.round(segment.measuredElevationM ?? segment.elevationM) }} m · {{ grade ? formatGrade(grade) : 'Flat' }}</span>
     </span>
-    <span class="mt-1 flex flex-wrap gap-x-3 text-sm text-toned">
-      <span><span class="font-semibold text-highlighted">{{ segment.lengthKm.toFixed(1) }}</span> km</span>
-      <span><span class="font-semibold text-highlighted">{{ Math.round(segment.measuredElevationM ?? segment.elevationM) }}</span> m</span>
-      <span>{{ (segment.measuredAvgGradePercent ?? segment.avgGradePercent) ? formatGrade(segment.measuredAvgGradePercent ?? segment.avgGradePercent) : 'Flat' }}</span>
+    <span
+      class="relative h-8 w-24 shrink-0"
+      aria-hidden="true"
+    >
+      <span
+        class="absolute right-0 bottom-0 bg-ink-toned transition-colors group-hover:bg-primary"
+        :style="{
+          width: `${Math.max(shape.width * 100, 3).toFixed(1)}%`,
+          height: `${Math.max(shape.height * 100, 6).toFixed(1)}%`,
+          clipPath: 'polygon(0 100%, 100% 100%, 100% 0)'
+        }"
+      />
     </span>
+  </NuxtLink>
+  <NuxtLink
+    v-else
+    :to="`/segments/${segment.slug}`"
+    class="group flex items-baseline justify-between gap-3 py-0.5 text-sm"
+  >
+    <span class="min-w-0 text-toned group-hover:text-highlighted group-hover:underline">{{ segment.name }}</span>
+    <span class="shrink-0 text-muted">{{ segment.lengthKm.toFixed(1) }} km</span>
   </NuxtLink>
 </template>
