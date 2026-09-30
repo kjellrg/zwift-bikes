@@ -29,6 +29,15 @@ describe('the events hub\'s list of races', () => {
     ])
   })
 
+  it('says the theme of a monthly round on its races, and nothing for a round without one', () => {
+    const seasons = [
+      { slug: 'zrl-2026-27', seriesTag: 'ZRL', rounds: [{ name: 'Fresh & Fast', races: [race('round-1-week-3', '2026-10-06')] }] },
+      { slug: 'zracing-2026', seriesTag: 'ZRacing', rounds: [{ name: 'October: Tour of Watopia', races: [race('october-stage-1', '2026-10-05', { endDate: '2026-10-11' })] }] }
+    ]
+    const entries = hubRaceGroups(seasons, '2026-10-01').flatMap(group => group.races)
+    expect(entries.map(entry => [entry.race.slug, entry.theme])).toEqual([['october-stage-1', 'Tour of Watopia'], ['round-1-week-3', undefined]])
+  })
+
   it('mixes the seasons into one list by date, each race tagged and linked by its season', () => {
     const seasons = [
       { slug: 'zrl-2026-27', seriesTag: 'ZRL', rounds: [{ races: [race('round-1-week-3', '2026-10-06'), race('round-1-week-2', '2026-09-29')] }] },
@@ -120,7 +129,7 @@ describe('what a series box on the hub says', () => {
     ])
     expect(seriesStatusLines(getSeasonBySlug('zracing-2026')!, '2026-09-24')).toEqual([
       'September\'s stages, Zwift Racing Powered by DURA-ACE, run until Sun 4 Oct.',
-      'October\'s stages, Tour of Watopia, start Mon 5 Oct. Its last race is on a course that isn\'t in our route data, so we can\'t rank it.'
+      'October\'s stages, Tour of Watopia, start Mon 5 Oct. Stage 4 and Stage 5 are on courses that aren\'t in our route data, so we can\'t rank them.'
     ])
   })
 

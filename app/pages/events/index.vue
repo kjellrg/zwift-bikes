@@ -164,6 +164,7 @@ useHead({
               :season-slug="entry.seasonSlug"
               :shape="entry.race.silhouette"
               :tag="entry.tag"
+              :theme="entry.theme"
               :when="mounted ? relativeRaceDay(entry.race, today) : undefined"
             />
           </ol>

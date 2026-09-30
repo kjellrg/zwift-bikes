@@ -7,8 +7,8 @@
   "organizer": "Zwift",
   "organizerUrl": "https://www.zwift.com/racing",
   "description": "Zwift's own monthly race series - a themed set of week-long stages each month, open to everyone.",
-  "note": "October is the Tour of Watopia, Zwift's double-XP series: each week-long stage has a Standard Ride & Race, hourly. These are scratch races; the announcement publishes no powerups or categories. Stage 4 (California Dreamin') and stage 5 (Molten Momentum, in November) ride new Watopia expansion routes, so they stay on the calendar as dates until the routes ship. December is on the calendar without stages until Zwift announces its theme.",
-  "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time. From September the monthly series also carries Crit Club, Epic Race Club and TT Club events alongside the ZRacing stage; only the ZRacing stages are modelled here, since the stage slug convention (stage-{n}) assumes one race per week and the other three formats are separate weekly events with their own routes. If they are ever added they need their own slug convention, not a second race on the same week. The months Zwift has not themed yet are rounds named by month only, dated to the month and with no races, so the season stays open until December is run; when Zwift publishes a month's theme it joins the name ('September: ...') and the round takes its stages' dates. October starts on 5 Oct rather than the 1st because rounds may not overlap and September's last stage ends 4 Oct; likewise November starts 2 Nov because Tour of Watopia stage 4 ends 1 Nov. The Tour of Watopia is Zwift's own event, not a ZRacing announcement, and its make-up week (9-15 Nov) is not modelled.",
+  "note": "October is the Tour of Watopia, Zwift's double-XP series: each week-long stage has a Standard Ride & Race, hourly. These are scratch races; the announcement publishes no powerups or categories. Stage 4 (California Dreamin') and stage 5 (Molten Momentum) ride new Watopia expansion routes, so they stay on the calendar as dates until the routes ship. December is on the calendar without stages until Zwift announces its theme.",
+  "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time. From September the monthly series also carries Crit Club, Epic Race Club and TT Club events alongside the ZRacing stage; only the ZRacing stages are modelled here, since the stage slug convention (stage-{n}) assumes one race per week and the other three formats are separate weekly events with their own routes. If they are ever added they need their own slug convention, not a second race on the same week. The months Zwift has not themed yet are rounds named by month only, dated to the month and with no races, so the season stays open until December is run; when Zwift publishes a month's theme it joins the name ('September: ...') and the round takes its stages' dates. October starts on 5 Oct rather than the 1st because rounds may not overlap and September's last stage ends 4 Oct; likewise November starts 9 Nov because the Tour of Watopia's five stages, the last ending 8 Nov, are one round. The Tour of Watopia is Zwift's own event, not a ZRacing announcement, and its make-up week (9-15 Nov) is not modelled.",
   "sources": [
     {
       "url": "https://zwiftinsider.com/makuri-madness-2026/",
@@ -253,7 +253,7 @@
       "number": 10,
       "name": "October: Tour of Watopia",
       "startDate": "2026-10-05",
-      "endDate": "2026-11-01",
+      "endDate": "2026-11-08",
       "races": [
         {
           "slug": "october-stage-1",
@@ -345,19 +345,11 @@
           "note": "Stage 4 of Tour of Watopia is California Dreamin', 19.1 km and 153 m, on a new route from the Watopia expansion.",
           "sourceUrl": "https://zwiftinsider.com/tow-2026/",
           "updatedAt": "2026-09-30"
-        }
-      ]
-    },
-    {
-      "number": 11,
-      "name": "November: Tour of Watopia",
-      "startDate": "2026-11-02",
-      "endDate": "2026-11-30",
-      "races": [
+        },
         {
-          "slug": "november-stage-1",
-          "round": 11,
-          "week": 1,
+          "slug": "october-stage-5",
+          "round": 10,
+          "week": 5,
           "date": "2026-11-02",
           "endDate": "2026-11-08",
           "format": "scratch",
@@ -369,7 +361,7 @@
               "laps": 1,
               "officialDistanceKm": 20.8,
               "officialElevationM": 245,
-              "curatorNote": "Tour of Watopia stage 5 (the slug follows the month convention, so the page reads Stage 1). Zwift Insider lists this as the Standard Ride & Race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
+              "curatorNote": "Tour of Watopia stage 5. Zwift Insider lists this as the Standard Ride & Race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
             }
           ],
           "note": "Stage 5 of Tour of Watopia is Molten Momentum, 20.8 km and 245 m, on a new route from the Watopia expansion.",
@@ -377,6 +369,13 @@
           "updatedAt": "2026-09-30"
         }
       ]
+    },
+    {
+      "number": 11,
+      "name": "November",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-30",
+      "races": []
     },
     {
       "number": 12,
