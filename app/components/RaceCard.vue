@@ -6,8 +6,8 @@ import type { Silhouette } from '#shared/utils/silhouette'
 /**
  * A Race as a season page schedules it (see `CONTEXT.md`): one row with its
  * date, its primary route's Silhouette, what it is and what it is run on,
- * its format as text, and "Fastest bike for it" - a schedule reads as a
- * schedule, and a race with several Category groups still fits, one course
+ * its format as text, and a chevron where it leads to "Fastest bike for it" -
+ * a schedule reads as a schedule, and a race with several Category groups still fits, one course
  * line per distinct course.
  *
  * A race with a page is one link across the whole row, not just its cue: the
@@ -81,43 +81,44 @@ const courses = computed(() => raceCourseLines(props.race))
 
 <template>
   <!-- One row, one link: a race with a page is a way in across its whole
-       width, a race without one is the same row standing still. The negative
-       margin lets the hover tint reach past the text without moving it off
-       the round heading's edge. -->
-  <li class="-mx-3 border-b border-default">
+       width, a race without one is the same row standing still. The rule and
+       the hover stop at the content edge, in line with the round heading's
+       rule; a linked row ends in a chevron that turns primary on hover, and
+       the link's accessible name (`linkLabel`) carries what it leads to. -->
+  <li class="border-b border-default">
     <component
       :is="href ? NuxtLink : 'div'"
       :to="href"
       :aria-label="href ? linkLabel : undefined"
-      class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-md px-3 py-4 sm:grid-cols-[5.5rem_7rem_minmax(0,1fr)_auto] sm:items-center"
-      :class="href && 'group transition-colors hover:bg-elevated focus-visible:outline-offset-0'"
+      class="grid grid-cols-[minmax(0,1fr)_4rem] gap-x-4 gap-y-2 py-4 sm:grid-cols-[7.5rem_7rem_minmax(0,1fr)_auto] sm:items-center"
+      :class="href && 'group focus-visible:outline-offset-2'"
     >
-      <p class="text-sm text-toned">
+      <p class="text-sm font-medium font-heading whitespace-nowrap text-toned">
         {{ dates }}
         <span
           v-if="next"
-          class="block text-xs text-muted"
-        >Next race</span>
+          class="text-xs font-normal font-sans text-muted sm:block"
+        ><span class="sm:hidden"> · </span>Next race</span>
         <span
           v-if="when"
-          class="block text-xs text-muted"
-        >{{ when }}</span>
+          class="text-xs font-normal font-sans text-muted sm:block"
+        ><span class="sm:hidden"> · </span>{{ when }}</span>
       </p>
       <!-- No route yet, no drawing: an empty slot keeps the schedule's columns. -->
       <RouteSilhouette
         v-if="shape"
         :shape="shape"
-        class="hidden h-10 sm:block"
+        class="col-start-2 row-start-1 h-10 w-16 sm:col-start-auto sm:row-start-auto sm:w-auto"
       />
       <span
         v-else
         class="hidden sm:block"
       />
-      <div class="min-w-0">
+      <div class="col-start-1 min-w-0 sm:col-start-auto">
         <p class="font-semibold text-highlighted">
           <span
             v-if="tag"
-            class="mr-2 rounded border border-accented px-1.5 text-xs font-semibold text-toned"
+            class="mr-1.5 text-sm font-normal text-toned"
           >{{ tag }}</span>{{ shownName }}
           <span
             v-if="theme"
@@ -144,15 +145,21 @@ const courses = computed(() => raceCourseLines(props.race))
           Route to come
         </p>
       </div>
-      <p class="col-start-2 text-sm sm:col-start-auto sm:text-right">
-        <span
-          v-if="href"
-          class="font-medium whitespace-nowrap text-primary group-hover:underline"
-        >Fastest bike for it</span>
-        <span
-          v-else
-          class="text-muted"
-        >Details to come - {{ noPageReason }}.</span>
+      <p
+        v-if="href"
+        class="col-start-2 row-start-2 justify-self-end sm:col-start-auto sm:row-start-auto"
+        aria-hidden="true"
+      >
+        <UIcon
+          name="i-lucide-chevron-right"
+          class="size-5 text-muted transition-colors group-hover:text-primary"
+        />
+      </p>
+      <p
+        v-else
+        class="col-span-2 text-sm text-muted sm:col-span-1 sm:text-right"
+      >
+        Details to come – {{ noPageReason }}.
       </p>
     </component>
   </li>

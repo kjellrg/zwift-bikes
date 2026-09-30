@@ -312,15 +312,15 @@ test.describe('event discovery', () => {
     await expect(row).toContainText('A/B: Innsbruckring, Innsbruck · 35.4 km / 309 m')
     await expect(row).toContainText('C/D: Innsbruckring, Innsbruck · 26.6 km / 232 m')
 
-    // Hovering tints the row and underlines the cue it shows - where there
-    // is a pointer that hovers at all.
+    // The row ends in a chevron, not a repeated cue, and the chevron turns
+    // primary on hover - where there is a pointer that hovers at all.
+    await expect(row.getByText('Fastest bike for it')).toHaveCount(0)
+    const chevron = link.locator('[class*="chevron-right"]')
+    await expect(chevron).toBeVisible()
     if (await page.evaluate(() => matchMedia('(hover: hover)').matches)) {
-      const cue = row.getByText('Fastest bike for it')
-      const resting = await link.evaluate(element => getComputedStyle(element).backgroundColor)
-      await expect(cue).toHaveCSS('text-decoration-line', 'none')
+      const resting = await chevron.evaluate(element => getComputedStyle(element).color)
       await link.hover()
-      await expect(link).not.toHaveCSS('background-color', resting)
-      await expect(cue).toHaveCSS('text-decoration-line', 'underline')
+      await expect(chevron).not.toHaveCSS('color', resting)
     }
 
     // From the keyboard it shows the focus ring.
@@ -328,7 +328,7 @@ test.describe('event discovery', () => {
     await expect(link).toHaveCSS('outline-style', 'solid')
 
     // And a click anywhere on it - here its course line, nowhere near the
-    // cue - opens the race.
+    // chevron - opens the race.
     await row.getByText('A/B: Innsbruckring').click()
     await page.waitForURL('**/events/zrl-2026-27/round-1-week-2')
   })
