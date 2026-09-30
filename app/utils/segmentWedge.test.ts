@@ -21,9 +21,14 @@ describe('wedgeScale', () => {
 describe('wedgeShape', () => {
   const scale = { maxLengthKm: 20, maxGradePercent: 10 }
 
-  it('is linear in length and in grade, so the area is linear in gain', () => {
-    expect(wedgeShape(climb(10, 5), scale)).toEqual({ width: 0.5, height: 0.5 })
+  it('is linear in grade and the square root of length', () => {
+    expect(wedgeShape(climb(5, 5), scale)).toEqual({ width: 0.5, height: 0.5 })
     expect(wedgeShape(climb(20, 10), scale)).toEqual({ width: 1, height: 1 })
+  })
+
+  it('keeps a short climb readable beside the longest', () => {
+    expect(wedgeShape(climb(0.9, 5), { maxLengthKm: 19, maxGradePercent: 10 }).width).toBeGreaterThan(0.2)
+    expect(wedgeShape(climb(0.01, 5), scale).width).toBe(0.12)
   })
 
   it('gives a flat climb no height, and an empty scale no size', () => {

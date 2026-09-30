@@ -6,8 +6,8 @@ import { segmentGrade, wedgeShape, type WedgeScale } from '../utils/segmentWedge
  * A segment as the segments page lists it. A climb is a row: its name, a
  * muted line of category, length, climbing and grade, and a wedge that draws
  * its shape from the two numbers that make one - width is length, height is
- * average grade, both on the page's one scale (`wedgeScale`), so the wedge's
- * area is the climbing it holds. A sprint is a name and a length in a compact
+ * average grade, both on the page's one scale (`wedgeScale`; the width under a
+ * square root, so a short climb is not a sliver). A sprint is a name and a length in a compact
  * list: it has no climbing or grade worth a line. Climb or sprint is said by
  * the section a segment is in, not by a tag on it.
  *
@@ -45,7 +45,7 @@ const shape = computed(() => wedgeShape(props.segment, props.scale))
       <span
         class="absolute right-0 bottom-0 bg-ink-toned transition-colors group-hover:bg-primary"
         :style="{
-          width: `${Math.max(shape.width * 100, 3).toFixed(1)}%`,
+          width: `${(shape.width * 100).toFixed(1)}%`,
           height: `${Math.max(shape.height * 100, 6).toFixed(1)}%`,
           clipPath: 'polygon(0 100%, 100% 100%, 100% 0)'
         }"
