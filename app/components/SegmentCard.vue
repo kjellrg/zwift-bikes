@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { SegmentSummary } from '../../shared/types/catalog'
-import { segmentGrade, wedgeShape, type WedgeScale } from '../utils/segmentWedge'
+import { segmentGrade, wedgeHeight, type WedgeScale } from '../utils/segmentWedge'
 
 /**
  * A segment as the segments page lists it. A climb is a row: its name, a
  * muted line of category, length, climbing and grade, and a wedge that draws
- * its shape from the two numbers that make one - width is length, height is
- * average grade, both on the page's one scale (`wedgeScale`; the width under a
- * square root, so a short climb is not a sliver). A sprint is a name and a length in a compact
+ * its steepness: every wedge is the same width, and its height is the average
+ * grade on the page's one scale (`wedgeScale`). The length is in the muted
+ * line, not in the drawing. A sprint is a name and a length in a compact
  * list: it has no climbing or grade worth a line. Climb or sprint is said by
  * the section a segment is in, not by a tag on it.
  *
@@ -25,7 +25,7 @@ const props = defineProps<{
 
 const category = computed(() => props.segment.climbType ? (props.segment.climbType === 'HC' ? 'HC' : `Cat ${props.segment.climbType}`) : 'Climb')
 const grade = computed(() => segmentGrade(props.segment))
-const shape = computed(() => wedgeShape(props.segment, props.scale))
+const height = computed(() => wedgeHeight(props.segment, props.scale))
 </script>
 
 <template>
@@ -47,8 +47,8 @@ const shape = computed(() => wedgeShape(props.segment, props.scale))
       <span
         class="absolute bottom-0 left-0 bg-ink-toned transition-colors group-hover:bg-primary"
         :style="{
-          width: `${(shape.width * 100).toFixed(1)}%`,
-          height: `${Math.max(shape.height * 100, 4).toFixed(1)}%`,
+          width: '100%',
+          height: `${Math.max(height * 100, 4).toFixed(1)}%`,
           clipPath: 'polygon(0 100%, 100% 100%, 100% 0)'
         }"
       />
