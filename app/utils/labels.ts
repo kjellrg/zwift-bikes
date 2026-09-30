@@ -138,6 +138,15 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
 }
 
 /**
+ * `formatDurationGap` for the page: a thin space between a sub-minute gap's
+ * number and its unit (`+3.92 s`), so the two never part at a line break. The
+ * shared formatter keeps `+3.92s` for the MCP text and the markdown documents.
+ */
+export function formatGapText(seconds: number, zeroLabel = 'fastest'): string {
+  return formatDurationGap(seconds, zeroLabel).replace(/(\d)s$/, '$1\u2009s')
+}
+
+/**
  * Formats a time gap vs. the fastest combo on the route, e.g. `+5.21s slower`
  * or `+1:23 slower`. Sub-minute gaps keep two decimals on purpose: closely
  * matched combos are routinely separated by fractions of a second, and rounding
@@ -146,7 +155,7 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
  * noise, so the `m:ss` form rounds to whole seconds as before.
  */
 export function formatDurationDelta(seconds: number): string {
-  const gap = formatDurationGap(seconds)
+  const gap = formatGapText(seconds)
   return gap === 'fastest' ? gap : `${gap} slower`
 }
 

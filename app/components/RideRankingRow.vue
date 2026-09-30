@@ -2,6 +2,7 @@
 import type { ComboScore } from '../../shared/types/catalog'
 import type { AppliedRanking } from '../utils/recommendRequest'
 import { comboPhysicsDelta, formatSignedDelta } from '../utils/rankingResults'
+import { gapAxisTickLabel } from '../utils/gapAxis'
 
 /**
  * One setup in the Ranking table, rank 1 included: a collapsed row of the
@@ -27,8 +28,12 @@ const props = defineProps<{
   compared: boolean
   /** Whether the comparison is full and this row is not in it - the pick is then disabled rather than evicting one. */
   compareDisabled: boolean
-  /** The gap bar's length, 0..1 of the table's scale - see `RideRanking`. */
+  /** The gap's place on the table's seconds axis, 0..1 of its scale - see `RideRanking`. */
   bar: number
+  /** The axis's scale in seconds, for the meter's spoken value. */
+  axisMax: number
+  /** The gap is past the axis's scale, so the marker is pinned to its right edge and drawn open. */
+  beyond: boolean
   /** Whether the table shows every column, which also keeps rows as rows on a phone (the container scrolls instead). */
   allColumns: boolean
 }>()
@@ -48,7 +53,7 @@ function toggleOwned() {
 }
 
 // The tie check quantises the gap the way `formatDurationGap` does
-// (hundredths), so a row that would print `+0.00s` reads "fastest" instead.
+// (hundredths), so a row that would print `+0.00 s` reads "fastest" instead.
 const gapSec = computed(() => props.combo.finishTimeSec !== undefined && props.ranking.fastestTimeSec !== undefined
   ? props.combo.finishTimeSec - props.ranking.fastestTimeSec
   : undefined)
@@ -80,21 +85,21 @@ function onRowClick(event: MouseEvent) {
       class="cursor-pointer align-top transition-colors hover:bg-elevated"
       :class="[
         open ? 'bg-elevated' : '',
-        !allColumns && 'max-md:grid max-md:grid-cols-[2.25rem_minmax(0,1fr)_auto] max-md:gap-x-2 max-md:py-3'
+        !allColumns && 'max-md:grid max-md:grid-cols-[2.25rem_minmax(0,1fr)_auto_2rem] max-md:gap-x-2 max-md:py-3'
       ]"
       @click="onRowClick"
     >
       <td
         role="cell"
         class="w-11 px-2.5 pt-4 text-right text-sm"
-        :class="[rank === 1 ? 'font-semibold text-primary' : 'text-muted', !allColumns && 'max-md:row-span-3 max-md:p-0 max-md:pt-1']"
+        :class="[rank === 1 ? 'font-semibold text-primary' : 'text-muted', !allColumns && 'max-md:row-span-2 max-md:p-0 max-md:pt-1']"
       >
         {{ rankMarker(rank) }}
       </td>
       <td
         role="cell"
         class="min-w-0 px-2.5 py-3"
-        :class="!allColumns && 'max-md:p-0'"
+        :class="!allColumns && 'max-md:row-span-2 max-md:p-0'"
       >
         <button
           type="button"
@@ -114,52 +119,59 @@ function onRowClick(event: MouseEvent) {
       <td
         role="cell"
         class="whitespace-nowrap px-2.5 py-3 text-right text-lg font-semibold font-heading text-highlighted"
-        :class="!allColumns && 'max-md:p-0'"
+        :class="!allColumns && 'max-md:col-span-2 max-md:p-0'"
       >
         {{ combo.finishTimeSec !== undefined ? formatDuration(combo.finishTimeSec) : `score ${combo.score}` }}
       </td>
       <td
         role="cell"
         class="whitespace-nowrap px-2.5 pt-4 text-right text-toned"
-        :class="!allColumns && 'max-md:col-start-2 max-md:p-0 max-md:pt-1 max-md:text-left max-md:text-sm'"
+        :class="!allColumns && 'max-md:col-start-3 max-md:row-start-2 max-md:p-0 max-md:pt-1 max-md:text-sm'"
       >
-        {{ isFastest || gapSec === undefined ? 'fastest' : formatDurationGap(gapSec) }}
+        {{ isFastest || gapSec === undefined ? 'fastest' : formatGapText(gapSec) }}
       </td>
       <td
         role="cell"
-        class="w-[22%] min-w-28 px-2.5 pt-[1.3rem]"
-        :class="!allColumns && 'max-md:col-span-2 max-md:col-start-2 max-md:row-start-3 max-md:w-auto max-md:min-w-0 max-md:p-0 max-md:pt-2'"
+        class="w-[22%] min-w-28 px-2.5 pt-3.5"
+        :class="!allColumns && 'max-md:hidden'"
       >
-        <!-- A meter, so the bar's length is something assistive tech can
-             read too: the gap against the table's scale, which is the
-             largest gap on the first page (see `RideRanking`). -->
+        <!-- A meter on the table's seconds axis, so the dot's place is
+             something assistive tech can read too: the gap against the
+             scale, which is the largest gap on the first page rounded up
+             (see `RideRanking`). A row past the scale is pinned to the
+             right edge as an open marker. -->
         <div
           role="meter"
-          aria-label="Gap to the fastest, against the table's scale"
+          aria-label="Gap to the fastest, on the table's seconds axis"
           :aria-valuenow="Math.round(bar * 100)"
           aria-valuemin="0"
           aria-valuemax="100"
-          :aria-valuetext="rank === 1 || isFastest ? 'fastest' : `${Math.round(bar * 100)}% of the largest gap on the first page`"
-          class="h-1.5 overflow-hidden rounded-full bg-rule"
+          :aria-valuetext="rank === 1 || isFastest || gapSec === undefined ? 'fastest' : beyond ? `beyond the ${gapAxisTickLabel(axisMax)} scale` : `${formatGapText(gapSec).replace('+', '')} behind, on a ${gapAxisTickLabel(axisMax)} scale`"
+          class="relative mx-1.5 h-4"
+          :style="{ backgroundImage: 'linear-gradient(to right, var(--ui-border) 1px, transparent 1px)', backgroundSize: '25% 100%' }"
         >
-          <div
-            class="h-full rounded-full"
-            :class="rank === 1 ? 'bg-primary' : 'bg-ink-toned'"
-            :style="{ width: `${Math.max(2, bar * 100).toFixed(1)}%` }"
+          <span
+            class="absolute inset-y-0 right-0 w-px bg-rule"
+            aria-hidden="true"
+          />
+          <span
+            class="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            :class="beyond ? 'border-2 border-ink-toned bg-default' : rank === 1 ? 'bg-primary' : 'bg-ink-toned'"
+            :style="{ left: `${(bar * 100).toFixed(1)}%` }"
           />
         </div>
       </td>
       <td
         role="cell"
         class="whitespace-nowrap px-2.5 pt-4 text-sm text-muted"
-        :class="!allColumns && 'max-md:hidden'"
+        :class="!allColumns && 'max-lg:hidden'"
       >
         <span class="text-toned">{{ combo.frame.scores.aero }}</span> / <span class="text-toned">{{ combo.frame.scores.climb }}</span>
       </td>
       <td
         role="cell"
         class="whitespace-nowrap px-2.5 pt-4 text-sm text-muted"
-        :class="!allColumns && 'max-md:hidden'"
+        :class="!allColumns && 'max-lg:hidden'"
       >
         {{ style ?? '-' }}
       </td>
@@ -193,7 +205,7 @@ function onRowClick(event: MouseEvent) {
       <td
         role="cell"
         class="w-10 px-1.5 pt-3"
-        :class="!allColumns && 'max-md:col-start-3 max-md:row-start-2 max-md:p-0 max-md:text-right'"
+        :class="!allColumns && 'max-md:col-start-4 max-md:row-start-2 max-md:-mt-1 max-md:p-0'"
       >
         <button
           type="button"

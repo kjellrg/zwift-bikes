@@ -30,7 +30,7 @@ const rows = computed(() => props.combos.length
       {
         label: 'Gap',
         cells: props.combos.map(combo => ({
-          text: combo.finishTimeSec === undefined || props.fastestTimeSec === undefined ? '-' : formatDurationGap(combo.finishTimeSec - props.fastestTimeSec, 'Fastest in results')
+          text: combo.finishTimeSec === undefined || props.fastestTimeSec === undefined ? '-' : formatGapText(combo.finishTimeSec - props.fastestTimeSec, 'Fastest in results')
         }))
       },
       {
