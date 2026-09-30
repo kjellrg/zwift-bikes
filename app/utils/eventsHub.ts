@@ -5,6 +5,8 @@ import { formatRaceDateShort } from '#shared/utils/raceDates'
 export interface HubRace<Race> {
   seasonSlug: string
   tag: string
+  /** The theme of the monthly round the race is in ("Tour of Watopia"), when its round has one. */
+  theme?: string
   race: Race
 }
 
@@ -35,18 +37,18 @@ const GROUP_TITLES: Record<RaceWhen, string> = {
  * to their routes and get those races back to draw.
  */
 export function hubRaceGroups<Race extends EventRace>(
-  seasons: { slug: string, seriesTag: string, rounds: { races: Race[] }[] }[],
+  seasons: { slug: string, seriesTag: string, rounds: { name?: string, races: Race[] }[] }[],
   today: string
 ): HubRaceGroup<Race>[] {
   const listed = seasons.flatMap(season => season.rounds.flatMap(round => round.races
     .filter(race => isRacePublishable(race) && raceWhen(race, today))
-    .map(race => ({ seasonSlug: season.slug, tag: season.seriesTag, race, date: race.date }))))
+    .map(race => ({ seasonSlug: season.slug, tag: season.seriesTag, theme: monthlyRoundName(round.name)?.theme, race, date: race.date }))))
   const byDate = sortRacesByDate(listed)
   return (Object.keys(GROUP_TITLES) as RaceWhen[])
     .map(when => ({
       when,
       title: GROUP_TITLES[when],
-      races: byDate.filter(entry => raceWhen(entry.race, today) === when).map(({ seasonSlug, tag, race }) => ({ seasonSlug, tag, race }))
+      races: byDate.filter(entry => raceWhen(entry.race, today) === when).map(({ seasonSlug, tag, theme, race }) => ({ seasonSlug, tag, theme, race }))
     }))
     .filter(group => group.races.length > 0)
 }

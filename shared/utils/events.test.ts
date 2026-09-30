@@ -455,13 +455,13 @@ describe('the curated seasons themselves', () => {
 
   it('keeps ZRacing 2026 open through December, with the months Zwift has yet to theme as empty rounds', () => {
     const season = getSeasonBySlug('zracing-2026')!
-    // One round per remaining month, numbered by the month. October and
-    // November carry the Tour of Watopia's stages; December stays empty until
-    // Zwift publishes its theme, so it is "Not announced yet".
+    // One round per remaining month, numbered by the month. October carries
+    // the Tour of Watopia's five stages; November and December stay empty until
+    // Zwift publishes their themes, so each is "Not announced yet".
     const shells = season.rounds.filter(round => round.number >= 10)
     expect(shells.map(round => round.number)).toEqual([10, 11, 12])
-    expect(shells.map(round => round.name)).toEqual(['October: Tour of Watopia', 'November: Tour of Watopia', 'December'])
-    expect(shells.at(-1)!.races).toEqual([])
+    expect(shells.map(round => round.name)).toEqual(['October: Tour of Watopia', 'November', 'December'])
+    expect(shells.slice(1).every(round => round.races.length === 0)).toBe(true)
     expect(shells.at(-1)!.endDate).toBe('2026-12-31')
 
     // September's last stage ends Sun 4 Oct; the season is not over the day after.

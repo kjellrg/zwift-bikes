@@ -30,6 +30,8 @@ const props = defineProps<{
    * once, in its heading.
    */
   tag?: string
+  /** The theme of the race's monthly round ("Tour of Watopia"), said after its name on the hub, where a bare "Stage 1" would not say which. */
+  theme?: string
   /**
    * How far off the race is, under its date: "in 5 days", "ends Sun" (see
    * `relativeRaceDay`). The hub passes it once the page is on the rider's
@@ -46,7 +48,7 @@ const props = defineProps<{
 
 const href = computed(() => isRacePublishable(props.race) ? `/events/${props.seasonSlug}/${props.race.slug}` : undefined)
 
-const name = computed(() => [props.tag, raceDisplayName(props.race)].filter(Boolean).join(' '))
+const name = computed(() => [props.tag, raceDisplayName(props.race), props.theme && `(${props.theme})`].filter(Boolean).join(' '))
 const shownName = computed(() => props.inRound ? raceNameInRound(props.race) : raceDisplayName(props.race))
 const dates = computed(() => formatRaceDateRange(props.race.date, props.race.endDate))
 
@@ -117,6 +119,10 @@ const courses = computed(() => raceCourseLines(props.race))
             v-if="tag"
             class="mr-2 rounded border border-accented px-1.5 text-xs font-semibold text-toned"
           >{{ tag }}</span>{{ shownName }}
+          <span
+            v-if="theme"
+            class="ml-1 text-sm font-normal text-toned"
+          >{{ theme }}</span>
           <span class="ml-1 text-sm font-normal text-muted">{{ race.format ? RACE_FORMAT_LABELS[race.format] : 'Format to come' }}</span>
         </p>
         <p
