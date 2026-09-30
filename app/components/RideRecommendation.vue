@@ -5,9 +5,10 @@ import { activeFiltersLabel } from '../utils/rankingResults'
 
 /**
  * The Recommendation: rank 1 of the Ranking, shown as the page's answer.
- * The setup, its estimated finish time set large, the evidence lines that
- * say what the time rests on (bot-tested or not, the stage it was ranked
- * at, what rough surfaces or the draft did to it), and the paths deeper:
+ * Four groups: the scope and the setup, its estimated finish time set large,
+ * the trust facts that say what the time rests on (bot-tested or not, the
+ * stage it was ranked at, what rough surfaces or the draft did to it), and
+ * the paths deeper:
  * the Equipment drawer - the page's one primary button - the Garage, and
  * the Ranking it is rank 1 of.
  *
@@ -27,8 +28,8 @@ const props = defineProps<{
   ranking: AppliedRanking
   /** The one-line "limited route data" warning, when the course inputs are partial - see `limitedCourseDataNote`. */
   limitedDataNote?: string
-  /** Evidence lines that qualify this time: the rough-surface cost, the paceline or bunch saving. */
-  notes?: string[]
+  /** Labelled evidence that qualifies this time: the rough-surface cost, the paceline or bunch saving - see `rankingEvidence`. */
+  facts?: { label: string, text: string }[]
 }>()
 
 // The combo alone: everything else the drawer needs is the Applied Ranking,
@@ -70,15 +71,12 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
     aria-labelledby="ride-recommendation-heading"
     class="min-w-0"
   >
-    <p class="text-sm font-semibold text-primary">
-      Fastest of every eligible setup
-    </p>
     <p class="text-sm text-muted">
-      {{ filters }}
+      Fastest eligible setup · {{ filters }}
     </p>
     <h2
       id="ride-recommendation-heading"
-      class="mt-3 text-balance text-[clamp(1.625rem,3.4vw,2.25rem)] leading-tight font-semibold font-heading text-highlighted break-words"
+      class="mt-2 text-balance text-[clamp(1.625rem,3.4vw,2.25rem)] leading-tight font-semibold font-heading text-highlighted break-words"
     >
       <button
         type="button"
@@ -92,20 +90,20 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
     <p class="mt-1 text-lg text-toned break-words">
       {{ combo.wheelset ? `with ${combo.wheelset.name} wheels` : 'with its own fixed disc wheels' }}
     </p>
-    <div class="mt-5 flex flex-wrap items-baseline gap-x-5 gap-y-1.5">
+    <div class="mt-5 flex flex-wrap items-end gap-x-5 gap-y-1.5">
       <p
         id="ride-finish-time"
         class="text-[clamp(4rem,9vw,6rem)] leading-[0.95] font-semibold font-timing tracking-[-0.01em] text-highlighted"
       >
         {{ combo.finishTimeSec !== undefined ? formatDuration(combo.finishTimeSec) : combo.score }}
       </p>
-      <p class="text-md text-muted">
+      <p class="pb-1 text-md text-muted">
         <template v-if="combo.finishTimeSec !== undefined">
           <span
             v-if="distanceKm !== undefined"
-            class="font-medium text-toned"
+            class="block font-medium text-toned"
           >{{ formatSpeedKmh(distanceKm, combo.finishTimeSec) }} average</span>
-          · estimated for {{ scope }}
+          <span class="block">estimated for {{ scope }}</span>
         </template>
         <template v-else>
           match score
@@ -113,8 +111,11 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
       </p>
     </div>
 
-    <ul class="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-toned">
-      <li
+    <dl class="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-1.5 border-y border-default py-3 text-sm text-toned">
+      <dt class="text-muted">
+        Data
+      </dt>
+      <dd
         class="inline-flex items-center gap-1.5"
         :class="botTested ? 'text-success' : 'text-warning'"
       >
@@ -122,25 +123,33 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
           :name="botTested ? 'i-lucide-check' : 'i-lucide-circle-help'"
           class="size-4 shrink-0"
         />{{ botTested ? 'Frame and wheels bot-tested' : 'Includes estimated data' }}
-      </li>
-      <li v-if="stageLine">
-        {{ stageLine }}
-      </li>
-      <li
-        v-for="note in notes"
-        :key="note"
+      </dd>
+      <template v-if="stageLine">
+        <dt class="text-muted">
+          Upgrades
+        </dt>
+        <dd>{{ stageLine }}</dd>
+      </template>
+      <template
+        v-for="fact in facts"
+        :key="fact.label"
       >
-        {{ note }}
-      </li>
-      <li
-        v-if="limitedDataNote"
-        class="text-warning"
-      >
-        {{ limitedDataNote }}
-      </li>
-    </ul>
+        <dt class="text-muted">
+          {{ fact.label }}
+        </dt>
+        <dd>{{ fact.text }}</dd>
+      </template>
+      <template v-if="limitedDataNote">
+        <dt class="text-muted">
+          Route data
+        </dt>
+        <dd class="text-warning">
+          {{ limitedDataNote }}
+        </dd>
+      </template>
+    </dl>
 
-    <div class="mt-5 flex flex-wrap items-center gap-2.5">
+    <div class="mt-4 flex flex-wrap items-center gap-2.5">
       <UButton
         size="lg"
         @click="openBikeDetail(combo)"

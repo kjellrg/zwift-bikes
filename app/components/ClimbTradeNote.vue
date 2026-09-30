@@ -21,7 +21,7 @@ const note = computed(() => climbTradeNote(props.trade))
 </script>
 
 <template>
-  <p class="mt-5 border-l-2 border-accented py-2 pl-3.5 text-sm text-toned">
+  <p class="mt-5 rounded-md bg-accented px-3.5 py-2.5 text-sm text-toned">
     <span class="font-semibold text-highlighted">{{ note.lead }}</span>
     {{ note.text }}
   </p>

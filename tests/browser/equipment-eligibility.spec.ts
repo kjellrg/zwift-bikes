@@ -41,8 +41,8 @@ const categoryChip = (page: Page) => page.getByRole('button', { name: /^Category
 const verifiedChip = (page: Page) => page.getByRole('switch', { name: 'Verified data only' })
 const noMatches = (page: Page) => page.getByText('No bikes match your filters.')
 /** The "a bike your filters are hiding is faster" line, which an empty ranking gets too (issue #221). */
-/** The note on a quicker setup the filters are withholding, with its one reveal. */
-const fastestOverall = (page: Page) => page.locator('p').filter({ hasText: /^\s*(Time-trial bikes|Halo bikes|Other categories) allowed\?/ })
+/** The result row for a quicker setup the filters are withholding, with its one reveal. */
+const fastestOverall = (page: Page) => page.getByRole('group', { name: 'Quicker setup your filters hide' })
 const haloSwitch = (page: Page) => page.getByRole('switch', { name: 'Include Halo bikes' })
 
 interface Garage { frames?: Record<number, number>, wheels?: string[] }
@@ -163,7 +163,7 @@ test.describe('equipment eligibility', () => {
     // The frame is named, and with no ranked setup to measure against the line
     // says it is out of view rather than inventing a gap.
     await expect(fastestOverall(page)).toContainText('not shown under your current filters')
-    await expect(fastestOverall(page)).not.toContainText('quicker')
+    await expect(fastestOverall(page)).not.toContainText('faster')
 
     // An empty table offers its one widening action too.
     await expect(page.locator('#ride-ranking').getByRole('button', { name: 'Show all categories' })).toBeVisible()

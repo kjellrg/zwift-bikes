@@ -59,6 +59,7 @@ describe('rankingEvidence', () => {
       'A 4-rider paceline saves ~1:35 vs riding this alone at the same effort (~320 W on your pulls).',
       'Sitting in a typical mass-start bunch saves ~1:01 vs riding this alone at the same average power (~24% less power for the same speed on the flat).'
     ])
+    expect(evidence.facts.map(fact => fact.label)).toEqual(['Rough surfaces', 'Paceline', 'Bunch'])
     expect(evidence.limitedDataNote).toBeUndefined()
   })
 

@@ -107,7 +107,7 @@ const evidence = computed(() => rankingEvidence({
             :combo="topCombo"
             :ranking="appliedRanking"
             :limited-data-note="evidence.limitedDataNote"
-            :notes="evidence.notes"
+            :facts="evidence.facts"
           >
             <template #answer-notes>
               <!-- `pointer-events-auto`: the reveal is a filter change, not a
@@ -115,6 +115,7 @@ const evidence = computed(() => rankingEvidence({
               <FastestOverallNote
                 v-if="fastestOverall"
                 :fastest-overall="fastestOverall"
+                :rank-one-time-sec="topCombo.finishTimeSec"
                 class="pointer-events-auto"
                 @show-all="setBikeCategory('all')"
                 @include-halo="setIncludeHaloBikes(true)"

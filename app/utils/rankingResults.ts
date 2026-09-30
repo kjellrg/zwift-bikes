@@ -71,6 +71,8 @@ export function isDynamicPhysics(physics: Pick<RankingPhysics, 'mode'> | undefin
 export interface RankingEvidence {
   /** The lines under the time, in reading order: what the surface cost, what the draft bought. */
   notes: string[]
+  /** The same lines with the label each takes in the answer's trust facts (`Rough surfaces`, `Paceline`, `Bunch`). */
+  facts: { label: string, text: string }[]
   /** The warning beside a time whose course inputs are partly missing; absent when none are. */
   limitedDataNote: string | undefined
 }
@@ -93,13 +95,14 @@ export function rankingEvidence(ranking: {
   physics: RankingPhysics | undefined
 }): RankingEvidence {
   const { course, combo, physics } = ranking
-  const notes = [
-    course ? formatSurfaceTimePenalty(course.surface, combo?.surfaceTimePenaltySec) : undefined,
-    formatTttTimeSaving(physics?.ttt),
-    formatRaceTimeSaving(physics?.race)
-  ]
+  const facts = [
+    { label: 'Rough surfaces', text: course ? formatSurfaceTimePenalty(course.surface, combo?.surfaceTimePenaltySec) : undefined },
+    { label: 'Paceline', text: formatTttTimeSaving(physics?.ttt) },
+    { label: 'Bunch', text: formatRaceTimeSaving(physics?.race) }
+  ].filter((fact): fact is { label: string, text: string } => Boolean(fact.text))
   return {
-    notes: notes.filter((note): note is string => Boolean(note)),
+    notes: facts.map(fact => fact.text),
+    facts,
     limitedDataNote: course
       ? limitedCourseDataNote({
           hasElevationProfile: hasElevationProfile(course),
