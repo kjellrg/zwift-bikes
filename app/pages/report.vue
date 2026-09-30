@@ -3,7 +3,7 @@
 // `pages/about.vue` has to `AboutModal.vue`. This is the URL every "Report an
 // issue" link keeps as its real `href`, so cmd-click and no-JS still land
 // somewhere useful, and it's what README/SECURITY.md point riders at.
-const title = 'Report an issue - ZwiftBikes'
+const title = 'Report an issue | ZwiftBikes'
 const description
   = 'Report a bug on ZwiftBikes, or a frame, wheelset or route number that looks wrong. Reports go to GitHub issues, or by email if you\'d rather not use GitHub.'
 

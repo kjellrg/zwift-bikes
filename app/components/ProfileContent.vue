@@ -119,7 +119,7 @@ const tttClimbLabelId = useId()
 <template>
   <div class="space-y-6">
     <SiteNotice title="Stored on this device only">
-      <p>Your profile is saved in this browser's local storage - there's no account system, so it won't follow you to another device or browser.</p>
+      <p>Your profile is saved in this browser's local storage – there's no account system, so it won't follow you to another device or browser.</p>
     </SiteNotice>
 
     <div class="divide-y divide-default border-y border-default [&>*]:py-5">
@@ -142,7 +142,7 @@ const tttClimbLabelId = useId()
           <span>40 kg</span><span>130 kg</span>
         </div>
         <p class="mt-1.5 text-sm text-toned">
-          Weight drives gravity on climbs and, with height, the drag estimate. Changing it keeps your power in watts - only the derived W/kg moves.
+          Weight drives gravity on climbs and, with height, the drag estimate. Changing it keeps your power in watts – only the derived W/kg moves.
         </p>
       </div>
 
@@ -188,7 +188,7 @@ const tttClimbLabelId = useId()
           <span>{{ POWER_W_RANGE.min }} W</span><span>{{ POWER_W_RANGE.max }} W</span>
         </div>
         <p class="mt-1.5 text-sm text-toned">
-          The sustained power recommendations are ranked at. It is the same stored value as the Power slider on route, segment and event pages - change it in either place and both move.
+          The sustained power recommendations are ranked at. It is the same stored value as the Power slider on route, segment and event pages – change it in either place and both move.
         </p>
       </div>
 
@@ -211,7 +211,7 @@ const tttClimbLabelId = useId()
           <span>{{ SPRINT_POWER_W_RANGE.min }} W</span><span>{{ SPRINT_POWER_W_RANGE.max }} W</span>
         </div>
         <p class="mt-1.5 text-sm text-toned">
-          What you can hold for a short all-out effort. Sprint segment pages rank with this instead of your race power - the two are stored separately, so cranking one never drags the other along.
+          What you can hold for a short all-out effort. Sprint segment pages rank with this instead of your race power – the two are stored separately, so cranking one never drags the other along.
         </p>
       </div>
 
@@ -294,10 +294,10 @@ const tttClimbLabelId = useId()
           @update:model-value="(value: string) => setDraftMode(value === 'ttt' || value === 'race' ? value : 'solo')"
         />
         <p class="mt-1.5 text-sm text-toned">
-          TTT (Team Time Trial) models a rotating paceline. Your W/kg still means your own average over a full rotation - you push well above it while pulling on the front and sit below it in the wheels - and the group moves at the speed that combined effort produces, which is a lot faster than riding alone at the same effort.
+          TTT (Team Time Trial) models a rotating paceline. Your W/kg still means your own average over a full rotation – you push well above it while pulling on the front and sit below it in the wheels – and the group moves at the speed that combined effort produces, which is a lot faster than riding alone at the same effort.
         </p>
         <p class="mt-1.5 text-sm text-toned">
-          Race models a mass-start bunch, using one draft benefit measured from thirteen real race fields rather than a pack model - so it needs no extra settings. Your W/kg still means your own average for the race (average power, not normalised), and what you get is a typical mid-pack finish time, not a winning one.
+          Race models a mass-start bunch, using one draft benefit measured from thirteen real race fields rather than a pack model – so it needs no extra settings. Your W/kg still means your own average for the race (average power, not normalised), and what you get is a typical mid-pack finish time, not a winning one.
         </p>
       </div>
 
@@ -334,7 +334,7 @@ const tttClimbLabelId = useId()
         <label
           :id="tttClimbLabelId"
           class="mb-1.5 block text-sm font-medium text-highlighted"
-        >Team climb pace: {{ pendingClimbWkg.toFixed(1) }} W/kg{{ tttClimbWkg === undefined ? ' (not set - your normal power)' : '' }}</label>
+        >Team climb pace: {{ pendingClimbWkg.toFixed(1) }} W/kg{{ tttClimbWkg === undefined ? ' (not set – your normal power)' : '' }}</label>
         <USlider
           :model-value="pendingClimbWkg"
           :min="TTT_MIN_CLIMB_WKG"
@@ -350,7 +350,7 @@ const tttClimbLabelId = useId()
         </div>
         <p class="mt-1.5 text-sm text-toned">
           What the team averages on stretches slow enough that the rotation stops (roughly 2.5+ minutes below ~21 km/h), where drafting gives almost nothing. <template v-if="tttClimbWkg === undefined">
-            Untouched, so climbs are ridden at your normal power - the slider starts there.
+            Untouched, so climbs are ridden at your normal power – the slider starts there.
           </template><template v-else>
             Set independently of your FTP: changing your power above won't move it. <button
               type="button"

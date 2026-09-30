@@ -60,7 +60,7 @@ const dates = computed(() => formatRaceDateRange(props.race.date, props.race.end
  * cue a rider sees, which keeps what a speech-control user reads on screen
  * inside the name they can say - "Week 2" is inside "Round 1 Week 2".
  */
-const linkLabel = computed(() => `${name.value}, ${dates.value} - Fastest bike for it`)
+const linkLabel = computed(() => `${name.value}, ${dates.value} – Fastest bike for it`)
 
 /**
  * Why a race has no page, in a rider's terms. The two reasons read

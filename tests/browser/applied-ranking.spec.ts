@@ -128,7 +128,7 @@ test('route: keeps the ranking when Show more fails, and adds the page on the ne
   await visit(page, '/routes/hilly-route')
   const rows = page.locator('table[aria-label="Ranked setups"] > tbody')
   const more = page.getByRole('button', { name: /^Show the next \d+$/ })
-  const failureLine = page.getByText('Couldn\'t load more setups - the ranking above is unchanged.')
+  const failureLine = page.getByText('Couldn\'t load more setups – the ranking above is unchanged.')
   const before = await rows.count()
 
   await page.route(url => isListingUrl(url.toString()) && Number(url.searchParams.get('offset')) > 0,

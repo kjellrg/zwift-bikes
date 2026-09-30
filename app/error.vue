@@ -37,7 +37,7 @@ useHead({
   ],
   htmlAttrs: { lang: 'en' }
 })
-useSeoMeta({ title: () => `${status.value} - ${heading.value} - ZwiftBikes` })
+useSeoMeta({ title: () => `${status.value} ${heading.value} | ZwiftBikes` })
 // Same reasoning as `/profile`: the module owns the single robots tag.
 useRobotsRule('noindex, follow')
 </script>

@@ -328,7 +328,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
         v-else
         class="text-xs text-muted"
       >
-        Scored at upgrade stage {{ frame.level }}{{ !isOwnedFrame && frame.confidence === 'measured' ? ' (your default for bikes you don\'t own - change it in your profile)' : '' }}.
+        Scored at upgrade stage {{ frame.level }}{{ !isOwnedFrame && frame.confidence === 'measured' ? ' (your default for bikes you don\'t own – change it in your profile)' : '' }}.
       </p>
     </section>
 
@@ -336,7 +336,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
       v-if="barredByRide"
       title="This bike is barred from the ride you are looking at"
     >
-      <p>TT frames cannot be started on it, so it is missing from the ranking rather than beaten by it - no upgrade stage would list it here. The numbers below are still those of the ride this drawer was opened from, and it stays eligible everywhere TT frames are.</p>
+      <p>TT frames cannot be started on it, so it is missing from the ranking rather than beaten by it – no upgrade stage would list it here. The numbers below are still those of the ride this drawer was opened from, and it stays eligible everywhere TT frames are.</p>
     </SiteNotice>
     <SiteNotice
       v-else-if="droppedFromRanking"
@@ -556,7 +556,7 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
                 colspan="3"
                 class="px-3 py-2 text-muted"
               >
-                Not measured - ridden at the rating-derived average for its class
+                Not measured – ridden at the rating-derived average for its class
               </td>
             </tr>
           </tbody>

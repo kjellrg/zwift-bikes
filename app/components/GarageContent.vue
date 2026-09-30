@@ -174,7 +174,7 @@ const activeTab = ref('bikes')
     </p>
 
     <SiteNotice title="Stored on this device only">
-      <p>Your garage is saved in this browser's local storage - there's no account system, so it won't follow you to another device or browser.</p>
+      <p>Your garage is saved in this browser's local storage – there's no account system, so it won't follow you to another device or browser.</p>
     </SiteNotice>
 
     <UTabs
@@ -319,7 +319,7 @@ const activeTab = ref('bikes')
                 v-if="isOwned(frame.id)"
                 :text="
                   frame.confidence === 'estimated'
-                    ? 'ZwiftInsider doesn\'t bot-test this frame, so there are no per-stage numbers to apply - its upgrade stage can\'t change its estimate'
+                    ? 'ZwiftInsider doesn\'t bot-test this frame, so there are no per-stage numbers to apply – its upgrade stage can\'t change its estimate'
                     : 'This bike\'s current upgrade stage (0 = stock, just purchased, 5 = fully upgraded)'
                 "
               >

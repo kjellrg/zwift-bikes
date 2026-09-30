@@ -174,7 +174,7 @@ export function formatTttTimeSaving(ttt: { riders: number, frontPullPowerW: numb
   const formatted = magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
   return savedSec >= 0
     ? `A ${ttt.riders}-rider paceline saves ~${formatted} vs riding this alone at the same effort (~${ttt.frontPullPowerW} W on your pulls).`
-    : `A ${ttt.riders}-rider paceline is ~${formatted} slower here than riding alone at the same effort - the draft can't offset your team's climb pace on this route.`
+    : `A ${ttt.riders}-rider paceline is ~${formatted} slower here than riding alone at the same effort – the draft can't offset your team's climb pace on this route.`
 }
 
 /**
@@ -192,7 +192,7 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
   const formatted = magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
   return savedSec >= 0
     ? `Sitting in a typical mass-start bunch saves ~${formatted} vs riding this alone at the same average power (~${race.savingPct}% less power for the same speed on the flat).`
-    : `A typical mass-start bunch is ~${formatted} slower here than riding alone at the same average power - this route is too steep for the draft to be worth anything.`
+    : `A typical mass-start bunch is ~${formatted} slower here than riding alone at the same average power – this route is too steep for the draft to be worth anything.`
 }
 
 // `RACE_FORMAT_LABELS` and `raceFormatPhrase` now live in

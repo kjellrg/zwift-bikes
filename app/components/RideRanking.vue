@@ -351,7 +351,7 @@ const headingId = useId()
         class="mt-2 text-sm text-error"
         role="alert"
       >
-        Couldn't load more setups - the ranking above is unchanged.
+        Couldn't load more setups – the ranking above is unchanged.
       </p>
     </div>
   </section>

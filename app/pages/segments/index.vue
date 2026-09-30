@@ -137,7 +137,7 @@ useSeoMeta({
   ogTitle: 'Zwift climbs & sprints',
   ogDescription: description
 })
-defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - best bike and wheelset for every Zwift climb and sprint' })
+defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes – best bike and wheelset for every Zwift climb and sprint' })
 
 const siteConfig = useSiteConfig()
 useHead({
@@ -175,7 +175,7 @@ useHead({
         The fastest bike for every climb and sprint
       </h1>
       <p class="mt-4 max-w-2xl text-lg text-toned">
-        Every rankable segment in Zwift - {{ catalogClimbs }} climbs and {{ catalogSprints }} sprints - with the bike and wheel combo our physics model predicts fastest for each one, at your own weight, height and power once you set a rider profile.
+        Every rankable segment in Zwift – {{ catalogClimbs }} climbs and {{ catalogSprints }} sprints – with the bike and wheel combo our physics model predicts fastest for each one, at your own weight, height and power once you set a rider profile.
       </p>
     </div>
 

@@ -33,7 +33,7 @@ export interface NoticeLink {
  * course - is still named, and the link goes to the season page where it is
  * listed, at its round: it is the next race whether or not it can be ranked.
  *
- * It reads "Next ZRL race: Week 2, Tue 29 Sept": the series by its tag, and
+ * It reads "Next ZRL race: Week 2, Tue 29 Sep": the series by its tag, and
  * the race by its week, since the notice has just named the run race's round.
  * A next race in another round is named in full ("Round 2 Week 1"), so the
  * link never reads as a week of the round that has been run.

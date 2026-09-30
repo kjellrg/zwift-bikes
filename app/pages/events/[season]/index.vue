@@ -90,7 +90,7 @@ const seasonUrl = computed(() => `${siteConfig.url}/events/${season!.slug}`)
 
 useSeoMeta({
   title: () => `${title.value} schedule: the fastest bike for every race | ZwiftBikes`,
-  description: () => `Every ${title.value} race date and route, with the fastest bike and wheel combo for each one - lap counts and TT bike rules included.`,
+  description: () => `Every ${title.value} race date and route, with the fastest bike and wheel combo for each one – lap counts and TT bike rules included.`,
   ogTitle: () => `${title.value} schedule`,
   ogDescription: () => season!.description
 })
@@ -116,7 +116,7 @@ if (seasonRunOnRenderDay) {
   // and a run season's page is not, so it shares the site's own card
   // (`app.vue`) rather than an og:image URL whose image was never built - as
   // a run race's page does.
-  defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - the fastest bike and wheelset for every race on the calendar' })
+  defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes – the fastest bike and wheelset for every race on the calendar' })
 }
 
 useHead(() => ({
@@ -149,7 +149,7 @@ useHead(() => ({
             'itemListElement': listedRounds.value.flatMap(round => round.races.map(race => ({ round, race }))).map(({ round, race }, index) => ({
               '@type': 'ListItem',
               'position': index + 1,
-              'name': `${round.name ? `${round.name} ` : ''}${raceDisplayName(race)}${race.categories[0]?.route ? ` - ${race.categories[0].route.name}` : ''}`,
+              'name': `${round.name ? `${round.name} ` : ''}${raceDisplayName(race)}${race.categories[0]?.route ? ` – ${race.categories[0].route.name}` : ''}`,
               ...(isRacePublishable(race) ? { item: `${seasonUrl.value}/${race.slug}` } : {})
             }))
           }).replace(/</g, '\\u003c')
@@ -269,7 +269,7 @@ useHead(() => ({
               {{ round.name ? `Round ${round.number}: ${round.name}` : `Round ${round.number}` }}
             </h2>
             <p class="text-sm text-muted">
-              {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
+              {{ formatRaceDateShort(round.startDate) }} – {{ formatRaceDateShort(round.endDate) }}
             </p>
           </div>
 
@@ -324,7 +324,7 @@ useHead(() => ({
                   <template v-if="round.races.length">
                     {{ round.races.length }} race{{ round.races.length === 1 ? '' : 's' }},
                   </template>
-                  {{ formatRaceDateShort(round.startDate) }} - {{ formatRaceDateShort(round.endDate) }}
+                  {{ formatRaceDateShort(round.startDate) }} – {{ formatRaceDateShort(round.endDate) }}
                 </p>
               </div>
               <p class="text-sm text-muted sm:text-right">
@@ -343,7 +343,7 @@ useHead(() => ({
       class="mt-10 py-6 text-muted"
     >
       <template v-if="seasonRun">
-        Every race this season has been run - the
+        Every race this season has been run – the
         <NuxtLink
           to="/events"
           class="underline decoration-rule-strong hover:text-highlighted"
@@ -351,7 +351,7 @@ useHead(() => ({
         has what is still to come.
       </template>
       <template v-else>
-        No races are on the calendar yet - check back once the organiser announces the schedule.
+        No races are on the calendar yet – check back once the organiser announces the schedule.
       </template>
     </p>
 

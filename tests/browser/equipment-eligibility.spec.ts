@@ -73,7 +73,7 @@ test.describe('equipment eligibility', () => {
     // case a rider is most likely to misread as "these are my bikes".
     await seed(page, { myBikesOnly: true })
     await visit(page, ROUTE)
-    await expect(garageScope(page)).toContainText('Garage empty - showing all equipment')
+    await expect(garageScope(page)).toContainText('Garage empty – showing all equipment')
 
     await seed(page, { myBikesOnly: true }, { frames: { [TARMAC.id]: 3 } })
     await visit(page, ROUTE)
@@ -116,7 +116,7 @@ test.describe('equipment eligibility', () => {
     // through the results card and watches the same summary line move.
     await seed(page, { myBikesOnly: true })
     await visit(page, ROUTE)
-    await expect(garageScope(page)).toContainText('Garage empty - showing all equipment')
+    await expect(garageScope(page)).toContainText('Garage empty – showing all equipment')
     const recommended = (await frameNames(page))[0]
     expect(recommended).toBeTruthy()
 

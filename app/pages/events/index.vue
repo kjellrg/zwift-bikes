@@ -180,7 +180,7 @@ useHead({
       class="mt-10 text-muted"
     >
       <template v-if="runningSeasons.length">
-        None of the races announced so far is one we can rank - the series below say what is coming.
+        None of the races announced so far is one we can rank – the series below say what is coming.
       </template>
       <template v-else>
         No races are left to run on the calendars we cover. Check back when the next season is announced.

@@ -325,7 +325,7 @@ describe('the race document', () => {
  */
 describe('the twin of a race that has been run', () => {
   const ORIGIN = 'https://zwift-bikes-pr-1.workers.dev'
-  // Round 1 Week 1, a Race of Truth on Montmartre Mixer, raced on Tue 22 Sept.
+  // Round 1 Week 1, a Race of Truth on Montmartre Mixer, raced on Tue 22 Sep.
   const WEEK_1 = '/events/zrl-2026-27/round-1-week-1'
   const onDay = (today: string) => ({ ...CONTEXT, today })
 
@@ -344,9 +344,9 @@ describe('the twin of a race that has been run', () => {
     expect(run.markdown.startsWith([
       '> **This race has been run**',
       '>',
-      '> Round 1 Week 1 was raced on Tue 22 Sept. The ranking below still holds for this route under Race of Truth rules.',
+      '> Round 1 Week 1 was raced on Tue 22 Sep. The ranking below still holds for this route under Race of Truth rules.',
       '>',
-      `> Next ZRL race: [Week 2, Tue 29 Sept](${ORIGIN}/events/zrl-2026-27/round-1-week-2)`,
+      `> Next ZRL race: [Week 2, Tue 29 Sep](${ORIGIN}/events/zrl-2026-27/round-1-week-2)`,
       '>',
       `> The route on its own: [Fastest bike for Montmartre Mixer](${ORIGIN}/routes/montmartre-mixer)`,
       '',

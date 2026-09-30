@@ -88,7 +88,7 @@ useSeoMeta({
   description: metaDescription,
   ogTitle: () => routeData.value ? `Fastest bike for ${routeData.value.name}` : undefined,
   ogDescription: () => routeData.value
-    ? `Every Zwift frame and wheelset ranked by finish time on ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}.`
+    ? `Every Zwift frame and wheelset ranked by finish time on ${routeData.value.name} in ${routeData.value.worldName} – ${metaStats.value}.`
     : undefined
 })
 

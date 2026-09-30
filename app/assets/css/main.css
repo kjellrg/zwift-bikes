@@ -212,6 +212,17 @@
   a {
     text-underline-offset: 0.18em;
   }
+  /* The browser's own surfaces, themed from the same tokens in both Colour
+     modes: the selection wash, the scrollbars, native checkboxes and ranges,
+     and the text caret. */
+  :root {
+    accent-color: var(--ui-primary);
+    caret-color: var(--ui-primary);
+    scrollbar-color: var(--ui-border-accented) transparent;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--ui-primary) 16%, transparent);
+  }
   /* Focus in the primary on every control, table rows included - the one
      place besides the answer and the active section the primary is spent. */
   :focus-visible {

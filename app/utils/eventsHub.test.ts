@@ -144,7 +144,7 @@ describe('what a series box on the hub says', () => {
 
   it('says a round starts, rather than runs, before its first race', () => {
     const season = zrl([round1([week(1, 1, '2026-09-22'), week(1, 2, '2026-09-29')]), round2()])
-    expect(seriesStatusLines(season, '2026-09-01')[0]).toBe('Round 1, Fresh & Fast, starts Tue 22 Sept.')
+    expect(seriesStatusLines(season, '2026-09-01')[0]).toBe('Round 1, Fresh & Fast, starts Tue 22 Sep.')
     // Between rounds the next one is the round a rider is waiting on, and nothing comes after it yet.
     expect(seriesStatusLines(season, '2026-10-01')).toEqual([
       'Round 2, Team Tempo, starts Tue 17 Nov. WTRL hasn\'t announced its routes yet.',
@@ -217,7 +217,7 @@ describe('what the hub says it covers', () => {
       lede: 'We cover two series, Zwift Racing League and ZRacing, and work out the bike and wheels our physics model makes fastest for each of their races.',
       description: 'Race dates, routes and the fastest bike and wheel combo for each Zwift Racing League and ZRacing race.',
       ogTitle: 'ZRL and ZRacing race calendars',
-      ogAlt: 'ZwiftBikes - the fastest bike and wheelset for ZRL and ZRacing races'
+      ogAlt: 'ZwiftBikes – the fastest bike and wheelset for ZRL and ZRacing races'
     })
   })
 

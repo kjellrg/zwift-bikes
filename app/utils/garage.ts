@@ -26,7 +26,7 @@ export const GARAGE_FALLBACK_SCOPES: Record<GarageFallback, string> = {
   full: 'Your frames / your wheels',
   framesOnly: 'Your frames / all wheels',
   wheelsOnly: 'All frames / your wheels',
-  empty: 'Garage empty - showing all equipment'
+  empty: 'Garage empty – showing all equipment'
 }
 
 /**

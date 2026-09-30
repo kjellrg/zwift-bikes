@@ -20,9 +20,9 @@ import { EVENTS_SERVER_DAY, servedEventsDay, visit } from './support'
  * journey pins with `setFixedTime` to that day or a later one.
  */
 
-/** Run on Tue 22 Sept, before the server's day. */
+/** Run on Tue 22 Sep, before the server's day. */
 const RUN = '/events/zrl-2026-27/round-1-week-1'
-/** Raced on Tue 29 Sept, after the server's day. */
+/** Raced on Tue 29 Sep, after the server's day. */
 const TO_RUN = '/events/zrl-2026-27/round-1-week-2'
 /** The last race ZRacing 2026 has, a stage that closes on Sun 4 Oct; its months after that have none yet. */
 const LAST_STAGE = '/events/zracing-2026/september-stage-4'
@@ -76,13 +76,13 @@ test.describe('a race that has been run', () => {
     // Its links are still followed: they are where the rider should go next.
     expect(html.robots).toBe('noindex, follow')
     expect(html.noticeBeforeHeading).toBe(true)
-    expect(html.notice).toContain('Round 1 Week 1 was raced on Tue 22 Sept')
+    expect(html.notice).toContain('Round 1 Week 1 was raced on Tue 22 Sep')
     expect(html.notice).toContain('still holds for this route under Race of Truth rules')
     // The next race by its series' tag and its week: the notice has just
     // named the round.
-    expect(html.notice).toContain('Next ZRL race: Week 2, Tue 29 Sept')
+    expect(html.notice).toContain('Next ZRL race: Week 2, Tue 29 Sep')
     expect(html.noticeLinks).toEqual([
-      { text: 'Week 2, Tue 29 Sept', href: TO_RUN },
+      { text: 'Week 2, Tue 29 Sep', href: TO_RUN },
       { text: 'Fastest bike for Montmartre Mixer', href: '/routes/montmartre-mixer' }
     ])
     // The notice says it; the breadcrumb no longer does.
@@ -102,7 +102,7 @@ test.describe('a race that has been run', () => {
   test('says so after load once the rider\'s clock has passed it, and still ranks', async ({ page }) => {
     await page.clock.setFixedTime(AFTER_WEEK_2)
     await visit(page, TO_RUN)
-    await expect(notice(page)).toContainText('Round 1 Week 2 was raced on Tue 29 Sept')
+    await expect(notice(page)).toContainText('Round 1 Week 2 was raced on Tue 29 Sep')
     const next = notice(page).getByRole('link', { name: 'Week 3, Tue 6 Oct', exact: true })
     await expect(next).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-3')
     // The ranking under it is the one it always was.
@@ -126,9 +126,9 @@ test.describe('a race that has been run', () => {
     expect(markdown.startsWith([
       '> **This race has been run**',
       '>',
-      '> Round 1 Week 1 was raced on Tue 22 Sept. The ranking below still holds for this route under Race of Truth rules.',
+      '> Round 1 Week 1 was raced on Tue 22 Sep. The ranking below still holds for this route under Race of Truth rules.',
       '>',
-      `> Next ZRL race: [Week 2, Tue 29 Sept](${origin}${TO_RUN})`,
+      `> Next ZRL race: [Week 2, Tue 29 Sep](${origin}${TO_RUN})`,
       '>',
       `> The route on its own: [Fastest bike for Montmartre Mixer](${origin}/routes/montmartre-mixer)`,
       '',

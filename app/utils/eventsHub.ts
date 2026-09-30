@@ -240,6 +240,6 @@ export function hubCopy(seasons: Pick<EventSeason, 'seriesSlug' | 'seriesName' |
     lede: `We cover ${COUNT_WORDS[series.length] ?? series.length} series, ${names}, and work out the bike and wheels our physics model makes fastest for each of their races.`,
     description: `Race dates, routes and the fastest bike and wheel combo for each ${names} race.`,
     ogTitle: `${tags} race calendars`,
-    ogAlt: `ZwiftBikes - the fastest bike and wheelset for ${tags} races`
+    ogAlt: `ZwiftBikes – the fastest bike and wheelset for ${tags} races`
   }
 }

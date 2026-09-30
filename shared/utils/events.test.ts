@@ -213,7 +213,7 @@ describe('derivations the pages are built from', () => {
 
   it('names a race under its round when the round is named, else under the season alone', () => {
     const season = { seriesName: 'ZRacing', label: '2026' }
-    expect(raceContextLabel(season, { name: 'August: Makuri Madness' })).toBe('ZRacing 2026 - August: Makuri Madness')
+    expect(raceContextLabel(season, { name: 'August: Makuri Madness' })).toBe('ZRacing 2026 – August: Makuri Madness')
     expect(raceContextLabel(season, { name: undefined })).toBe('ZRacing 2026')
     expect(raceContextLabel(season)).toBe('ZRacing 2026')
   })
@@ -441,11 +441,11 @@ describe('the curated seasons themselves', () => {
     const week1 = '/events/zrl-2026-27/round-1-week-1'
     const week2 = '/events/zrl-2026-27/round-1-week-2'
     const stage3 = '/events/zracing-2026/september-stage-3'
-    // Week 1 is raced on Tue 22 Sept: indexed that day, gone the next.
+    // Week 1 is raced on Tue 22 Sep: indexed that day, gone the next.
     expect(indexed('2026-09-22')).toContain(week1)
     expect(indexed('2026-09-23')).not.toContain(week1)
     expect(indexed('2026-09-23')).toContain(week2)
-    // A week-long stage stays indexed through its last day (Sun 27 Sept).
+    // A week-long stage stays indexed through its last day (Sun 27 Sep).
     expect(indexed('2026-09-27')).toContain(stage3)
     expect(indexed('2026-09-28')).not.toContain(stage3)
     // Only pages that exist: never a race with no page yet (round 2 is unannounced).

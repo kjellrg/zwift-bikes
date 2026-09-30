@@ -33,6 +33,6 @@ function open(event: MouseEvent) {
       href="/report"
       class="underline decoration-rule-strong transition-colors hover:text-highlighted"
       @click="open"
-    >Report it</a> - corrections with a source get folded back into the data.
+    >Report it</a> – corrections with a source get folded back into the data.
   </p>
 </template>
