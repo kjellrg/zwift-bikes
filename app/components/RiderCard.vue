@@ -187,7 +187,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
 
     <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-4">
       <div>
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
+        <div class="flex items-baseline justify-between gap-x-2">
           <label
             :for="ids.weight"
             class="text-xs text-muted"
@@ -210,13 +210,13 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         />
       </div>
       <div>
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
+        <div class="flex items-baseline justify-between gap-x-2">
           <label
             :for="ids.power"
             class="text-xs text-muted"
           >{{ sprintPower ? 'Sprint power' : 'Sustained power' }}</label>
           <p class="text-md font-semibold font-heading text-highlighted">
-            {{ pendingPowerW }} <span class="text-sm font-normal text-muted">W · {{ (pendingPowerW / pendingWeightKg).toFixed(2) }} W/kg</span>
+            {{ pendingPowerW }} <span class="text-sm font-normal text-muted">W</span>
           </p>
         </div>
         <USlider
@@ -233,7 +233,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         />
       </div>
       <div>
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
+        <div class="flex items-baseline justify-between gap-x-2">
           <label
             :for="ids.height"
             class="text-xs text-muted"
@@ -419,8 +419,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         aria-hidden="true"
       />
       {{ refreshing ? 'Updating the times…' : 'Times update when you let go' }}
-      <span aria-hidden="true">·</span>
-      {{ hasStoredProfile ? 'Stored in this browser only' : 'Set your profile to keep these in this browser' }}
+      <span class="ml-1.5">{{ hasStoredProfile ? 'Stored in this browser only' : 'Set your profile to keep these in this browser' }}</span>
     </p>
   </aside>
 </template>
