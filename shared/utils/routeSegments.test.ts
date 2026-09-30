@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getAllSegmentSummaries, routeWithMetaForSegment, routeWithMetaForSegmentHost } from './routeSegments'
+import { getAllSegmentSummaries, routeWithMetaForSegment, routeWithMetaForSegmentHost, SEGMENT_PROFILE_SAMPLES } from './routeSegments'
 import { getRoutesWithMeta } from './catalog'
 import { sliceSurfaceSegments } from './surfaceGeometry'
 
@@ -190,5 +190,23 @@ describe('a segment is sliced in its host\'s coordinates and delivered in its ow
     const climb = host.terrain.climbs.at(-1)
     expect(climb).toBeDefined()
     expect(climb!.toKm * host.surface.traceScale!).toBeCloseTo(host.distance, 1)
+  })
+})
+
+describe('a climb carries its measured profile for the segments index', () => {
+  it('samples it at even distances from 0 m, and ends at its net rise', () => {
+    const alpe = getAllSegmentSummaries().find(s => s.slug === 'alpe-du-zwift')!
+    expect(alpe.profileM).toHaveLength(SEGMENT_PROFILE_SAMPLES)
+    expect(alpe.profileM![0]).toBe(0)
+    const netM = (alpe.measuredAvgGradePercent! / 100) * alpe.lengthKm * 1000
+    expect(alpe.profileM!.at(-1)!).toBeGreaterThan(netM * 0.9)
+    expect(alpe.profileM!.at(-1)!).toBeLessThan(netM * 1.1)
+  })
+
+  it('is only on climbs, and only where the road was measured', () => {
+    for (const summary of getAllSegmentSummaries()) {
+      if (summary.type === 'sprint' || summary.measuredElevationM === undefined) expect(summary.profileM).toBeUndefined()
+      else expect(summary.profileM).toHaveLength(SEGMENT_PROFILE_SAMPLES)
+    }
   })
 })

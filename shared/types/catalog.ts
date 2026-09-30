@@ -345,6 +345,15 @@ export interface SegmentSummary {
   measuredElevationM?: number
   measuredAvgGradePercent?: number
   /**
+   * A climb's real shape for the segments index to draw: its elevation in
+   * metres above its own start at `SEGMENT_PROFILE_SAMPLES` even distances
+   * along it, ends included, from the same measured slice the segment page
+   * charts. Present only for a climb with a measured profile (a positional
+   * placement on a host route); the index draws a straight ramp at the
+   * average grade for the rest.
+   */
+  profileM?: number[]
+  /**
    * How this segment was tied to its host routes: `'positional'` when at
    * least one route publishes a measured `segmentsOnRoute` placement for it,
    * `'membership'` when it only appears in routes' non-positional `segments`
