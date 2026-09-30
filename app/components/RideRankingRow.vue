@@ -85,14 +85,14 @@ function onRowClick(event: MouseEvent) {
       class="cursor-pointer align-top transition-colors hover:bg-elevated"
       :class="[
         open ? 'bg-elevated' : '',
-        !allColumns && 'max-md:grid max-md:grid-cols-[2.25rem_minmax(0,1fr)_auto_2rem] max-md:gap-x-2 max-md:py-3'
+        !allColumns && 'max-md:grid max-md:grid-cols-[1.75rem_minmax(0,1fr)_auto_2rem] max-md:gap-x-2 max-md:py-3'
       ]"
       @click="onRowClick"
     >
       <td
         role="cell"
         class="w-11 px-2.5 pt-4 text-right text-sm"
-        :class="[rank === 1 ? 'font-semibold text-primary' : 'text-muted', !allColumns && 'max-md:row-span-2 max-md:p-0 max-md:pt-1']"
+        :class="[rank === 1 ? 'font-semibold text-primary' : 'text-muted', !allColumns && 'max-md:row-span-2 max-md:p-0 max-md:pt-1 max-md:text-left']"
       >
         {{ rankMarker(rank) }}
       </td>
@@ -250,7 +250,7 @@ function onRowClick(event: MouseEvent) {
               v-else
               class="text-sm text-muted"
             >
-              {{ combo.frame.hasFixedWheels ? 'Fixed disc wheels - no wheel swaps on this frame.' : 'No other wheels fit this frame under the current filters.' }}
+              {{ combo.frame.hasFixedWheels ? 'Fixed disc wheels – no wheel swaps on this frame.' : 'No other wheels fit this frame under the current filters.' }}
             </p>
           </div>
           <div class="min-w-0">

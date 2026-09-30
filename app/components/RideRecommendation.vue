@@ -76,7 +76,7 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
     </p>
     <h2
       id="ride-recommendation-heading"
-      class="mt-2 text-balance text-[clamp(1.625rem,3.4vw,2.25rem)] leading-tight font-semibold font-heading text-highlighted break-words"
+      class="mt-1 text-balance sm:mt-2 text-[clamp(1.625rem,3.4vw,2.25rem)] leading-tight font-semibold font-heading text-highlighted break-words"
     >
       <button
         type="button"
@@ -90,7 +90,7 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
     <p class="mt-1 text-lg text-toned break-words">
       {{ combo.wheelset ? `with ${combo.wheelset.name} wheels` : 'with its own fixed disc wheels' }}
     </p>
-    <div class="mt-5 flex flex-wrap items-end gap-x-5 gap-y-1.5">
+    <div class="mt-3 flex flex-wrap items-end gap-x-5 gap-y-1.5 sm:mt-5">
       <p
         id="ride-finish-time"
         class="text-[clamp(4rem,9vw,6rem)] leading-[0.95] font-semibold font-timing tracking-[-0.01em] text-highlighted"
@@ -111,7 +111,7 @@ const filters = computed(() => activeFiltersLabel(props.ranking.restrictions, pr
       </p>
     </div>
 
-    <dl class="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-1.5 border-y border-default py-3 text-sm text-toned">
+    <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-1.5 border-y border-default py-3 text-sm text-toned">
       <dt class="text-muted">
         Data
       </dt>

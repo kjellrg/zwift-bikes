@@ -21,31 +21,35 @@ defineProps<{
 </script>
 
 <template>
-  <div class="mt-4 space-y-3 sm:mt-5">
+  <div class="mt-3 space-y-2 sm:mt-5 sm:space-y-3">
     <div class="overflow-hidden rounded-lg border border-default">
       <ul
-        class="-mr-px -mb-px grid grid-cols-2 sm:flex sm:flex-wrap"
+        class="-mr-px -mb-px grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] sm:flex sm:flex-wrap"
         aria-label="Ride facts"
       >
         <li
           v-for="fact in facts"
           :key="fact.label"
-          class="min-w-0 border-r border-b border-default px-4 py-2.5 sm:flex-1 sm:basis-36"
+          class="min-w-0 border-r border-b border-default px-3 py-1 sm:flex-1 sm:basis-36 sm:px-4 sm:py-2.5"
         >
-          <span class="block text-xl leading-tight font-bold font-display whitespace-nowrap text-highlighted">{{ fact.value }}</span>
-          <span class="block text-xs text-muted">{{ fact.label }}</span>
+          <span class="block text-lg leading-tight font-bold font-display whitespace-nowrap text-highlighted sm:text-xl">{{ fact.value }}</span>
+          {{ ' ' }}<span class="block text-[11px] leading-tight text-muted sm:text-xs">{{ fact.label }}</span>
         </li>
         <li
           v-if="surface"
-          class="col-span-2 border-r border-b border-default px-4 py-2.5 sm:basis-full"
+          class="col-span-full border-r border-b border-default px-3 py-1 sm:basis-full sm:px-4 sm:py-2.5"
         >
           <span
             v-if="surface.allTarmac"
             class="block text-xl leading-tight font-bold font-display text-highlighted"
           >All tarmac</span>
+          <span
+            v-if="surface.allTarmac"
+            class="block text-xs text-muted"
+          >Surface</span>
           <template v-else>
             <span
-              class="mt-0.5 flex h-2 overflow-hidden rounded-full"
+              class="flex h-1.5 overflow-hidden rounded-full sm:mt-0.5 sm:h-2"
               aria-hidden="true"
             >
               <span
@@ -55,7 +59,8 @@ defineProps<{
                 :style="{ width: `${part.percent}%` }"
               />
             </span>
-            <span class="mt-1.5 flex flex-wrap gap-x-4 text-sm text-toned">
+            <span class="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-toned sm:mt-1.5 sm:gap-x-4 sm:text-sm">
+              <span class="text-xs text-muted">Surface</span>
               <span
                 v-for="entry in surface.key"
                 :key="entry.family"
@@ -69,7 +74,6 @@ defineProps<{
               </span>
             </span>
           </template>
-          <span class="mt-1 block text-xs text-muted">Surface</span>
         </li>
       </ul>
     </div>

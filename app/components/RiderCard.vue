@@ -187,7 +187,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
 
     <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-4">
       <div>
-        <div class="flex items-baseline justify-between gap-2">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
           <label
             :for="ids.weight"
             class="text-xs text-muted"
@@ -210,7 +210,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         />
       </div>
       <div>
-        <div class="flex items-baseline justify-between gap-2">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
           <label
             :for="ids.power"
             class="text-xs text-muted"
@@ -233,7 +233,7 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         />
       </div>
       <div>
-        <div class="flex items-baseline justify-between gap-2">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-2">
           <label
             :for="ids.height"
             class="text-xs text-muted"

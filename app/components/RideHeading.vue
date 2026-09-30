@@ -20,7 +20,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="pt-5 sm:pt-10">
+  <div class="pt-4 sm:pt-10">
     <nav aria-label="Breadcrumb">
       <ol class="flex flex-wrap gap-x-2.5 gap-y-1 text-sm text-muted">
         <li
