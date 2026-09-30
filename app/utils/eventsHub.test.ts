@@ -25,7 +25,7 @@ describe('the events hub\'s list of races', () => {
       { title: 'On now', races: ['ZRacing september-stage-3'] },
       { title: 'Next 7 days', races: ['ZRacing september-stage-4', 'ZRL round-1-week-2'] },
       // Week 6 is on a course we can't rank, so it has no page and is not listed.
-      { title: 'Later', races: ['ZRL round-1-week-3', 'ZRL round-1-week-4', 'ZRL round-1-week-5'] }
+      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5'] }
     ])
   })
 
@@ -120,7 +120,7 @@ describe('what a series box on the hub says', () => {
     ])
     expect(seriesStatusLines(getSeasonBySlug('zracing-2026')!, '2026-09-24')).toEqual([
       'September\'s stages, Zwift Racing Powered by DURA-ACE, run until Sun 4 Oct.',
-      'Zwift hasn\'t announced October\'s theme yet.'
+      'October\'s stages, Tour of Watopia, start Mon 5 Oct. Its last race is on a course that isn\'t in our route data, so we can\'t rank it.'
     ])
   })
 
@@ -171,7 +171,13 @@ describe('what a series box on the hub says', () => {
     // The curated calendar carries October-December with dates and nothing
     // else. Those dates are ours, not Zwift's, so the box names the month and
     // says what is missing rather than when it starts.
-    const zracing = getSeasonBySlug('zracing-2026')!
+    const curated = getSeasonBySlug('zracing-2026')!
+    const zracing = eventSeasonSchema.parse({
+      ...curated,
+      rounds: curated.rounds.map(round => round.number >= 10
+        ? { ...round, name: round.name!.split(':')[0], races: [] }
+        : round)
+    })
     expect(seriesStatusLines(zracing, '2026-10-10')).toEqual([
       'Zwift hasn\'t announced October\'s theme yet.',
       'Zwift hasn\'t announced November\'s theme yet.'
