@@ -100,11 +100,14 @@ test.describe('segment discovery', () => {
     await expect(filter(page, 'Show')).toHaveText('Sprints')
   })
 
-  test('lists climbs by shape and sprints as a plain list, with no drawn road', async ({ page }) => {
+  test('lists climbs as cards with their own outline and sprints as a plain list', async ({ page }) => {
     await visitPage(page, '/segments')
     const count = await cards(page).count()
     expect(count).toBeGreaterThan(20)
-    await expect(cards(page).locator('svg[data-silhouette]')).toHaveCount(0)
+    // A climb's card draws its measured profile the way a route's card does;
+    // a sprint is a name and a length, with nothing drawn.
+    expect(await page.locator('main li svg[data-silhouette]').count()).toBeGreaterThan(10)
+    await expect(page.locator('main li ul svg, main ul.columns-2 svg')).toHaveCount(0)
     for (const text of await cards(page).allInnerTexts()) expect(text).toMatch(/\d+\.\d km/)
 
     // A world's climbs come most climbing first, and each has its line of numbers.
@@ -209,9 +212,9 @@ test.describe('segment discovery', () => {
     expect(served.segmentLinks.length).toBeGreaterThan(20)
     expect(served.segmentLinks).toContain(TEMPLE_KOM)
     expect(served.routeLinks).toContain('All routes')
-    // The listing carries only scalar length, elevation and grade, so the
-    // segments hub draws no shapes it would have to make up.
-    expect(served.silhouettes).toBe(0)
+    // A climb's card carries its measured outline, so a crawler gets the
+    // drawings in the served HTML, not after hydration.
+    expect(served.silhouettes).toBeGreaterThan(10)
   })
 
   test('sits the rows on the dark ground, and switches to light with the name in ink', async ({ page }) => {

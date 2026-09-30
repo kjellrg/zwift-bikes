@@ -1,69 +1,48 @@
 <script setup lang="ts">
 import type { SegmentSummary } from '../../shared/types/catalog'
-import { climbDrawing, segmentGrade, type WedgeScale } from '../utils/segmentWedge'
 
 /**
- * A segment as the segments page lists it. A climb is a row: its name, a
- * muted line of category, length, climbing and grade, and a wedge that draws
- * its own profile: every drawing is the same width, on the page's one
- * vertical scale (`wedgeScale`), so it is as tall as the climb is steep. The
- * length is in the muted line, not in the drawing. A sprint is a name and a length in a compact
- * list: it has no climbing or grade worth a line. Climb or sprint is said by
- * the section a segment is in, not by a tag on it.
+ * A segment as the segments page lists it, the way `RouteCard` lists a
+ * route. A climb is a card: its own outline first, drawn from the measured
+ * profile the segment page charts (a `Silhouette`, each climb to its own
+ * height, so a gentle drag reads as gentle), then its name, and at the foot
+ * its category over the numbers a rider picks a climb by - length, climbing,
+ * grade - as plain text. A climb with no measured profile draws a dashed
+ * baseline rather than a shape nobody has ridden. A sprint is a name and a
+ * length in a compact list: it has no climbing or grade worth a card.
  *
- * The profile is the climb's own measured one (`profileM`) where it has one,
- * and a straight ramp at its average grade where it has none - never a shape
- * made up to look like a road. Elevation and grade prefer the measured pair over `zwift-data`'s published
+ * Elevation and grade prefer the measured pair over `zwift-data`'s published
  * scalars wherever both exist - see `SegmentSummary`: every display surface
- * does, and a row that disagreed with the segment page it links to would be
+ * does, and a card that disagreed with the segment page it links to would be
  * the one place a rider could catch the site contradicting itself.
  */
 const props = defineProps<{
   segment: SegmentSummary
-  scale: WedgeScale
 }>()
 
-const category = computed(() => props.segment.climbType ? (props.segment.climbType === 'HC' ? 'HC' : `Cat ${props.segment.climbType}`) : 'Climb')
-const grade = computed(() => segmentGrade(props.segment))
-const VIEW_WIDTH = 100
-const VIEW_HEIGHT = 40
-const outline = computed(() => climbDrawing(props.segment, props.scale)
-  .map(point => `${(point.x * VIEW_WIDTH).toFixed(1)},${(VIEW_HEIGHT - Math.max(point.y * VIEW_HEIGHT, 0.75)).toFixed(1)}`))
-const area = computed(() => `0,${VIEW_HEIGHT} ${outline.value.join(' ')} ${VIEW_WIDTH},${VIEW_HEIGHT}`)
+const category = computed(() => props.segment.climbType ? (props.segment.climbType === 'HC' ? 'HC climb' : `Category ${props.segment.climbType} climb`) : 'Climb')
+const grade = computed(() => props.segment.measuredAvgGradePercent ?? props.segment.avgGradePercent)
 </script>
 
 <template>
   <NuxtLink
     v-if="segment.type === 'climb'"
     :to="`/segments/${segment.slug}`"
-    class="group flex items-center justify-between gap-4 border-b border-default py-2"
+    class="flex h-full flex-col rounded-xl border border-default bg-elevated px-4 pt-3.5 pb-3.5 transition-colors hover:border-accented"
   >
-    <span class="min-w-0">
-      <span class="block font-semibold text-highlighted group-hover:underline">{{ segment.name }}</span>
-      <span class="block text-sm text-muted">{{ category }} · {{ segment.lengthKm.toFixed(1) }} km · {{ Math.round(segment.measuredElevationM ?? segment.elevationM) }} m · {{ grade ? formatGrade(grade) : 'Flat' }}</span>
+    <RouteSilhouette
+      :shape="segment.shape"
+      class="h-14"
+    />
+    <span class="mt-3 block font-semibold text-balance text-highlighted">{{ segment.name }}</span>
+    <span class="mt-auto block pt-1.5">
+      <span class="block text-sm text-muted">{{ category }}</span>
+      <span class="mt-0.5 flex flex-wrap gap-x-3 text-sm text-toned">
+        <span><span class="font-semibold text-highlighted">{{ segment.lengthKm.toFixed(1) }}</span> km</span>
+        <span><span class="font-semibold text-highlighted">{{ Math.round(segment.measuredElevationM ?? segment.elevationM) }}</span> m</span>
+        <span>{{ grade ? formatGrade(grade) : 'Flat' }}</span>
+      </span>
     </span>
-    <!-- The climb's own profile in a track of one width for every climb,
-         standing on a baseline, on the page's one vertical scale. -->
-    <svg
-      class="h-10 w-24 shrink-0 overflow-visible sm:w-40"
-      :viewBox="`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <polygon
-        :points="area"
-        class="fill-ink-toned transition-colors group-hover:fill-primary"
-      />
-      <line
-        x1="0"
-        :y1="VIEW_HEIGHT"
-        :x2="VIEW_WIDTH"
-        :y2="VIEW_HEIGHT"
-        class="stroke-rule-strong"
-        stroke-width="1"
-        vector-effect="non-scaling-stroke"
-      />
-    </svg>
   </NuxtLink>
   <NuxtLink
     v-else

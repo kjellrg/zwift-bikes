@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { SegmentSummary } from '../../../shared/types/catalog'
-import { wedgeScale } from '../../utils/segmentWedge'
 
 const search = ref('')
 const searchDebounced = ref('')
@@ -122,10 +121,6 @@ const worldGroups = computed(() => {
     }))
     .sort((a, b) => b.total - a.total || a.worldName.localeCompare(b.worldName))
 })
-
-// One scale for the whole page, from every climb listed (not the filtered
-// ones), so a wedge keeps its size as a search narrows the list.
-const scale = computed(() => wedgeScale(segments.value.filter(segment => segment.type === 'climb')))
 
 const description = catalogClimbs
   ? `The fastest bike and wheel combo for every rankable Zwift segment - ${catalogClimbs} climbs and ${catalogSprints} sprints, ranked by predicted time for your rider profile.`
@@ -252,7 +247,7 @@ useHead({
       @retry="refresh"
     >
       <template #skeleton>
-        <div>
+        <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <SegmentCardSkeleton
             v-for="n in 8"
             :key="n"
@@ -276,15 +271,12 @@ useHead({
             <h3 class="mt-4 text-sm font-semibold text-muted">
               Climbs
             </h3>
-            <ul class="mt-1 max-w-2xl">
+            <ul class="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <li
                 v-for="segment in group.climbs"
                 :key="segment.slug"
               >
-                <SegmentCard
-                  :segment="segment"
-                  :scale="scale"
-                />
+                <SegmentCard :segment="segment" />
               </li>
             </ul>
           </template>
@@ -298,10 +290,7 @@ useHead({
                 :key="segment.slug"
                 class="break-inside-avoid"
               >
-                <SegmentCard
-                  :segment="segment"
-                  :scale="scale"
-                />
+                <SegmentCard :segment="segment" />
               </li>
             </ul>
           </template>

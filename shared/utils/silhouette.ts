@@ -340,7 +340,11 @@ function silhouetteSurfaces(spans: readonly CourseProfileSurfaceSpan[]): Silhoue
  */
 export function routeSilhouette(route: CourseProfileRoute, laps = 1, samples = SILHOUETTE_LISTING_SAMPLES): Silhouette | undefined {
   const profile = routeCourseProfile(route, laps, { samples })
-  if (!profile) return undefined
+  return profile ? profileSilhouette(profile) : undefined
+}
+
+/** A CourseProfile cut down to a Silhouette: heights, family spans and the approximated stretch. */
+export function profileSilhouette(profile: CourseProfile): Silhouette {
   return {
     heights: profile.points.map(point => Math.round(point.y * SILHOUETTE_HEIGHT_SCALE)),
     surfaces: silhouetteSurfaces(profile.surfaces),

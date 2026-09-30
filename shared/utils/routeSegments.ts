@@ -8,6 +8,7 @@ import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
 import { getRoutesWithMeta, getWorldName } from './catalog'
 import { computeTerrain } from './routeTerrain'
+import { courseProfile, profileSilhouette, SILHOUETTE_LISTING_SAMPLES } from './silhouette'
 
 let cachedSummaries: SegmentSummary[] | undefined
 
@@ -116,31 +117,10 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
     const netM = profile[profile.length - 1]!.elevationM
     summary.measuredElevationM = Math.round(ascentM)
     summary.measuredAvgGradePercent = Math.round((netM / (summary.lengthKm * 1000)) * 1000) / 10
-    if (summary.type === 'climb') summary.profileM = sampleRise(profile)
+    if (summary.type === 'climb') summary.shape = profileSilhouette(courseProfile({ points: profile }, { samples: SILHOUETTE_LISTING_SAMPLES }))
   }
 
   return cachedSummaries
-}
-
-/** How many even distances a climb's `profileM` is sampled at. */
-export const SEGMENT_PROFILE_SAMPLES = 24
-
-/** A sliced profile's elevation above its start at `SEGMENT_PROFILE_SAMPLES` even distances, linearly interpolated, to 0.1 m. */
-function sampleRise(profile: readonly { distanceM: number, elevationM: number }[]): number[] {
-  const totalM = profile[profile.length - 1]!.distanceM
-  const start = profile[0]!.elevationM
-  const samples: number[] = []
-  let index = 1
-  for (let i = 0; i < SEGMENT_PROFILE_SAMPLES; i++) {
-    const at = (i / (SEGMENT_PROFILE_SAMPLES - 1)) * totalM
-    while (index < profile.length - 1 && profile[index]!.distanceM < at) index++
-    const a = profile[index - 1]!
-    const b = profile[index]!
-    const span = b.distanceM - a.distanceM
-    const elevationM = span > 0 ? a.elevationM + (b.elevationM - a.elevationM) * Math.min(1, Math.max(0, (at - a.distanceM) / span)) : b.elevationM
-    samples.push(Math.round((elevationM - start) * 10) / 10)
-  }
-  return samples
 }
 
 export function getSegmentSummary(slug: string): SegmentSummary | undefined {

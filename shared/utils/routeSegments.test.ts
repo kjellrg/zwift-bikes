@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { getAllSegmentSummaries, routeWithMetaForSegment, routeWithMetaForSegmentHost, SEGMENT_PROFILE_SAMPLES } from './routeSegments'
+import { getAllSegmentSummaries, routeWithMetaForSegment, routeWithMetaForSegmentHost } from './routeSegments'
+import { SILHOUETTE_LISTING_SAMPLES } from './silhouette'
 import { getRoutesWithMeta } from './catalog'
 import { sliceSurfaceSegments } from './surfaceGeometry'
 
@@ -193,20 +194,19 @@ describe('a segment is sliced in its host\'s coordinates and delivered in its ow
   })
 })
 
-describe('a climb carries its measured profile for the segments index', () => {
-  it('samples it at even distances from 0 m, and ends at its net rise', () => {
+describe('a climb carries its measured outline for its card', () => {
+  it('is a listing Silhouette of the measured slice, rising to the top of its box', () => {
     const alpe = getAllSegmentSummaries().find(s => s.slug === 'alpe-du-zwift')!
-    expect(alpe.profileM).toHaveLength(SEGMENT_PROFILE_SAMPLES)
-    expect(alpe.profileM![0]).toBe(0)
-    const netM = (alpe.measuredAvgGradePercent! / 100) * alpe.lengthKm * 1000
-    expect(alpe.profileM!.at(-1)!).toBeGreaterThan(netM * 0.9)
-    expect(alpe.profileM!.at(-1)!).toBeLessThan(netM * 1.1)
+    expect(alpe.shape?.heights).toHaveLength(SILHOUETTE_LISTING_SAMPLES)
+    expect(alpe.shape!.heights[0]).toBe(0)
+    expect(alpe.shape!.heights.at(-1)).toBeGreaterThan(900)
+    expect(alpe.shape!.surfaces).toEqual([])
   })
 
   it('is only on climbs, and only where the road was measured', () => {
     for (const summary of getAllSegmentSummaries()) {
-      if (summary.type === 'sprint' || summary.measuredElevationM === undefined) expect(summary.profileM).toBeUndefined()
-      else expect(summary.profileM).toHaveLength(SEGMENT_PROFILE_SAMPLES)
+      if (summary.type === 'sprint' || summary.measuredElevationM === undefined) expect(summary.shape).toBeUndefined()
+      else expect(summary.shape?.heights).toHaveLength(SILHOUETTE_LISTING_SAMPLES)
     }
   })
 })
