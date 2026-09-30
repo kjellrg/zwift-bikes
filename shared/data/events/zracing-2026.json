@@ -7,11 +7,21 @@
   "organizer": "Zwift",
   "organizerUrl": "https://www.zwift.com/racing",
   "description": "Zwift's own monthly race series - a themed set of week-long stages each month, open to everyone.",
-  "note": "September is Zwift Racing Powered by DURA-ACE: four week-long stages. Only the ZRacing stages are listed here, not the Crit Club, Epic Race Club or TT Club events that now share the Zwift Racing name. Entry is by racing score - Women-Only, Range 1, Range 2 and Advanced - and every category rides the same course, so there is one bike answer per stage; GC is your best finishing time on each. October, November and December are on the calendar without stages until Zwift announces each month's theme.",
-  "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time. From September the monthly series also carries Crit Club, Epic Race Club and TT Club events alongside the ZRacing stage; only the ZRacing stages are modelled here, since the stage slug convention (stage-{n}) assumes one race per week and the other three formats are separate weekly events with their own routes. If they are ever added they need their own slug convention, not a second race on the same week. The months Zwift has not themed yet are rounds named by month only, dated to the month and with no races, so the season stays open until December is run; when Zwift publishes a month's theme it joins the name ('September: ...') and the round takes its stages' dates. October starts on 5 Oct rather than the 1st because rounds may not overlap and September's last stage ends 4 Oct.",
+  "note": "October is the Tour of Watopia, Zwift's double-XP series: each week-long stage has a Standard Ride & Race, hourly. These are scratch races; the announcement publishes no powerups or categories. Stage 4 (California Dreamin') and stage 5 (Molten Momentum, in November) ride new Watopia expansion routes, so they stay on the calendar as dates until the routes ship. December is on the calendar without stages until Zwift announces its theme.",
+  "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time. From September the monthly series also carries Crit Club, Epic Race Club and TT Club events alongside the ZRacing stage; only the ZRacing stages are modelled here, since the stage slug convention (stage-{n}) assumes one race per week and the other three formats are separate weekly events with their own routes. If they are ever added they need their own slug convention, not a second race on the same week. The months Zwift has not themed yet are rounds named by month only, dated to the month and with no races, so the season stays open until December is run; when Zwift publishes a month's theme it joins the name ('September: ...') and the round takes its stages' dates. October starts on 5 Oct rather than the 1st because rounds may not overlap and September's last stage ends 4 Oct; likewise November starts 2 Nov because Tour of Watopia stage 4 ends 1 Nov. The Tour of Watopia is Zwift's own event, not a ZRacing announcement, and its make-up week (9-15 Nov) is not modelled.",
   "sources": [
-    { "url": "https://zwiftinsider.com/makuri-madness-2026/", "checkedAt": "2026-08-16" },
-    { "url": "https://zwiftinsider.com/dura-ace-2026/", "checkedAt": "2026-09-04" }
+    {
+      "url": "https://zwiftinsider.com/makuri-madness-2026/",
+      "checkedAt": "2026-08-16"
+    },
+    {
+      "url": "https://zwiftinsider.com/dura-ace-2026/",
+      "checkedAt": "2026-09-04"
+    },
+    {
+      "url": "https://zwiftinsider.com/tow-2026/",
+      "checkedAt": "2026-09-30"
+    }
   ],
   "rounds": [
     {
@@ -40,7 +50,9 @@
             }
           ],
           "note": "The month opens with a single lap of Mech Isle Mayhem - about 20 km with only 121 m of climbing, so expect a fast, draft-heavy race that stays together. Only a third of the lap is tarmac, but the 35% beach sand rolls at tarmac speed in Zwift, so road wheels still win comfortably; it's the 21% dirt that costs time. Feather and Ghost are the powerups on offer.",
-          "powerups": { "allowed": ["feather", "ghost"] },
+          "powerups": {
+            "allowed": ["feather", "ghost"]
+          },
           "curatorNote": "ZwiftInsider notes Zwift disabled racing-score changes for this stage due to finish line inaccuracies - a results detail, not an equipment one, so it stays out of the rider-facing note.",
           "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
           "updatedAt": "2026-08-16"
@@ -65,7 +77,9 @@
             }
           ],
           "note": "Urumaze is a clean, rolling lap where ordinary road aero wins - the 202 m of climbing never bites hard enough to hand the race to a lightweight build. Two fifths of the lap is beach sand, which sounds slow and isn't: Zwift rolls sand at tarmac Crr, so it costs road wheels nothing. Feather and Aero powerups.",
-          "powerups": { "allowed": ["feather", "aero"] },
+          "powerups": {
+            "allowed": ["feather", "aero"]
+          },
           "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
           "updatedAt": "2026-08-16"
         },
@@ -89,7 +103,9 @@
             }
           ],
           "note": "The hilliest stage of the month: 288 m of climbing packed into under 18 km, over twice the gradient density of the other three stages. That makes it the month's closest call between aero and light: aero, climbing and all-rounder frames finish within seconds of each other, and a full aero build only just edges a pure climbing one - by less still for lighter riders. The Feather powerup rewards the climbs. It is also the dirtiest stage - a quarter of the route is dirt, the surface that hurts road wheels most here, though not enough to beat them. Draft is the other powerup.",
-          "powerups": { "allowed": ["feather", "draft"] },
+          "powerups": {
+            "allowed": ["feather", "draft"]
+          },
           "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
           "updatedAt": "2026-09-23"
         },
@@ -113,7 +129,9 @@
             }
           ],
           "note": "The month closes with a crit: five laps of the 3.9 km Twilight Crit circuit, near-flat and relentlessly fast. Over 40% of each lap is brick, which is bumpy to look at but barely slower than tarmac on road wheels - this stays a pure aero race. With Draft and Aero as the powerups, the equipment and the powerups are pulling in the same direction.",
-          "powerups": { "allowed": ["draft", "aero"] },
+          "powerups": {
+            "allowed": ["draft", "aero"]
+          },
           "sourceUrl": "https://zwiftinsider.com/makuri-madness-2026/",
           "updatedAt": "2026-08-16"
         }
@@ -145,7 +163,9 @@
             }
           ],
           "note": "The month opens in France with two laps of Croissant: 21.8 km of unbroken tarmac and only 122 m of climbing, none of it steep. Nothing on this course rewards a light bike, so it is a flat-out aero race - and with Aero and Draft as the powerups, the field should stay bunched and fast to the line.",
-          "powerups": { "allowed": ["aero", "draft"] },
+          "powerups": {
+            "allowed": ["aero", "draft"]
+          },
           "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
           "updatedAt": "2026-09-04"
         },
@@ -169,7 +189,9 @@
             }
           ],
           "note": "A single lap of Watopia's Ocean Lava Cliffside Loop - 19.2 km with 156 m of climbing spread thinly rather than stacked into one wall. Nine tenths of the lap is tarmac, and the short dirt, wood and cobble stretches together come to under 2 km, not enough to pull the answer away from road wheels. Feather and Anvil are the powerups.",
-          "powerups": { "allowed": ["feather", "anvil"] },
+          "powerups": {
+            "allowed": ["feather", "anvil"]
+          },
           "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
           "updatedAt": "2026-09-04"
         },
@@ -193,7 +215,9 @@
             }
           ],
           "note": "Back to Makuri for Electric Break, a point-to-point that packs 204 m into 19.6 km - the sharpest climbing of the month so far. Only a third of it is tarmac, but that reads worse than it rides: the 36% beach sand rolls at tarmac rolling resistance in Zwift and costs road wheels nothing, the 29% brick is barely slower, and only 3% is dirt, the one surface here that actually bites. So it stays an aero race with a climb in it. Feather and Aero powerups.",
-          "powerups": { "allowed": ["feather", "aero"] },
+          "powerups": {
+            "allowed": ["feather", "aero"]
+          },
           "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
           "updatedAt": "2026-09-04"
         },
@@ -217,7 +241,9 @@
             }
           ],
           "note": "The month closes with two laps of Watopia's Loop de Loop: 25 km and 289 m, the most climbing of the four stages, though at under 12 m per kilometre it is rolling rather than mountainous. The lap is almost entirely tarmac, so surfaces are a non-issue and the whole question is how much the climbs claw back from a full aero build. Feather and Anvil again.",
-          "powerups": { "allowed": ["feather", "anvil"] },
+          "powerups": {
+            "allowed": ["feather", "anvil"]
+          },
           "sourceUrl": "https://zwiftinsider.com/dura-ace-2026/",
           "updatedAt": "2026-09-04"
         }
@@ -225,17 +251,132 @@
     },
     {
       "number": 10,
-      "name": "October",
+      "name": "October: Tour of Watopia",
       "startDate": "2026-10-05",
-      "endDate": "2026-10-31",
-      "races": []
+      "endDate": "2026-11-01",
+      "races": [
+        {
+          "slug": "october-stage-1",
+          "round": 10,
+          "week": 1,
+          "date": "2026-10-05",
+          "endDate": "2026-10-11",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "sand-and-sequoias",
+              "routeName": "Sand and Sequoias",
+              "laps": 1,
+              "officialDistanceKm": 22.4,
+              "officialElevationM": 181,
+              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Route plus lead-in is 22.4 km, matching the published distance; published 181 m against 175 m from the route itself. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
+            }
+          ],
+          "note": "Tour of Watopia opens with Sand and Sequoias, the stage 1 Standard Ride & Race: 22.4 km and 181 m.",
+          "sourceUrl": "https://zwiftinsider.com/tow-2026/",
+          "updatedAt": "2026-09-30"
+        },
+        {
+          "slug": "october-stage-2",
+          "round": 10,
+          "week": 2,
+          "date": "2026-10-12",
+          "endDate": "2026-10-18",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "downtown-eruoption",
+              "routeName": "Downtown Eruption",
+              "laps": 1,
+              "officialDistanceKm": 19.9,
+              "officialElevationM": 276,
+              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Point-to-point, so laps is 1; route plus lead-in is 19.9 km, matching the published distance. The slug spelling downtown-eruoption is zwift-data's. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
+            }
+          ],
+          "note": "Stage 2 of Tour of Watopia is Downtown Eruption, 19.9 km and 276 m.",
+          "sourceUrl": "https://zwiftinsider.com/tow-2026/",
+          "updatedAt": "2026-09-30"
+        },
+        {
+          "slug": "october-stage-3",
+          "round": 10,
+          "week": 3,
+          "date": "2026-10-19",
+          "endDate": "2026-10-25",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeSlug": "coastal-crown-loop",
+              "routeName": "Coastal Crown Loop",
+              "laps": 1,
+              "officialDistanceKm": 23.6,
+              "officialElevationM": 266,
+              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Route plus lead-in is 23.7 km against the published 23.6 km. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
+            }
+          ],
+          "note": "Stage 3 of Tour of Watopia is Coastal Crown Loop, 23.6 km and 266 m.",
+          "sourceUrl": "https://zwiftinsider.com/tow-2026/",
+          "updatedAt": "2026-09-30"
+        },
+        {
+          "slug": "october-stage-4",
+          "round": 10,
+          "week": 4,
+          "date": "2026-10-26",
+          "endDate": "2026-11-01",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeName": "California Dreamin'",
+              "laps": 1,
+              "officialDistanceKm": 19.1,
+              "officialElevationM": 153,
+              "curatorNote": "Zwift Insider lists California Dreamin' as stage 4's Short Ride & Race; California Roll (33.2 km) is the Standard Ride, not a race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
+            }
+          ],
+          "note": "Stage 4 of Tour of Watopia is California Dreamin', 19.1 km and 153 m, on a new route from the Watopia expansion.",
+          "sourceUrl": "https://zwiftinsider.com/tow-2026/",
+          "updatedAt": "2026-09-30"
+        }
+      ]
     },
     {
       "number": 11,
-      "name": "November",
-      "startDate": "2026-11-01",
+      "name": "November: Tour of Watopia",
+      "startDate": "2026-11-02",
       "endDate": "2026-11-30",
-      "races": []
+      "races": [
+        {
+          "slug": "november-stage-1",
+          "round": 11,
+          "week": 1,
+          "date": "2026-11-02",
+          "endDate": "2026-11-08",
+          "format": "scratch",
+          "categories": [
+            {
+              "cats": [],
+              "label": "All categories",
+              "routeName": "Molten Momentum",
+              "laps": 1,
+              "officialDistanceKm": 20.8,
+              "officialElevationM": 245,
+              "curatorNote": "Tour of Watopia stage 5 (the slug follows the month convention, so the page reads Stage 1). Zwift Insider lists this as the Standard Ride & Race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
+            }
+          ],
+          "note": "Stage 5 of Tour of Watopia is Molten Momentum, 20.8 km and 245 m, on a new route from the Watopia expansion.",
+          "sourceUrl": "https://zwiftinsider.com/tow-2026/",
+          "updatedAt": "2026-09-30"
+        }
+      ]
     },
     {
       "number": 12,
