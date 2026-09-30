@@ -3,7 +3,7 @@ import type { RaceFormat } from '#shared/utils/events'
 import type { Ride, RideCourse } from '../../utils/recommendRequest'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/events'
 import { rideRulesForFormat } from '../../utils/recommendRequest'
-import { surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
+import { surfaceSplit, type RideFact } from '../../utils/rideFacts'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -195,10 +195,10 @@ const facts = computed<RideFact[]>(() => segmentData.value && segmentRoute.value
   ? [
       { value: formatDistance(segmentData.value.lengthKm), label: 'long' },
       { value: formatElevation(displayElevationM.value), label: 'of climbing' },
-      { value: displayGradePercent.value ? formatGrade(displayGradePercent.value) : 'Flat', label: 'average grade' },
-      ...surfaceShareFacts(segmentRoute.value.surface.composition)
+      { value: displayGradePercent.value ? formatGrade(displayGradePercent.value) : 'Flat', label: 'average grade' }
     ]
   : [])
+const surface = computed(() => segmentRoute.value ? surfaceSplit(segmentRoute.value.surface.composition) : undefined)
 /** Why a lever the Rider card would otherwise offer is fixed here - the format's own rules, in the card's words. */
 const ttBarredReason = computed(() => ttAllowed.value || !raceFormat.value ? undefined : `TT frames are barred when this is ridden as a ${raceFormatPhrase(raceFormat.value)}.`)
 const draftLockedReason = computed(() => draftAllowed.value ? undefined : 'There is no draft in a Race of Truth.')
@@ -218,7 +218,10 @@ const draftLockedReason = computed(() => draftAllowed.value ? undefined : 'There
       :name="segmentData.name"
     />
 
-    <RideFactRow :facts="facts">
+    <RideFactRow
+      :facts="facts"
+      :surface="surface"
+    >
       <li>Timed from the segment's start and ridden once; the flying-start warm-up is not counted.</li>
       <!-- The host routes: how a rider moves on from one stretch to a whole ride. -->
       <li v-if="segmentData.hostRoutes.length">

@@ -22,10 +22,11 @@ defineProps<{
 <template>
   <div class="pt-5 sm:pt-10">
     <nav aria-label="Breadcrumb">
-      <ol class="flex flex-wrap gap-x-3.5 gap-y-1 text-sm text-muted">
+      <ol class="flex flex-wrap gap-x-2.5 gap-y-1 text-sm text-muted">
         <li
           v-for="crumb in crumbs"
           :key="crumb.label"
+          class="after:ml-2.5 after:text-(--ui-border-accented) after:content-['/'] last:after:content-none"
         >
           <NuxtLink
             v-if="crumb.to"

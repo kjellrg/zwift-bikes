@@ -2,7 +2,7 @@
 import type { Ride } from '../../../utils/recommendRequest'
 import { categoryGroupRacing } from '#shared/utils/events'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
-import { climbCountFact, surfaceShareFacts, type RideFact } from '../../../utils/rideFacts'
+import { climbCountFact, distanceLabel, surfaceSplit, type RideFact } from '../../../utils/rideFacts'
 
 /**
  * One race. Everything a route page can't know lives here: the date, the
@@ -370,14 +370,14 @@ const facts = computed<RideFact[]>(() => {
   const elevationM = totals?.elevationM ?? group?.officialElevationM
   const climbs = route ? climbCountFact(new Set(route.terrain.climbs.map(climb => climb.slug)).size, new Set(route.terrain.sprints.map(sprint => sprint.slug)).size) : undefined
   return [
-    ...(distanceKm !== undefined ? [{ value: formatDistance(distanceKm), label: totals && totals.leadInDistanceKm > 0 ? 'with the lead-in' : 'distance' }] : []),
+    ...(distanceKm !== undefined ? [{ value: formatDistance(distanceKm), label: distanceLabel({ leadInKm: totals?.leadInDistanceKm ?? 0 }) }] : []),
     ...(elevationM !== undefined ? [{ value: formatElevation(elevationM), label: 'of climbing' }] : []),
     { value: String(laps.value), label: laps.value === 1 ? 'lap' : 'laps' },
     ...(route ? [{ value: `${route.terrain.climbRatio.toFixed(1)} m/km`, label: 'climb ratio' }] : []),
-    ...surfaceShareFacts(route?.surface.composition),
     ...(climbs ? [climbs] : [])
   ]
 })
+const surface = computed(() => surfaceSplit(routeInfo.value?.surface.composition))
 const raceDate = computed(() => race!.endDate ? formatRaceDateRange(race!.date, race!.endDate) : formatRaceDate(race!.date))
 
 /** The rules the Rider card shows as fixed, in its words. */
@@ -516,15 +516,15 @@ if (!hasRun.value) {
       </div>
     </RideHeading>
 
-    <RideFactRow :facts="facts">
+    <RideFactRow
+      :facts="facts"
+      :surface="surface"
+    >
       <li>{{ ttAlertDescription }}</li>
       <!-- A rule, not a nudge: the ranking is computed solo whatever the
            rider's saved draft mode says, so this states what happened. -->
       <li v-if="!draftAllowed">
         No draft in a Race of Truth, so the ranking is ridden solo; your saved draft setting still applies everywhere else.
-      </li>
-      <li v-if="routeTotals && routeTotals.leadInDistanceKm > 0">
-        {{ laps }} lap{{ laps === 1 ? '' : 's' }} plus a {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in, ridden once.
       </li>
       <li v-if="officialDiffers">
         {{ season!.organizer }} publishes this race as {{ [selectedGroup?.officialDistanceKm ? formatDistance(selectedGroup.officialDistanceKm) : undefined, selectedGroup?.officialElevationM !== undefined ? formatElevation(selectedGroup.officialElevationM) : undefined].filter(Boolean).join(' / ') }}; the figures above are this site's own totals from the route's lead-in and lap data, which is what the physics runs on.

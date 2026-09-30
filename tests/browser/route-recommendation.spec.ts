@@ -150,7 +150,7 @@ test.describe('route recommendation', () => {
     await expect(finishTime(page)).toHaveText(formatDuration(data.combos[0]!.finishTimeSec!))
     await expect(answer(page)).toContainText('2 laps, including any lead-in once')
     expect(new URL(page.url()).searchParams.get('laps')).toBe('2')
-    await expect(rideNotes(page)).toContainText('2 laps')
+    await expect(facts(page)).toContainText('2 laps')
   })
 
   test('opens one row at a time, by pointer and keyboard, with its wheels fetched through the page\'s request', async ({ page, isMobile }) => {
