@@ -7,7 +7,7 @@
   "organizer": "Zwift",
   "organizerUrl": "https://www.zwift.com/racing",
   "description": "Zwift's own monthly race series - a themed set of week-long stages each month, open to everyone.",
-  "note": "October is the Tour of Watopia, Zwift's double-XP series: each week-long stage has a Standard Ride & Race, hourly. The announcement gives no race format, powerups or categories, so these stages are ranked as scratch races with the road-bike rules until Zwift says otherwise. Stage 4 (California Dreamin') and stage 5 (Molten Momentum, in November) ride new Watopia expansion routes, so they stay on the calendar as dates until the routes ship. December is on the calendar without stages until Zwift announces its theme.",
+  "note": "October is the Tour of Watopia, Zwift's double-XP series: each week-long stage has a Standard Ride & Race, hourly. These are scratch races; the announcement publishes no powerups or categories. Stage 4 (California Dreamin') and stage 5 (Molten Momentum, in November) ride new Watopia expansion routes, so they stay on the calendar as dates until the routes ship. December is on the calendar without stages until Zwift announces its theme.",
   "curatorNote": "Modelled as one season per calendar year, each month a round (round number = month number), weekly stages as races - a stage runs Monday to Sunday, so every race carries an endDate. Stage GC is by best finishing time, hence format 'scratch'. All four stage routes now carry generated surface data, so rankings run on measured composition and the pages show 'measured' confidence. Reading that composition: Zwift rolls sand at the same Crr as tarmac (0.004 on road wheels), so Makuri's long beach sections are free - a coarse 'off tarmac' percentage that buckets sand as gravel badly overstates the penalty, and dirt is the only surface here that actually costs road wheels time. From September the monthly series also carries Crit Club, Epic Race Club and TT Club events alongside the ZRacing stage; only the ZRacing stages are modelled here, since the stage slug convention (stage-{n}) assumes one race per week and the other three formats are separate weekly events with their own routes. If they are ever added they need their own slug convention, not a second race on the same week. The months Zwift has not themed yet are rounds named by month only, dated to the month and with no races, so the season stays open until December is run; when Zwift publishes a month's theme it joins the name ('September: ...') and the round takes its stages' dates. October starts on 5 Oct rather than the 1st because rounds may not overlap and September's last stage ends 4 Oct; likewise November starts 2 Nov because Tour of Watopia stage 4 ends 1 Nov. The Tour of Watopia is Zwift's own event, not a ZRacing announcement, and its make-up week (9-15 Nov) is not modelled.",
   "sources": [
     {
@@ -271,7 +271,7 @@
               "laps": 1,
               "officialDistanceKm": 22.4,
               "officialElevationM": 181,
-              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Route plus lead-in is 22.4 km, matching the published distance; published 181 m against 175 m from the route itself. Format scratch is assumed: the announcement gives no race format, powerups or categories."
+              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Route plus lead-in is 22.4 km, matching the published distance; published 181 m against 175 m from the route itself. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
             }
           ],
           "note": "Tour of Watopia opens with Sand and Sequoias, the stage 1 Standard Ride & Race: 22.4 km and 181 m.",
@@ -294,7 +294,7 @@
               "laps": 1,
               "officialDistanceKm": 19.9,
               "officialElevationM": 276,
-              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Point-to-point, so laps is 1; route plus lead-in is 19.9 km, matching the published distance. The slug spelling downtown-eruoption is zwift-data's. Format scratch is assumed: the announcement gives no race format, powerups or categories."
+              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Point-to-point, so laps is 1; route plus lead-in is 19.9 km, matching the published distance. The slug spelling downtown-eruoption is zwift-data's. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
             }
           ],
           "note": "Stage 2 of Tour of Watopia is Downtown Eruption, 19.9 km and 276 m.",
@@ -317,7 +317,7 @@
               "laps": 1,
               "officialDistanceKm": 23.6,
               "officialElevationM": 266,
-              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Route plus lead-in is 23.7 km against the published 23.6 km. Format scratch is assumed: the announcement gives no race format, powerups or categories."
+              "curatorNote": "Zwift Insider lists this as the Standard Ride & Race. Route plus lead-in is 23.7 km against the published 23.6 km. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
             }
           ],
           "note": "Stage 3 of Tour of Watopia is Coastal Crown Loop, 23.6 km and 266 m.",
@@ -339,7 +339,7 @@
               "laps": 1,
               "officialDistanceKm": 19.1,
               "officialElevationM": 153,
-              "curatorNote": "Zwift Insider lists California Dreamin' as stage 4's Short Ride & Race; California Roll (33.2 km) is the Standard Ride, not a race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Format scratch is assumed: the announcement gives no race format, powerups or categories."
+              "curatorNote": "Zwift Insider lists California Dreamin' as stage 4's Short Ride & Race; California Roll (33.2 km) is the Standard Ride, not a race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
             }
           ],
           "note": "Stage 4 of Tour of Watopia is California Dreamin', 19.1 km and 153 m, on a new route from the Watopia expansion.",
@@ -369,7 +369,7 @@
               "laps": 1,
               "officialDistanceKm": 20.8,
               "officialElevationM": 245,
-              "curatorNote": "Tour of Watopia stage 5 (the slug follows the month convention, so the page reads Stage 1). Zwift Insider lists this as the Standard Ride & Race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Format scratch is assumed: the announcement gives no race format, powerups or categories."
+              "curatorNote": "Tour of Watopia stage 5 (the slug follows the month convention, so the page reads Stage 1). Zwift Insider lists this as the Standard Ride & Race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
             }
           ],
           "note": "Stage 5 of Tour of Watopia is Molten Momentum, 20.8 km and 245 m, on a new route from the Watopia expansion.",
