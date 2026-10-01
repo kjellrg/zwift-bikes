@@ -8,6 +8,7 @@ import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
 import { getRoutesWithMeta, getWorldName } from './catalog'
 import { computeTerrain } from './routeTerrain'
+import { courseProfile, profileSilhouette, SILHOUETTE_LISTING_SAMPLES } from './silhouette'
 
 let cachedSummaries: SegmentSummary[] | undefined
 
@@ -116,6 +117,7 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
     const netM = profile[profile.length - 1]!.elevationM
     summary.measuredElevationM = Math.round(ascentM)
     summary.measuredAvgGradePercent = Math.round((netM / (summary.lengthKm * 1000)) * 1000) / 10
+    if (summary.type === 'climb') summary.shape = profileSilhouette(courseProfile({ points: profile }, { samples: SILHOUETTE_LISTING_SAMPLES }))
   }
 
   return cachedSummaries

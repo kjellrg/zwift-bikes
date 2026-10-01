@@ -25,7 +25,7 @@ const organizerLabel = computed(() => {
 <template>
   <p class="text-xs text-muted border-t border-default pt-4">
     ZwiftBikes is not affiliated with Zwift{{ organizerLabel }}. Schedules are curated from public
-    announcements and may lag corrections - always check
+    announcements and may lag corrections – always check
     <ULink
       v-if="organizerUrl"
       :to="organizerUrl"

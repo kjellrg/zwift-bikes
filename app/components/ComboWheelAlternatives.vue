@@ -135,7 +135,7 @@ function toggleOwned(option: ComboScore) {
           <span
             v-if="option.finishTimeSec !== undefined && fastestSec !== undefined"
             class="shrink-0 text-toned"
-          >{{ option.finishTimeSec - fastestSec > 0 ? formatDurationGap(option.finishTimeSec - fastestSec) : 'fastest' }}</span>
+          >{{ option.finishTimeSec - fastestSec > 0 ? formatGapText(option.finishTimeSec - fastestSec) : 'fastest' }}</span>
           <span
             v-else
             class="shrink-0 text-xs text-muted"

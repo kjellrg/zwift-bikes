@@ -128,7 +128,7 @@ const MAILTO_MAX_CHARS = 1800
 const MAX_FIELD_CHARS = 1200
 
 const CONTEXT_OMITTED
-  = '(App context omitted - it made this link too long for the browser to '
+  = '(App context omitted – it made this link too long for the browser to '
     + 'open. Use "Copy report" on the site and paste the full version here.)'
 
 const BODY_OMITTED

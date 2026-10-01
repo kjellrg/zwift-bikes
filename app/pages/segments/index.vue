@@ -98,9 +98,11 @@ const shownCounts = computed(() => [
 const catalogClimbs = climbCount.value
 const catalogSprints = sprintCount.value
 
-// Grouped by world, biggest catalog first; segments inside a group keep the
-// endpoint's name order. Groups a filter empties are dropped entirely - a
-// world heading with nothing under it reads as broken.
+// Grouped by world, biggest catalog first, and each world split into its
+// climbs (by climbing gained, most first) and its sprints (by name). Groups a
+// filter empties are dropped entirely - a world heading with nothing under it
+// reads as broken - and Show hides the section it excludes.
+const gainOf = (segment: SegmentSummary) => segment.measuredElevationM ?? segment.elevationM
 const worldGroups = computed(() => {
   const groups = new Map<string, { worldName: string, segments: SegmentSummary[] }>()
   for (const segment of segments.value) {
@@ -110,8 +112,14 @@ const worldGroups = computed(() => {
     groups.set(segment.world, group)
   }
   return [...groups.entries()]
-    .map(([world, group]) => ({ world, ...group }))
-    .sort((a, b) => b.segments.length - a.segments.length || a.worldName.localeCompare(b.worldName))
+    .map(([world, group]) => ({
+      world,
+      worldName: group.worldName,
+      total: group.segments.length,
+      climbs: group.segments.filter(segment => segment.type === 'climb').sort((a, b) => gainOf(b) - gainOf(a) || a.name.localeCompare(b.name)),
+      sprints: group.segments.filter(segment => segment.type === 'sprint').sort((a, b) => a.name.localeCompare(b.name))
+    }))
+    .sort((a, b) => b.total - a.total || a.worldName.localeCompare(b.worldName))
 })
 
 const description = catalogClimbs
@@ -124,7 +132,7 @@ useSeoMeta({
   ogTitle: 'Zwift climbs & sprints',
   ogDescription: description
 })
-defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes - best bike and wheelset for every Zwift climb and sprint' })
+defineOgImage('SiteCard', {}, { alt: 'ZwiftBikes – best bike and wheelset for every Zwift climb and sprint' })
 
 const siteConfig = useSiteConfig()
 useHead({
@@ -162,7 +170,7 @@ useHead({
         The fastest bike for every climb and sprint
       </h1>
       <p class="mt-4 max-w-2xl text-lg text-toned">
-        Every rankable segment in Zwift - {{ catalogClimbs }} climbs and {{ catalogSprints }} sprints - with the bike and wheel combo our physics model predicts fastest for each one, at your own weight, height and power once you set a rider profile.
+        Every rankable segment in Zwift – {{ catalogClimbs }} climbs and {{ catalogSprints }} sprints – with the bike and wheel combo our physics model predicts fastest for each one, at your own weight, height and power once you set a rider profile.
       </p>
     </div>
 
@@ -259,14 +267,33 @@ useHead({
           >
             {{ group.worldName }}
           </h2>
-          <ul class="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <li
-              v-for="segment in group.segments"
-              :key="segment.slug"
-            >
-              <SegmentCard :segment="segment" />
-            </li>
-          </ul>
+          <template v-if="group.climbs.length">
+            <h3 class="mt-4 text-sm font-semibold text-muted">
+              Climbs
+            </h3>
+            <ul class="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <li
+                v-for="segment in group.climbs"
+                :key="segment.slug"
+              >
+                <SegmentCard :segment="segment" />
+              </li>
+            </ul>
+          </template>
+          <template v-if="group.sprints.length">
+            <h3 class="mt-5 text-sm font-semibold text-muted">
+              Sprints
+            </h3>
+            <ul class="mt-2 columns-2 gap-x-8 lg:columns-3 xl:columns-4">
+              <li
+                v-for="segment in group.sprints"
+                :key="segment.slug"
+                class="break-inside-avoid"
+              >
+                <SegmentCard :segment="segment" />
+              </li>
+            </ul>
+          </template>
         </section>
       </div>
     </DiscoveryStatus>

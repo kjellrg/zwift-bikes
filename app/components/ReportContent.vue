@@ -111,7 +111,7 @@ async function copyReport() {
 
     <SiteNotice title="Security issues go somewhere else">
       <p>
-        Please don't report a security vulnerability here - posting it here
+        Please don't report a security vulnerability here – posting it here
         would make it public immediately. Use
         <a
           href="https://github.com/kjellrg/zwift-bikes/security/advisories/new"
@@ -203,7 +203,7 @@ async function copyReport() {
       <UFormField
         label="Source"
         required
-        description="A ZwiftInsider speed test, an official Zwift changelog, another published test - the site's numbers come from controlled tests, so a correction needs one too."
+        description="A ZwiftInsider speed test, an official Zwift changelog, another published test – the site's numbers come from controlled tests, so a correction needs one too."
       >
         <UInput
           v-model="source"
@@ -218,7 +218,7 @@ async function copyReport() {
       <UCheckbox
         v-model="includeProfile"
         label="Include my rider profile and garage size"
-        description="Your weight, height, FTP and how many bikes you own. These change the ranking, so they're usually what explains a surprising result - but they're yours, so this is off unless you say so."
+        description="Your weight, height, FTP and how many bikes you own. These change the ranking, so they're usually what explains a surprising result – but they're yours, so this is off unless you say so."
       />
 
       <!--
@@ -280,7 +280,7 @@ async function copyReport() {
         v-else
         class="text-xs text-muted"
       >
-        GitHub issues are public - anyone can read them - but they're the
+        GitHub issues are public – anyone can read them – but they're the
         easiest to follow up on, and they need an account. Email is private and
         needs no account. Copy puts the report on your clipboard to paste
         wherever you like.

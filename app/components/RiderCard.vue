@@ -137,60 +137,65 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
 <template>
   <aside
     aria-labelledby="rider-card-heading"
-    class="min-w-0 rounded-xl border border-default bg-elevated p-5 shadow-card"
+    class="min-w-0 self-start rounded-xl border border-default bg-elevated p-5 shadow-card"
   >
-    <div class="flex items-baseline justify-between gap-3">
-      <h2
-        id="rider-card-heading"
-        class="text-sm font-semibold text-muted"
+    <!-- The header block: the heading, the Applied rider - what the times
+         on screen were computed for - and, until a profile is saved, the
+         note that every time is the default rider's. -->
+    <div class="border-b border-default pb-4">
+      <div class="flex items-baseline justify-between gap-3">
+        <h2
+          id="rider-card-heading"
+          class="text-sm font-semibold text-muted"
+        >
+          Timed for this rider
+        </h2>
+        <!-- A real href for deep links and modifier-clicks; a plain click
+             opens the profile Overlay over the page - see `useOverlays`. -->
+        <a
+          href="/profile"
+          aria-haspopup="dialog"
+          class="text-sm text-primary hover:underline"
+          @click="openProfile"
+        >{{ hasStoredProfile ? 'Edit profile' : 'Set your profile' }}</a>
+      </div>
+      <p
+        role="group"
+        aria-label="Rider"
+        class="mt-2 flex flex-wrap items-center gap-x-1.5 text-md text-highlighted"
       >
-        Timed for this rider
-      </h2>
-      <!-- A real href for deep links and modifier-clicks; a plain click
-           opens the profile Overlay over the page - see `useOverlays`. -->
-      <a
-        href="/profile"
-        aria-haspopup="dialog"
-        class="text-sm text-primary hover:underline"
-        @click="openProfile"
-      >{{ hasStoredProfile ? 'Edit profile' : 'Set your profile' }}</a>
+        <span>{{ appliedLine.body }}</span><span aria-hidden="true">·</span>
+        <span>{{ appliedLine.power }} <span class="text-sm text-muted">({{ appliedLine.wkg }})</span></span><span aria-hidden="true">·</span>
+        <span class="inline-flex items-center gap-1">{{ appliedLine.draft }}<FromLinkMarker
+          v-if="draftModeFromLink && !draftLocked"
+          restore-label="Restore my saved draft mode"
+          @restore="restoreDraftMode"
+        /></span><span aria-hidden="true">·</span>
+        <span>{{ appliedLine.laps }}</span><span aria-hidden="true">·</span>
+        <span>{{ appliedLine.category }}</span>
+      </p>
+      <!-- Until a profile is saved every time on the page is the default
+           rider's - said in the one status colour for it, or a first visit
+           reads as a prediction about the visitor. -->
+      <p
+        v-if="!hasStoredProfile"
+        class="mt-1.5 text-sm text-warning"
+      >
+        Default rider. Set yours and every time on the site updates.
+      </p>
     </div>
-
-    <!-- The Applied rider: what the times on screen were computed for. -->
-    <p
-      role="group"
-      aria-label="Rider"
-      class="mt-2 flex flex-wrap items-center gap-x-1.5 text-md text-highlighted"
-    >
-      <span>{{ appliedLine.body }}</span><span aria-hidden="true">·</span>
-      <span>{{ appliedLine.power }} <span class="text-sm text-muted">({{ appliedLine.wkg }})</span></span><span aria-hidden="true">·</span>
-      <span class="inline-flex items-center gap-1">{{ appliedLine.draft }}<FromLinkMarker
-        v-if="draftModeFromLink && !draftLocked"
-        restore-label="Restore my saved draft mode"
-        @restore="restoreDraftMode"
-      /></span><span aria-hidden="true">·</span>
-      <span>{{ appliedLine.laps }}</span><span aria-hidden="true">·</span>
-      <span>{{ appliedLine.category }}</span>
-    </p>
-    <!-- Until a profile is saved every time on the page is the default
-         rider's - said in the one status colour for it, or a first visit
-         reads as a prediction about the visitor. -->
-    <p
-      v-if="!hasStoredProfile"
-      class="mt-1.5 text-sm text-warning"
-    >
-      Default rider. Set yours and every time on the site updates.
-    </p>
 
     <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-4">
       <div>
-        <label
-          :for="ids.weight"
-          class="block text-xs text-muted"
-        >Weight</label>
-        <p class="text-xl font-semibold font-heading text-highlighted">
-          {{ pendingWeightKg }} <span class="text-sm font-normal text-muted">kg</span>
-        </p>
+        <div class="flex items-baseline justify-between gap-x-2">
+          <label
+            :for="ids.weight"
+            class="text-xs text-muted"
+          >Weight</label>
+          <p class="text-md font-semibold font-heading text-highlighted">
+            {{ pendingWeightKg }} <span class="text-sm font-normal text-muted">kg</span>
+          </p>
+        </div>
         <USlider
           :id="ids.weight"
           :model-value="pendingWeightKg"
@@ -205,13 +210,15 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         />
       </div>
       <div>
-        <label
-          :for="ids.power"
-          class="block text-xs text-muted"
-        >{{ sprintPower ? 'Sprint power' : 'Sustained power' }}</label>
-        <p class="text-xl font-semibold font-heading text-highlighted">
-          {{ pendingPowerW }} <span class="text-sm font-normal text-muted">W · {{ (pendingPowerW / pendingWeightKg).toFixed(2) }} W/kg</span>
-        </p>
+        <div class="flex items-baseline justify-between gap-x-2">
+          <label
+            :for="ids.power"
+            class="text-xs text-muted"
+          >{{ sprintPower ? 'Sprint power' : 'Sustained power' }}</label>
+          <p class="text-md font-semibold font-heading text-highlighted">
+            {{ pendingPowerW }} <span class="text-sm font-normal text-muted">W</span>
+          </p>
+        </div>
         <USlider
           :id="ids.power"
           :model-value="pendingPowerW"
@@ -226,13 +233,15 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
         />
       </div>
       <div>
-        <label
-          :for="ids.height"
-          class="block text-xs text-muted"
-        >Height</label>
-        <p class="text-xl font-semibold font-heading text-highlighted">
-          {{ pendingHeightCm }} <span class="text-sm font-normal text-muted">cm</span>
-        </p>
+        <div class="flex items-baseline justify-between gap-x-2">
+          <label
+            :for="ids.height"
+            class="text-xs text-muted"
+          >Height</label>
+          <p class="text-md font-semibold font-heading text-highlighted">
+            {{ pendingHeightCm }} <span class="text-sm font-normal text-muted">cm</span>
+          </p>
+        </div>
         <USlider
           :id="ids.height"
           :model-value="pendingHeightCm"
@@ -283,14 +292,8 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
           :for="ids.laps"
           class="block text-xs text-muted"
         >Laps</label>
-        <p
-          v-if="fixedLaps"
-          class="mt-1 text-md text-highlighted"
-        >
-          {{ fixedLaps.label }} <span class="block text-xs text-muted">{{ fixedLaps.reason }}</span>
-        </p>
         <USelectMenu
-          v-else-if="lapOptions && lapOptions.length > 1"
+          v-if="!fixedLaps && lapOptions && lapOptions.length > 1"
           :id="ids.laps"
           v-model="laps"
           value-key="value"
@@ -299,12 +302,21 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
           class="mt-1 w-full"
           aria-label="Laps"
         />
-        <p
-          v-else
-          class="mt-1 text-md text-highlighted"
-        >
-          1 lap <span class="block text-xs text-muted">This route is ridden once</span>
-        </p>
+        <!-- A lap count that is not the rider's to pick is the same field,
+             the same height and shape, disabled, with the reason as its hint. -->
+        <template v-else>
+          <UInput
+            :id="ids.laps"
+            :model-value="fixedLaps?.label ?? '1 lap'"
+            disabled
+            readonly
+            class="mt-1 w-full"
+            aria-label="Laps"
+          />
+          <p class="mt-1 text-xs text-muted">
+            {{ fixedLaps?.reason ?? 'This route is ridden once' }}
+          </p>
+        </template>
       </div>
       <div class="max-sm:col-span-2">
         <div class="flex items-center gap-1.5">
@@ -392,24 +404,22 @@ const ids = { weight: useId(), height: useId(), power: useId(), draft: useId(), 
       Assumes a typical mid-pack draft. Your W/kg is still your own race average.
     </p>
 
-    <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+    <p
+      class="mt-4 flex flex-wrap items-center gap-x-1.5 text-xs text-muted"
+      role="status"
+    >
+      <UIcon
+        v-if="refreshing"
+        name="i-lucide-loader-circle"
+        class="size-3.5 animate-spin"
+      />
       <span
-        class="inline-flex items-center gap-1.5"
-        role="status"
-      >
-        <UIcon
-          v-if="refreshing"
-          name="i-lucide-loader-circle"
-          class="size-3.5 animate-spin"
-        />
-        <span
-          v-else
-          class="size-1.5 rounded-full bg-primary"
-          aria-hidden="true"
-        />
-        {{ refreshing ? 'Updating the times…' : 'Times update when you release a lever' }}
-      </span>
-      <span>Stored in your browser only</span>
-    </div>
+        v-else
+        class="size-1.5 rounded-full bg-primary"
+        aria-hidden="true"
+      />
+      {{ refreshing ? 'Updating the times…' : 'Times update when you let go' }}
+      <span class="ml-1.5">{{ hasStoredProfile ? 'Stored in this browser only' : 'Set your profile to keep these in this browser' }}</span>
+    </p>
   </aside>
 </template>

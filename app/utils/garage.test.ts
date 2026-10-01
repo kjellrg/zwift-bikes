@@ -13,7 +13,7 @@ describe('garageFallback', () => {
     expect(GARAGE_FALLBACK_SCOPES.full).toBe('Your frames / your wheels')
     expect(GARAGE_FALLBACK_SCOPES.framesOnly).toBe('Your frames / all wheels')
     expect(GARAGE_FALLBACK_SCOPES.wheelsOnly).toBe('All frames / your wheels')
-    expect(GARAGE_FALLBACK_SCOPES.empty).toBe('Garage empty - showing all equipment')
+    expect(GARAGE_FALLBACK_SCOPES.empty).toBe('Garage empty – showing all equipment')
   })
 })
 

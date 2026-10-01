@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getAllSegmentSummaries, routeWithMetaForSegment, routeWithMetaForSegmentHost } from './routeSegments'
+import { SILHOUETTE_LISTING_SAMPLES } from './silhouette'
 import { getRoutesWithMeta } from './catalog'
 import { sliceSurfaceSegments } from './surfaceGeometry'
 
@@ -190,5 +191,22 @@ describe('a segment is sliced in its host\'s coordinates and delivered in its ow
     const climb = host.terrain.climbs.at(-1)
     expect(climb).toBeDefined()
     expect(climb!.toKm * host.surface.traceScale!).toBeCloseTo(host.distance, 1)
+  })
+})
+
+describe('a climb carries its measured outline for its card', () => {
+  it('is a listing Silhouette of the measured slice, rising to the top of its box', () => {
+    const alpe = getAllSegmentSummaries().find(s => s.slug === 'alpe-du-zwift')!
+    expect(alpe.shape?.heights).toHaveLength(SILHOUETTE_LISTING_SAMPLES)
+    expect(alpe.shape!.heights[0]).toBe(0)
+    expect(alpe.shape!.heights.at(-1)).toBeGreaterThan(900)
+    expect(alpe.shape!.surfaces).toEqual([])
+  })
+
+  it('is only on climbs, and only where the road was measured', () => {
+    for (const summary of getAllSegmentSummaries()) {
+      if (summary.type === 'sprint' || summary.measuredElevationM === undefined) expect(summary.shape).toBeUndefined()
+      else expect(summary.shape?.heights).toHaveLength(SILHOUETTE_LISTING_SAMPLES)
+    }
   })
 })

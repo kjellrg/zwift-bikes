@@ -72,7 +72,7 @@ export function refetchNotice(err: RefetchError, state: RefetchNoticeState): Ref
       retryInSec,
       toast: {
         title: 'Too many requests',
-        description: `Showing the previous results - retrying in ${retryInSec}s.`,
+        description: `Showing the previous results – retrying in ${retryInSec}s.`,
         color: 'warning',
         icon: 'i-lucide-timer'
       }
@@ -92,7 +92,7 @@ export function refetchNotice(err: RefetchError, state: RefetchNoticeState): Ref
   return {
     toast: {
       title: 'Couldn\'t update the results',
-      description: 'Showing the previous ones - try again in a moment.',
+      description: 'Showing the previous ones – try again in a moment.',
       color: 'warning',
       icon: 'i-lucide-refresh-cw-off'
     }

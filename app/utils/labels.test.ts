@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SurfaceEstimate } from '../../shared/types/catalog'
-import { formatSurfaceTimePenalty } from './labels'
+import { formatGapText, formatSurfaceTimePenalty } from './labels'
 
 const rough: SurfaceEstimate = { road: 60, gravel: 40, cobble: 0, confidence: 'measured' }
 
@@ -19,5 +19,17 @@ describe('formatSurfaceTimePenalty', () => {
     expect(formatSurfaceTimePenalty({ ...rough, road: 100, gravel: 0 }, 30)).toBeUndefined()
     expect(formatSurfaceTimePenalty(rough, 0)).toBeUndefined()
     expect(formatSurfaceTimePenalty(rough, undefined)).toBeUndefined()
+  })
+})
+
+describe('formatGapText', () => {
+  it('puts a thin space between a sub-minute gap and its unit', () => {
+    expect(formatGapText(3.924)).toBe('+3.92\u2009s')
+  })
+
+  it('leaves minute gaps and the zero label alone', () => {
+    expect(formatGapText(83)).toBe('+1:23')
+    expect(formatGapText(0)).toBe('fastest')
+    expect(formatGapText(0, 'Fastest in results')).toBe('Fastest in results')
   })
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const title = 'About - ZwiftBikes'
+const title = 'About | ZwiftBikes'
 const description
   = 'ZwiftBikes is an unofficial fan project that ranks every bike frame and wheelset by predicted finish time for a given Zwift route. Built on zwift-data, ZwiftInsider bot speed tests, zwiftmap and real GPS route traces.'
 
@@ -13,7 +13,7 @@ useSeoMeta({
 // Issue #59: same generated brand card as the homepage - what's shared from
 // here is the site, not a specific route or race.
 defineOgImage('SiteCard', {}, {
-  alt: 'ZwiftBikes - find the fastest bike and wheelset for any Zwift route'
+  alt: 'ZwiftBikes – find the fastest bike and wheelset for any Zwift route'
 })
 </script>
 

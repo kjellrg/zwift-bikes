@@ -15,7 +15,7 @@ defineProps<{ notice?: string }>()
       The events calendar is taking a break
     </h1>
     <SiteNotice>
-      <p>{{ notice ?? 'This section is temporarily unavailable. Everything else on the site works as usual - check back soon.' }}</p>
+      <p>{{ notice ?? 'This section is temporarily unavailable. Everything else on the site works as usual – check back soon.' }}</p>
     </SiteNotice>
     <UButton to="/">
       Browse routes instead

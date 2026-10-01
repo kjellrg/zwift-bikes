@@ -1,5 +1,6 @@
 import type { UpgradeScheme } from '../data/frameUpgradeSchemes'
 import type { BikeFrame, BikeFrontWheel, BikeRearWheel, Route, Sport, WorldSlug } from 'zwift-data'
+import type { Silhouette } from '../utils/silhouette'
 
 /**
  * `zwift-data` only provides catalog data (names, ids, images, distance/elevation).
@@ -344,6 +345,14 @@ export interface SegmentSummary {
    */
   measuredElevationM?: number
   measuredAvgGradePercent?: number
+  /**
+   * A climb's own outline for its card, drawn the way a route's is: the
+   * measured profile slice the segment page charts, as a Silhouette. Present
+   * only for a climb with a measured profile (a positional placement on a
+   * host route); a card for any other climb draws a dashed baseline rather
+   * than a shape nobody has ridden.
+   */
+  shape?: Silhouette
   /**
    * How this segment was tied to its host routes: `'positional'` when at
    * least one route publishes a measured `segmentsOnRoute` placement for it,

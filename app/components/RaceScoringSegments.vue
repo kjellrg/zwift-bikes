@@ -70,7 +70,7 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
     </p>
     <template v-else>
       <p class="text-xs text-muted">
-        Points are scored at these segments - <span class="font-medium text-highlighted">FAL</span> by the
+        Points are scored at these segments – <span class="font-medium text-highlighted">FAL</span> by the
         order riders cross the line, <span class="font-medium text-highlighted">FTS</span> by elapsed time
         across the segment.
         <template v-if="hasPositions">
@@ -160,14 +160,14 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
         </table>
       </div>
       <p class="text-xs text-muted">
-        Tap a segment for the fastest bikes over that sprint alone - the fastest bike for a sprint
+        Tap a segment for the fastest bikes over that sprint alone – the fastest bike for a sprint
         isn't always the fastest over a whole race. {{ linkedRulesNote }}
       </p>
       <p
         v-if="hasUnlinked"
         class="text-xs text-muted"
       >
-        Segments without a link aren't in this site's segment catalog yet - it's built from routes
+        Segments without a link aren't in this site's segment catalog yet – it's built from routes
         that publish where each segment sits along them, and this one doesn't.
       </p>
     </template>

@@ -1,13 +1,12 @@
 <template>
-  <!-- `SegmentCard`'s own shape: the name line and the three numbers. -->
+  <!-- `SegmentCard`'s own shape for a climb: the outline, the name, the foot. -->
   <div
-    class="h-full rounded-xl border border-default bg-elevated px-4 py-3.5"
+    class="h-full rounded-xl border border-default bg-elevated px-4 pt-3.5 pb-3.5"
     aria-hidden="true"
   >
-    <div class="flex justify-between gap-2">
-      <USkeleton class="h-4 w-36" />
-      <USkeleton class="h-4 w-14" />
-    </div>
-    <USkeleton class="mt-2 h-4 w-40" />
+    <USkeleton class="h-14 w-full" />
+    <USkeleton class="mt-3 h-4 w-36" />
+    <USkeleton class="mt-4 h-3.5 w-20" />
+    <USkeleton class="mt-1.5 h-4 w-40" />
   </div>
 </template>

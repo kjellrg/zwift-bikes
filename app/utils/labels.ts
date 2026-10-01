@@ -138,6 +138,15 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
 }
 
 /**
+ * `formatDurationGap` for the page: a thin space between a sub-minute gap's
+ * number and its unit (`+3.92 s`), so the two never part at a line break. The
+ * shared formatter keeps `+3.92s` for the MCP text and the markdown documents.
+ */
+export function formatGapText(seconds: number, zeroLabel = 'fastest'): string {
+  return formatDurationGap(seconds, zeroLabel).replace(/(\d)s$/, '$1\u2009s')
+}
+
+/**
  * Formats a time gap vs. the fastest combo on the route, e.g. `+5.21s slower`
  * or `+1:23 slower`. Sub-minute gaps keep two decimals on purpose: closely
  * matched combos are routinely separated by fractions of a second, and rounding
@@ -146,7 +155,7 @@ export function formatSurfaceTimePenalty(surface: SurfaceEstimate, penaltySec: n
  * noise, so the `m:ss` form rounds to whole seconds as before.
  */
 export function formatDurationDelta(seconds: number): string {
-  const gap = formatDurationGap(seconds)
+  const gap = formatGapText(seconds)
   return gap === 'fastest' ? gap : `${gap} slower`
 }
 
@@ -165,7 +174,7 @@ export function formatTttTimeSaving(ttt: { riders: number, frontPullPowerW: numb
   const formatted = magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
   return savedSec >= 0
     ? `A ${ttt.riders}-rider paceline saves ~${formatted} vs riding this alone at the same effort (~${ttt.frontPullPowerW} W on your pulls).`
-    : `A ${ttt.riders}-rider paceline is ~${formatted} slower here than riding alone at the same effort - the draft can't offset your team's climb pace on this route.`
+    : `A ${ttt.riders}-rider paceline is ~${formatted} slower here than riding alone at the same effort – the draft can't offset your team's climb pace on this route.`
 }
 
 /**
@@ -183,7 +192,7 @@ export function formatRaceTimeSaving(race: { savingPct: number, raceSavedSec?: n
   const formatted = magnitude < 60 ? `${Math.round(magnitude)}s` : formatDuration(magnitude)
   return savedSec >= 0
     ? `Sitting in a typical mass-start bunch saves ~${formatted} vs riding this alone at the same average power (~${race.savingPct}% less power for the same speed on the flat).`
-    : `A typical mass-start bunch is ~${formatted} slower here than riding alone at the same average power - this route is too steep for the draft to be worth anything.`
+    : `A typical mass-start bunch is ~${formatted} slower here than riding alone at the same average power – this route is too steep for the draft to be worth anything.`
 }
 
 // `RACE_FORMAT_LABELS` and `raceFormatPhrase` now live in

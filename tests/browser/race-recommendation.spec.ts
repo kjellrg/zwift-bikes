@@ -170,7 +170,7 @@ test.describe('race recommendation', () => {
 
   test('moves the facts, the course and the ranking together when the group changes the lap count', async ({ page }) => {
     await visit(page, SPLIT_BY_LAPS)
-    await expect(groupPicker(page)).toHaveText('A/B - 4 laps')
+    await expect(groupPicker(page)).toHaveText('A/B – 4 laps')
     // The group is chosen in the header, above the Fact row and the hero it redraws.
     const pickerBox = (await groupPicker(page).boundingBox())!
     const factsBox = (await facts(page).boundingBox())!
@@ -180,7 +180,7 @@ test.describe('race recommendation', () => {
     await expect(facts(page)).toContainText('4 laps')
     await expect(riderCard(page)).toContainText('4 laps')
 
-    const { data, query } = await pickGroup(page, 'C/D - 3 laps')
+    const { data, query } = await pickGroup(page, 'C/D – 3 laps')
     expect(query.get('laps')).toBe('3')
     const threeLapDistance = Number.parseFloat(await totalDistance(page).innerText())
     expect(threeLapDistance).toBeLessThan(fourLapDistance)
@@ -206,7 +206,7 @@ test.describe('race recommendation', () => {
     // all - is the request module's rule, and is held open and asserted in
     // `useRecommendRequest.test.ts` rather than by intercepting requests
     // here. What the browser proves is the settled state on either side.
-    await pickGroup(page, 'C/D - 1 lap')
+    await pickGroup(page, 'C/D – 1 lap')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Round 1 Week 3: Urumaze$/)
     await expect(panel(page, 'Speed by surface')).toContainText('225 W')
     await expect(panel(page, 'Speed by surface')).not.toContainText('on Makuri 40')
@@ -316,7 +316,7 @@ test.describe('race recommendation', () => {
     // The link's group picked the course; TT is not offered here, so the
     // link's category lands as the substitution the ranking actually made.
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Round 1 Week 3: Urumaze$/)
-    await expect(groupPicker(page)).toHaveText('C/D - 1 lap')
+    await expect(groupPicker(page)).toHaveText('C/D – 1 lap')
     await expect(page.getByRole('group', { name: 'Rider' })).toContainText('TTT')
     await expect(answer(page)).toContainText('all bike categories')
 

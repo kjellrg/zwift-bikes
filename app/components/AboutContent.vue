@@ -27,14 +27,14 @@ const contactMailto = `mailto:${contactAddress}`
     <p>
       Tell it your weight, height and power, and ZwiftBikes ranks every
       frame and wheelset in the game by predicted finish time for the exact
-      route you're about to ride - not by a one-size-fits-all "best bike"
+      route you're about to ride – not by a one-size-fits-all "best bike"
       list.
     </p>
 
     <p>
       It's a small hobby project from one cyclist and Zwifter, built in
       spare evenings out of pre-race indecision about which frame and
-      wheels to bring to the start line - and shared with fellow riders in
+      wheels to bring to the start line – and shared with fellow riders in
       the same generous spirit as the community data it's built on.
     </p>
 
@@ -49,10 +49,10 @@ const contactMailto = `mailto:${contactAddress}`
       </p>
       <ul class="space-y-1">
         <li>
-          <span class="font-medium text-success">Bot-tested</span> - real ZwiftInsider speed-test data.
+          <span class="font-medium text-success">Bot-tested</span> – real ZwiftInsider speed-test data.
         </li>
         <li>
-          <span class="font-medium text-warning">Estimate</span> - a labelled fallback where no test exists.
+          <span class="font-medium text-warning">Estimate</span> – a labelled fallback where no test exists.
         </li>
       </ul>
       <p>
@@ -137,7 +137,7 @@ const contactMailto = `mailto:${contactAddress}`
       </p>
       <p>
         Your weight, height and power are sent to the server with each
-        recommendation request purely to compute that answer - never logged,
+        recommendation request purely to compute that answer – never logged,
         never shared, never used for anything else. Computed answers may be
         cached briefly at the network edge to keep the site fast; the cache
         holds the question and its answer, never who asked.
@@ -147,7 +147,7 @@ const contactMailto = `mailto:${contactAddress}`
         Cloudflare, the network this site runs on. When Cloudflare's
         protection asks your browser to prove it isn't a bot, this cookie
         remembers that you passed, so you aren't re-checked on every click.
-        It exists purely to keep the site online under attack - it doesn't
+        It exists purely to keep the site online under attack – it doesn't
         identify you, isn't used for tracking, can't be turned off, and
         expires on its own.
       </p>
@@ -165,7 +165,7 @@ const contactMailto = `mailto:${contactAddress}`
           @click="openReportFromAbout"
         >Report an issue</a>
         form fills in the report for you, then opens it as either a GitHub
-        issue or an email - you read it over and send it yourself. Your rider
+        issue or an email – you read it over and send it yourself. Your rider
         profile is left out unless you tick the box to include it.
       </p>
       <p>

@@ -150,7 +150,7 @@ test.describe('route recommendation', () => {
     await expect(finishTime(page)).toHaveText(formatDuration(data.combos[0]!.finishTimeSec!))
     await expect(answer(page)).toContainText('2 laps, including any lead-in once')
     expect(new URL(page.url()).searchParams.get('laps')).toBe('2')
-    await expect(rideNotes(page)).toContainText('2 laps')
+    await expect(facts(page)).toContainText('2 laps')
   })
 
   test('opens one row at a time, by pointer and keyboard, with its wheels fetched through the page\'s request', async ({ page, isMobile }) => {
@@ -193,7 +193,7 @@ test.describe('route recommendation', () => {
 
     const comparison = page.getByRole('region', { name: /Selected setups/ })
     await expect(comparison).toContainText('Fastest in results')
-    await expect(comparison).toContainText(/\+\d+\.\d\ds|\+\d+:\d\d/)
+    await expect(comparison).toContainText(/\+\d+\.\d\d\u2009s|\+\d+:\d\d/)
 
     // The persistent control where the picks are made, landing focus on the comparison.
     await page.mouse.wheel(0, -4000)

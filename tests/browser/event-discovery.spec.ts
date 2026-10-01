@@ -28,7 +28,7 @@ const ZRACING = '/events/zracing-2026'
  * ZRacing's August round is over, and September's third stage is mid-window.
  */
 const DURING = new Date(`${EVENTS_SERVER_DAY}T12:00:00Z`)
-/** The day after ZRacing's September stage 3 closed (Sun 27 Sept). */
+/** The day after ZRacing's September stage 3 closed (Sun 27 Sep). */
 const STAGE_3_RUN = new Date('2026-09-28T00:30:00Z')
 /** Past every race in both curated seasons (ZRacing's unthemed months have none). */
 const AFTER = new Date('2027-05-01T12:00:00Z')
@@ -91,10 +91,10 @@ test.describe('event discovery', () => {
     // One list across both series, by date, each row one link named with its tag.
     const links = (title: string) => hubRows(page, title).getByRole('link')
     await expect(links('On now')).toHaveAttribute('href', '/events/zracing-2026/september-stage-3')
-    await expect(links('On now')).toHaveAccessibleName(/^ZRacing Stage 3, 21-27 Sept?\b.*Fastest bike for it$/)
+    await expect(links('On now')).toHaveAccessibleName(/^ZRacing Stage 3, 21-27 Sep?\b.*Fastest bike for it$/)
     await expect(links('Next 7 days').nth(0)).toHaveAttribute('href', '/events/zracing-2026/september-stage-4')
     await expect(links('Next 7 days').nth(1)).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
-    await expect(links('Next 7 days').nth(1)).toHaveAccessibleName(/^ZRL Round 1 Week 2, Tue 29 Sept?\b/)
+    await expect(links('Next 7 days').nth(1)).toHaveAccessibleName(/^ZRL Round 1 Week 2, Tue 29 Sep?\b/)
     expect(await links('Later').evaluateAll(anchors => anchors.map(anchor => anchor.getAttribute('href'))))
       .toEqual([3, 4, 5].map(week => `/events/zrl-2026-27/round-1-week-${week}`))
     // Week 6 is on a course we can't rank, so it has no page and no row; its series box says why.
@@ -188,7 +188,7 @@ test.describe('event discovery', () => {
     // months Zwift hasn't themed are rounds with no races, and those are still
     // to come however late it gets, so its box stays and the page says why
     // the list is empty rather than standing bare.
-    await expect(page.getByText('None of the races announced so far is one we can rank - the series below say what is coming.')).toBeVisible()
+    await expect(page.getByText('None of the races announced so far is one we can rank – the series below say what is coming.')).toBeVisible()
     await expect(page.locator('main ol > li')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Zwift Racing League 2026/27' })).toHaveCount(0)
     await expect(seriesBox(page, 'ZRacing 2026')).toBeVisible()
@@ -303,7 +303,7 @@ test.describe('event discovery', () => {
     await expect(row.getByRole('link')).toHaveCount(1)
     await expect(row.locator('a a')).toHaveCount(0)
     const link = raceLink(page, /Week 2/)
-    await expect(link).toHaveAccessibleName(/^Round 1 Week 2, Tue 29 Sept?\b.*Fastest bike for it$/)
+    await expect(link).toHaveAccessibleName(/^Round 1 Week 2, Tue 29 Sep?\b.*Fastest bike for it$/)
     await expect(link).toHaveAttribute('href', '/events/zrl-2026-27/round-1-week-2')
 
     // Each course line carries its distance and climbing together - the
@@ -312,15 +312,15 @@ test.describe('event discovery', () => {
     await expect(row).toContainText('A/B: Innsbruckring, Innsbruck · 35.4 km / 309 m')
     await expect(row).toContainText('C/D: Innsbruckring, Innsbruck · 26.6 km / 232 m')
 
-    // Hovering tints the row and underlines the cue it shows - where there
-    // is a pointer that hovers at all.
+    // The row ends in a chevron, not a repeated cue, and the chevron turns
+    // primary on hover - where there is a pointer that hovers at all.
+    await expect(row.getByText('Fastest bike for it')).toHaveCount(0)
+    const chevron = link.locator('[class*="chevron-right"]')
+    await expect(chevron).toBeVisible()
     if (await page.evaluate(() => matchMedia('(hover: hover)').matches)) {
-      const cue = row.getByText('Fastest bike for it')
-      const resting = await link.evaluate(element => getComputedStyle(element).backgroundColor)
-      await expect(cue).toHaveCSS('text-decoration-line', 'none')
+      const resting = await chevron.evaluate(element => getComputedStyle(element).color)
       await link.hover()
-      await expect(link).not.toHaveCSS('background-color', resting)
-      await expect(cue).toHaveCSS('text-decoration-line', 'underline')
+      await expect(chevron).not.toHaveCSS('color', resting)
     }
 
     // From the keyboard it shows the focus ring.
@@ -328,7 +328,7 @@ test.describe('event discovery', () => {
     await expect(link).toHaveCSS('outline-style', 'solid')
 
     // And a click anywhere on it - here its course line, nowhere near the
-    // cue - opens the race.
+    // chevron - opens the race.
     await row.getByText('A/B: Innsbruckring').click()
     await page.waitForURL('**/events/zrl-2026-27/round-1-week-2')
   })
@@ -362,7 +362,7 @@ test.describe('event discovery', () => {
     await expect(notAnnounced.locator('li')).toHaveCount(3)
     const round2 = unannouncedRound(page, 2)
     await expect(round2).toContainText('Round 2: Team Tempo')
-    await expect(round2).toContainText('6 races, Tue 17 Nov - Tue 22 Dec')
+    await expect(round2).toContainText('6 races, Tue 17 Nov – Tue 22 Dec')
     await expect(round2).toContainText('Routes to come from WTRL')
     await expect(unannouncedRound(page, 4)).toContainText('Round 4: Final Charge')
     await expect(page.getByRole('heading', { name: /^Round [234]/ })).toHaveCount(0)
@@ -377,7 +377,7 @@ test.describe('event discovery', () => {
     const notAnnounced = page.locator('main section').filter({ has: page.getByRole('heading', { level: 2, name: 'Not announced yet' }) })
     await expect(notAnnounced.locator('li')).toHaveCount(3)
     await expect(unannouncedRound(page, 10)).toContainText('Round 10: October')
-    await expect(unannouncedRound(page, 10)).toContainText('Mon 5 Oct - Sat 31 Oct')
+    await expect(unannouncedRound(page, 10)).toContainText('Mon 5 Oct – Sat 31 Oct')
     await expect(unannouncedRound(page, 12)).toContainText('Round 12: December')
   })
 
@@ -465,7 +465,7 @@ test.describe('event discovery', () => {
     // an empty grid awaiting hydration. (Week 6 is run on an unlisted route,
     // so it has no page.)
     expect(served.raceLinks).toEqual([2, 3, 4, 5].map(week => `/events/zrl-2026-27/round-1-week-${week}`))
-    // Week 1 was run on Tue 22 Sept, before the server's day, so the served
+    // Week 1 was run on Tue 22 Sep, before the server's day, so the served
     // page already leaves it out and does not count it: a crawler never sees it.
     expect(served.rows).toHaveLength(5)
     expect(served.rows.join(' ')).not.toContain('Week 1')

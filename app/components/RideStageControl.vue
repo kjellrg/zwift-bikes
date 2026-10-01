@@ -39,7 +39,7 @@ const isOwned = computed(() => owned.value[props.combo.frame.id] !== undefined)
     <span
       v-else
       class="text-toned"
-      title="The stage bikes you don't own are ranked at - change the default in your profile, or add the bike to your garage to set its own"
+      title="The stage bikes you don't own are ranked at – change the default in your profile, or add the bike to your garage to set its own"
     >Stage {{ combo.frame.level }}, assumed</span>
   </span>
 </template>

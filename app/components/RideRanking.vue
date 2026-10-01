@@ -2,6 +2,7 @@
 import type { ComboScore } from '../../shared/types/catalog'
 import { RECOMMEND_MAX_LIMIT } from '#shared/utils/recommendLimits'
 import type { AppliedRanking } from '../utils/recommendRequest'
+import { gapAxisMax, gapAxisPosition, gapAxisTickLabel, gapAxisTicks } from '../utils/gapAxis'
 
 /**
  * The Ranking as a table, from rank 1 down (see **Ranking** in
@@ -17,10 +18,12 @@ import type { AppliedRanking } from '../utils/recommendRequest'
  * the rows already loaded. `selected` holds `comboKey`s in pick order; the
  * page turns them back into combos for the comparison.
  *
- * The gap bars are scaled to the largest gap on the first page of the
- * Applied Ranking and are not rescaled as Show more appends rows, so no bar
- * moves under the rider; a later row past the scale draws a full bar. A
- * replaced Ranking (a new `requestKey`) takes a new scale.
+ * The Gap column is one seconds axis with a dot per row, scaled to the
+ * largest gap on the first page of the Applied Ranking, rounded up to a nice
+ * step (`gapAxisMax`). It is not rescaled as Show more appends rows, so no
+ * dot moves under the rider; a later row past the scale is pinned to the
+ * right edge as an open marker. A replaced Ranking (a new `requestKey`)
+ * takes a new scale.
  */
 const props = defineProps<{
   ranking: AppliedRanking
@@ -51,13 +54,14 @@ function largestGap(ranking: AppliedRanking): number {
   if (fastest === undefined) return 0
   return ranking.combos.reduce((max, combo) => Math.max(max, (combo.finishTimeSec ?? fastest) - fastest), 0)
 }
-const barScale = ref(largestGap(props.ranking))
+const axisMax = ref(gapAxisMax(largestGap(props.ranking)))
 watch(() => props.ranking.requestKey, () => {
-  barScale.value = largestGap(props.ranking)
+  axisMax.value = gapAxisMax(largestGap(props.ranking))
 })
-function barFor(combo: ComboScore): number {
-  if (combo.finishTimeSec === undefined || props.ranking.fastestTimeSec === undefined || barScale.value <= 0) return 0
-  return Math.min(1, (combo.finishTimeSec - props.ranking.fastestTimeSec) / barScale.value)
+const axisTicks = computed(() => gapAxisTicks(axisMax.value))
+function axisFor(combo: ComboScore): { position: number, beyond: boolean } {
+  if (combo.finishTimeSec === undefined || props.ranking.fastestTimeSec === undefined) return { position: 0, beyond: false }
+  return gapAxisPosition(combo.finishTimeSec - props.ranking.fastestTimeSec, axisMax.value)
 }
 
 // One disclosure open at a time. Keyed by setup, so a row that keeps its
@@ -218,15 +222,25 @@ const headingId = useId()
             <th
               role="columnheader"
               scope="col"
-              class="px-2.5 pb-2 font-medium"
+              class="px-4 pb-2 font-medium"
+              :class="!allColumns && 'max-md:hidden'"
             >
-              <span class="sr-only">Gap bar</span>
+              <span class="sr-only">Gap axis</span>
+              <span
+                class="flex justify-between font-normal"
+                aria-hidden="true"
+              >
+                <span
+                  v-for="tick in [axisTicks[0]!, axisTicks[axisTicks.length - 1]!]"
+                  :key="tick"
+                >{{ gapAxisTickLabel(tick) }}</span>
+              </span>
             </th>
             <th
               role="columnheader"
               scope="col"
               class="px-2.5 pb-2 font-medium"
-              :class="!allColumns && 'max-md:hidden'"
+              :class="!allColumns && 'max-lg:hidden'"
             >
               Aero / climb
             </th>
@@ -234,7 +248,7 @@ const headingId = useId()
               role="columnheader"
               scope="col"
               class="px-2.5 pb-2 font-medium"
-              :class="!allColumns && 'max-md:hidden'"
+              :class="!allColumns && 'max-lg:hidden'"
             >
               Style
             </th>
@@ -286,7 +300,9 @@ const headingId = useId()
           :open="openKey === comboKey(combo)"
           :compared="selected.includes(comboKey(combo))"
           :compare-disabled="compareFull && !selected.includes(comboKey(combo))"
-          :bar="barFor(combo)"
+          :bar="axisFor(combo).position"
+          :beyond="axisFor(combo).beyond"
+          :axis-max="axisMax"
           :all-columns="allColumns"
           @toggle="toggleRow(combo)"
           @toggle-compare="toggleCompare(combo)"
@@ -335,7 +351,7 @@ const headingId = useId()
         class="mt-2 text-sm text-error"
         role="alert"
       >
-        Couldn't load more setups - the ranking above is unchanged.
+        Couldn't load more setups – the ranking above is unchanged.
       </p>
     </div>
   </section>

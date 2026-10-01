@@ -2,7 +2,7 @@ import type { SurfaceComposition, ZwiftSurfaceType } from '../../shared/types/ca
 import { surfaceFamily, type SurfaceFamily } from '#shared/utils/silhouette'
 import { formatPercent, SURFACE_TYPE_LABELS } from './labels'
 
-/** One entry of the Fact row: a number in bold ink, its words, and a surface swatch when it is a surface share. */
+/** One cell of the spec row: the value above its small label. `family` marks a surface share, which `surfaceShareFacts` still builds for the split. */
 export interface RideFact {
   value: string
   label: string
@@ -41,4 +41,49 @@ export function climbCountFact(climbs: number, sprints: number): RideFact | unde
   if (!climbs) return { value: String(sprints), label: sprints === 1 ? 'sprint' : 'sprints' }
   const label = `named climb${climbs === 1 ? '' : 's'}${sprints ? `, ${sprints} sprint${sprints === 1 ? '' : 's'}` : ''}`
   return { value: String(climbs), label }
+}
+
+/**
+ * What the distance cell's label says, now that the laps and lead-in
+ * sentence is gone: the lead-in and the laps ride in the label, so the
+ * number above them is one whole ride. `laps` is undefined where the page
+ * has a laps cell of its own (a race) or no laps at all, and the label then
+ * names the lead-in alone, or says `distance`.
+ */
+export function distanceLabel({ laps, leadInKm }: { laps?: number, leadInKm: number }): string {
+  const leadIn = `${leadInKm.toFixed(1)} km lead-in`
+  if (laps === undefined) return leadInKm > 0 ? `with the ${leadIn}` : 'distance'
+  const lapsText = `${laps} lap${laps === 1 ? '' : 's'}`
+  if (leadInKm <= 0) return lapsText
+  return laps === 1 ? `with the ${leadIn}` : `${lapsText} + ${leadIn}`
+}
+
+/** A ride's surface as the spec row draws it: each family's share, and whether there is anything but tarmac. */
+export interface SurfaceSplit {
+  /** Tarmac, dirt and rough in that order, each with its share in percent; families with no share are left out. */
+  parts: { family: SurfaceFamily, percent: number }[]
+  /** The key beside the bar: "78.6% tarmac", "18.3% dirt", "3.0% wood and cobbles". */
+  key: { family: SurfaceFamily, text: string }[]
+  allTarmac: boolean
+}
+
+export function surfaceSplit(composition: SurfaceComposition | undefined): SurfaceSplit | undefined {
+  if (!composition) return undefined
+  const others = surfaceShareFacts(composition)
+  if (!others.length) return Object.values(composition).some(percent => percent && percent > 0) ? { parts: [], key: [], allTarmac: true } : undefined
+  const share = (family: SurfaceFamily) => Object.entries(composition)
+    .filter(([surface]) => surfaceFamily(surface) === family)
+    .reduce((sum, [, percent]) => sum + (percent ?? 0), 0)
+  const tarmac = share('tarmac')
+  return {
+    parts: [
+      ...(tarmac > 0 ? [{ family: 'tarmac' as const, percent: tarmac }] : []),
+      ...others.map(fact => ({ family: fact.family!, percent: share(fact.family!) }))
+    ],
+    key: [
+      ...(tarmac > 0 ? [{ family: 'tarmac' as const, text: `${formatPercent(tarmac)} tarmac` }] : []),
+      ...others.map(fact => ({ family: fact.family!, text: `${fact.value} ${fact.label}` }))
+    ],
+    allTarmac: false
+  }
 }

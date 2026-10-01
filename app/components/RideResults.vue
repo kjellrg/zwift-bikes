@@ -90,7 +90,7 @@ const evidence = computed(() => rankingEvidence({
     id="ride-results"
     :aria-busy="isFirstLoad || isRefreshing"
   >
-    <div class="mt-6 grid grid-cols-1 gap-7 border-t border-default pt-5 sm:mt-9 sm:pt-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+    <div class="mt-3 grid grid-cols-1 gap-5 border-t border-default pt-3 sm:mt-9 sm:gap-7 sm:pt-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
       <div class="min-w-0">
         <RideRecommendationSkeleton v-if="isFirstLoad" />
         <div
@@ -107,7 +107,7 @@ const evidence = computed(() => rankingEvidence({
             :combo="topCombo"
             :ranking="appliedRanking"
             :limited-data-note="evidence.limitedDataNote"
-            :notes="evidence.notes"
+            :facts="evidence.facts"
           >
             <template #answer-notes>
               <!-- `pointer-events-auto`: the reveal is a filter change, not a
@@ -115,6 +115,7 @@ const evidence = computed(() => rankingEvidence({
               <FastestOverallNote
                 v-if="fastestOverall"
                 :fastest-overall="fastestOverall"
+                :rank-one-time-sec="topCombo.finishTimeSec"
                 class="pointer-events-auto"
                 @show-all="setBikeCategory('all')"
                 @include-halo="setIncludeHaloBikes(true)"

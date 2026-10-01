@@ -129,7 +129,7 @@ const chipState = (on: boolean) => on ? 'border-ink bg-accented text-highlighted
         role="switch"
         :aria-checked="includeHaloBikes"
         :class="[CHIP, chipState(includeHaloBikes)]"
-        title="The three purchasable Halo bikes are hidden by default - each takes three fully upgraded frames of one brand plus ~20 million Drops. Owned Halo bikes always stay eligible, and a search finds them regardless."
+        title="The three purchasable Halo bikes are hidden by default – each takes three fully upgraded frames of one brand plus ~20 million Drops. Owned Halo bikes always stay eligible, and a search finds them regardless."
         @click="setIncludeHaloBikes(!includeHaloBikes)"
       >
         <UIcon

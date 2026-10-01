@@ -26,27 +26,34 @@ export function formatRaceDate(isoDate: string): string {
   })
 }
 
+/**
+ * Three-letter months, fixed. en-GB's `month: 'short'` is `Sept` for September
+ * on current ICU builds and `Sep` on older ones, which would put two spellings
+ * on one site between a build machine and a browser; the table is one.
+ */
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** `22 Sep`: the day and its three-letter month. */
+function dayMonth(date: Date): string {
+  return `${date.getUTCDate()} ${MONTHS_SHORT[date.getUTCMonth()]}`
+}
+
 /** Compact race day for dense listings, e.g. `Tue 22 Sep`. */
 export function formatRaceDateShort(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC'
-  })
+  const date = new Date(`${isoDate}T12:00:00Z`)
+  const weekday = date.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })
+  return `${weekday} ${dayMonth(date)}`
 }
 
 /**
- * A race window for week-long stages (ZRacing), e.g. `10-16 Aug` or
- * `31 Aug - 6 Sep` across a month boundary. Single-day races just get their
- * short date. Same pinned-locale/UTC rules as `formatRaceDate`.
+ * A race window for week-long stages (ZRacing), e.g. `10–16 Aug` or
+ * `28 Sep – 4 Oct` across a month boundary, with an en dash. Single-day races
+ * just get their short date. Same pinned-locale/UTC rules as `formatRaceDate`.
  */
 export function formatRaceDateRange(isoDate: string, isoEndDate?: string): string {
   if (!isoEndDate || isoEndDate === isoDate) return formatRaceDateShort(isoDate)
   const from = new Date(`${isoDate}T12:00:00Z`)
   const to = new Date(`${isoEndDate}T12:00:00Z`)
   const sameMonth = from.getUTCMonth() === to.getUTCMonth() && from.getUTCFullYear() === to.getUTCFullYear()
-  const day = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' })
-  const dayMonth = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-  return sameMonth ? `${day(from)}-${dayMonth(to)}` : `${dayMonth(from)} - ${dayMonth(to)}`
+  return sameMonth ? `${from.getUTCDate()}–${dayMonth(to)}` : `${dayMonth(from)} – ${dayMonth(to)}`
 }

@@ -681,7 +681,7 @@ function raceStageName(race: EventRace): string | undefined {
  */
 export function raceContextLabel(season: Pick<EventSeason, 'seriesName' | 'label'>, round?: Pick<EventRound, 'name'>): string {
   const seasonLabel = `${season.seriesName} ${season.label}`
-  return round?.name ? `${seasonLabel} - ${round.name}` : seasonLabel
+  return round?.name ? `${seasonLabel} – ${round.name}` : seasonLabel
 }
 
 /** Sorts by race day, for "next race" lookups. Returns a new array. */

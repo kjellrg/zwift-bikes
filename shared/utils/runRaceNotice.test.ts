@@ -49,7 +49,7 @@ describe('where a run race points a rider next', () => {
   it('names the season\'s next race by its series and its week, and links to its page', () => {
     expect(nextRaceLink(season, week1, '2026-09-23')).toEqual({
       lead: 'Next ZRL race:',
-      label: 'Week 2, Tue 29 Sept',
+      label: 'Week 2, Tue 29 Sep',
       to: '/events/zrl-2026-27/round-1-week-2'
     })
   })
@@ -107,8 +107,8 @@ describe('what a run race\'s page says above its title', () => {
   it('says when it was raced, where to go next and where the route is', () => {
     expect(runRaceNotice(season, week1 as typeof week1 & { format: 'points' }, '2026-09-23')).toEqual({
       title: 'This race has been run',
-      ranOn: 'Round 1 Week 1 was raced on Tue 22 Sept. The ranking below still holds for this route under points race rules.',
-      next: { lead: 'Next ZRL race:', label: 'Week 2, Tue 29 Sept', to: '/events/zrl-2026-27/round-1-week-2' },
+      ranOn: 'Round 1 Week 1 was raced on Tue 22 Sep. The ranking below still holds for this route under points race rules.',
+      next: { lead: 'Next ZRL race:', label: 'Week 2, Tue 29 Sep', to: '/events/zrl-2026-27/round-1-week-2' },
       route: { lead: 'The route on its own:', label: 'Fastest bike for Some Route', to: '/routes/some-route' }
     })
   })
@@ -128,7 +128,7 @@ describe('what a run race\'s page says above its title', () => {
       updatedAt: '2026-08-01'
     })
     const notice = runRaceNotice(season, stage as typeof stage & { format: 'rot' }, '2026-09-21')
-    expect(notice.ranOn).toBe('Stage 2 was raced over 14-20 Sept. The ranking below still holds for these routes under Race of Truth rules.')
+    expect(notice.ranOn).toBe('Stage 2 was raced over 14–20 Sep. The ranking below still holds for these routes under Race of Truth rules.')
     // The route link is the first group the catalog has, as the page's is.
     expect(notice.route).toEqual({ lead: 'The route on its own:', label: 'Fastest bike for First Route', to: '/routes/first-route' })
   })

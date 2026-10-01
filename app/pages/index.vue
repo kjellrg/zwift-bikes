@@ -16,7 +16,7 @@ useSeoMeta({
 // /og-image.png; the generated brand card keeps every share on the same
 // visual system as the route/event cards.
 defineOgImage('SiteCard', {}, {
-  alt: 'ZwiftBikes - find the fastest bike and wheelset for any Zwift route'
+  alt: 'ZwiftBikes – find the fastest bike and wheelset for any Zwift route'
 })
 
 const search = ref('')
@@ -261,7 +261,7 @@ watch(filters, (value) => {
             />
           </div>
           <div>
-            <p class="mb-1 text-xs text-muted">
+            <p class="mb-1 block text-xs text-muted">
               Terrain
             </p>
             <div class="flex flex-wrap gap-1.5">
@@ -269,7 +269,7 @@ watch(filters, (value) => {
                 v-for="chip in TERRAIN_CHIPS"
                 :key="chip.value"
                 type="button"
-                class="rounded-full border px-3 py-1 text-sm transition-colors"
+                class="inline-flex h-8 items-center rounded-full border px-3 text-sm transition-colors"
                 :class="terrainFilter.includes(chip.value) ? 'border-ink bg-accented text-highlighted' : 'border-accented bg-elevated text-toned hover:text-highlighted'"
                 :aria-pressed="terrainFilter.includes(chip.value)"
                 @click="toggleTerrain(chip.value)"

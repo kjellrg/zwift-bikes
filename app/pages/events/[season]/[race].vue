@@ -2,7 +2,7 @@
 import type { Ride } from '../../../utils/recommendRequest'
 import { categoryGroupRacing } from '#shared/utils/events'
 import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
-import { climbCountFact, surfaceShareFacts, type RideFact } from '../../../utils/rideFacts'
+import { climbCountFact, distanceLabel, surfaceSplit, type RideFact } from '../../../utils/rideFacts'
 
 /**
  * One race. Everything a route page can't know lives here: the date, the
@@ -37,7 +37,7 @@ const { setDraftMode } = useRiderProfile()
 // `CONTEXT.md`) is the race's, never the rider's: the laps come with it.
 const categoryGroupIndex = ref(0)
 const categoryGroupOptions = race.categories.map((group, index) => ({
-  label: `${formatCategoryGroup(group)} - ${group.laps} lap${group.laps === 1 ? '' : 's'}`,
+  label: `${formatCategoryGroup(group)} – ${group.laps} lap${group.laps === 1 ? '' : 's'}`,
   value: index
 }))
 const selectedGroup = computed(() => categoryGroup(race!, categoryGroupIndex.value))
@@ -230,8 +230,8 @@ const powerupsLine = computed(() => {
  * verdict.
  */
 const ttAlertDescription = computed(() => {
-  if (ttAllowed) return 'Zwift enables TT frames - and gives them draft - for team time trials, so they are included in the ranking below.'
-  if (race!.format === 'rot') return 'Drafting is off in a Race of Truth, but WTRL still bans TT frames from it - so this is raced on road bikes, and they are the only thing ranked below.'
+  if (ttAllowed) return 'Zwift enables TT frames – and gives them draft – for team time trials, so they are included in the ranking below.'
+  if (race!.format === 'rot') return 'Drafting is off in a Race of Truth, but WTRL still bans TT frames from it – so this is raced on road bikes, and they are the only thing ranked below.'
   return `Zwift disables TT frames for ${formatLabel.value.toLowerCase()}s, so they are excluded from the ranking below. Everything listed is a bike you can actually start on.`
 })
 
@@ -324,7 +324,7 @@ const draftHint = computed(() => {
   const appliedDraftMode = appliedInputs.value.draftMode
   if (race!.format === 'ttt' && appliedDraftMode !== 'ttt') {
     return {
-      text: 'This is a team time trial, but the ranking below is computed for ' + (appliedDraftMode === 'race' ? 'a mass-start bunch' : 'a solo rider') + '. TTT draft mode ranks bikes at your team\'s paceline speeds instead - and it can genuinely reorder the list.',
+      text: 'This is a team time trial, but the ranking below is computed for ' + (appliedDraftMode === 'race' ? 'a mass-start bunch' : 'a solo rider') + '. TTT draft mode ranks bikes at your team\'s paceline speeds instead – and it can genuinely reorder the list.',
       action: 'Use TTT draft mode',
       mode: 'ttt' as const
     }
@@ -370,14 +370,14 @@ const facts = computed<RideFact[]>(() => {
   const elevationM = totals?.elevationM ?? group?.officialElevationM
   const climbs = route ? climbCountFact(new Set(route.terrain.climbs.map(climb => climb.slug)).size, new Set(route.terrain.sprints.map(sprint => sprint.slug)).size) : undefined
   return [
-    ...(distanceKm !== undefined ? [{ value: formatDistance(distanceKm), label: totals && totals.leadInDistanceKm > 0 ? 'with the lead-in' : 'distance' }] : []),
+    ...(distanceKm !== undefined ? [{ value: formatDistance(distanceKm), label: distanceLabel({ leadInKm: totals?.leadInDistanceKm ?? 0 }) }] : []),
     ...(elevationM !== undefined ? [{ value: formatElevation(elevationM), label: 'of climbing' }] : []),
     { value: String(laps.value), label: laps.value === 1 ? 'lap' : 'laps' },
     ...(route ? [{ value: `${route.terrain.climbRatio.toFixed(1)} m/km`, label: 'climb ratio' }] : []),
-    ...surfaceShareFacts(route?.surface.composition),
     ...(climbs ? [climbs] : [])
   ]
 })
+const surface = computed(() => surfaceSplit(routeInfo.value?.surface.composition))
 const raceDate = computed(() => race!.endDate ? formatRaceDateRange(race!.date, race!.endDate) : formatRaceDate(race!.date))
 
 /** The rules the Rider card shows as fixed, in its words. */
@@ -393,11 +393,11 @@ const fixedLaps = computed(() => ({
 useSeoMeta({
   title: () => `Fastest bike for ${raceTitle.value}: ${routeNamesLabel.value} (${formatLabel.value}) | ZwiftBikes`,
   description: () => hasSplitCourses(race!)
-    ? `${raceTitle.value}: ${formatLabel.value} on ${formatRaceDate(race!.date)} - ${routeNamesByCategory.value}. Lap counts per category, TT bike rules, and the best legal bike and wheel combo for each course.`
+    ? `${raceTitle.value}: ${formatLabel.value} on ${formatRaceDate(race!.date)} – ${routeNamesByCategory.value}. Lap counts per category, TT bike rules, and the best legal bike and wheel combo for each course.`
     : `${raceTitle.value}: ${formatLabel.value} on ${routeNamesLabel.value}, ${formatRaceDate(race!.date)}. Lap counts per category, TT bike rules, and the best legal bike and wheel combo.`,
-  ogTitle: () => `Fastest bike for ${raceHeading.value} - ${routeNamesLabel.value}`,
+  ogTitle: () => `Fastest bike for ${raceHeading.value} – ${routeNamesLabel.value}`,
   ogDescription: () => hasSplitCourses(race!)
-    ? `The fastest legal bike and wheel combo for ${raceTitle.value} - ${routeNamesByCategory.value}.`
+    ? `The fastest legal bike and wheel combo for ${raceTitle.value} – ${routeNamesByCategory.value}.`
     : `The fastest legal bike and wheel combo for ${raceTitle.value} on ${routeNamesLabel.value}.`
 })
 
@@ -516,15 +516,15 @@ if (!hasRun.value) {
       </div>
     </RideHeading>
 
-    <RideFactRow :facts="facts">
+    <RideFactRow
+      :facts="facts"
+      :surface="surface"
+    >
       <li>{{ ttAlertDescription }}</li>
       <!-- A rule, not a nudge: the ranking is computed solo whatever the
            rider's saved draft mode says, so this states what happened. -->
       <li v-if="!draftAllowed">
         No draft in a Race of Truth, so the ranking is ridden solo; your saved draft setting still applies everywhere else.
-      </li>
-      <li v-if="routeTotals && routeTotals.leadInDistanceKm > 0">
-        {{ laps }} lap{{ laps === 1 ? '' : 's' }} plus a {{ formatDistance(routeTotals.leadInDistanceKm) }} lead-in, ridden once.
       </li>
       <li v-if="officialDiffers">
         {{ season!.organizer }} publishes this race as {{ [selectedGroup?.officialDistanceKm ? formatDistance(selectedGroup.officialDistanceKm) : undefined, selectedGroup?.officialElevationM !== undefined ? formatElevation(selectedGroup.officialElevationM) : undefined].filter(Boolean).join(' / ') }}; the figures above are this site's own totals from the route's lead-in and lap data, which is what the physics runs on.
@@ -557,7 +557,7 @@ if (!hasRun.value) {
         :title="`${displayRouteName} isn't in the public route catalog`"
       >
         <p>
-          {{ season!.organizer }} runs {{ formatCategoryGroup(selectedGroup ?? { cats: [] }) }} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against - and a ranking computed from a guess would be worse than none. The published figures above are {{ season!.organizer }}'s own.<template v-if="categoryGroupOptions.length > 1">
+          {{ season!.organizer }} runs {{ formatCategoryGroup(selectedGroup ?? { cats: [] }) }} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against – and a ranking computed from a guess would be worse than none. The published figures above are {{ season!.organizer }}'s own.<template v-if="categoryGroupOptions.length > 1">
             Pick another race group above to see recommendations for the routes we do have.
           </template>
         </p>
@@ -660,7 +660,7 @@ if (!hasRun.value) {
         <!-- The route page knows nothing of this race, so it ranks the TT
              frames this race bars. Better said than silently contradicted. -->
         <template v-if="!ttAllowed">
-          It ranks every bike in the game, TT frames included - this race's rule is the race's, not the route's.
+          It ranks every bike in the game, TT frames included – this race's rule is the race's, not the route's.
         </template>
       </p>
     </template>
@@ -769,7 +769,7 @@ if (!hasRun.value) {
           target="_blank"
           rel="noopener"
           class="text-toned underline decoration-rule-strong hover:text-highlighted"
-        >Official event info</a> - signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.
+        >Official event info</a> – signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.
       </p>
     </section>
 

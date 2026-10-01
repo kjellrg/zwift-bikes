@@ -155,7 +155,7 @@ const ogImage = {
   url: ogImageUrl,
   width: 1200,
   height: 630,
-  alt: 'ZwiftBikes - find the fastest bike for any Zwift route'
+  alt: 'ZwiftBikes – find the fastest bike for any Zwift route'
 }
 
 useSeoMeta({

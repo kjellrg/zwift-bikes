@@ -227,7 +227,7 @@ test.describe('equipment drawer', () => {
     // and its disclosure lists no alternatives.
     await expect(tron).toContainText('Fixed disc wheels')
     await disclosure(tron).click()
-    await expect(tron).toContainText('Fixed disc wheels - no wheel swaps on this frame.')
+    await expect(tron).toContainText('Fixed disc wheels – no wheel swaps on this frame.')
     await expect(tron.getByRole('list', { name: /^Wheel alternatives/ })).toHaveCount(0)
 
     await tron.getByRole('button', { name: `Details for ${FIXED_WHEEL_FRAME}`, exact: true }).click()

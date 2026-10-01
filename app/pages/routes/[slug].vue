@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PublishableRace } from '../../../shared/utils/events'
 import type { Ride } from '../../utils/recommendRequest'
-import { climbCountFact, surfaceShareFacts, type RideFact } from '../../utils/rideFacts'
+import { climbCountFact, distanceLabel, surfaceSplit, type RideFact } from '../../utils/rideFacts'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -88,7 +88,7 @@ useSeoMeta({
   description: metaDescription,
   ogTitle: () => routeData.value ? `Fastest bike for ${routeData.value.name}` : undefined,
   ogDescription: () => routeData.value
-    ? `Every Zwift frame and wheelset ranked by finish time on ${routeData.value.name} in ${routeData.value.worldName} - ${metaStats.value}.`
+    ? `Every Zwift frame and wheelset ranked by finish time on ${routeData.value.name} in ${routeData.value.worldName} – ${metaStats.value}.`
     : undefined
 })
 
@@ -135,22 +135,13 @@ const facts = computed<RideFact[]>(() => {
   if (!data || !totals) return []
   const climbs = climbCountFact(new Set(data.terrain.climbs.map(climb => climb.slug)).size, new Set(data.terrain.sprints.map(sprint => sprint.slug)).size)
   return [
-    { value: formatDistance(totals.distanceKm), label: totals.leadInDistanceKm > 0 ? 'with the lead-in' : 'distance' },
+    { value: formatDistance(totals.distanceKm), label: data.lap || totals.leadInDistanceKm > 0 ? distanceLabel({ laps: laps.value, leadInKm: totals.leadInDistanceKm }) : 'distance' },
     { value: formatElevation(totals.elevationM), label: 'of climbing' },
     { value: `${data.terrain.climbRatio.toFixed(1)} m/km`, label: 'climb ratio' },
-    ...surfaceShareFacts(data.surface.composition),
     ...(climbs ? [climbs] : [])
   ]
 })
-/** The lap and lead-in scope as one Ride-only line, when there is either to state. */
-const lapScope = computed(() => {
-  const totals = routeTotals.value
-  if (!routeData.value || !totals || (!routeData.value.lap && totals.leadInDistanceKm <= 0)) return undefined
-  const lapsText = `${laps.value} lap${laps.value === 1 ? '' : 's'}`
-  if (totals.leadInDistanceKm <= 0) return `${lapsText}.`
-  const climbing = totals.leadInElevationM > 0 ? ` with ${formatElevation(totals.leadInElevationM)} of climbing` : ''
-  return `${lapsText} plus a ${formatDistance(totals.leadInDistanceKm)} lead-in${climbing}, ridden once.`
-})
+const surface = computed(() => routeData.value ? surfaceSplit(routeData.value.surface.composition) : undefined)
 const surfaceCoverage = computed(() => routeData.value ? surfaceCoverageLine(routeData.value.surface) : undefined)
 </script>
 
@@ -171,10 +162,10 @@ const surfaceCoverage = computed(() => routeData.value ? surfaceCoverageLine(rou
 
     <!-- `laps` (the picker), not the applied lap count: the Fact row and the
          hero describe the ride the rider has chosen, and are Ride-only. -->
-    <RideFactRow :facts="facts">
-      <li v-if="lapScope">
-        {{ lapScope }}
-      </li>
+    <RideFactRow
+      :facts="facts"
+      :surface="surface"
+    >
       <li v-if="surfaceCoverage && surfaceCoverage !== 'Mapped surfaces'">
         {{ surfaceCoverage }}.
       </li>
