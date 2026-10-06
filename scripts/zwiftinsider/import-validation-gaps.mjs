@@ -88,6 +88,7 @@ const FRAME_ALIASES = {
   // Update 1.123 retitled the superseded TT frames' rows with their model
   // year (the game keeps the old names) and re-tested the Shiv Disc under
   // an "S-Works" spelling - same aliases as import-stage-curves.mjs.
+  'Cervelo P5': 'Cervelo P5 2026',
   'Cervelo P5 2015': 'Cervelo P5',
   'Cube Aerium 2019': 'Cube Aerium',
   'Quintana Roo V-PR 2022': 'QuintanaRoo Roo V-PR',

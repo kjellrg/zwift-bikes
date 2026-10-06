@@ -5,10 +5,14 @@ import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor } from
 import { classifyBikeFrame, FIXED_WHEEL_FRAMES, interpolateGap, isRedundantCosmeticVariant, solveMeasuredFramePhysics } from './classifyBikeFrame'
 import { solveFrameEquipmentDelta, standardEquivalentClimbScore } from './physics/equipment'
 import { getFrames, UNLOCALIZED_FRAME_NAME } from './catalog'
+import { SUPPLEMENT_FRAMES, applyFrameSupplement } from '../data/frameSupplement'
+
+// What the app ships: zwift-data plus the supplement, as getFrames() merges them.
+const catalogFrames = applyFrameSupplement(bikeFrames, SUPPLEMENT_FRAMES)
 
 const frameByName = (name: string) => {
-  const frame = bikeFrames.find(f => f.name === name)
-  expect(frame, `zwift-data no longer has a frame named "${name}"`).toBeDefined()
+  const frame = catalogFrames.find(f => f.name === name)
+  expect(frame, `the catalog no longer has a frame named "${name}"`).toBeDefined()
   return frame!
 }
 
@@ -36,7 +40,7 @@ describe('category decisions with history behind them', () => {
   })
 
   it('zwift-data\'s isTT flag always wins the category call', () => {
-    for (const frame of bikeFrames.filter(f => f.isTT)) {
+    for (const frame of catalogFrames.filter(f => f.isTT)) {
       expect(classifyBikeFrame(frame).category, frame.name).toBe('tt')
     }
   })
@@ -62,7 +66,7 @@ describe('catalog hygiene', () => {
 describe('measured data flows through', () => {
   it('every speed-data frame classifies as measured, with solved physics', () => {
     const measuredNames = new Set([...Object.keys(FRAME_SPEED_DATA), ...Object.keys(TT_FRAME_SPEED_DATA)])
-    for (const frame of bikeFrames.filter(f => measuredNames.has(f.name))) {
+    for (const frame of catalogFrames.filter(f => measuredNames.has(f.name))) {
       const classified = classifyBikeFrame(frame, 5)
       expect(classified.confidence, frame.name).toBe('measured')
       expect(classified.physics, frame.name).toBeDefined()
@@ -70,7 +74,7 @@ describe('measured data flows through', () => {
   })
 
   it('carries the six-stage upgrade curve and scheme for measured frames, and neither for estimated ones', () => {
-    for (const frame of bikeFrames) {
+    for (const frame of catalogFrames) {
       const classified = classifyBikeFrame(frame, 3)
       if (classified.confidence !== 'measured') {
         expect(classified.upgradeCurve, frame.name).toBeUndefined()
@@ -95,7 +99,7 @@ describe('measured data flows through', () => {
 
   it('upgrading a measured frame to stage 5 never lowers its scores', () => {
     const measuredNames = new Set([...Object.keys(FRAME_SPEED_DATA), ...Object.keys(TT_FRAME_SPEED_DATA)])
-    for (const frame of bikeFrames.filter(f => measuredNames.has(f.name))) {
+    for (const frame of catalogFrames.filter(f => measuredNames.has(f.name))) {
       const stage0 = classifyBikeFrame(frame, 0)
       const stage5 = classifyBikeFrame(frame, 5)
       expect(stage5.scores.aero, frame.name).toBeGreaterThanOrEqual(stage0.scores.aero)
@@ -140,7 +144,7 @@ describe('measured data flows through', () => {
   })
 
   it('no estimated standard frame outranks the best measured one (issues #85/#86)', () => {
-    const classified = bikeFrames.map(f => classifyBikeFrame(f, 5))
+    const classified = catalogFrames.map(f => classifyBikeFrame(f, 5))
     for (const category of ['standard', 'tt'] as const) {
       const inCategory = classified.filter(f => f.category === category)
       const maxMeasuredAero = Math.max(...inCategory.filter(f => f.confidence === 'measured').map(f => f.scores.aero))

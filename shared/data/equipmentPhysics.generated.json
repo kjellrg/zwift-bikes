@@ -3138,6 +3138,38 @@
     "crrDelta": -0.0003
    }
   ],
+  "Cannondale SuperSlice LAB71": [
+   {
+    "cdaDeltaM2": -0.010859600116866902,
+    "bikeMassDeltaKg": -0.627154009439379,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01299786736095418,
+    "bikeMassDeltaKg": -0.6167857414730102,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013010196862974749,
+    "bikeMassDeltaKg": -0.8126036683414091,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012738864071629469,
+    "bikeMassDeltaKg": -0.8066719114673768,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012787040123119292,
+    "bikeMassDeltaKg": -0.921600739240902,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.019279874324641816,
+    "bikeMassDeltaKg": -0.9252795956732305,
+    "crrDelta": -0.0003
+   }
+  ],
   "Canyon Speedmax": [
    {
     "cdaDeltaM2": -0.005004084509119239,
@@ -3266,6 +3298,38 @@
     "crrDelta": -0.0003
    }
   ],
+  "Cervelo P5 2026": [
+   {
+    "cdaDeltaM2": -0.011570539175850575,
+    "bikeMassDeltaKg": -0.6637872275956491,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013696706328312241,
+    "bikeMassDeltaKg": -0.6300209496825735,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013688048618698406,
+    "bikeMassDeltaKg": -0.8208201695906476,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.013439160163192715,
+    "bikeMassDeltaKg": -0.8566107099176454,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.013502541475347157,
+    "bikeMassDeltaKg": -0.9477451032468869,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02002547842945887,
+    "bikeMassDeltaKg": -0.961509348131016,
+    "crrDelta": -0.0003
+   }
+  ],
   "Cervelo PX-Series": [
    {
     "cdaDeltaM2": -0.00907125357169411,
@@ -3330,6 +3394,38 @@
     "crrDelta": -0.0003
    }
   ],
+  "Cube Aerium C:68X": [
+   {
+    "cdaDeltaM2": -0.010611710711218608,
+    "bikeMassDeltaKg": -0.4521785310283102,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01265453508685413,
+    "bikeMassDeltaKg": -0.44032591262139054,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012448707657337882,
+    "bikeMassDeltaKg": -0.6332548151666506,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012450482007476532,
+    "bikeMassDeltaKg": -0.6472103941988498,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01253524163304956,
+    "bikeMassDeltaKg": -0.7433380678026529,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018990332751100375,
+    "bikeMassDeltaKg": -0.7372134099963423,
+    "crrDelta": -0.0003
+   }
+  ],
   "DiamondBack Andean": [
    {
     "cdaDeltaM2": -0.0049781261717527225,
@@ -3359,6 +3455,38 @@
    {
     "cdaDeltaM2": -0.013039066944285055,
     "bikeMassDeltaKg": -0.871557774130097,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Factor Hanzō": [
+   {
+    "cdaDeltaM2": -0.013236654952517163,
+    "bikeMassDeltaKg": -0.23295708229483036,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01540950329725424,
+    "bikeMassDeltaKg": -0.2249885461894214,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.0152522850390924,
+    "bikeMassDeltaKg": -0.4197936744354971,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.015079983692113025,
+    "bikeMassDeltaKg": -0.4241389542255414,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01517097357719685,
+    "bikeMassDeltaKg": -0.5096188982386289,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.021542968212342667,
+    "bikeMassDeltaKg": -0.5308327267665609,
     "crrDelta": -0.0003
    }
   ],
@@ -3423,6 +3551,70 @@
    {
     "cdaDeltaM2": -0.01726173569773301,
     "bikeMassDeltaKg": -1.029086896525654,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Giant Trinity Advanced SL": [
+   {
+    "cdaDeltaM2": -0.010401353411667952,
+    "bikeMassDeltaKg": -0.5433167768110403,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012552865646789452,
+    "bikeMassDeltaKg": -0.5171754977503307,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012517730571308366,
+    "bikeMassDeltaKg": -0.7108807089403664,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012316185670125185,
+    "bikeMassDeltaKg": -0.7037894059880765,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012287098175994965,
+    "bikeMassDeltaKg": -0.824812462040982,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01874116407789525,
+    "bikeMassDeltaKg": -0.8264542763615319,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Liv Avow Advanced SL": [
+   {
+    "cdaDeltaM2": -0.010401353411667952,
+    "bikeMassDeltaKg": -0.5433167768110403,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012503575236678693,
+    "bikeMassDeltaKg": -0.517714517238276,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012489469230108713,
+    "bikeMassDeltaKg": -0.7164170322666772,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012233749133044841,
+    "bikeMassDeltaKg": -0.7178215671837487,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012292209196886256,
+    "bikeMassDeltaKg": -0.816882969784614,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018765407492311065,
+    "bikeMassDeltaKg": -0.8261844127709415,
     "crrDelta": -0.0003
    }
   ],
@@ -3519,6 +3711,38 @@
    {
     "cdaDeltaM2": -0.031244824425453926,
     "bikeMassDeltaKg": 0.1872671951713878,
+    "crrDelta": -0.0003
+   }
+  ],
+  "Quintana Roo V-PRi": [
+   {
+    "cdaDeltaM2": -0.010693096175636935,
+    "bikeMassDeltaKg": -0.5479654686634765,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012787238077986901,
+    "bikeMassDeltaKg": -0.4963304702072415,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01268660343327846,
+    "bikeMassDeltaKg": -0.7142520592214376,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012677062458126026,
+    "bikeMassDeltaKg": -0.7129059907617412,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012598765544571205,
+    "bikeMassDeltaKg": -0.834469103737363,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018980182011437446,
+    "bikeMassDeltaKg": -0.8290346090978735,
     "crrDelta": -0.0003
    }
   ],

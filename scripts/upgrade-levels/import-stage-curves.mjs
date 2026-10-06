@@ -53,6 +53,7 @@ const SHEET_NAME_ALIASES = {
   // the sheet retitled the OLD rows with their model year; the game keeps
   // the old names, so the retitled rows map back to the existing keys. The
   // sheet's plain "Cervelo P5" is now the 2026 bike - see frameSupplement.ts.
+  'Cervelo P5': 'Cervelo P5 2026',
   'Cervelo P5 2015': 'Cervelo P5',
   'Cube Aerium 2019': 'Cube Aerium',
   'Quintana Roo V-PR 2022': 'QuintanaRoo Roo V-PR',

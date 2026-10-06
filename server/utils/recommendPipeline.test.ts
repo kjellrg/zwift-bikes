@@ -244,7 +244,7 @@ describe('runRecommendPipeline', () => {
     const untimed = await runRecommendPipeline(fakeEvent(), query(params), withoutClimbs)
     const rows = (result: RecommendPipelineResult) => result.combos.map(combo => [combo.frame.id, combo.wheelset?.key, combo.finishTimeSec])
     expect(rows(timed)).toEqual(rows(untimed))
-  })
+  }, 15_000) // simulates the full catalog twice; the 5 s default fell to the seven TT frames update 1.123 added
 
   it('orders the wheel alternatives by simulated time past the six it shows', async () => {
     // On Duchy Estate the estimate puts both of the frame's fastest discs
