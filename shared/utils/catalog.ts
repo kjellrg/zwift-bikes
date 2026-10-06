@@ -1,6 +1,7 @@
 import { bikeFrames, routes, worlds } from 'zwift-data'
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta } from '../types/catalog'
 import { classifyBikeFrame } from './classifyBikeFrame'
+import { SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME, applyFrameSupplement } from '../data/frameSupplement'
 import { eventLeadIn } from '../data/routeEventLeadIns'
 import { computeTerrain, estimateSurface } from './routeTerrain'
 
@@ -21,15 +22,19 @@ export function getWorldName(slug: string): string {
  * frame enters the catalog, until zwift-data ships the real name - at which
  * point it appears on its own. `validate-speed-data.mjs` warns per
  * placeholder so a new one is noticed, without failing the build on
- * something the repo cannot fix.
+ * something the repo cannot fix - unless `frameSupplement.ts` carries the
+ * frame under a provisional name, in which case that entry is the bike.
+ *
+ * The frame catalog is zwift-data plus the supplement, merged here at the
+ * one place every frame enters it (the wheel twin is `getWheelsets()`).
  */
-export const UNLOCALIZED_FRAME_NAME = /\bLOC_[A-Z0-9_]+_NAME\b/
+export { UNLOCALIZED_FRAME_NAME } from '../data/frameSupplement'
 
 let cachedFrames: ClassifiedBikeFrame[] | undefined
 let cachedRoutes: RouteWithMeta[] | undefined
 
 export function getFrames(): ClassifiedBikeFrame[] {
-  if (!cachedFrames) cachedFrames = bikeFrames.filter(f => !UNLOCALIZED_FRAME_NAME.test(f.name)).map(f => classifyBikeFrame(f))
+  if (!cachedFrames) cachedFrames = applyFrameSupplement(bikeFrames, SUPPLEMENT_FRAMES).filter(f => !UNLOCALIZED_FRAME_NAME.test(f.name)).map(f => classifyBikeFrame(f))
   return cachedFrames
 }
 

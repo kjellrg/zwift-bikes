@@ -10,6 +10,7 @@ import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 
 const { STAGE_CHARTS, FRAME_UPGRADE_SCHEMES } = loadSharedModule('shared/data/frameUpgradeSchemes.ts')
 const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/frameSpeedData.ts')
+const { SUPPLEMENT_FRAMES, applyFrameSupplement } = loadSharedModule('shared/data/frameSupplement.ts')
 
 // Transcribed from the tables published alongside each chart on
 // https://zwiftinsider.com/upgrade-charts/ (the page ships a real HTML table
@@ -86,7 +87,7 @@ console.log(`   ${checked} values checked\n`)
 
 console.log('2. Scheme coverage')
 const measuredNames = [...Object.keys(FRAME_SPEED_DATA), ...Object.keys(TT_FRAME_SPEED_DATA)]
-const realNames = new Set(bikeFrames.map(f => f.name))
+const realNames = new Set(applyFrameSupplement(bikeFrames, SUPPLEMENT_FRAMES).map(f => f.name))
 for (const n of measuredNames) {
   if (!FRAME_UPGRADE_SCHEMES[n]) fail(`measured frame "${n}" has no upgrade scheme (falls back to linear)`)
 }

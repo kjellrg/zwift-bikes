@@ -39,7 +39,7 @@ const { WHEEL_SPEED_DATA } = loadSharedModule('shared/data/wheelSpeedData.ts')
 const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, applyWheelSupplement } = loadSharedModule('shared/data/wheelSupplement.ts')
 const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/frameSpeedData.ts')
 const { FRAME_UPGRADE_SCHEMES } = loadSharedModule('shared/data/frameUpgradeSchemes.ts')
-const { UNLOCALIZED_FRAME_NAME } = loadSharedModule('shared/utils/catalog.ts')
+const { SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME, applyFrameSupplement, isProvisionalFrameId } = loadSharedModule('shared/data/frameSupplement.ts')
 
 const errors = []
 
@@ -111,7 +111,38 @@ for (const [label, supplement, upstream] of [
     }
   }
 }
-const frameNames = bikeFrames.map(f => f.name)
+// The frame catalog is zwift-data plus `frameSupplement.ts`, merged the way
+// `getFrames()` merges them. An id is one frame, so a supplement entry on
+// an upstream id is an override of that record's name (placeholder stand-in
+// or rename): legitimate while the names differ - the game dictionary, not
+// the package, decides what a bike is called, and `supplement:check` is
+// what proves the override - and dead weight the moment upstream ships the
+// same name. A new id under a name upstream already uses is dropped by the
+// merge, so it fails here rather than silently attaching no data.
+const frames = applyFrameSupplement(bikeFrames, SUPPLEMENT_FRAMES)
+const frameNames = frames.map(f => f.name)
+{
+  const upstreamByNormalized = new Map(bikeFrames.map(f => [normalize(f.name), f]))
+  const upstreamById = new Map(bikeFrames.map(f => [f.id, f]))
+  for (const frame of SUPPLEMENT_FRAMES) {
+    const byId = upstreamById.get(frame.id)
+    const byName = upstreamByNormalized.get(normalize(frame.name))
+    if (byId) {
+      if (byId.name === frame.name) {
+        errors.push(`SUPPLEMENT_FRAMES: upstream now ships ${JSON.stringify(frame.name)} - delete its supplement entry`)
+      } else if (!UNLOCALIZED_FRAME_NAME.test(byId.name)) {
+        console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) overrides the upstream name ${JSON.stringify(byId.name)} - \`npm run supplement:check\` confirms the game still agrees`)
+      }
+      if (byName && byName.id !== frame.id) errors.push(`SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) is also the upstream name of id ${byName.id} - two frames cannot share a name-keyed row`)
+      continue
+    }
+    if (byName) {
+      errors.push(`SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) matches upstream frame id ${byName.id}${byName.name === frame.name ? '' : ' by spelling'} - the merge drops the entry; take the upstream id or delete it - first differing span:\n${diffSpan(frame.name, byName.name)}`)
+      continue
+    }
+    if (isProvisionalFrameId(frame.id)) console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} has a provisional id - run \`npm run supplement:check\` to see whether the game dictionary has a record for it yet`)
+  }
+}
 
 checkKeys('WHEEL_SPEED_DATA', Object.keys(WHEEL_SPEED_DATA), anyWheelNames)
 checkKeys('FRAME_SPEED_DATA', Object.keys(FRAME_SPEED_DATA), frameNames)
@@ -122,7 +153,7 @@ checkKeys('FRAME_UPGRADE_SCHEMES', Object.keys(FRAME_UPGRADE_SCHEMES), frameName
 // road frame's row landing in the TT table (or vice versa) corrupts every
 // score derived from it. `classifyBikeFrame` routes on `isTT` plus a name
 // check - mirror the same test here.
-const ttByName = new Map(bikeFrames.map(f => [f.name, f.isTT || /\btt\b/i.test(f.name)]))
+const ttByName = new Map(frames.map(f => [f.name, f.isTT || /\btt\b/i.test(f.name)]))
 for (const key of Object.keys(TT_FRAME_SPEED_DATA)) {
   if (ttByName.get(key) === false) errors.push(`TT_FRAME_SPEED_DATA: ${JSON.stringify(key)} is not a TT-classified frame - its row would never be read (only the tt branch reads this table)`)
 }

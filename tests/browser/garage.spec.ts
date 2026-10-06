@@ -21,7 +21,7 @@ import { expectNoHorizontalOverflow, isListingResponse, ready, rerank, resolvedC
 
 const ROUTE = '/routes/hilly-route'
 /** Bot-tested, so its upgrade stage can be set - `useGarage` stores the stage, the select edits it. */
-const FRAME = 'Specialized Tarmac SL9'
+const FRAME = 'Specialized S-Works Tarmac SL9'
 const WHEEL = 'Roval Alpinist CLX'
 
 const overlay = (page: Page) => page.getByRole('dialog', { name: 'My Garage' })

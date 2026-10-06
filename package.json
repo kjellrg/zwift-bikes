@@ -9,6 +9,7 @@
     "validate:equipment-physics": "node scripts/equipment-physics/compute-equipment-physics.mjs --check",
     "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",
     "speed-data:import-validation": "node scripts/zwiftinsider/import-validation-gaps.mjs",
+    "supplement:check": "node scripts/supplement/check-game-dictionary.mjs",
     "validate:api-schemas": "node scripts/validate-api-schemas.mjs",
     "parity:recommend": "node scripts/recommend-parity/compare.mjs",
     "validate:events": "node scripts/events/validate-events.mjs",

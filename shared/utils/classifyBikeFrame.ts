@@ -68,12 +68,16 @@ const CLIMB_GAP_RANGE: [number, number] = [-30, 116]
 // 32s climb gap, so nearly the entire upgraded TT roster (e.g. Cadex Tri at
 // 93.4/51.2 and Canyon Speedmax CFR at 95/58.9) was clamped to the same
 // max score, hiding real (if sometimes small) performance differences.
-// Recalibrated to the real Stage-5 max among non-fixed-wheel TT frames
-// (Canyon Speedmax CFR: 95 flat / 58.9 climb) - the Pinarello Espada's
-// 141.3/-9.6 stays an intentional outlier (it's a fixed-wheel frame scored
-// as a whole aero unit, see FIXED_WHEEL_FRAMES).
-const TT_FLAT_GAP_RANGE: [number, number] = [-5, 95]
-const TT_CLIMB_GAP_RANGE: [number, number] = [-20, 59]
+// Recalibrated to the real Stage-5 max among non-fixed-wheel TT frames -
+// the Pinarello Espada's 141.3/-9.6 stays an intentional outlier (it's a
+// fixed-wheel frame scored as a whole aero unit, see FIXED_WHEEL_FRAMES).
+// Update 1.123 (2026-10) moved the anchor: the re-tested Canyon Speedmax
+// CFR now measures 99.1 flat / 59.8 climb (was 95 / 58.9, the previous
+// bounds) and the new Factor Hanzō 102.1 flat. Widened rather than clamped
+// so the top of the TT roster keeps its real spread; every existing TT
+// score shifts slightly as a result.
+const TT_FLAT_GAP_RANGE: [number, number] = [-5, 103]
+const TT_CLIMB_GAP_RANGE: [number, number] = [-20, 60]
 
 const SCORE_RANGE: [number, number] = [8, 96]
 
@@ -159,8 +163,11 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
   // (below the slowest measured member), TT frames spread wide (measured
   // level-5 aero scores run 53-96), and the honest claim for an unknown TT
   // frame is "a typical TT frame", not "slower than the worst one ever
-  // measured" - so it sits at the measured median (72), well below the
-  // measured Speedmax CFR/Cadex Tri at the top.
+  // measured" - so it sat at the measured median (72), well below the
+  // measured Speedmax CFR/Cadex Tri at the top. Update 1.123's seven new
+  // TT frames (all fast) moved the measured level-5 spread to 49-95 with
+  // the median at 81; 72 is kept - below the median is the safe side of
+  // the invariant, and raising a guess is never urgent.
   tt: { aero: 72, climb: 15, gravel: 0, cobble: 5 },
   gravel: { aero: 28, climb: 48, gravel: 96, cobble: 82 },
   handbike: { aero: 20, climb: 20, gravel: 15, cobble: 20 },

@@ -66,7 +66,9 @@ const WHEEL_DATA_FILE = new URL('../../shared/data/wheelSpeedData.ts', import.me
 //     that bike was tested - which is the right comparison - and the app's
 //     300 W-solved deltas reproduce THOSE numbers to ~2 s/h while missing the
 //     speed-derived ones by ~5. So the printed gap is imported as-is and the
-//     row is listed for the record. (The 300 W rows have none of this.)
+//     row is listed for the record. (Since update 1.123 the 2025+ 300 W
+//     wheel rows show ~2 s/h of the same drift; printed gaps are used
+//     there too, matching every row already in the table.)
 //   - CORRUPT CELLS, tens to hundreds of s/h: a gap formula pointing at the
 //     wrong row (Pinarello Espada's 150 W gaps are ~100 s/h off its own
 //     speeds) or a speed cell that is itself nonsense. Never imported.
@@ -77,14 +79,21 @@ const GAP_VS_SPEED_CORRUPT_SEC = 10
 // importer's, plus the spellings the 150 W rows use where they differ from
 // the 300 W rows of the same bike.
 const FRAME_ALIASES = {
-  'Specialized S-Works Tarmac SL9': 'Specialized Tarmac SL9',
   'Van Rysel RCR Pro': 'VanRysel RCR Pro',
   'Van Rysel RCR-F': 'VanRysel RCR-F',
   'Van Rysel RCR-X': 'VanRysel RCR-X',
   'Wilier Filante SLR ID2': 'Wilier Filante SLR ID2 Team',
   'WilierFilante Filante SLR ID2 Team': 'Wilier Filante SLR ID2 Team',
   'Canyon Aeroad CFR - CANYON//SRAM': 'Canyon Aeroad 2024 / SRAM',
-  'Quintana Roo V-PR': 'QuintanaRoo Roo V-PR'
+  'Quintana Roo V-PR': 'QuintanaRoo Roo V-PR',
+  // Update 1.123 retitled the superseded TT frames' rows with their model
+  // year (the game keeps the old names) and re-tested the Shiv Disc under
+  // an "S-Works" spelling - same aliases as import-stage-curves.mjs.
+  'Cervelo P5': 'Cervelo P5 2026',
+  'Cervelo P5 2015': 'Cervelo P5',
+  'Cube Aerium 2019': 'Cube Aerium',
+  'Quintana Roo V-PR 2022': 'QuintanaRoo Roo V-PR',
+  'Specialized S-Works Shiv Disc': 'Specialized Shiv Disc'
 }
 
 // Verified against the WHEEL_SPEED_DATA keys (which validate-speed-data.mjs
