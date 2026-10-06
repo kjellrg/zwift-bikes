@@ -4068,9 +4068,19 @@
   ]
  },
  "wheels": {
+  "Black Inc THREE/ZERO": {
+   "cdaDeltaM2": -0.015146399936241367,
+   "bikeMassDeltaKg": 0.5398587666077992,
+   "crrDelta": 0
+  },
   "Bontrager Aeolus5": {
    "cdaDeltaM2": -0.0049949506473214444,
    "bikeMassDeltaKg": 0.1363613614158874,
+   "crrDelta": 0
+  },
+  "CADEX 4-Spoke/Disc": {
+   "cdaDeltaM2": -0.015235051477260925,
+   "bikeMassDeltaKg": 0.36198461559573847,
    "crrDelta": 0
   },
   "Cadex 36": {
@@ -4199,8 +4209,8 @@
    "crrDelta": 0
   },
   "Princeton  Mach TSV2/Blur Disc ": {
-   "cdaDeltaM2": -0.013849619456925838,
-   "bikeMassDeltaKg": 0.7613425541795413,
+   "cdaDeltaM2": -0.014248666748444244,
+   "bikeMassDeltaKg": 0.3691701240099201,
    "crrDelta": 0
   },
   "Princeton Alta 3532": {
@@ -4226,6 +4236,11 @@
   "Reserve 57/64": {
    "cdaDeltaM2": -0.011735721075419897,
    "bikeMassDeltaKg": 0.001199280560618918,
+   "crrDelta": 0
+  },
+  "Reserve Infinity Disc-set": {
+   "cdaDeltaM2": -0.015512644137321757,
+   "bikeMassDeltaKg": 0.6631037653818135,
    "crrDelta": 0
   },
   "Roval Alpinist CLX": {
@@ -4269,8 +4284,8 @@
    "crrDelta": 0
   },
   "Shimano C99/Disc": {
-   "cdaDeltaM2": -0.015046817334029988,
-   "bikeMassDeltaKg": 0.6657302993173664,
+   "cdaDeltaM2": -0.014906540660541673,
+   "bikeMassDeltaKg": 0.3272167186807371,
    "crrDelta": 0
   },
   "Shimano DURA-ACE C36": {

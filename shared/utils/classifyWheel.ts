@@ -33,7 +33,10 @@ import { solveWheelEquipmentDelta } from './physics/equipment'
  */
 
 const GRAVEL_RE = /xplr|terra|gravel|g23|\bgrc\b|\bgr\b|mountain/i
-const DISC_RE = /disc|super\s?9|tri.?spoke|time trial|supersonic|big spin/i
+// "three/zero" is the Black Inc THREE/ZERO, a disc rear whose name never
+// says so (update 1.123); without it the wheel would classify allrounder
+// and miss the TT-disc residual in physics/equipment.ts.
+const DISC_RE = /disc|super\s?9|tri.?spoke|time trial|supersonic|big spin|three\/zero/i
 const NOVELTY_RE = /recumbent trike|atomic cruiser|big\s*wheel|bmx bandit|\bbat\b|handcycle|\bsafety\b|mx rider|buffalo|roller blade|skeletal|brompton|8-bit|\btrike\b|loc_wheelname/i
 
 // Depth (mm) isn't literal for these well-known model families.
@@ -69,8 +72,11 @@ const ALLROUNDER_SCORES: ClassificationScores = { aero: 65, climb: 70, gravel: 0
 
 // Calibration bounds for converting a raw "seconds saved/lost per hour at
 // 300W vs. baseline" gap into a 0-100 score, chosen from the measured wheel
-// distribution's range.
-const FLAT_GAP_RANGE: [number, number] = [-10, 52]
+// distribution's range. Flat max was 52 (DICUT 85/Disc 51.9) until update
+// 1.123's discs measured 52.4-53.7; widened to 54 rather than clamping the
+// four fastest wheels to one score - every wheel's aero score shifts a
+// point or so as a result.
+const FLAT_GAP_RANGE: [number, number] = [-10, 54]
 const CLIMB_GAP_RANGE: [number, number] = [-33, 16]
 const SCORE_RANGE: [number, number] = [8, 96]
 

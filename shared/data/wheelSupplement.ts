@@ -23,19 +23,38 @@ import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
  * spelling divergence - the imageNames' "2026" suffix confirms which is
  * which). Source: game dictionary + https://zwiftinsider.com/shimano-wheels-2026/,
  * both fetched 2026-08-21.
+ *
+ * The three update-1.123 discs (Reserve Infinity, CADEX 4-Spoke, Black Inc
+ * THREE/ZERO) have dictionary records whose names are still localization
+ * placeholders (`Reserve LOC_ENTITLEMENT_CYCLING_WHEELS_RESERVE_INFINITY_NAME`),
+ * so ids and imageNames are verbatim and the names are ZwiftInsider's
+ * spelling (sheet + https://zwiftinsider.com/update-1-123-166757/, fetched
+ * 2026-10-06) - provisional keys, the same call `frameSupplement.ts` makes
+ * and documents. `npm run supplement:check` reports the moment the
+ * dictionary names them for real; re-key the entry, its `WHEEL_SPEED_DATA`
+ * row and (via a garage migration) its wheelset key then. The same check
+ * already reports the dictionary's rename of the 2026 Shimano wheels to
+ * "Shimano DURA-ACE Cxx" - a collision with the legacy names tracked in
+ * issue #272, deliberately not acted on here.
  */
 export const SUPPLEMENT_FRONT_WHEELS: BikeFrontWheel[] = [
   { id: 3842759965, name: 'Shimano C36', imageName: 'Wheel_ShimanoDuraAceC362026' },
   { id: 2489344011, name: 'Shimano C50', imageName: 'Wheel_ShimanoDuraAceC502026' },
   { id: 3181958393, name: 'Shimano C60', imageName: 'Wheel_ShimanoDuraAceC602026' },
-  { id: 1160815788, name: 'Shimano C99/Disc', imageName: 'Wheel_ShimanoDuraAceC992026' }
+  { id: 1160815788, name: 'Shimano C99/Disc', imageName: 'Wheel_ShimanoDuraAceC992026' },
+  { id: 3667484525, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
+  { id: 3827121667, name: 'CADEX 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
+  { id: 1690454004, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' }
 ]
 
 export const SUPPLEMENT_REAR_WHEELS: BikeRearWheel[] = [
   { id: 14115933, name: 'Shimano C36', imageName: 'Wheel_ShimanoDuraAceC362026' },
   { id: 3673160473, name: 'Shimano C50', imageName: 'Wheel_ShimanoDuraAceC502026' },
   { id: 3415380320, name: 'Shimano C60', imageName: 'Wheel_ShimanoDuraAceC602026' },
-  { id: 827108797, name: 'Shimano C99/Disc', imageName: 'Wheel_ShimanoDuraAceC992026' }
+  { id: 827108797, name: 'Shimano C99/Disc', imageName: 'Wheel_ShimanoDuraAceC992026' },
+  { id: 659802619, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
+  { id: 3443883036, name: 'CADEX 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
+  { id: 2002469001, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' }
 ]
 
 /**

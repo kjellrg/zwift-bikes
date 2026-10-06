@@ -66,7 +66,9 @@ const WHEEL_DATA_FILE = new URL('../../shared/data/wheelSpeedData.ts', import.me
 //     that bike was tested - which is the right comparison - and the app's
 //     300 W-solved deltas reproduce THOSE numbers to ~2 s/h while missing the
 //     speed-derived ones by ~5. So the printed gap is imported as-is and the
-//     row is listed for the record. (The 300 W rows have none of this.)
+//     row is listed for the record. (Since update 1.123 the 2025+ 300 W
+//     wheel rows show ~2 s/h of the same drift; printed gaps are used
+//     there too, matching every row already in the table.)
 //   - CORRUPT CELLS, tens to hundreds of s/h: a gap formula pointing at the
 //     wrong row (Pinarello Espada's 150 W gaps are ~100 s/h off its own
 //     speeds) or a speed cell that is itself nonsense. Never imported.
