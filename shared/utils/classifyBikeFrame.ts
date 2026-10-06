@@ -68,12 +68,15 @@ const CLIMB_GAP_RANGE: [number, number] = [-30, 116]
 // 32s climb gap, so nearly the entire upgraded TT roster (e.g. Cadex Tri at
 // 93.4/51.2 and Canyon Speedmax CFR at 95/58.9) was clamped to the same
 // max score, hiding real (if sometimes small) performance differences.
-// Recalibrated to the real Stage-5 max among non-fixed-wheel TT frames
-// (Canyon Speedmax CFR: 95 flat / 58.9 climb) - the Pinarello Espada's
-// 141.3/-9.6 stays an intentional outlier (it's a fixed-wheel frame scored
-// as a whole aero unit, see FIXED_WHEEL_FRAMES).
-const TT_FLAT_GAP_RANGE: [number, number] = [-5, 95]
-const TT_CLIMB_GAP_RANGE: [number, number] = [-20, 59]
+// Recalibrated to the real Stage-5 max among non-fixed-wheel TT frames -
+// the Pinarello Espada's 141.3/-9.6 stays an intentional outlier (it's a
+// fixed-wheel frame scored as a whole aero unit, see FIXED_WHEEL_FRAMES).
+// Update 1.123 (2026-10) moved the anchor: the re-tested Canyon Speedmax
+// CFR now measures 99.1 flat / 59.8 climb (was 95 / 58.9, the previous
+// bounds). Widened rather than clamped so the top of the TT roster keeps
+// its real spread; every existing TT score shifts slightly as a result.
+const TT_FLAT_GAP_RANGE: [number, number] = [-5, 100]
+const TT_CLIMB_GAP_RANGE: [number, number] = [-20, 60]
 
 const SCORE_RANGE: [number, number] = [8, 96]
 

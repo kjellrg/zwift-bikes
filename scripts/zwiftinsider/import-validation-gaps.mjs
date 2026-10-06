@@ -84,7 +84,14 @@ const FRAME_ALIASES = {
   'Wilier Filante SLR ID2': 'Wilier Filante SLR ID2 Team',
   'WilierFilante Filante SLR ID2 Team': 'Wilier Filante SLR ID2 Team',
   'Canyon Aeroad CFR - CANYON//SRAM': 'Canyon Aeroad 2024 / SRAM',
-  'Quintana Roo V-PR': 'QuintanaRoo Roo V-PR'
+  'Quintana Roo V-PR': 'QuintanaRoo Roo V-PR',
+  // Update 1.123 retitled the superseded TT frames' rows with their model
+  // year (the game keeps the old names) and re-tested the Shiv Disc under
+  // an "S-Works" spelling - same aliases as import-stage-curves.mjs.
+  'Cervelo P5 2015': 'Cervelo P5',
+  'Cube Aerium 2019': 'Cube Aerium',
+  'Quintana Roo V-PR 2022': 'QuintanaRoo Roo V-PR',
+  'Specialized S-Works Shiv Disc': 'Specialized Shiv Disc'
 }
 
 // Verified against the WHEEL_SPEED_DATA keys (which validate-speed-data.mjs

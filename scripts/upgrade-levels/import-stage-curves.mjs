@@ -48,7 +48,17 @@ const SHEET_NAME_ALIASES = {
   // stage-less sheet row and stays unmatched on purpose.
   'Wilier Filante SLR ID2': 'Wilier Filante SLR ID2 Team',
   // The game/zwift-data name for the CANYON//SRAM team edition.
-  'Canyon Aeroad CFR - CANYON//SRAM': 'Canyon Aeroad 2024 / SRAM'
+  'Canyon Aeroad CFR - CANYON//SRAM': 'Canyon Aeroad 2024 / SRAM',
+  // Update 1.123 (2026-10) replaced three TT frames with new revisions and
+  // the sheet retitled the OLD rows with their model year; the game keeps
+  // the old names, so the retitled rows map back to the existing keys. The
+  // sheet's plain "Cervelo P5" is now the 2026 bike - see frameSupplement.ts.
+  'Cervelo P5 2015': 'Cervelo P5',
+  'Cube Aerium 2019': 'Cube Aerium',
+  'Quintana Roo V-PR 2022': 'QuintanaRoo Roo V-PR',
+  // Re-tested in 1.123 under the sheet's "S-Works" spelling; the game name
+  // is unchanged. NOT the "Specialized Shiv S-Works", a different frame.
+  'Specialized S-Works Shiv Disc': 'Specialized Shiv Disc'
 }
 
 const args = parseArgs(process.argv.slice(2))

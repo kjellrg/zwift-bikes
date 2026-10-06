@@ -3204,33 +3204,33 @@
   ],
   "Canyon Speedmax CFR": [
    {
-    "cdaDeltaM2": -0.011223881804025143,
-    "bikeMassDeltaKg": -0.7041788457437397,
+    "cdaDeltaM2": -0.012124354698289513,
+    "bikeMassDeltaKg": -0.7491731983665479,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.013298420864023802,
-    "bikeMassDeltaKg": -0.7127579851175758,
+    "cdaDeltaM2": -0.01420393647073151,
+    "bikeMassDeltaKg": -0.7080362755505396,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.013208724256100562,
-    "bikeMassDeltaKg": -0.9149541932907121,
+    "cdaDeltaM2": -0.014138997432951744,
+    "bikeMassDeltaKg": -0.9099185356900241,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.013182285035527902,
-    "bikeMassDeltaKg": -0.9145741313415092,
+    "cdaDeltaM2": -0.014003719298673917,
+    "bikeMassDeltaKg": -0.9264154678543131,
     "crrDelta": -0.0003
    },
    {
-    "cdaDeltaM2": -0.013059997499509618,
-    "bikeMassDeltaKg": -1.0287948236326647,
+    "cdaDeltaM2": -0.014060226587580799,
+    "bikeMassDeltaKg": -1.0281248410788058,
     "crrDelta": -0.0003
    },
    {
-    "cdaDeltaM2": -0.019520914104871806,
-    "bikeMassDeltaKg": -1.0379137621234387,
+    "cdaDeltaM2": -0.02049670679475793,
+    "bikeMassDeltaKg": -1.0505868788763157,
     "crrDelta": -0.0003
    }
   ],
@@ -3652,33 +3652,33 @@
   ],
   "Specialized Shiv Disc": [
    {
-    "cdaDeltaM2": -0.008518593406955238,
-    "bikeMassDeltaKg": -0.4149094552356454,
+    "cdaDeltaM2": -0.010614182085231766,
+    "bikeMassDeltaKg": -0.4129635722476772,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.010665517692702992,
-    "bikeMassDeltaKg": -0.4097913020088848,
+    "cdaDeltaM2": -0.012768167286380333,
+    "bikeMassDeltaKg": -0.3816383242224086,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.010711091145300194,
-    "bikeMassDeltaKg": -0.628781226576705,
+    "cdaDeltaM2": -0.012729450859533004,
+    "bikeMassDeltaKg": -0.5805438181519813,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.010592387831170252,
-    "bikeMassDeltaKg": -0.6021789055890272,
+    "cdaDeltaM2": -0.01249475031931227,
+    "bikeMassDeltaKg": -0.5785225601597839,
     "crrDelta": -0.0003
    },
    {
-    "cdaDeltaM2": -0.010529082843719645,
-    "bikeMassDeltaKg": -0.699978032278664,
+    "cdaDeltaM2": -0.01252515120058792,
+    "bikeMassDeltaKg": -0.6831091837275372,
     "crrDelta": -0.0003
    },
    {
-    "cdaDeltaM2": -0.016728143788045463,
-    "bikeMassDeltaKg": -0.7282709424108456,
+    "cdaDeltaM2": -0.018936061817603628,
+    "bikeMassDeltaKg": -0.708996976062422,
     "crrDelta": -0.0003
    }
   ],
@@ -3748,33 +3748,33 @@
   ],
   "VanRysel RCR-X": [
    {
-    "cdaDeltaM2": -0.00960016544277284,
-    "bikeMassDeltaKg": -0.38482859924722934,
+    "cdaDeltaM2": -0.01080562351695899,
+    "bikeMassDeltaKg": -0.38475323840873354,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.011792608464298332,
-    "bikeMassDeltaKg": -0.3766064954136814,
+    "cdaDeltaM2": -0.012951372337258321,
+    "bikeMassDeltaKg": -0.36397504557066807,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.011778482913409577,
-    "bikeMassDeltaKg": -0.5752816294470486,
+    "cdaDeltaM2": -0.012821399440390596,
+    "bikeMassDeltaKg": -0.5534166688784561,
     "crrDelta": 0
    },
    {
-    "cdaDeltaM2": -0.01169321809467369,
-    "bikeMassDeltaKg": -0.5690214625388981,
+    "cdaDeltaM2": -0.01272993503988254,
+    "bikeMassDeltaKg": -0.5549415623611802,
     "crrDelta": -0.0003
    },
    {
-    "cdaDeltaM2": -0.011687059491740287,
-    "bikeMassDeltaKg": -0.6923959000909852,
+    "cdaDeltaM2": -0.012702589212752552,
+    "bikeMassDeltaKg": -0.6732733715985981,
     "crrDelta": -0.0003
    },
    {
-    "cdaDeltaM2": -0.017857546534038066,
-    "bikeMassDeltaKg": -0.7000087574705551,
+    "cdaDeltaM2": -0.01917919471676463,
+    "bikeMassDeltaKg": -0.6670030317892364,
     "crrDelta": -0.0003
    }
   ],
