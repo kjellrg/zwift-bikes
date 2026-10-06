@@ -2400,6 +2400,38 @@
     "crrDelta": -0.0003
    }
   ],
+  "Specialized S-Works Tarmac SL9": [
+   {
+    "cdaDeltaM2": -0.0166100081151834,
+    "bikeMassDeltaKg": -1.3133710723960728,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01962383933378256,
+    "bikeMassDeltaKg": -1.3046236561062226,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019698068220572212,
+    "bikeMassDeltaKg": -1.7252611814969252,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.019649601302526604,
+    "bikeMassDeltaKg": -1.7468781289612916,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.020764929919395853,
+    "bikeMassDeltaKg": -1.7468287335963661,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02073567415304786,
+    "bikeMassDeltaKg": -1.9484614531419102,
+    "crrDelta": -0.0003
+   }
+  ],
   "Specialized Tarmac": [
    {
     "cdaDeltaM2": -0.0018176852023402417,
@@ -2525,38 +2557,6 @@
    {
     "cdaDeltaM2": -0.020139951645530202,
     "bikeMassDeltaKg": -1.7463391341042116,
-    "crrDelta": -0.0003
-   }
-  ],
-  "Specialized Tarmac SL9": [
-   {
-    "cdaDeltaM2": -0.0166100081151834,
-    "bikeMassDeltaKg": -1.3133710723960728,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.01962383933378256,
-    "bikeMassDeltaKg": -1.3046236561062226,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.019698068220572212,
-    "bikeMassDeltaKg": -1.7252611814969252,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.019649601302526604,
-    "bikeMassDeltaKg": -1.7468781289612916,
-    "crrDelta": -0.0003
-   },
-   {
-    "cdaDeltaM2": -0.020764929919395853,
-    "bikeMassDeltaKg": -1.7468287335963661,
-    "crrDelta": -0.0003
-   },
-   {
-    "cdaDeltaM2": -0.02073567415304786,
-    "bikeMassDeltaKg": -1.9484614531419102,
     "crrDelta": -0.0003
    }
   ],

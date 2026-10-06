@@ -37,9 +37,8 @@ const DATA_FILE = new URL('../../shared/data/frameSpeedData.ts', import.meta.url
 
 // Sheet spelling -> repo/zwift-data spelling, for names that differ. Add
 // here only after verifying the zwift-data name (see CLAUDE/skill notes on
-// Van Rysel and Tarmac SL9 naming).
+// Van Rysel naming).
 const SHEET_NAME_ALIASES = {
-  'Specialized S-Works Tarmac SL9': 'Specialized Tarmac SL9',
   'Van Rysel RCR Pro': 'VanRysel RCR Pro',
   'Van Rysel RCR-F': 'VanRysel RCR-F',
   'Van Rysel RCR-X': 'VanRysel RCR-X',

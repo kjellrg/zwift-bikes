@@ -195,7 +195,7 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   'Specialized Tarmac Pro': { axis: 'distance', tier: 'mid' },
   'Specialized Tarmac SL7': { axis: 'distance', tier: 'high' },
   'Specialized Tarmac SL8': { axis: 'distance', tier: 'high' },
-  'Specialized Tarmac SL9': { axis: 'distance', tier: 'high' },
+  'Specialized S-Works Tarmac SL9': { axis: 'distance', tier: 'high' },
   'Specialized Venge 2015': { axis: 'distance', tier: 'mid' },
   'Specialized Venge S-Works 2019': { axis: 'distance', tier: 'high' },
   'Trek Emonda': { axis: 'elevation', tier: 'high' },

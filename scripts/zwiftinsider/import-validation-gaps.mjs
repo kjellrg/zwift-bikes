@@ -79,7 +79,6 @@ const GAP_VS_SPEED_CORRUPT_SEC = 10
 // importer's, plus the spellings the 150 W rows use where they differ from
 // the 300 W rows of the same bike.
 const FRAME_ALIASES = {
-  'Specialized S-Works Tarmac SL9': 'Specialized Tarmac SL9',
   'Van Rysel RCR Pro': 'VanRysel RCR Pro',
   'Van Rysel RCR-F': 'VanRysel RCR-F',
   'Van Rysel RCR-X': 'VanRysel RCR-X',

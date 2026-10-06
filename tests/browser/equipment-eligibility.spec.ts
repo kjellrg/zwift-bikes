@@ -25,7 +25,7 @@ const ROUTE = '/routes/hilly-route'
  * sanitises levels, not ids, so the summary line still says "your frames" -
  * it arrives as a ranking with nothing in it, on the case assertions below.
  */
-const TARMAC = { id: 3371227947, name: 'Specialized Tarmac SL9' }
+const TARMAC = { id: 3371227947, name: 'Specialized S-Works Tarmac SL9' }
 const ROAD_WHEEL = 'Roval Alpinist CLX'
 /** Gravel-class, so a standard frame cannot take it - `isWheelsetCompatible`. */
 const GRAVEL_WHEEL = 'Zipp ZIPP 303 XPLR SW'

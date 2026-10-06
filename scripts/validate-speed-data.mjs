@@ -112,9 +112,13 @@ for (const [label, supplement, upstream] of [
   }
 }
 // The frame catalog is zwift-data plus `frameSupplement.ts`, merged the way
-// `getFrames()` merges them. The staleness rule mirrors the wheels' with
-// the one twist the merge has: upstream shipping the id under a placeholder
-// name is the expected state for a supplemented frame, not a collision.
+// `getFrames()` merges them. An id is one frame, so a supplement entry on
+// an upstream id is an override of that record's name (placeholder stand-in
+// or rename): legitimate while the names differ - the game dictionary, not
+// the package, decides what a bike is called, and `supplement:check` is
+// what proves the override - and dead weight the moment upstream ships the
+// same name. A new id under a name upstream already uses is dropped by the
+// merge, so it fails here rather than silently attaching no data.
 const frames = applyFrameSupplement(bikeFrames, SUPPLEMENT_FRAMES)
 const frameNames = frames.map(f => f.name)
 {
@@ -123,17 +127,20 @@ const frameNames = frames.map(f => f.name)
   for (const frame of SUPPLEMENT_FRAMES) {
     const byId = upstreamById.get(frame.id)
     const byName = upstreamByNormalized.get(normalize(frame.name))
-    if (byId && UNLOCALIZED_FRAME_NAME.test(byId.name) && !byName) continue
-    if (!byId && !byName) {
-      if (isProvisionalFrameId(frame.id)) console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} has a provisional id - run \`npm run supplement:check\` to see whether the game dictionary has a record for it yet`)
+    if (byId) {
+      if (byId.name === frame.name) {
+        errors.push(`SUPPLEMENT_FRAMES: upstream now ships ${JSON.stringify(frame.name)} - delete its supplement entry`)
+      } else if (!UNLOCALIZED_FRAME_NAME.test(byId.name)) {
+        console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) overrides the upstream name ${JSON.stringify(byId.name)} - \`npm run supplement:check\` confirms the game still agrees`)
+      }
+      if (byName && byName.id !== frame.id) errors.push(`SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) is also the upstream name of id ${byName.id} - two frames cannot share a name-keyed row`)
       continue
     }
-    const upstreamName = (byId ?? byName).name
-    if (upstreamName === frame.name) {
-      errors.push(`SUPPLEMENT_FRAMES: zwift-data now ships ${JSON.stringify(frame.name)} - delete its supplement entry`)
-    } else {
-      errors.push(`SUPPLEMENT_FRAMES: zwift-data now ships supplement entry ${JSON.stringify(frame.name)} (id ${frame.id}) under the name ${JSON.stringify(upstreamName)} - delete the supplement entry and re-key its speed data and upgrade scheme on the upstream spelling - first differing span:\n${diffSpan(frame.name, upstreamName)}`)
+    if (byName) {
+      errors.push(`SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) matches upstream frame id ${byName.id}${byName.name === frame.name ? '' : ' by spelling'} - the merge drops the entry; take the upstream id or delete it - first differing span:\n${diffSpan(frame.name, byName.name)}`)
+      continue
     }
+    if (isProvisionalFrameId(frame.id)) console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} has a provisional id - run \`npm run supplement:check\` to see whether the game dictionary has a record for it yet`)
   }
 }
 

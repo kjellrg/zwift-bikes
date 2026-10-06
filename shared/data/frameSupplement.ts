@@ -36,6 +36,16 @@ import type { BikeFrame } from 'zwift-data'
  * Speed data for all seven is measured (ZwiftInsider's 300 W bot tests,
  * sheet fetched 2026-10-06) and lives in `TT_FRAME_SPEED_DATA` under these
  * exact names.
+ *
+ * The same list also carries RENAMES: a frame the package already ships
+ * under an older name that the dictionary has since changed. The entry
+ * keeps the frame's id - which is what garages, the `owned` query and the
+ * wheel drill-down key on, so a rider's garage entry survives the rename
+ * untouched - and only the name moves, with the speed-data and scheme
+ * tables re-keyed in the same commit. The dictionary is the authority on
+ * what the game calls a bike; `supplement:check` proves each rename is
+ * still what it says. The entry is deleted once the package catches up
+ * (the validator says so).
  */
 
 /** First id that can never be a real Zwift signature (those are uint32). */
@@ -68,18 +78,28 @@ export const SUPPLEMENT_FRAMES: BikeFrame[] = [
   // the sheet's spelling is used for the new one as for every other entry.
   { id: PROVISIONAL_FRAME_ID_BASE + 1, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true },
   { id: PROVISIONAL_FRAME_ID_BASE + 2, name: 'Quintana Roo V-PRi', modelYear: 2026, isTT: true },
-  { id: PROVISIONAL_FRAME_ID_BASE + 3, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true }
+  { id: PROVISIONAL_FRAME_ID_BASE + 3, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true },
+  // Renamed in the game (dictionary fetched 2026-10-06); the package still
+  // says "Specialized Tarmac SL9". Same id, so garages keep it.
+  { id: 3371227947, name: 'Specialized S-Works Tarmac SL9', modelYear: 2026, isTT: false }
 ]
 
 /**
- * Appends supplement entries not yet present upstream. Upstream wins on a
- * name match (name is the key of every speed-data and scheme table) or on
- * an id match with a real name; an upstream record that still carries a
- * placeholder name does not count as shipping the frame - `getFrames()`
- * drops it, and the supplement entry is what makes the bike visible.
+ * Merges the supplement into the upstream catalog. An id is one frame: a
+ * supplement entry sharing an upstream id REPLACES that record in place
+ * (a placeholder stand-in or a rename - either way the entry's name is the
+ * one the game shows, and the id the garage holds is unchanged). An entry
+ * whose id is new is appended, unless its name already belongs to a
+ * different upstream frame - name is the key of every speed-data and
+ * scheme table, so that entry would attach the wrong data, and upstream
+ * wins. The validator reports both the override and the collision.
  */
 export function applyFrameSupplement(upstream: readonly BikeFrame[], supplement: readonly BikeFrame[]): BikeFrame[] {
-  const names = new Set(upstream.map(f => f.name))
-  const localizedIds = new Set(upstream.filter(f => !UNLOCALIZED_FRAME_NAME.test(f.name)).map(f => f.id))
-  return [...upstream, ...supplement.filter(f => !names.has(f.name) && !localizedIds.has(f.id))]
+  const overrides = new Map(supplement.map(f => [f.id, f]))
+  const upstreamIds = new Set(upstream.map(f => f.id))
+  const upstreamNames = new Set(upstream.map(f => f.name))
+  return [
+    ...upstream.map(f => overrides.get(f.id) ?? f),
+    ...supplement.filter(f => !upstreamIds.has(f.id) && !upstreamNames.has(f.name))
+  ]
 }
