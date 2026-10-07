@@ -220,7 +220,7 @@ export const PURCHASABLE_HALO_FRAMES = new Set(['Pinarello Espada', 'Specialized
 // frames whose numbers merely match are two bikes and stay off this list.
 // - `Zwift Golden Concept Z1` is the plain Concept Z1 with a gold light
 //   scheme, sharing one `FRAME_SPEED_DATA` sample. Carried over from the
-//   re-skin rule this list replaced; ZwiftInsider never tested the golden one.
+//   rule this list replaced; ZwiftInsider never tested the golden one.
 // - The CANYON//SRAM Aeroad CFR has "the same performance specs as the Aeroad
 //   CFR Alpecin Premier-Tech ... with a different paintjob"
 //   (zwiftinsider.com/frame/canyon-aeroad-cfr-canyon-sram/), and the bot
@@ -250,9 +250,12 @@ function colourwayRows<T extends ClassifiedBikeFrame>(members: readonly T[], own
   const unowned = members.filter(frame => !isOwned(frame))
   const byStage = new Map<number, T[]>()
   for (const frame of members.filter(isOwned)) byStage.set(frame.level, [...(byStage.get(frame.level) ?? []), frame])
-  const rows = [...byStage.values()].map(sameStage => [...sameStage].sort(byPlainestName))
-  if (rows.length === 0) rows.push([...unowned].sort(byPlainestName))
-  else rows.sort((a, b) => byPlainestName(a[0]!, b[0]!))[0]!.push(...[...unowned].sort(byPlainestName))
+  const rows = [...byStage.values()]
+    .map(sameStage => [...sameStage].sort(byPlainestName))
+    .sort((a, b) => byPlainestName(a[0]!, b[0]!))
+  const unownedNames = [...unowned].sort(byPlainestName)
+  if (rows[0]) rows[0].push(...unownedNames)
+  else rows.push(unownedNames)
   return rows.map(([lead, ...others]) => others.length ? { ...lead!, alsoSoldAs: others.map(other => other.name) } : lead!)
 }
 

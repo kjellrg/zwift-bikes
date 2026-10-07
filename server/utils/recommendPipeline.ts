@@ -249,7 +249,7 @@ export async function runRecommendPipeline(
   //
   // Every timing under the request's own draft keeps its Climb times, by
   // physics key - the same key `orderBySimulatedTime` dedupes by, so a
-  // physics twin it never simulated still finds them - and the Climb trade
+  // setup with the same physics that it never simulated still finds them - and the Climb trade
   // below reads them out of the very simulations that timed the rows rather
   // than timing anything again.
   const timings = new Map<string, ComboTiming>()

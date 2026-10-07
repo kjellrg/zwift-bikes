@@ -211,32 +211,34 @@ describe('Colourways', () => {
 })
 
 describe('the Colourway list against the catalog', () => {
-  // Measured frames whose physics meet at some stage but which are decided to
-  // be different bikes - the bot tests part them at the other stages.
-  const DIFFERENT_BIKES: readonly (readonly [string, string])[] = [
-    ['Giant Trinity Advanced SL', 'Liv Avow Advanced SL'], // stage 0 only
-    ['Chapter2 Tere', 'Specialized Tarmac'], // stage 5 only
-    ['Scott Plasma', 'Specialized Shiv S-Works'], // stage 1 only
-    ['BMC Timemachine01', 'Specialized Shiv'] // stage 1 only
+  // Measured frames whose physics meet at one stage but which are decided to
+  // be different bikes - the bot tests part them at every other stage. Each
+  // is excused at that stage only, so data that made them meet anywhere else
+  // would ask for the decision again.
+  const DIFFERENT_BIKES: readonly (readonly [string, string, number])[] = [
+    ['Giant Trinity Advanced SL', 'Liv Avow Advanced SL', 0],
+    ['Chapter2 Tere', 'Specialized Tarmac', 5],
+    ['Scott Plasma', 'Specialized Shiv S-Works', 1],
+    ['BMC Timemachine01', 'Specialized Shiv', 1]
   ]
-  const decided = (a: string, b: string) => COLOURWAYS.some(names => names.includes(a) && names.includes(b))
-    || DIFFERENT_BIKES.some(pair => pair.includes(a) && pair.includes(b))
+  const decided = (a: string, b: string, stage: number) => COLOURWAYS.some(names => names.includes(a) && names.includes(b))
+    || DIFFERENT_BIKES.some(([x, y, at]) => at === stage && [x, y].includes(a) && [x, y].includes(b))
 
   it('names only frames the catalog has', () => {
     for (const name of COLOURWAYS.flat()) frameByName(name)
   })
 
-  it('decides every pair of measured frames that share their physics, so a new colourway cannot slip in as a silent duplicate', () => {
+  it('decides every pair of measured frames that share their physics, so the next Colourway Zwift ships cannot take a second row unnoticed', () => {
     const undecided: string[] = []
     for (const stage of UPGRADE_STAGES) {
       const byPhysics = new Map<string, string[]>()
       for (const frame of getFrames().map(f => classifyBikeFrame(f, stage)).filter(f => f.confidence === 'measured')) {
-        const key = comboPhysicsKey({ frame, wheelset: undefined }) + `|${frame.category}|${frame.hasFixedWheels}`
+        const key = comboPhysicsKey({ frame, wheelset: undefined }) + `|${frame.hasFixedWheels}`
         byPhysics.set(key, [...(byPhysics.get(key) ?? []), frame.name])
       }
       for (const names of byPhysics.values()) {
         for (const [i, a] of names.entries()) {
-          for (const b of names.slice(i + 1)) if (!decided(a, b)) undecided.push(`${a} / ${b} (stage ${stage})`)
+          for (const b of names.slice(i + 1)) if (!decided(a, b, stage)) undecided.push(`${a} / ${b} (stage ${stage})`)
         }
       }
     }
