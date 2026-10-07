@@ -31,7 +31,8 @@
     "spellcheck": "cspell --no-progress",
     "typecheck": "nuxt typecheck",
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
-    "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs"
+    "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs",
+    "audit:signatures": "node scripts/audit-signatures.mjs"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.137",
