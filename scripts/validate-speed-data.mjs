@@ -102,9 +102,9 @@ const anyWheelNames = [...new Set([...frontWheelNames, ...rearWheelNames])]
 // either state linger. An entry on an upstream id with a different name is
 // a rename, legitimate until upstream ships the same name - warned, the way
 // frame renames are, and proved by `npm run supplement:check`.
-for (const [label, supplement, upstream, withdrawn] of [
-  ['SUPPLEMENT_FRONT_WHEELS', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels, WITHDRAWN_FRONT_WHEELS],
-  ['SUPPLEMENT_REAR_WHEELS', SUPPLEMENT_REAR_WHEELS, bikeRearWheels, WITHDRAWN_REAR_WHEELS]
+for (const [label, supplement, upstream, withdrawnLabel, withdrawn] of [
+  ['SUPPLEMENT_FRONT_WHEELS', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels, 'WITHDRAWN_FRONT_WHEELS', WITHDRAWN_FRONT_WHEELS],
+  ['SUPPLEMENT_REAR_WHEELS', SUPPLEMENT_REAR_WHEELS, bikeRearWheels, 'WITHDRAWN_REAR_WHEELS', WITHDRAWN_REAR_WHEELS]
 ]) {
   const withdrawnIds = new Set(withdrawn.map(w => w.id))
   const current = upstream.filter(w => !withdrawnIds.has(w.id))
@@ -126,7 +126,7 @@ for (const [label, supplement, upstream, withdrawn] of [
   // A withdrawal is dead weight once upstream stops shipping the id.
   const upstreamIds = new Set(upstream.map(w => w.id))
   for (const wheel of withdrawn) {
-    if (!upstreamIds.has(wheel.id)) errors.push(`${label.replace('SUPPLEMENT', 'WITHDRAWN')}: zwift-data no longer ships ${JSON.stringify(wheel.name)} (id ${wheel.id}) - delete the withdrawal`)
+    if (!upstreamIds.has(wheel.id)) errors.push(`${withdrawnLabel}: zwift-data no longer ships ${JSON.stringify(wheel.name)} (id ${wheel.id}) - delete the withdrawal`)
   }
 }
 // The frame catalog is zwift-data plus `frameSupplement.ts`, merged the way
@@ -173,6 +173,12 @@ for (const [label, entries, known, fix, tables] of [
   ['front wheels', frontWheels, KNOWN_SHARED_WHEEL_NAMES, 'rename one through wheelSupplement.ts, or withdraw the one the game no longer has', [['WHEEL_SPEED_DATA', WHEEL_SPEED_DATA]]],
   ['rear wheels', rearWheels, KNOWN_SHARED_WHEEL_NAMES, 'rename one through wheelSupplement.ts, or withdraw the one the game no longer has', [['WHEEL_SPEED_DATA', WHEEL_SPEED_DATA]]]
 ]) {
+  // A name shared on purpose is let through, but a row it shares is said out
+  // loud, so nobody mistakes one measurement for two.
+  for (const { name, ids } of findNameClashes(entries).filter(clash => known.has(clash.name))) {
+    const rows = tables.filter(([, table]) => name in table).map(([tableLabel]) => tableLabel)
+    if (rows.length) console.warn(`WARN: catalog ${label}: the ${rows.join('/')} row ${JSON.stringify(name)} ranks ${ids.length} records (ids ${ids.join(', ')}) - shared on purpose, see shared/utils/catalogNames.ts`)
+  }
   for (const { name, ids } of findNameClashes(entries, known)) {
     const rows = tables.filter(([, table]) => name in table).map(([tableLabel]) => tableLabel)
     errors.push(`catalog ${label}: ${ids.length} records share the name ${JSON.stringify(name)} (ids ${ids.join(', ')})${rows.length ? ` - the ${rows.join('/')} row ${JSON.stringify(name)} would rank every one of them on one measurement` : ''} - ${fix} (or, if they are one piece of equipment, list the name in shared/utils/catalogNames.ts)`)

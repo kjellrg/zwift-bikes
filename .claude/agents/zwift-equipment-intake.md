@@ -48,12 +48,14 @@ the full fact sheet below.
   repo is from the **300 W** row. Verify by checking the baseline "Zwift
   Carbon" row reads `0 -> 26.5` flat / `0 -> 36.9` climb; if not, you're on
   the wrong rows - say so and stop.
-- **Sheet spelling ≠ game spelling, and the collision can be an existing
-  product.** The 2026 "Shimano C36" (game name) appears in the sheet as
-  "Shimano DURA-ACE C36" while the *legacy* wheel keeps the DURA-ACE name -
-  keying on the sheet spelling would have silently attached the new wheel's
-  data to the old one. Always check whether the sheet's spelling collides
-  with a DIFFERENT existing zwift-data entry.
+- **Sheet spelling ≠ game spelling, and a name can mean two products.** The
+  2026 Shimano wheels arrived in the dictionary under the *same* names as the
+  older revisions ("Shimano DURA-ACE C36"), and the sheet retitled the old
+  rows "... C36 2025". Once the game removed the old revisions, the repo
+  withdrew them by id (`wheelSupplement.ts`, issue #272). Always check
+  whether a name - the sheet's or the dictionary's - is ALREADY carried by a
+  different zwift-data id; the validator fails on two catalog entries under
+  one name, and the fix (rename or withdraw) is a human decision to report.
 - **TT frames are measured against a different baseline** ("Zwift TT", not
   "Zwift Carbon"). Report TT values as TT values; never place them in, or
   compare them against, the road table.

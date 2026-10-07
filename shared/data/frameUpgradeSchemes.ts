@@ -137,6 +137,9 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   'Canyon Aeroad 2015': { axis: 'distance', tier: 'mid' },
   'Canyon Aeroad 2021': { axis: 'distance', tier: 'high' },
   'Canyon Aeroad 2024': { axis: 'distance', tier: 'high' },
+  // Not measured: the sheet's CANYON//SRAM row is the CFR's, not this
+  // frame's (issue #272). Derived from lvId 4169711732, like the Wilier.
+  'Canyon Aeroad 2024 / SRAM': { axis: 'distance', tier: 'high', derived: true },
   'Canyon Aeroad CFR - CANYON//SRAM': { axis: 'distance', tier: 'high' },
   'Canyon Aeroad CFR Alpecin Premier-Tech': { axis: 'distance', tier: 'high' },
   'Canyon Inflite': { axis: 'distance', tier: 'entry' },

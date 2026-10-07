@@ -3,6 +3,7 @@ import { createError, getQuery } from 'h3'
 import { z } from 'zod'
 import type { Sport, WorldSlug } from 'zwift-data'
 import type { BikeCategory, RouteFilters } from '../../shared/types/catalog'
+import { currentWheelsetKey } from '../../shared/data/wheelSupplement'
 import { getWorlds } from '../../shared/utils/catalog'
 import { clampTttClimbWkg, clampTttRiders, TTT_MAX_CLIMB_WKG, TTT_MAX_RIDERS, TTT_MIN_CLIMB_WKG, TTT_MIN_RIDERS } from '../../shared/utils/physics'
 import { RECOMMEND_MAX_LIMIT, RECOMMEND_MAX_OFFSET } from '../../shared/utils/recommendLimits'
@@ -141,7 +142,9 @@ const ownedWheelKeysSchema = z.preprocess(emptyToUndef, z.string().max(5000).opt
       ctx.addIssue({ code: 'custom', message: '`ownedWheels` must be a JSON array of wheelset keys, e.g. ["zipp-808"]' })
       return z.NEVER
     }
-    return new Set(parsed as string[])
+    // A wheel the game renamed may arrive under its old key (an old link, a
+    // stale client); it is the same wheel, so it reads as the new key.
+    return new Set((parsed as string[]).map(currentWheelsetKey))
   })
 
 export const bikesQuerySchema = z.object({

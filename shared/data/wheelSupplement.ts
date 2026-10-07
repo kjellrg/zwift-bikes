@@ -102,7 +102,7 @@ export const WITHDRAWN_REAR_WHEELS: WithdrawnWheel[] = [
 export function applyWheelSupplement<W extends BikeFrontWheel | BikeRearWheel>(
   upstream: readonly W[],
   supplement: readonly W[],
-  withdrawn: readonly WithdrawnWheel[] = []
+  withdrawn: readonly WithdrawnWheel[]
 ): W[] {
   const withdrawnIds = new Set(withdrawn.map(w => w.id))
   const current = upstream.filter(w => !withdrawnIds.has(w.id))
@@ -119,24 +119,32 @@ export function applyWheelSupplement<W extends BikeFrontWheel | BikeRearWheel>(
  * Old wheelset key -> the key the same wheel has now. A garage stores wheels
  * by `Wheelset.key`, which is the name, so a rename would otherwise drop the
  * wheel from every garage that held it; `migrateWheelsetKeys` runs when the
- * garage loads and rewrites the key once. Delete an entry once nothing can
- * still hold the old key.
+ * garage loads and rewrites the key once, and the API's `ownedWheels`
+ * filter reads an old key the same way (`currentWheelsetKey`), for a link or
+ * client from before the rename. Delete an entry once nothing can still
+ * hold the old key.
  *
  * A garage that held one of the withdrawn Shimano revisions holds its name,
- * which is now the 2026 wheel's - the game made the same swap, so it stays.
+ * which is now the 2026 wheel's, so it reads as owning the 2026 wheel.
+ * Whether the game gave owners of the old revision the new one is not
+ * confirmed; the alternative - silently dropping the wheel - is worse.
  */
 export const RENAMED_WHEELSET_KEYS: Readonly<Record<string, string>> = {
   'Roval Sprint CLX': 'Roval Rapide Sprint CLX',
-  'Princeton  Mach TSV2/Blur Disc ': 'Princeton Mach TSV2/Blur Disc',
+  'Princeton  Mach TSV2/Blur Disc\u00A0': 'Princeton Mach TSV2/Blur Disc',
   'Shimano C36': 'Shimano DURA-ACE C36',
   'Shimano C50': 'Shimano DURA-ACE C50',
   'Shimano C60': 'Shimano DURA-ACE C60',
   'Shimano C99/Disc': 'Shimano DURA-ACE C99 + Disc'
 }
 
+/** The key a wheel has now: its new key when the game renamed it, otherwise the key as given. */
+export function currentWheelsetKey(key: string): string {
+  return Object.hasOwn(RENAMED_WHEELSET_KEYS, key) ? RENAMED_WHEELSET_KEYS[key]! : key
+}
+
 /** The garage's owned wheels with every renamed key moved to its new name; the same object when nothing moved. */
 export function migrateWheelsetKeys<T>(owned: Readonly<Record<string, T>>): Readonly<Record<string, T>> {
-  const renamed = (key: string) => Object.hasOwn(RENAMED_WHEELSET_KEYS, key) ? RENAMED_WHEELSET_KEYS[key]! : undefined
-  if (!Object.keys(owned).some(renamed)) return owned
-  return Object.fromEntries(Object.entries(owned).map(([key, value]) => [renamed(key) ?? key, value]))
+  if (Object.keys(owned).every(key => currentWheelsetKey(key) === key)) return owned
+  return Object.fromEntries(Object.entries(owned).map(([key, value]) => [currentWheelsetKey(key), value]))
 }

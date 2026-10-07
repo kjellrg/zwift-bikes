@@ -88,7 +88,7 @@ describe('the two Canyon Aeroads the sheet\'s CANYON//SRAM row was confused betw
     const cfr = byId(2303301376)
     expect(cfr?.name).toBe('Canyon Aeroad CFR - CANYON//SRAM')
     expect(cfr?.confidence).toBe('measured')
-    // The sheet's 300 W row for it: stage 0 and stage 5, flat and climb.
+    // The sheet's 300 W row for it: stages 0-5, flat and climb.
     expect(cfr?.upgradeCurve?.flat).toEqual([63.3, 74.6, 75.8, 87.6, 92.1, 92.4])
     expect(cfr?.upgradeCurve?.climb).toEqual([43.6, 44.6, 60.7, 71.7, 72.6, 80.1])
   })

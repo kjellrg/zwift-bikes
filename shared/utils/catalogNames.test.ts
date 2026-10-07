@@ -29,7 +29,7 @@ describe('both Shimano generations arriving under one name', () => {
   const upstream = [...bikeFrontWheels, ...SHIMANO_2026_FRONT]
 
   it('is caught, naming each pair, when nothing withdraws the older revisions', () => {
-    const clashes = findNameClashes(applyWheelSupplement(upstream, SUPPLEMENT_FRONT_WHEELS), KNOWN_SHARED_WHEEL_NAMES)
+    const clashes = findNameClashes(applyWheelSupplement(upstream, SUPPLEMENT_FRONT_WHEELS, []), KNOWN_SHARED_WHEEL_NAMES)
     expect(clashes).toEqual([
       { name: 'Shimano DURA-ACE C60', ids: [272842014, 3181958393] },
       { name: 'Shimano DURA-ACE C36', ids: [304842870, 3842759965] },

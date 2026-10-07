@@ -15,7 +15,7 @@ describe('applyWheelSupplement', () => {
       { id: 1, name: 'Brand A Renamed', imageName: 'Wheel_A' },
       { id: 9, name: 'Brand B', imageName: 'Wheel_B2' },
       { id: 3, name: 'Brand C', imageName: 'Wheel_C' }
-    ])
+    ], [])
     expect(merged.map(w => [w.id, w.name])).toEqual([[1, 'Brand A Renamed'], [2, 'Brand B'], [3, 'Brand C']])
   })
 
