@@ -117,7 +117,7 @@ describe('a segment\'s Ranking page', () => {
   const acropolis = segmentCourse('acropolis-sprint')
   const climb: Ride = { course: { kind: 'segment', slug: 'alpe-du-zwift' }, power: 'race' }
   const sprint: Ride = { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }
-  // The segment page's own words for the segment.
+  // The segment page's own words: the segment and its type, since a segment Ride has no laps to state.
   const segmentName = (type: string) => (course: { name: string, worldName: string }) => `the ${course.name} ${type} in ${course.worldName}`
   const segmentSubject = (ride: Ride | undefined) => ride?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
 

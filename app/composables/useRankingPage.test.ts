@@ -267,6 +267,9 @@ describe('useRankingPage', () => {
       expect(page.answer.value?.text).toMatch(/^TT bikes are disabled for this points race\. ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for Makuri 40 in Makuri Islands: /)
       // 40.252 km - the lap and the lead-in once - in 25:00.
       expect(page.answer.value?.text).toContain('finishing in 25:00 (~96.6 km/h)')
+      // The Category group's lap count, once, in the scope line.
+      expect(page.answer.value?.text.match(/\b1 lap\b/g)).toEqual(['1 lap'])
+      expect(page.answer.value?.text).toContain('1 lap, including any lead-in once')
       expect(page.courseAnalysis.value).toMatchObject({ route: makuri40, resultsRoute: makuri40, kind: 'route', laps: 1 })
       expect(page.reportLine.value).toBe('A/B, ridden as a points race, 1 lap, 225 W, Solo, TT frames barred')
       expect(page.hideTtCategory.value).toBe(true)
