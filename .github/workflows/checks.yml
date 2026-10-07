@@ -42,9 +42,12 @@ jobs:
       # provenance attestations must have ones that verify. Catches a tarball
       # swapped behind an unchanged version, and a package that silently stops
       # being built from its public repo. Needs the registry, so it stays here
-      # rather than in the offline pre-commit hook. ~30s.
+      # rather than in the offline pre-commit hook. ~30s. The wrapper exists
+      # because npm aborts the whole audit when the registry advertises an
+      # attestation it then fails to serve (unimport@7.0.2, 2026-10-07); see
+      # scripts/audit-signatures.mjs for what it does instead on that fault.
       - name: Verify package signatures and provenance
-        run: npm audit signatures
+        run: npm run audit:signatures
       - name: Lint
         run: npm run lint
       # Prose-only spellcheck of the event specifications, docs and README -
