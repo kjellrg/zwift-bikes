@@ -72,7 +72,7 @@ function setup(overrides: Partial<RankingPageInputs> = {}) {
   const page = scope.run(() => useRankingPage({
     ride: () => liveRide.value,
     key: 'recommend-route-hilly-route',
-    rideName: (course, laps) => `${laps === 1 ? '' : `${laps} laps of `}${course.name} in ${course.worldName}`,
+    rideName: course => `${course.name} in ${course.worldName}`,
     faqQuestion: () => 'What\'s the fastest bike for Watopia Hilly Route?',
     breadcrumbs: () => [{ name: 'Home', item: 'https://example.test' }, { name: 'Watopia Hilly Route', item: 'https://example.test/routes/hilly-route' }],
     ...overrides
@@ -101,8 +101,10 @@ describe('useRankingPage', () => {
   it('answers in the page\'s words for the Applied course and laps, and gives the FAQ the same text', () => {
     const { page, appliedRide } = setup()
     appliedRide.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 3 }
-    expect(page.answer.value?.text).toMatch(/^ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for 3 laps of Watopia Hilly Route in Watopia: /)
+    expect(page.answer.value?.text).toMatch(/^ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for Watopia Hilly Route in Watopia: /)
+    // The lap count is the scope line's to state, once - not the Ride name's as well.
     expect(page.answer.value?.text).toContain('3 laps, including any lead-in once')
+    expect(page.answer.value?.text.match(/3 laps/g)).toHaveLength(1)
     expect(page.faqAnswer.value).toBe(page.answer.value?.text)
   })
 
@@ -175,7 +177,7 @@ describe('useRankingPage', () => {
     const fuego = routeWithMetaForSegment(getSegmentSummary('fuego-flats')!)
     const sprint: Ride = { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }
 
-    // The segment page's own inputs: its words ignore the lap count, and the
+    // The segment page's own inputs: its words for the segment, and the
     // report line says which kind of segment the Applied Ride was.
     function segmentSetup(ride: Ride) {
       const page = setup({
@@ -240,12 +242,13 @@ describe('useRankingPage', () => {
       ...rideRulesForFormat(format)
     })
 
-    // The race page's own inputs: the lap count leads the name, and the
-    // report line names the Category group the Applied Ride was ranked for.
+    // The race page's own inputs: a name for the course alone, the lap count
+    // left to the scope line, and a report line naming the Category group the
+    // Applied Ride was ranked for.
     function raceSetup() {
       const page = setup({
         key: 'recommend-race-zrl-2026-27-round-1-week-3',
-        rideName: (course, laps) => `${laps} lap${laps === 1 ? '' : 's'} of ${course.name} in ${course.worldName}`,
+        rideName: course => `${course.name} in ${course.worldName}`,
         faqQuestion: () => 'What bike should I ride for ZRL 2026/27 Round 1 Week 3?',
         reportSubject: (applied) => {
           const group = categoryGroupRacing(race, applied?.course.slug, applied?.laps)
@@ -261,9 +264,12 @@ describe('useRankingPage', () => {
     it('explains the ranking with the Applied Category group while the selector runs ahead to another', () => {
       const { page, liveRide } = raceSetup()
       liveRide.value = groupRide(1)
-      expect(page.answer.value?.text).toMatch(/^TT bikes are disabled for this points race\. ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for 1 lap of Makuri 40 in Makuri Islands: /)
+      expect(page.answer.value?.text).toMatch(/^TT bikes are disabled for this points race\. ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for Makuri 40 in Makuri Islands: /)
       // 40.252 km - the lap and the lead-in once - in 25:00.
       expect(page.answer.value?.text).toContain('finishing in 25:00 (~96.6 km/h)')
+      // The Category group's lap count, once, in the scope line.
+      expect(page.answer.value?.text.match(/\b1 lap\b/g)).toEqual(['1 lap'])
+      expect(page.answer.value?.text).toContain('1 lap, including any lead-in once')
       expect(page.courseAnalysis.value).toMatchObject({ route: makuri40, resultsRoute: makuri40, kind: 'route', laps: 1 })
       expect(page.reportLine.value).toBe('A/B, ridden as a points race, 1 lap, 225 W, Solo, TT frames barred')
       expect(page.hideTtCategory.value).toBe(true)
@@ -274,7 +280,7 @@ describe('useRankingPage', () => {
       liveRide.value = groupRide(1)
       appliedRide.value = groupRide(1)
       appliedCourse.value = urumaze
-      expect(page.answer.value?.text).toContain('for 1 lap of Urumaze in Makuri Islands: ')
+      expect(page.answer.value?.text).toContain('for Urumaze in Makuri Islands: ')
       expect(page.reportLine.value).toBe('C/D, ridden as a points race, 1 lap, 225 W, Solo, TT frames barred')
       expect(page.why.value.rideName).toBe('Urumaze')
     })

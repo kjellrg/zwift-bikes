@@ -311,6 +311,18 @@ describe('the race document', () => {
     expect(markdown).toContain('Another group racing a different course or lap count gets a different answer')
   })
 
+  it('states the ranked group\'s lap count once in the answer, as the page does, and again in its own account of the race', async () => {
+    // A/B: 4 laps of Innsbruckring.
+    const markdown = (await markdownDocumentFor('/events/zrl-2026-27/round-1-week-2')!(CONTEXT)).markdown
+    const answer = markdown.split('\n\nCanonical page:')[0]!.split('\n\n').slice(1).join('\n\n')
+
+    expect(answer).toMatch(/is the best bike and wheels for Innsbruckring in Innsbruck: /)
+    expect(answer).toContain('4 laps, including any lead-in once')
+    expect(answer.match(/4 laps/g)).toHaveLength(1)
+    // The twin's own prose is the page's statement, not the answer, and keeps it.
+    expect(markdown).toContain(', over 4 laps of Innsbruckring in Innsbruck.')
+  })
+
   it('404s a race the organiser has not published', async () => {
     await expect(markdownDocumentFor('/events/zrl-2026-27/not-a-race')!(CONTEXT)).rejects.toMatchObject({ statusCode: 404 })
   })
