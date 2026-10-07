@@ -40,6 +40,7 @@
     "@nuxtjs/robots": "^6.2.4",
     "@nuxtjs/sitemap": "^8.6.1",
     "@takumi-rs/core": "^2.14.0",
+    "h3": "^1.15.11",
     "nuxt": "^4.5.2",
     "nuxt-og-image": "^6.10.0",
     "tailwindcss": "^4.3.3",
