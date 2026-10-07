@@ -40,16 +40,44 @@ describe('applyFrameSupplement', () => {
 })
 
 describe('the shipped supplement', () => {
-  it('every entry is measured, scheme-mapped and unique against upstream by name', () => {
+  it('every entry is scheme-mapped, unique against upstream by name, and measured unless its scheme says it is derived', () => {
     const upstreamNames = new Set(bikeFrames.map(f => f.name))
     const seen = new Set<number>()
     for (const frame of SUPPLEMENT_FRAMES) {
       expect(upstreamNames.has(frame.name), frame.name).toBe(false)
       expect(seen.has(frame.id), `${frame.name} shares an id`).toBe(false)
       seen.add(frame.id)
-      expect((frame.isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[frame.name], `${frame.name} speed row`).toBeDefined()
-      expect(FRAME_UPGRADE_SCHEMES[frame.name], `${frame.name} scheme`).toBeDefined()
+      const scheme = FRAME_UPGRADE_SCHEMES[frame.name]
+      expect(scheme, `${frame.name} scheme`).toBeDefined()
+      if (!scheme?.derived) expect((frame.isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[frame.name], `${frame.name} speed row`).toBeDefined()
     }
+  })
+})
+
+describe('the Wilier Filante SLR ID2 We Ride Paris (#272)', () => {
+  const RECORD = { id: 3123624451, name: 'Wilier Filante SLR ID2 We Ride Paris', modelYear: 2026, isTT: false }
+
+  it('is in the catalog under the game\'s id and name, as an estimated road frame', () => {
+    const wilier = getFrames().find(f => f.id === RECORD.id)
+    expect(wilier?.name).toBe(RECORD.name)
+    expect(wilier?.category).toBe('standard')
+    expect(wilier?.confidence).toBe('estimated')
+  })
+
+  it('does not borrow the Filante Team\'s measurement', () => {
+    const team = getFrames().find(f => f.name === 'Wilier Filante SLR ID2 Team')
+    const wilier = getFrames().find(f => f.id === RECORD.id)
+    expect(team?.confidence).toBe('measured')
+    expect(wilier?.scores).not.toEqual(team?.scores)
+  })
+
+  it('upgrades on the scheme its dictionary lvId names, distance / high-end, marked as derived', () => {
+    expect(FRAME_UPGRADE_SCHEMES[RECORD.name]).toEqual({ axis: 'distance', tier: 'high', derived: true })
+  })
+
+  it('gives way to zwift-data once the package ships it', () => {
+    const merged = applyFrameSupplement([...bikeFrames, RECORD], SUPPLEMENT_FRAMES)
+    expect(merged.filter(f => f.id === RECORD.id || f.name === RECORD.name)).toEqual([RECORD])
   })
 })
 

@@ -27,6 +27,14 @@ export type UpgradeTier = 'entry' | 'mid' | 'high'
 export interface UpgradeScheme {
   axis: UpgradeAxis
   tier: UpgradeTier
+  /**
+   * Not from ZwiftInsider's table: read off the frame's game-dictionary
+   * `lvId`, as the scheme the table gives the other frames of its kind on
+   * that `lvId`, for a frame nobody has measured yet. The entry is ready
+   * for the frame's first measurement and inert until then, which
+   * `scripts/upgrade-levels/verify-upgrade-data.mjs` allows only here.
+   */
+  derived?: true
 }
 
 /**
@@ -209,6 +217,10 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   'VanRysel RCR-F': { axis: 'distance', tier: 'high' },
   'Ventum NS1': { axis: 'distance', tier: 'mid' },
   'Wilier Filante SLR ID2 Team': { axis: 'distance', tier: 'high' },
+  // lvId 4169711732 (dictionary fetched 2026-10-07): every road frame this
+  // table has on it - 41 of them - is distance / high-end. Estimated: not
+  // measured yet (issue #272).
+  'Wilier Filante SLR ID2 We Ride Paris': { axis: 'distance', tier: 'high', derived: true },
   'Zwift Aero': { axis: 'distance', tier: 'entry' },
   'Zwift Carbon': { axis: 'distance', tier: 'entry' },
   'Zwift Concept Z1': { axis: 'distance', tier: 'high' },
