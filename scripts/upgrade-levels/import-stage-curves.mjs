@@ -46,8 +46,6 @@ const SHEET_NAME_ALIASES = {
   // row (identical endpoints) drops the suffix. "...ID2 NEW" is a separate,
   // stage-less sheet row and stays unmatched on purpose.
   'Wilier Filante SLR ID2': 'Wilier Filante SLR ID2 Team',
-  // The game/zwift-data name for the CANYON//SRAM team edition.
-  'Canyon Aeroad CFR - CANYON//SRAM': 'Canyon Aeroad 2024 / SRAM',
   // Update 1.123 (2026-10) replaced three TT frames with new revisions and
   // the sheet retitled the OLD rows with their model year; the game keeps
   // the old names, so the retitled rows map back to the existing keys. The

@@ -544,7 +544,7 @@
     "crrDelta": -0.0003
    }
   ],
-  "Canyon Aeroad 2024 / SRAM": [
+  "Canyon Aeroad CFR - CANYON//SRAM": [
    {
     "cdaDeltaM2": -0.01696488838626578,
     "bikeMassDeltaKg": -0.9425513742155469,
@@ -4208,14 +4208,14 @@
    "bikeMassDeltaKg": 0.13922655892876268,
    "crrDelta": 0
   },
-  "Princeton  Mach TSV2/Blur Disc ": {
-   "cdaDeltaM2": -0.014248666748444244,
-   "bikeMassDeltaKg": 0.3691701240099201,
-   "crrDelta": 0
-  },
   "Princeton Alta 3532": {
    "cdaDeltaM2": -0.0078999933798026,
    "bikeMassDeltaKg": -0.28873720455113316,
+   "crrDelta": 0
+  },
+  "Princeton Mach TSV2/Blur Disc": {
+   "cdaDeltaM2": -0.014248666748444244,
+   "bikeMassDeltaKg": 0.3691701240099201,
    "crrDelta": 0
   },
   "Princeton Wake 6560 Lava": {
@@ -4258,14 +4258,9 @@
    "bikeMassDeltaKg": -0.05256645793570369,
    "crrDelta": 0
   },
-  "Roval Sprint CLX": {
+  "Roval Rapide Sprint CLX": {
    "cdaDeltaM2": -0.012038007352533936,
    "bikeMassDeltaKg": -0.03956102580388386,
-   "crrDelta": 0
-  },
-  "Shimano C36": {
-   "cdaDeltaM2": -0.0075215077568636934,
-   "bikeMassDeltaKg": -0.19677258849063906,
    "crrDelta": 0
   },
   "Shimano C40": {
@@ -4273,34 +4268,24 @@
    "bikeMassDeltaKg": -0.03695165351400266,
    "crrDelta": 0
   },
-  "Shimano C50": {
+  "Shimano DURA-ACE C36": {
+   "cdaDeltaM2": -0.0075215077568636934,
+   "bikeMassDeltaKg": -0.19677258849063906,
+   "crrDelta": 0
+  },
+  "Shimano DURA-ACE C50": {
    "cdaDeltaM2": -0.011094926355779494,
    "bikeMassDeltaKg": -0.1514420155316505,
    "crrDelta": 0
   },
-  "Shimano C60": {
+  "Shimano DURA-ACE C60": {
    "cdaDeltaM2": -0.011831370377943379,
    "bikeMassDeltaKg": -0.09381970642758876,
    "crrDelta": 0
   },
-  "Shimano C99/Disc": {
+  "Shimano DURA-ACE C99 + Disc": {
    "cdaDeltaM2": -0.014906540660541673,
    "bikeMassDeltaKg": 0.3272167186807371,
-   "crrDelta": 0
-  },
-  "Shimano DURA-ACE C36": {
-   "cdaDeltaM2": -0.004420118149521063,
-   "bikeMassDeltaKg": -0.14053520018496402,
-   "crrDelta": 0
-  },
-  "Shimano DURA-ACE C50": {
-   "cdaDeltaM2": -0.005426856613489156,
-   "bikeMassDeltaKg": 0.11258057122373889,
-   "crrDelta": 0
-  },
-  "Shimano DURA-ACE C60": {
-   "cdaDeltaM2": -0.00731258566354434,
-   "bikeMassDeltaKg": 0.19596672931861914,
    "crrDelta": 0
   },
   "SwissSide HADRON Ultimate 650": {

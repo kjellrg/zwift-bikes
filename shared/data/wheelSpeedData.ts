@@ -73,12 +73,8 @@ export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
   'Mavic Cosmic Ultimate UST': { flatGapSec: 17.8, climbGapSec: 6.2, at150W: { flatGapSec: 17.8, climbGapSec: 3.8 }, onTtFrame: { flatGapSec: 20.1, climbGapSec: 5.2 } },
   'Miche Deva RD 62': { flatGapSec: 43.1, climbGapSec: 7.2, at150W: { flatGapSec: 41.9, climbGapSec: 3.5 }, onTtFrame: { flatGapSec: 48.3, climbGapSec: 6.1 } },
   'Novatec Novatec R4': { flatGapSec: 2.5, climbGapSec: -5, at150W: { flatGapSec: 2.5, climbGapSec: -7 }, onTtFrame: { flatGapSec: 2.4, climbGapSec: -6.1 } },
-  // The catalog name really does have a double space after "Princeton" and
-  // end in a non-breaking space (U+00A0) - written as an escape so the key
-  // visibly matches zwift-data's exact bytes. A plain trailing space here
-  // silently misses the lookup and drops the wheel to the estimated preset.
-  'Princeton  Mach TSV2/Blur Disc\u00A0': { flatGapSec: 49.9, climbGapSec: -8.1, at150W: { flatGapSec: 48.2, climbGapSec: -16.8 }, onTtFrame: { flatGapSec: 68, climbGapSec: -8.6 } }, // re-tested after update 1.123 (sheet rows titled "Princeton Carbonworks ...")
   'Princeton Alta 3532': { flatGapSec: 28.8, climbGapSec: 14.5, at150W: { flatGapSec: 28.8, climbGapSec: 11.1 }, onTtFrame: { flatGapSec: 32.8, climbGapSec: 12.1 } },
+  'Princeton Mach TSV2/Blur Disc': { flatGapSec: 49.9, climbGapSec: -8.1, at150W: { flatGapSec: 48.2, climbGapSec: -16.8 }, onTtFrame: { flatGapSec: 68, climbGapSec: -8.6 } }, // re-tested after update 1.123 (sheet rows titled "Princeton Carbonworks ...")
   'Princeton Wake 6560 White': { flatGapSec: 44.3, climbGapSec: 12.7, at150W: { flatGapSec: 43.7, climbGapSec: 7.5 }, onTtFrame: { flatGapSec: 49.9, climbGapSec: 11.6 } },
   // Same wheel as the White in a different colorway - the sheet now tests
   // both colorways and measures them identically.
@@ -89,23 +85,17 @@ export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
   'Roval Alpinist CLX': { flatGapSec: 11.4, climbGapSec: 9.3, at150W: { flatGapSec: 11.7, climbGapSec: 7.1 }, onTtFrame: { flatGapSec: 12.7, climbGapSec: 7.2 } },
   'Roval CLX64': { flatGapSec: 33.9, climbGapSec: 3.9, at150W: { flatGapSec: 32.9, climbGapSec: 0 }, onTtFrame: { flatGapSec: 38.2, climbGapSec: 2.7 } },
   'Roval Rapide CLX': { flatGapSec: 27.2, climbGapSec: 5.3, at150W: { flatGapSec: 27.1, climbGapSec: 2.2 }, onTtFrame: { flatGapSec: 30.6, climbGapSec: 4.7 } },
-  'Roval Sprint CLX': { flatGapSec: 43, climbGapSec: 6.7, at150W: { flatGapSec: 42.4, climbGapSec: 2.2 }, onTtFrame: { flatGapSec: 48.6, climbGapSec: 5 } },
-  // The plain "Shimano Cxx" names are the August 2026 revisions (catalog
-  // entries supplied by `wheelSupplement.ts` until zwift-data ships them,
-  // imageNames "Wheel_ShimanoDuraAceCxx2026"). ZwiftInsider's sheet titles
-  // these rows "Shimano DURA-ACE C36" etc. and retitles the older revisions
-  // below "... C36 2025" / "... C50 2021" / "... C60 2019" - but in the
-  // game dictionary the OLD wheels keep the "Shimano DURA-ACE Cxx" names
-  // unchanged, so both generations' keys here follow the game, not the
-  // sheet.
-  'Shimano C36': { flatGapSec: 27.2, climbGapSec: 10.8, at150W: { flatGapSec: 26.8, climbGapSec: 7.1 }, onTtFrame: { flatGapSec: 31.1, climbGapSec: 9.4 } },
+  'Roval Rapide Sprint CLX': { flatGapSec: 43, climbGapSec: 6.7, at150W: { flatGapSec: 42.4, climbGapSec: 2.2 }, onTtFrame: { flatGapSec: 48.6, climbGapSec: 5 } },
+  // The 2026 revisions, under the names the game gives them (catalog
+  // entries from `wheelSupplement.ts` until zwift-data ships them). The
+  // older revisions these names used to mean are gone from the game, and
+  // their rows with them; the sheet still lists those as "... C36 2025" /
+  // "... C50 2021" / "... C60 2019".
   'Shimano C40': { flatGapSec: 9.8, climbGapSec: 2.6, at150W: { flatGapSec: 10, climbGapSec: 1.7 }, onTtFrame: { flatGapSec: 11, climbGapSec: 1.5 } },
-  'Shimano C50': { flatGapSec: 39.9, climbGapSec: 10.6, at150W: { flatGapSec: 40.1, climbGapSec: 6.2 }, onTtFrame: { flatGapSec: 45.1, climbGapSec: 8.8 } },
-  'Shimano C60': { flatGapSec: 42.4, climbGapSec: 8.7, at150W: { flatGapSec: 41.6, climbGapSec: 2.9 }, onTtFrame: { flatGapSec: 48, climbGapSec: 6.1 } },
-  'Shimano C99/Disc': { flatGapSec: 52.4, climbGapSec: -6.2, at150W: { flatGapSec: 50.3, climbGapSec: -14.9 }, onTtFrame: { flatGapSec: 69.2, climbGapSec: -7 } }, // re-tested after update 1.123
-  'Shimano DURA-ACE C36': { flatGapSec: 16, climbGapSec: 7.3, at150W: { flatGapSec: 15.9, climbGapSec: 6.8 }, onTtFrame: { flatGapSec: 18.1, climbGapSec: 5.3 } },
-  'Shimano DURA-ACE C50': { flatGapSec: 18.9, climbGapSec: -2, at150W: { flatGapSec: 18.3, climbGapSec: -4.6 }, onTtFrame: { flatGapSec: 21.2, climbGapSec: -2.8 } },
-  'Shimano DURA-ACE C60': { flatGapSec: 25.4, climbGapSec: -4.4, at150W: { flatGapSec: 24.7, climbGapSec: -8 }, onTtFrame: { flatGapSec: 28.2, climbGapSec: -5.5 } },
+  'Shimano DURA-ACE C36': { flatGapSec: 27.2, climbGapSec: 10.8, at150W: { flatGapSec: 26.8, climbGapSec: 7.1 }, onTtFrame: { flatGapSec: 31.1, climbGapSec: 9.4 } },
+  'Shimano DURA-ACE C50': { flatGapSec: 39.9, climbGapSec: 10.6, at150W: { flatGapSec: 40.1, climbGapSec: 6.2 }, onTtFrame: { flatGapSec: 45.1, climbGapSec: 8.8 } },
+  'Shimano DURA-ACE C60': { flatGapSec: 42.4, climbGapSec: 8.7, at150W: { flatGapSec: 41.6, climbGapSec: 2.9 }, onTtFrame: { flatGapSec: 48, climbGapSec: 6.1 } },
+  'Shimano DURA-ACE C99 + Disc': { flatGapSec: 52.4, climbGapSec: -6.2, at150W: { flatGapSec: 50.3, climbGapSec: -14.9 }, onTtFrame: { flatGapSec: 69.2, climbGapSec: -7 } }, // re-tested after update 1.123
   'SwissSide HADRON Ultimate 650': { flatGapSec: 46.8, climbGapSec: 6, at150W: { flatGapSec: 45, climbGapSec: 0.5 }, onTtFrame: { flatGapSec: 52.8, climbGapSec: 4.6 } },
   // The sheet's 300W row for this wheel is titled "Swiss Side HADRON
   // Ultimate 850/Disc"; its old-style "SwissSide HADRON Ultimate Disc" row

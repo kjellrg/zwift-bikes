@@ -55,9 +55,10 @@ describe('catalog hygiene', () => {
 
   it('documents the one placeholder zwift-data currently ships, so a second one is noticed', () => {
     // Upstream gap, not ours: the Canyon Aeroad CFR 2026 shipped before its
-    // localized string. When this fails because the list is empty, zwift-data
-    // has caught up - delete this test. When it fails because the list grew,
-    // check the new one is hidden by `getFrames()` and note it here.
+    // localized string, and `frameSupplement.ts` names it in the meantime.
+    // When this fails because the list is empty, zwift-data has caught up -
+    // delete this test. When it fails because the list grew, check the new
+    // one is hidden by `getFrames()` and note it here.
     const placeholders = bikeFrames.filter(f => UNLOCALIZED_FRAME_NAME.test(f.name)).map(f => f.id)
     expect(placeholders).toEqual([2303301376])
   })

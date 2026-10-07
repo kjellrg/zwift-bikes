@@ -20,12 +20,15 @@
 //   - a dictionary frame or wheel that neither zwift-data nor a supplement
 //     accounts for: new equipment, or a provisional entry under a spelling
 //     this script could not match - decide by hand
+//
+// Withdrawn wheels (gone from the game, still in zwift-data) are listed
+// with whether the dictionary still has them; that is never a finding.
 import { readFileSync } from 'node:fs'
 import { bikeFrames, bikeFrontWheels, bikeRearWheels } from 'zwift-data'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 
 const { SUPPLEMENT_FRAMES, isProvisionalFrameId } = loadSharedModule('shared/data/frameSupplement.ts')
-const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS } = loadSharedModule('shared/data/wheelSupplement.ts')
+const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, WITHDRAWN_FRONT_WHEELS, WITHDRAWN_REAR_WHEELS } = loadSharedModule('shared/data/wheelSupplement.ts')
 
 export const DICTIONARY_URL = 'https://www.zwift.com/zwift-web-pages/gamedictionary'
 
@@ -76,11 +79,16 @@ for (const record of dictFrames) {
 }
 
 // --- Wheels ---
-for (const [label, supplement, upstream, dict] of [
-  ['front wheel', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels, dictFront],
-  ['rear wheel', SUPPLEMENT_REAR_WHEELS, bikeRearWheels, dictRear]
+for (const [label, supplement, upstream, dict, withdrawn] of [
+  ['front wheel', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels, dictFront, WITHDRAWN_FRONT_WHEELS],
+  ['rear wheel', SUPPLEMENT_REAR_WHEELS, bikeRearWheels, dictRear, WITHDRAWN_REAR_WHEELS]
 ]) {
   const byId = new Map(dict.map(w => [w.id, w]))
+  // A withdrawal rests on an in-game check, not on the dictionary, which can
+  // keep a record the game no longer offers - so it is reported, never failed.
+  for (const wheel of withdrawn) {
+    console.log(`${label} ${JSON.stringify(wheel.name)} (id ${wheel.id}): withdrawn - ${byId.has(wheel.id) ? 'the dictionary still lists it' : 'the dictionary has dropped it too; delete the withdrawal once zwift-data does'}`)
+  }
   for (const wheel of supplement) {
     const record = byId.get(wheel.id)
     if (!record) {

@@ -31,11 +31,14 @@ import type { BikeFrame } from 'zwift-data'
  *   `isProvisionalFrameId` tells the validator and the check script which
  *   entries still need their real id. Garages key frames by id, so a rider
  *   who adds one of these loses that garage entry when the real id lands -
- *   accepted, and the same trade the wheel renames already made.
+ *   accepted. (A wheel rename, by contrast, carries the garage over through
+ *   `RENAMED_WHEELSET_KEYS` in `wheelSupplement.ts`.)
  *
- * Speed data for all seven is measured (ZwiftInsider's 300 W bot tests,
- * sheet fetched 2026-10-06) and lives in `TT_FRAME_SPEED_DATA` under these
- * exact names.
+ * Speed data for update 1.123's seven TT frames is measured (ZwiftInsider's
+ * 300 W bot tests, sheet fetched 2026-10-06) and lives in
+ * `TT_FRAME_SPEED_DATA` under these exact names. A frame nobody has measured
+ * can be supplemented too (the Wilier below): it ranks as estimated, and
+ * its upgrade scheme is marked `derived`.
  *
  * The same list also carries RENAMES: a frame the package already ships
  * under an older name that the dictionary has since changed. The entry
@@ -81,7 +84,18 @@ export const SUPPLEMENT_FRAMES: BikeFrame[] = [
   { id: PROVISIONAL_FRAME_ID_BASE + 3, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true },
   // Renamed in the game (dictionary fetched 2026-10-06); the package still
   // says "Specialized Tarmac SL9". Same id, so garages keep it.
-  { id: 3371227947, name: 'Specialized S-Works Tarmac SL9', modelYear: 2026, isTT: false }
+  { id: 3371227947, name: 'Specialized S-Works Tarmac SL9', modelYear: 2026, isTT: false },
+  // zwift-data 1.50 ships this id under the placeholder
+  // `Canyon LOC_ENTITLEMENT_CYCLING_BIKE_CANYON_AEROADCFR2026_NAME`; the
+  // dictionary (fetched 2026-10-07) now names it. A re-skin of the Canyon
+  // Aeroad CFR Alpecin Premier-Tech (ZwiftInsider: same performance, a
+  // different paintjob), measured identically on the sheet.
+  { id: 2303301376, name: 'Canyon Aeroad CFR - CANYON//SRAM', modelYear: 2026, isTT: false },
+  // In the dictionary (fetched 2026-10-07), not in zwift-data 1.50. Estimated:
+  // probably a re-skin of the Filante SLR ID2 Team, but nothing proves it,
+  // so it does not borrow the Team's measurement. Its upgrade scheme is
+  // derived from its `lvId` (see `FRAME_UPGRADE_SCHEMES`).
+  { id: 3123624451, name: 'Wilier Filante SLR ID2 We Ride Paris', modelYear: 2026, isTT: false }
 ]
 
 /**

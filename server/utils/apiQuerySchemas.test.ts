@@ -119,6 +119,11 @@ describe('garage parameters', () => {
     expect(recommendRouteQuerySchema.safeParse({ ownedWheels: '{"a":1}' }).success).toBe(false)
     expect(recommendRouteQuerySchema.safeParse({ ownedWheels: '[1]' }).success).toBe(false)
   })
+
+  it('reads a wheel the game renamed under its new key, so an old link or client keeps it (#272)', () => {
+    expect(recommendRouteQuerySchema.parse({ ownedWheels: '["Roval Sprint CLX","Shimano C99/Disc","Zipp 808"]' }).ownedWheels)
+      .toEqual(new Set(['Roval Rapide Sprint CLX', 'Shimano DURA-ACE C99 + Disc', 'Zipp 808']))
+  })
 })
 
 describe('route cards query', () => {
