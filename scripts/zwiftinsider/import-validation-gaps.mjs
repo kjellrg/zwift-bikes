@@ -265,7 +265,9 @@ async function importFrames() {
 // ---------------------------------------------------------------- wheels ---
 async function importWheels() {
   const rows = parseCsv(await loadCsv({ path: args['csv-wheels'], url: WHEELS_CSV_URL }))
-  const header = rows[0] ?? []
+  // Same two-row header as the frames tab: row 0 is the "Flat Test Results /
+  // Climb Test Results" group header, row 1 the real header.
+  const header = rows[1] ?? []
   if (header[0] !== 'Bike' || header[1] !== 'Wheels' || header[6] !== 'Power (W)' || header[8] !== 'Hour Time Gap' || header[10] !== 'Hour Time Gap') {
     report.fatal.push('wheels tab layout changed - expected Bike, Wheels, Power (W) in columns A/B/G and gap columns I and K; refusing to guess')
     return new Map()
@@ -274,7 +276,7 @@ async function importWheels() {
   const blocks = new Map() // repo key -> { at150W?, onTtFrame? }
 
   for (const [frame, power, field] of [['Zwift Carbon', '150', 'at150W'], ['Zwift TT', '300', 'onTtFrame']]) {
-    const group = rows.slice(1).filter(r => r[0] === frame && r[6] === power)
+    const group = rows.slice(2).filter(r => r[0] === frame && r[6] === power)
     const baselineRow = group.find(r => r[1].replace(/[ \t]+$/, '') === 'Zwift 32mm Carbon')
     if (!baselineRow) {
       report.fatal.push(`wheels tab: no "Zwift 32mm Carbon" row in the ${frame} @ ${power} W group`)

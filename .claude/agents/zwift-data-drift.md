@@ -26,9 +26,9 @@ decisions with citations in the code comments.
 
 - `https://zwiftinsider.com/charts-frames/` - standard/road frames
 - `https://zwiftinsider.com/charts-tt/` - TT frames (**different baseline**)
-- `https://zwiftinsider.com/charts-wheels/` - wheels. The wheels tab has no
-  published gid; `scripts/zwiftinsider/sheet.mjs` reaches it through the
-  gviz export by tab title (`WHEELS_CSV_URL`), and the frames tab by gid.
+- `https://zwiftinsider.com/charts-wheels/` - wheels. `scripts/zwiftinsider/sheet.mjs`
+  reaches both tabs by gid (`FRAMES_CSV_URL`, `WHEELS_CSV_URL`). Never use the
+  gviz export (`gviz/tq?...`): it applies the owner's filter and drops hidden rows.
 - The public Google Sheet those pages cite. **Find its link on the pages
   rather than assuming a URL** - it has moved before. Prefer the CSV export
   (`/export?format=csv&gid=<gid>`) over scraping rendered HTML, and report

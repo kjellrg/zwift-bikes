@@ -9,11 +9,12 @@ import { readFileSync } from 'node:fs'
 
 export const SHEET_ID = '1S0pTN_hBMddX0GhCqSOd6fPlIJeWtw0xr6Y1M6PzNJY'
 
-// The frames tab is addressed by gid (the link the charts pages cite); the
-// wheels tab has no published gid, so it goes through the gviz export, which
-// takes the tab's title instead.
+// Both tabs go through the plain CSV export by gid. Never the gviz export
+// (`gviz/tq?tqx=out:csv&sheet=...`): it applies whatever filter the sheet's
+// owner left on the tab and silently drops the hidden rows - in October 2026
+// that hid every 150 W wheel row, baseline included.
 export const FRAMES_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=173681512`
-export const WHEELS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Wheels`
+export const WHEELS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=1966597556`
 
 /**
  * The sheet's own "Hour Time Gap" definition: how many seconds the baseline
