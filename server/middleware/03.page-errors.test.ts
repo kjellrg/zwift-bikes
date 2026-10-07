@@ -53,8 +53,9 @@ describe('a page URL', () => {
   ]
 
   it.each(PAGES)('%s asks for HTML whatever the caller sent', (path) => {
-    // curl's default, an agent's `application/json`, and no header at all:
-    // each one is what makes Nitro answer a page's error in JSON today.
+    // Without `text/html`, Nitro answers a script's request - curl with its
+    // wildcard or no header, an agent asking for JSON - in JSON. A browser's
+    // header is rewritten too: one rule, whoever asked.
     expect(acceptAfter(path, '*/*')).toBe('text/html')
     expect(acceptAfter(path, 'application/json')).toBe('text/html')
     expect(acceptAfter(path, undefined)).toBe('text/html')

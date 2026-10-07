@@ -23,22 +23,23 @@ const WRONG_URLS = [
   { kind: 'top-level path', path: '/xyz' }
 ]
 
+interface Caller { name: string, headers: Record<string, string> }
+
 const CURL = 'curl/8.5.0'
+const BROWSER: Caller = { name: 'a browser', headers: { accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' } }
+const CURL_DEFAULT: Caller = { name: 'curl\'s default */*', headers: { 'accept': '*/*', 'user-agent': CURL } }
+// An empty value is how a request context sends "no Accept": Playwright
+// adds its own `*/*` to a header left out.
+const NO_ACCEPT: Caller = { name: 'no Accept header', headers: { 'accept': '', 'user-agent': CURL } }
+const JSON_AGENT: Caller = { name: 'an agent asking for JSON', headers: { accept: 'application/json' } }
 
 /** The callers the ticket names, with the headers each really sends. */
-const CALLERS: { name: string, headers: Record<string, string> }[] = [
-  { name: 'a browser', headers: { accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' } },
-  { name: 'curl\'s default */*', headers: { 'accept': '*/*', 'user-agent': CURL } },
-  // An empty value is how a request context sends "no Accept": Playwright
-  // adds its own `*/*` to a header left out.
-  { name: 'no Accept header', headers: { 'accept': '', 'user-agent': CURL } },
-  { name: 'an agent asking for JSON', headers: { accept: 'application/json' } }
-]
+const CALLERS = [BROWSER, CURL_DEFAULT, NO_ACCEPT, JSON_AGENT]
 
 /** What a crawler reads off the served body. */
-async function served(page: Page, html: string) {
-  return page.evaluate((html) => {
-    const doc = new DOMParser().parseFromString(html, 'text/html')
+async function served(page: Page, source: string) {
+  return page.evaluate((source) => {
+    const doc = new DOMParser().parseFromString(source, 'text/html')
     const main = doc.querySelector('main')
     return {
       robots: [...doc.querySelectorAll('meta[name="robots"]')].map(meta => meta.getAttribute('content')),
@@ -46,7 +47,7 @@ async function served(page: Page, html: string) {
       text: main?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
       links: [...main?.querySelectorAll('a') ?? []].map(link => ({ text: link.textContent?.trim(), href: link.getAttribute('href') }))
     }
-  }, html)
+  }, source)
 }
 
 /** Every `X-Robots-Tag` the response carries - there must be exactly one. */
@@ -71,11 +72,11 @@ test.describe('a wrong URL', () => {
         // `follow`: its links are where a rider should go next.
         expect(robotsHeaders(response)).toEqual(['noindex, follow'])
 
-        const html = await served(page, await response.text())
-        expect(html.robots).toEqual(['noindex, follow'])
-        expect(html.heading).toMatch(/not found/)
-        expect(html.text).toContain(EXPLANATION)
-        expect(html.links).toEqual(ONWARD_LINKS)
+        const body = await served(page, await response.text())
+        expect(body.robots).toEqual(['noindex, follow'])
+        expect(body.heading).toMatch(/not found/)
+        expect(body.text).toContain(EXPLANATION)
+        expect(body.links).toEqual(ONWARD_LINKS)
       })
     }
   }
@@ -99,8 +100,7 @@ test.describe('a wrong URL without JavaScript', () => {
 
 test.describe('what is not a page', () => {
   test('a wrong API URL stays a JSON error', async ({ request }) => {
-    const callers: Record<string, string>[] = [{ 'accept': '*/*', 'user-agent': CURL }, { accept: 'application/json' }]
-    for (const headers of callers) {
+    for (const { headers } of [CURL_DEFAULT, JSON_AGENT]) {
       const response = await request.get('/api/routes/no-such-route', { headers })
       expect(response.status()).toBe(404)
       expect(response.headers()['content-type']).toContain('application/json')
@@ -113,7 +113,7 @@ test.describe('what is not a page', () => {
     // the page-error middleware runs, and Nitro picks JSON for it by the
     // agent's user agent, as before - a browser's agent asking for markdown
     // would get the HTML page, which is noindex all the same.
-    const response = await request.get('/routes/no-such-route', { headers: { 'accept': 'text/markdown', 'user-agent': CURL } })
+    const response = await request.get('/routes/no-such-route', { headers: { ...CURL_DEFAULT.headers, accept: 'text/markdown' } })
     expect(response.status()).toBe(404)
     expect(response.headers()['content-type']).toContain('application/json')
     expect((await response.json()).statusCode).toBe(404)

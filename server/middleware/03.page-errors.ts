@@ -8,13 +8,21 @@ import { prefersMarkdown } from '../utils/markdown/negotiate'
  *
  * ## The `Accept` header decides HTML or JSON
  *
- * Nitro's error handler answers in JSON unless the request's `Accept` names
- * `text/html` (`isJsonRequest` in `@nuxt/nitro-server`): curl's default
- * wildcard, an agent's `application/json` and a request with no `Accept`
- * all got the JSON error body instead of the page. So on a page URL the
- * header is rewritten to `text/html` before the page renders, and Nuxt
+ * Nuxt's Nitro error handler answers in JSON when the request's `Accept`
+ * does not name `text/html` and the request looks like a script
+ * (`isJsonRequest` in `@nuxt/nitro-server`): an `Accept` with
+ * `application/json`, a curl or HTTPie user agent, `Sec-Fetch-Mode: cors`.
+ * So curl with its default wildcard or with no `Accept`, and an agent asking
+ * for JSON, all got the JSON error body instead of the page. On a page URL
+ * the header is rewritten to `text/html` before the page renders, and Nuxt
  * renders `error.vue` exactly as it does for a browser. Every status goes
  * the same way - a 500 on a page is the same page with the same noindex.
+ *
+ * An unknown top-level path such as `/xyz` reaches this Worker too, though
+ * it is not in `run_worker_first` (wrangler.jsonc): with no
+ * `not_found_handling` set, an asset miss falls through to the Worker
+ * rather than being answered by the asset layer (checked under
+ * `wrangler dev` against a production build, and live in the issue).
  *
  * `03.` puts it after the three numbered middlewares, none of which throws
  * for a page request that did not ask for markdown: the rate limit and the
