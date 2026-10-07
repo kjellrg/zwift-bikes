@@ -37,6 +37,14 @@ jobs:
       # so lint cannot run off a bare checkout.
       - name: Install dependencies
         run: npm ci
+      # Supply-chain check over the tree `npm ci` just installed: every
+      # package must carry a valid registry signature, and any that publishes
+      # provenance attestations must have ones that verify. Catches a tarball
+      # swapped behind an unchanged version, and a package that silently stops
+      # being built from its public repo. Needs the registry, so it stays here
+      # rather than in the offline pre-commit hook. ~30s.
+      - name: Verify package signatures and provenance
+        run: npm audit signatures
       - name: Lint
         run: npm run lint
       # Prose-only spellcheck of the event specifications, docs and README -
