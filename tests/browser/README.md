@@ -38,6 +38,11 @@ cannot be seen any other way. `visit` waits for a ranking page's results;
 `visitPage` is for the pages without one (the discovery pages, events,
 profile).
 
+`not-found.spec.ts` is the one spec that imports nothing from `support.ts`: it
+reads wrong URLs through the request context, sending the headers curl, an
+agent and a browser really send (Nitro picks JSON or HTML by them), plus one
+load with JavaScript off, which has no hydration to wait for.
+
 Two journeys need a page to change under an open Overlay, which no rider
 gesture reaches since #239 - an open Overlay covers every link, and back now
 closes the Overlay instead of navigating. `navigateUnderOverlay` in
