@@ -35,11 +35,11 @@
 //     below (the sheet spells many wheels differently from the game, and
 //     spells the SAME bike differently between its own 150 W and 300 W
 //     rows). Unmatched names are listed with their closest catalog key so
-//     an alias can be added deliberately - never fuzzy-matched. Note the
-//     Shimano trap: the sheet's "Shimano DURA-ACE C50" is the 2026 wheel the
-//     game calls "Shimano C50", while the game's "Shimano DURA-ACE C50" is
-//     the sheet's "... C50 2021" - so aliases are applied BEFORE the exact
-//     match, and every alias that overrides an exact key is reported.
+//     an alias can be added deliberately - never fuzzy-matched. Aliases are
+//     applied BEFORE the exact match, and every alias that overrides an
+//     exact key is reported: the sheet and the game have used one name for
+//     two wheels before (the Shimano DURA-ACE generations, until the game
+//     dropped the older ones - issue #272).
 //   - only rows in the repo tables get a block; equipment the sheet tests
 //     but the tables lack is listed, not added (adding equipment is a
 //     ranking change with its own intake process).
@@ -84,7 +84,6 @@ const FRAME_ALIASES = {
   'Van Rysel RCR-X': 'VanRysel RCR-X',
   'Wilier Filante SLR ID2': 'Wilier Filante SLR ID2 Team',
   'WilierFilante Filante SLR ID2 Team': 'Wilier Filante SLR ID2 Team',
-  'Canyon Aeroad CFR - CANYON//SRAM': 'Canyon Aeroad 2024 / SRAM',
   'Quintana Roo V-PR': 'QuintanaRoo Roo V-PR',
   // Update 1.123 retitled the superseded TT frames' rows with their model
   // year (the game keeps the old names) and re-tested the Shiv Disc under
@@ -98,19 +97,14 @@ const FRAME_ALIASES = {
 
 // Verified against the WHEEL_SPEED_DATA keys (which validate-speed-data.mjs
 // pins to the game catalog). Trailing ASCII whitespace is trimmed from sheet
-// names before lookup; the Princeton key's trailing NBSP is the game's own.
+// names before lookup.
 const WHEEL_ALIASES = {
-  // 2026 revisions: the sheet adds "DURA-ACE", the game dropped it.
-  'Shimano DURA-ACE C36': 'Shimano C36',
-  'Shimano DURA-ACE C50': 'Shimano C50',
-  'Shimano DURA-ACE C60': 'Shimano C60',
-  // Legacy revisions: the sheet appends the model year, the game does not.
-  'Shimano DURA-ACE C36 2025': 'Shimano DURA-ACE C36',
-  'Shimano DURA-ACE C50 2021': 'Shimano DURA-ACE C50',
-  'Shimano DURA-ACE C60 2019': 'Shimano DURA-ACE C60',
-  // No legacy twin for these two; the sheet name is just the 2026 name plus "DURA-ACE".
+  // The 2026 Shimano revisions match the game's names exactly, except the
+  // disc set, which the game writes "C99 + Disc". The sheet's model-year
+  // rows ("... C36 2025" etc.) are the older revisions the game removed, so
+  // they stay unmatched. The C40 is plain "Shimano C40" in the game.
   'Shimano DURA-ACE C40': 'Shimano C40',
-  'Shimano DURA-ACE C99/Disc': 'Shimano C99/Disc',
+  'Shimano DURA-ACE C99/Disc': 'Shimano DURA-ACE C99 + Disc',
   // Zwift's own wheels: the game's names carry "Wheels"/"Wheelset"/"Wheel" suffixes the sheet drops.
   'Zwift Baseline': 'Zwift Zwift Baseline Wheels',
   'Zwift Groovy Time Trial': 'Zwift Groovy Time Trial Wheels',
@@ -136,9 +130,8 @@ const WHEEL_ALIASES = {
   'Princeton Carbonworks Alta 3532': 'Princeton Alta 3532',
   'Princeton Carbonworks Wake 6560 White': 'Princeton Wake 6560 White',
   'Princeton Carbonworks Wake 6560 Lava': 'Princeton Wake 6560 Lava',
-  'Princeton Carbonworks Mach TSV2/Blur Disc': 'Princeton  Mach TSV2/Blur Disc\u00A0',
-  'Princeton  Mach TSV2/Blur Disc': 'Princeton  Mach TSV2/Blur Disc\u00A0',
-  'Roval Rapide Sprint CLX': 'Roval Sprint CLX',
+  'Princeton Carbonworks Mach TSV2/Blur Disc': 'Princeton Mach TSV2/Blur Disc',
+  'Princeton  Mach TSV2/Blur Disc': 'Princeton Mach TSV2/Blur Disc',
   'Swiss Side HADRON Ultimate 650': 'SwissSide HADRON Ultimate 650',
   'Swiss Side HADRON Ultimate 850/Disc': 'SwissSide HADRON Ultimate Disc',
   'SwissSide HADRON Ultimate Disc': 'SwissSide HADRON Ultimate Disc'
@@ -166,7 +159,7 @@ function nearMiss(name, keys) {
 
 /**
  * Resolves a sheet name to a repo key. Aliases win over an exact match
- * (Shimano), and every such override is reported so it stays a conscious
+ * (see the safety rules above), and every such override is reported so it stays a conscious
  * decision. Returns undefined (and records the miss) when nothing matches.
  */
 function resolveKey(sheetName, aliases, keys, section) {
@@ -362,7 +355,7 @@ function augmentLine(line, blocks) {
   return stripped.replace(/ \}(,?)(\s*(?:\/\/.*)?)$/, `, ${suffix} }$1$2`)
 }
 
-/** The key as it appears in the source file - the Princeton key's trailing NBSP is written as a `\\u00A0` escape there. */
+/** The key as it appears in the source file - a non-breaking space in a key is written as a `\\u00A0` escape there (the Princeton key had one until the game renamed it, issue #272). */
 function sourceKey(key) {
   return key.replace(/\u00A0/g, '\\u00A0')
 }
@@ -425,7 +418,7 @@ list('FRAMES - 150 W row incomplete, not imported', report.frames.incomplete)
 list('FRAMES - duplicate 150 W rows (first kept)', report.frames.duplicates)
 list('FRAMES - table rows with no usable 150 W row', report.frames.notCovered)
 list('WHEELS - sheet names with no matching table key (expected for wheels the tables do not carry)', report.wheels.unmatched)
-list('WHEELS - alias overrode an exact key (Shimano generations - expected)', report.wheels.aliasOverrides)
+list('WHEELS - alias overrode an exact key (check each is deliberate)', report.wheels.aliasOverrides)
 list('WHEELS - CORRUPT: gap irreconcilable with its own speed cells, not imported', report.wheels.corrupt)
 list('WHEELS - baseline-era drift: printed gap imported, computed against a different baseline speed than the baseline row prints', report.wheels.eraDrift)
 list('WHEELS - row incomplete, not imported', report.wheels.incomplete)

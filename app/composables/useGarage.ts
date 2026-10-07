@@ -1,4 +1,5 @@
 import { toUpgradeStage } from '#shared/utils/upgradeStage'
+import { migrateWheelsetKeys } from '#shared/data/wheelSupplement'
 
 const STORAGE_KEY = 'zwift-bikes:garage'
 const WHEELS_STORAGE_KEY = 'zwift-bikes:garage-wheels'
@@ -51,9 +52,13 @@ export function useGarage() {
     const nextOwned = loadStored<Record<number, number>>(STORAGE_KEY, value =>
       typeof value === 'number' && Number.isFinite(value) ? toUpgradeStage(value) : undefined)
     if (JSON.stringify(nextOwned) !== JSON.stringify(owned.value)) owned.value = nextOwned
-    const nextOwnedWheels = loadStored<Record<string, true>>(WHEELS_STORAGE_KEY, value =>
+    const storedWheels = loadStored<Record<string, true>>(WHEELS_STORAGE_KEY, value =>
       value === true ? true : undefined)
-    if (JSON.stringify(nextOwnedWheels) !== JSON.stringify(ownedWheels.value)) ownedWheels.value = nextOwnedWheels
+    // A wheel the game renamed is stored under its old key; move it to the
+    // new one and write the garage back, so the rename costs no rider a wheel.
+    const nextOwnedWheels = migrateWheelsetKeys(storedWheels)
+    if (JSON.stringify(nextOwnedWheels) !== JSON.stringify(ownedWheels.value)) ownedWheels.value = { ...nextOwnedWheels }
+    if (nextOwnedWheels !== storedWheels) persist()
   }
 
   /** Marks a frame as owned at the given level (0-5), or removes it when `level` is null. */

@@ -81,7 +81,13 @@ export const SUPPLEMENT_FRAMES: BikeFrame[] = [
   { id: PROVISIONAL_FRAME_ID_BASE + 3, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true },
   // Renamed in the game (dictionary fetched 2026-10-06); the package still
   // says "Specialized Tarmac SL9". Same id, so garages keep it.
-  { id: 3371227947, name: 'Specialized S-Works Tarmac SL9', modelYear: 2026, isTT: false }
+  { id: 3371227947, name: 'Specialized S-Works Tarmac SL9', modelYear: 2026, isTT: false },
+  // zwift-data 1.50 ships this id under the placeholder
+  // `Canyon LOC_ENTITLEMENT_CYCLING_BIKE_CANYON_AEROADCFR2026_NAME`; the
+  // dictionary (fetched 2026-10-07) now names it. A re-skin of the Canyon
+  // Aeroad CFR Alpecin Premier-Tech (ZwiftInsider: same performance, a
+  // different paintjob), measured identically on the sheet.
+  { id: 2303301376, name: 'Canyon Aeroad CFR - CANYON//SRAM', modelYear: 2026, isTT: false }
 ]
 
 /**

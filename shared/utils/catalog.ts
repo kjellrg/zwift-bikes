@@ -23,7 +23,8 @@ export function getWorldName(slug: string): string {
  * point it appears on its own. `validate-speed-data.mjs` warns per
  * placeholder so a new one is noticed, without failing the build on
  * something the repo cannot fix - unless `frameSupplement.ts` carries the
- * frame under a provisional name, in which case that entry is the bike.
+ * frame under its real or a provisional name, in which case that entry is
+ * the bike (the CFR above is "Canyon Aeroad CFR - CANYON//SRAM", #272).
  *
  * The frame catalog is zwift-data plus the supplement, merged here at the
  * one place every frame enters it (the wheel twin is `getWheelsets()`).

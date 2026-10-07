@@ -129,7 +129,7 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   'Canyon Aeroad 2015': { axis: 'distance', tier: 'mid' },
   'Canyon Aeroad 2021': { axis: 'distance', tier: 'high' },
   'Canyon Aeroad 2024': { axis: 'distance', tier: 'high' },
-  'Canyon Aeroad 2024 / SRAM': { axis: 'distance', tier: 'high' },
+  'Canyon Aeroad CFR - CANYON//SRAM': { axis: 'distance', tier: 'high' },
   'Canyon Aeroad CFR Alpecin Premier-Tech': { axis: 'distance', tier: 'high' },
   'Canyon Inflite': { axis: 'distance', tier: 'entry' },
   'Canyon Lux': { axis: 'elevation', tier: 'mid' },

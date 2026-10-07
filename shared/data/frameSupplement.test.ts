@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { bikeFrames } from 'zwift-data'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from './frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES } from './frameUpgradeSchemes'
+import { getFrames } from '../utils/catalog'
 import { applyFrameSupplement, isProvisionalFrameId, PROVISIONAL_FRAME_ID_BASE, SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME } from './frameSupplement'
 
 describe('applyFrameSupplement', () => {
@@ -49,5 +50,25 @@ describe('the shipped supplement', () => {
       expect((frame.isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[frame.name], `${frame.name} speed row`).toBeDefined()
       expect(FRAME_UPGRADE_SCHEMES[frame.name], `${frame.name} scheme`).toBeDefined()
     }
+  })
+})
+
+describe('the two Canyon Aeroads the sheet\'s CANYON//SRAM row was confused between (#272)', () => {
+  const byId = (id: number) => getFrames().find(f => f.id === id)
+
+  it('the CFR - CANYON//SRAM is in the catalog under its game name, ranked on its own measurement', () => {
+    const cfr = byId(2303301376)
+    expect(cfr?.name).toBe('Canyon Aeroad CFR - CANYON//SRAM')
+    expect(cfr?.confidence).toBe('measured')
+    // The sheet's 300 W row for it: stage 0 and stage 5, flat and climb.
+    expect(cfr?.upgradeCurve?.flat).toEqual([63.3, 74.6, 75.8, 87.6, 92.1, 92.4])
+    expect(cfr?.upgradeCurve?.climb).toEqual([43.6, 44.6, 60.7, 71.7, 72.6, 80.1])
+  })
+
+  it('the Aeroad 2024 / SRAM, which nobody has measured, is estimated rather than ranked on the CFR\'s numbers', () => {
+    const sram = byId(1122831861)
+    expect(sram?.name).toBe('Canyon Aeroad 2024 / SRAM')
+    expect(sram?.confidence).toBe('estimated')
+    expect(sram?.upgradeCurve).toBeUndefined()
   })
 })

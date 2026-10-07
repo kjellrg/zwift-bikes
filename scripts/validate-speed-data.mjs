@@ -23,12 +23,16 @@
 //   - an `INTEGRATED_ONLY_WHEELS` name that isn't in both wheel catalogs
 //   - a `wheelSupplement.ts` entry that zwift-data now ships (by id or
 //     name) - the supplement only bridges the gap until upstream catches up
+//     - or a withdrawal of an id zwift-data no longer ships
+//   - two frames, or two front/rear wheels, under one name in the merged
+//     catalog, unless `shared/utils/catalogNames.ts` knows the name is
+//     shared on purpose (issue #272)
 //   - an `at150W` / `onTtFrame` validation block that is incomplete, a
 //     reference row whose 300 W or 150 W values are not the sheet's, or a
 //     row whose 150 W block just repeats its 300 W values
 //
 // Wheel-name checks run against the zwift-data catalog MERGED with
-// `wheelSupplement.ts`, mirroring the runtime catalog in `getWheelsets()`.
+// `wheelSupplement.ts` (renames and withdrawals applied), mirroring the runtime catalog in `getWheelsets()`.
 //
 // On a mismatch the closest catalog candidate (case/whitespace-insensitive)
 // is printed with the codepoints of the differing span.
@@ -36,10 +40,11 @@ import { bikeFrames, bikeFrontWheels, bikeRearWheels } from 'zwift-data'
 import { loadSharedModule } from './route-surfaces/loadShared.mjs'
 
 const { WHEEL_SPEED_DATA } = loadSharedModule('shared/data/wheelSpeedData.ts')
-const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, applyWheelSupplement } = loadSharedModule('shared/data/wheelSupplement.ts')
+const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, WITHDRAWN_FRONT_WHEELS, WITHDRAWN_REAR_WHEELS, applyWheelSupplement } = loadSharedModule('shared/data/wheelSupplement.ts')
 const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/frameSpeedData.ts')
 const { FRAME_UPGRADE_SCHEMES } = loadSharedModule('shared/data/frameUpgradeSchemes.ts')
 const { SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME, applyFrameSupplement, isProvisionalFrameId } = loadSharedModule('shared/data/frameSupplement.ts')
+const { KNOWN_SHARED_FRAME_NAMES, KNOWN_SHARED_WHEEL_NAMES, findNameClashes } = loadSharedModule('shared/utils/catalogNames.ts')
 
 const errors = []
 
@@ -80,35 +85,48 @@ function checkKeys(label, keys, catalogNames) {
 // The wheel catalog is zwift-data plus the supplement (wheels live in the
 // game but not yet shipped upstream - see `shared/data/wheelSupplement.ts`),
 // merged exactly the way `getWheelsets()` merges them at runtime.
-const frontWheelNames = applyWheelSupplement(bikeFrontWheels, SUPPLEMENT_FRONT_WHEELS).map(w => w.name)
-const rearWheelNames = new Set(applyWheelSupplement(bikeRearWheels, SUPPLEMENT_REAR_WHEELS).map(w => w.name))
+const frontWheels = applyWheelSupplement(bikeFrontWheels, SUPPLEMENT_FRONT_WHEELS, WITHDRAWN_FRONT_WHEELS)
+const rearWheels = applyWheelSupplement(bikeRearWheels, SUPPLEMENT_REAR_WHEELS, WITHDRAWN_REAR_WHEELS)
+const frontWheelNames = frontWheels.map(w => w.name)
+const rearWheelNames = new Set(rearWheels.map(w => w.name))
 // `classifyWheel` looks rows up for front AND rear wheels, and some wheels
 // are rear-only in the catalog (disc rears like "Zipp 808/Super9") - so the
 // valid key domain is the union of both lists.
 const anyWheelNames = [...new Set([...frontWheelNames, ...rearWheelNames])]
 
 // Supplement staleness: the runtime merge silently prefers upstream on any
-// name/id collision, so a zwift-data release can never break the app - but
-// the moment upstream ships a supplemented wheel, its entry here is dead
-// weight (and a *near-miss* name spelling would leave BOTH wheels in the
-// catalog). Fail the build with the exact cleanup instruction instead of
-// letting either state linger.
-for (const [label, supplement, upstream] of [
-  ['SUPPLEMENT_FRONT_WHEELS', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels],
-  ['SUPPLEMENT_REAR_WHEELS', SUPPLEMENT_REAR_WHEELS, bikeRearWheels]
+// name collision, so a zwift-data release can never break the app - but the
+// moment upstream ships a supplemented wheel, its entry here is dead weight
+// (and a *near-miss* name spelling would leave BOTH wheels in the catalog).
+// Fail the build with the exact cleanup instruction instead of letting
+// either state linger. An entry on an upstream id with a different name is
+// a rename, legitimate until upstream ships the same name - warned, the way
+// frame renames are, and proved by `npm run supplement:check`.
+for (const [label, supplement, upstream, withdrawn] of [
+  ['SUPPLEMENT_FRONT_WHEELS', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels, WITHDRAWN_FRONT_WHEELS],
+  ['SUPPLEMENT_REAR_WHEELS', SUPPLEMENT_REAR_WHEELS, bikeRearWheels, WITHDRAWN_REAR_WHEELS]
 ]) {
-  const upstreamByNormalized = new Map(upstream.map(w => [normalize(w.name), w]))
-  const upstreamById = new Map(upstream.map(w => [w.id, w]))
+  const withdrawnIds = new Set(withdrawn.map(w => w.id))
+  const current = upstream.filter(w => !withdrawnIds.has(w.id))
+  const upstreamByNormalized = new Map(current.map(w => [normalize(w.name), w]))
+  const upstreamById = new Map(current.map(w => [w.id, w]))
   for (const wheel of supplement) {
     const byId = upstreamById.get(wheel.id)
     const byName = upstreamByNormalized.get(normalize(wheel.name))
-    if (!byId && !byName) continue
-    const upstreamName = (byId ?? byName).name
-    if (upstreamName === wheel.name) {
-      errors.push(`${label}: zwift-data now ships ${JSON.stringify(wheel.name)} - delete its supplement entry`)
-    } else {
-      errors.push(`${label}: zwift-data now ships supplement entry ${JSON.stringify(wheel.name)} (id ${wheel.id}) under the name ${JSON.stringify(upstreamName)} - delete the supplement entry and re-key any speed data/garage identity on the upstream spelling - first differing span:\n${diffSpan(wheel.name, upstreamName)}`)
+    if (byId) {
+      if (byId.name === wheel.name) errors.push(`${label}: zwift-data now ships ${JSON.stringify(wheel.name)} (id ${wheel.id}) - delete its supplement entry`)
+      else console.warn(`WARN: ${label}: ${JSON.stringify(wheel.name)} (id ${wheel.id}) overrides the upstream name ${JSON.stringify(byId.name)} - \`npm run supplement:check\` confirms the game still agrees`)
+      if (byName && byName.id !== wheel.id) errors.push(`${label}: ${JSON.stringify(wheel.name)} (id ${wheel.id}) is also the upstream name of id ${byName.id} - two wheels cannot share a name-keyed row`)
+      continue
     }
+    if (byName) {
+      errors.push(`${label}: zwift-data now ships supplement entry ${JSON.stringify(wheel.name)} (id ${wheel.id}) under id ${byName.id}${byName.name === wheel.name ? '' : ` and the name ${JSON.stringify(byName.name)}`} - the merge drops the entry; delete it and re-key any speed data/garage identity on the upstream spelling - first differing span:\n${diffSpan(wheel.name, byName.name)}`)
+    }
+  }
+  // A withdrawal is dead weight once upstream stops shipping the id.
+  const upstreamIds = new Set(upstream.map(w => w.id))
+  for (const wheel of withdrawn) {
+    if (!upstreamIds.has(wheel.id)) errors.push(`${label.replace('SUPPLEMENT', 'WITHDRAWN')}: zwift-data no longer ships ${JSON.stringify(wheel.name)} (id ${wheel.id}) - delete the withdrawal`)
   }
 }
 // The frame catalog is zwift-data plus `frameSupplement.ts`, merged the way
@@ -141,6 +159,23 @@ const frameNames = frames.map(f => f.name)
       continue
     }
     if (isProvisionalFrameId(frame.id)) console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} has a provisional id - run \`npm run supplement:check\` to see whether the game dictionary has a record for it yet`)
+  }
+}
+
+// One name, one piece of equipment (issue #272). Every table here is keyed
+// by name, so two catalog records under one name would both be ranked on
+// one row - which is what zwift-data shipping both Shimano DURA-ACE
+// generations under the same names would have done. Checked on the catalog
+// as the app builds it: placeholders dropped, withdrawals applied.
+const catalogFrames = frames.filter(f => !UNLOCALIZED_FRAME_NAME.test(f.name))
+for (const [label, entries, known, fix, tables] of [
+  ['frames', catalogFrames, KNOWN_SHARED_FRAME_NAMES, 'rename one through frameSupplement.ts', [['FRAME_SPEED_DATA', FRAME_SPEED_DATA], ['TT_FRAME_SPEED_DATA', TT_FRAME_SPEED_DATA], ['FRAME_UPGRADE_SCHEMES', FRAME_UPGRADE_SCHEMES]]],
+  ['front wheels', frontWheels, KNOWN_SHARED_WHEEL_NAMES, 'rename one through wheelSupplement.ts, or withdraw the one the game no longer has', [['WHEEL_SPEED_DATA', WHEEL_SPEED_DATA]]],
+  ['rear wheels', rearWheels, KNOWN_SHARED_WHEEL_NAMES, 'rename one through wheelSupplement.ts, or withdraw the one the game no longer has', [['WHEEL_SPEED_DATA', WHEEL_SPEED_DATA]]]
+]) {
+  for (const { name, ids } of findNameClashes(entries, known)) {
+    const rows = tables.filter(([, table]) => name in table).map(([tableLabel]) => tableLabel)
+    errors.push(`catalog ${label}: ${ids.length} records share the name ${JSON.stringify(name)} (ids ${ids.join(', ')})${rows.length ? ` - the ${rows.join('/')} row ${JSON.stringify(name)} would rank every one of them on one measurement` : ''} - ${fix} (or, if they are one piece of equipment, list the name in shared/utils/catalogNames.ts)`)
   }
 }
 
@@ -256,8 +291,9 @@ for (const name of integratedOnlyWheels) {
 // A warning, not an error: an unlocalized placeholder name is an upstream
 // gap (`getFrames()` drops it, see `UNLOCALIZED_FRAME_NAME`), and failing the
 // build on it would block every deploy until zwift-data ships the string.
+const supplementedIds = new Set(SUPPLEMENT_FRAMES.map(f => f.id))
 for (const frame of bikeFrames) {
-  if (UNLOCALIZED_FRAME_NAME.test(frame.name)) {
+  if (UNLOCALIZED_FRAME_NAME.test(frame.name) && !supplementedIds.has(frame.id)) {
     console.warn(`WARN: zwift-data frame ${frame.id} has an unlocalized placeholder name ${JSON.stringify(frame.name)} - hidden from the catalog until upstream ships the real name`)
   }
 }

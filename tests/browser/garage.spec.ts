@@ -146,6 +146,18 @@ test.describe('garage', () => {
     await expect(drawer.getByRole('button', { name: `Set upgrade stage 2 for ${FRAME}`, pressed: true })).toBeVisible()
   })
 
+  test('keeps a wheel the game renamed, under its new name (#272)', async ({ page }) => {
+    // A garage saved while the wheel still had its old name.
+    await page.addInitScript(() => {
+      if (!localStorage.getItem('zwift-bikes:garage-wheels')) localStorage.setItem('zwift-bikes:garage-wheels', JSON.stringify({ 'Roval Sprint CLX': true }))
+    })
+    await visitPage(page, '/garage')
+    await tab(page, 'Wheels').click()
+    await wheelSearch(page).fill('Roval Rapide Sprint CLX')
+    await expect(ownSwitch(page, 'Roval Rapide Sprint CLX')).toBeChecked()
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('zwift-bikes:garage-wheels') ?? '{}'))).toEqual({ 'Roval Rapide Sprint CLX': true })
+  })
+
   test('says why a tab is empty, in the words of the fallback the ranking will use', async ({ page }) => {
     await visitPage(page, '/garage')
     await ownedBikesOnly(page).click()
