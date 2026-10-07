@@ -131,17 +131,26 @@ const WHEEL_ALIASES = {
   'Princeton Carbonworks Wake 6560 White': 'Princeton Wake 6560 White',
   'Princeton Carbonworks Wake 6560 Lava': 'Princeton Wake 6560 Lava',
   'Princeton Carbonworks Mach TSV2/Blur Disc': 'Princeton Mach TSV2/Blur Disc',
-  'Princeton  Mach TSV2/Blur Disc': 'Princeton Mach TSV2/Blur Disc',
+  // The game's upstream name for the wheel it shows as "Roval Rapide Sprint
+  // CLX" (wheelSupplement.ts overrides it); the sheet's 150 W row uses it.
+  'Roval Sprint CLX': 'Roval Rapide Sprint CLX',
   'Swiss Side HADRON Ultimate 650': 'SwissSide HADRON Ultimate 650',
   'Swiss Side HADRON Ultimate 850/Disc': 'SwissSide HADRON Ultimate Disc',
   'SwissSide HADRON Ultimate Disc': 'SwissSide HADRON Ultimate Disc'
+}
+
+// Sheet rows the sheet itself has superseded with a retest under another
+// spelling. Both rows map to the same wheel, and "first row wins" would pick
+// whichever the tab happens to list first, so the stale one is skipped by name.
+const SUPERSEDED_WHEEL_ROWS = {
+  'Princeton  Mach TSV2/Blur Disc': 're-tested after update 1.123 as "Princeton Carbonworks Mach TSV2/Blur Disc"'
 }
 
 const args = parseArgs(process.argv.slice(2))
 const report = {
   fatal: [],
   frames: { unmatched: [], incomplete: [], corrupt: [], eraDrift: [], duplicates: [], aliasOverrides: [], notCovered: [] },
-  wheels: { unmatched: [], incomplete: [], corrupt: [], eraDrift: [], duplicates: [], aliasOverrides: [], noPowerRow: [], noTtRow: [] },
+  wheels: { unmatched: [], incomplete: [], corrupt: [], eraDrift: [], duplicates: [], aliasOverrides: [], superseded: [], noPowerRow: [], noTtRow: [] },
   rewriteFailed: []
 }
 
@@ -289,7 +298,12 @@ async function importWheels() {
     const baseline = { flat: num(baselineRow[7]), climb: num(baselineRow[9]) }
     const seen = new Set()
     for (const row of group) {
-      const key = resolveKey(row[1].replace(/[ \t]+$/, ''), WHEEL_ALIASES, keys, report.wheels)
+      const sheetName = row[1].replace(/[ \t]+$/, '')
+      if (sheetName in SUPERSEDED_WHEEL_ROWS) {
+        report.wheels.superseded.push(`${sheetName} (${frame} @ ${power} W): ${SUPERSEDED_WHEEL_ROWS[sheetName]}`)
+        continue
+      }
+      const key = resolveKey(sheetName, WHEEL_ALIASES, keys, report.wheels)
       if (!key) continue
       if (seen.has(key)) {
         report.wheels.duplicates.push(`${row[1]} (${frame} @ ${power} W)`)
@@ -424,6 +438,7 @@ list('WHEELS - alias overrode an exact key (check each is deliberate)', report.w
 list('WHEELS - CORRUPT: gap irreconcilable with its own speed cells, not imported', report.wheels.corrupt)
 list('WHEELS - baseline-era drift: printed gap imported, computed against a different baseline speed than the baseline row prints', report.wheels.eraDrift)
 list('WHEELS - row incomplete, not imported', report.wheels.incomplete)
+list('WHEELS - superseded rows, skipped', report.wheels.superseded)
 list('WHEELS - duplicate rows (first kept)', report.wheels.duplicates)
 list('WHEELS - table rows with no 150 W row', report.wheels.noPowerRow)
 list('WHEELS - table rows with no Zwift TT row', report.wheels.noTtRow)
