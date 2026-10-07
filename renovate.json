@@ -7,6 +7,10 @@
     "enabled": true,
     "schedule": ["* 0-3 1 * *"]
   },
+  "description": [
+    "skipInstalls:false makes Renovate run a full `npm install` instead of `npm install --package-lock-only`. npm 12 defaults allow-remote=none, and the lock-only path trips EALLOWREMOTE on registry tarballs of packages that declare bundleDependencies (@tailwindcss/oxide-wasm32-wasi here); the full-install path exempts registry tarballs. Revert once npm/cli#9800 is fixed in the npm the Mend runner uses."
+  ],
+  "skipInstalls": false,
   "osvVulnerabilityAlerts": true,
   "packageRules": [{
     "matchDepTypes": ["resolutions"],
