@@ -127,7 +127,7 @@ Three things are said out loud that the page can leave to its UI:
   reader's own.
 - **What narrowed "fastest".** Road frames only, verified equipment only,
   upgrade stage 5, Halo frames excluded, one wheelset per frame, one row per
-  bike sold under several names - and, on a
+  frame however many paints Zwift sells it in - and, on a
   race, what the organiser's format bars outright.
 - **What the number rests on.** The `Data` column carries `measured` or
   `estimated` per row, with the confidence note from the MCP formatter.

@@ -256,13 +256,13 @@ function colourwayRows<T extends ClassifiedBikeFrame>(members: readonly T[], own
   const unownedNames = [...unowned].sort(byPlainestName)
   if (rows[0]) rows[0].push(...unownedNames)
   else rows.push(unownedNames)
-  return rows.map(([lead, ...others]) => others.length ? { ...lead!, alsoSoldAs: others.map(other => other.name) } : lead!)
+  return rows.map(([lead, ...others]) => others.length ? { ...lead!, otherPaints: others.map(other => other.name) } : lead!)
 }
 
 /**
  * A ranked pool with each bike listed once: the frames on one `COLOURWAYS`
  * entry become a single frame, the lead, carrying the others' names in
- * `alsoSoldAs`. The lead is the name the rider owns, otherwise the plainest.
+ * `otherPaints`. The lead is the name the rider owns, otherwise the plainest.
  * A bike's row takes the place of its first frame in `frames`.
  *
  * `frames` already carry their Upgrade stage, and `ownedStages` is the

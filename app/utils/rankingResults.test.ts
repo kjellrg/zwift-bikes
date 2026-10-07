@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeFiltersLabel, alsoSoldAsLine, breadcrumbScript, comboPhysicsDelta, courseNote, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
+import { activeFiltersLabel, otherPaintsLine, breadcrumbScript, comboPhysicsDelta, courseNote, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
 const course = (terrain: unknown, surface: unknown) => ({ terrain, surface } as RouteWithMeta)
@@ -221,11 +221,11 @@ describe('activeFiltersLabel', () => {
   })
 })
 
-describe('alsoSoldAsLine', () => {
-  it('names the other names a bike is sold under, and counts what it leaves out', () => {
-    expect(alsoSoldAsLine(undefined)).toBeUndefined()
-    expect(alsoSoldAsLine(['Canyon Aeroad CFR Alpecin Premier-Tech'])).toBe('Also sold as Canyon Aeroad CFR Alpecin Premier-Tech')
-    expect(alsoSoldAsLine(['A', 'B'])).toBe('Also sold as A, B')
-    expect(alsoSoldAsLine(['A', 'B', 'C', 'D'])).toBe('Also sold as A, B +2 more')
+describe('otherPaintsLine', () => {
+  it('names the same frame\'s other paints, and counts what it leaves out', () => {
+    expect(otherPaintsLine(undefined)).toBeUndefined()
+    expect(otherPaintsLine(['Canyon Aeroad CFR Alpecin Premier-Tech'])).toBe('Same frame in another paint: Canyon Aeroad CFR Alpecin Premier-Tech')
+    expect(otherPaintsLine(['A', 'B'])).toBe('Same frame in other paints: A, B')
+    expect(otherPaintsLine(['A', 'B', 'C', 'D'])).toBe('Same frame in other paints: A, B +2 more')
   })
 })

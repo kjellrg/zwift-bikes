@@ -214,7 +214,7 @@ describe('runRecommendPipeline', () => {
     ))
     const { combos } = await runRecommendPipeline(fakeEvent(), pageQuery, routeRide([], { route: libbyHill }))
     const aeroads = combos.filter(combo => combo.frame.name.startsWith('Canyon Aeroad CFR'))
-    expect(aeroads.map(combo => [combo.frame.name, combo.frame.alsoSoldAs]))
+    expect(aeroads.map(combo => [combo.frame.name, combo.frame.otherPaints]))
       .toEqual([['Canyon Aeroad CFR - CANYON//SRAM', ['Canyon Aeroad CFR Alpecin Premier-Tech']]])
     const [rank1, rank2] = combos
     expect(comboPhysicsKey(rank2!)).not.toBe(comboPhysicsKey(rank1!))
@@ -229,7 +229,7 @@ describe('runRecommendPipeline', () => {
     const aeroads = await runRecommendPipeline(fakeEvent(), query({ search: 'aeroad cfr', maxWheelsetsPerFrame: '1' }), routeRide([]))
     expect(new Set(aeroads.combos.map(combo => combo.frame.name)))
       .toEqual(new Set(['Canyon Aeroad CFR - CANYON//SRAM', 'Canyon Aeroad CFR Alpecin Premier-Tech']))
-    expect(aeroads.combos.every(combo => combo.frame.alsoSoldAs === undefined)).toBe(true)
+    expect(aeroads.combos.every(combo => combo.frame.otherPaints === undefined)).toBe(true)
 
     // The row a search found opens its own Wheel alternatives, whichever name it is.
     const alpecin = aeroads.combos.find(combo => combo.frame.name === 'Canyon Aeroad CFR Alpecin Premier-Tech')!.frame

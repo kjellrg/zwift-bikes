@@ -103,11 +103,11 @@ describe('the route document', () => {
     expect(markdown).not.toMatch(/Our model|current filters/)
   })
 
-  it('lists a bike sold under two names once, with the other name beside it (#266)', async () => {
+  it('lists a frame sold in two paints once, with the other paint named beside it (#266)', async () => {
     const markdown = (await markdownDocumentFor('/routes/libby-hill-after-party')!(CONTEXT)).markdown
-    expect(markdown).toContain('| Canyon Aeroad CFR - CANYON//SRAM (also sold as Canyon Aeroad CFR Alpecin Premier-Tech) |')
+    expect(markdown).toContain('| Canyon Aeroad CFR - CANYON//SRAM (same frame in another paint: Canyon Aeroad CFR Alpecin Premier-Tech) |')
     expect(markdown).not.toContain('| Canyon Aeroad CFR Alpecin Premier-Tech |')
-    expect(markdown).toContain('- One row per bike, paired with its own fastest wheelset for this ride; a bike Zwift sells under several names is one row, the other names beside it.')
+    expect(markdown).toContain('- One row per bike, paired with its own fastest wheelset for this ride; a frame Zwift sells in several paints is one row, the other paints named beside it.')
   })
 
   it('ranks the rider the prerendered HTML was rendered for, and says whose times they are', async () => {

@@ -185,7 +185,7 @@ describe('Colourways', () => {
   const tron = 'Zwift Concept Z1'
   const goldenTron = 'Zwift Golden Concept Z1'
   const other = 'Canyon Aeroad 2021'
-  const rows = (collapsed: ReturnType<typeof collapseColourways>) => collapsed.map(frame => [frame.name, frame.alsoSoldAs ?? []])
+  const rows = (collapsed: ReturnType<typeof collapseColourways>) => collapsed.map(frame => [frame.name, frame.otherPaints ?? []])
 
   it('lists a bike once, led by its shortest name, with the other names beside it', () => {
     expect(rows(collapseColourways([at(goldenTron), at(other), at(tron)], {}))).toEqual([

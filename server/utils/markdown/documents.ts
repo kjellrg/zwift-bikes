@@ -339,7 +339,7 @@ function rankingAssumptions(rider: AppliedRiderInputs, extra: string[]): string[
       ? '- Verified equipment only: frames and wheels whose numbers come from real ZwiftInsider bot tests.'
       : '- Verified and estimated equipment: frames and wheels with no bot-test data are ranked on heuristic estimates.',
     `- Every frame assumed at Zwift upgrade stage ${stage} of ${MAX_UPGRADE_STAGE}${stage === MAX_UPGRADE_STAGE ? ' (fully upgraded)' : stage === 0 ? ' (stock, as bought)' : ''}${includeHaloBikes ? ', with the purchasable Halo frames included' : ', and unowned Halo frames excluded'}.`,
-    '- One row per bike, paired with its own fastest wheelset for this ride; a bike Zwift sells under several names is one row, the other names beside it.',
+    '- One row per bike, paired with its own fastest wheelset for this ride; a frame Zwift sells in several paints is one row, the other paints named beside it.',
     ...extra,
     '',
     defaultRiderNote(rider)

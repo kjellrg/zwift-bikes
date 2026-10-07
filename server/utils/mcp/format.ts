@@ -59,12 +59,14 @@ export function formatComboTable(combos: ComboScore[], startRank: number): strin
     // A combo is only as trustworthy as its weaker half.
     const confidence = combo.wheelset && combo.wheelset.confidence === 'estimated' ? 'estimated' : combo.frame.confidence
 
-    // A bike's Colourways share its row, so every name it is sold under is
-    // in the table - a reader asking about any of them finds it.
-    const alsoSoldAs = combo.frame.alsoSoldAs ? ` (also sold as ${combo.frame.alsoSoldAs.join(', ')})` : ''
+    // A frame's Colourways share its row, so every paint it is sold in is
+    // named in the table - a reader asking about any of them finds it.
+    const otherPaints = combo.frame.otherPaints
+      ? ` (same frame in ${combo.frame.otherPaints.length === 1 ? 'another paint' : 'other paints'}: ${combo.frame.otherPaints.join(', ')})`
+      : ''
     const cells = [
       String(startRank + index),
-      `${combo.frame.name}${alsoSoldAs}`,
+      `${combo.frame.name}${otherPaints}`,
       String(combo.frame.level),
       wheelset,
       hasTimes ? formatDuration(combo.finishTimeSec!) : String(combo.score)

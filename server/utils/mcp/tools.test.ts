@@ -68,10 +68,10 @@ describe('a Ride the rider cannot finish', () => {
   })
 })
 
-describe('a bike sold under two names', () => {
-  it('is one row of the ranking, with the other name beside it (#266)', async () => {
+describe('a frame sold in two paints', () => {
+  it('is one row of the ranking, with the other paint named beside it (#266)', async () => {
     const text = textOf(await callTool('recommend_for_route', { route: 'libby-hill-after-party', category: 'standard', ...RIDER }, RUNNING))
-    expect(text).toContain('| Canyon Aeroad CFR - CANYON//SRAM (also sold as Canyon Aeroad CFR Alpecin Premier-Tech) |')
+    expect(text).toContain('| Canyon Aeroad CFR - CANYON//SRAM (same frame in another paint: Canyon Aeroad CFR Alpecin Premier-Tech) |')
     expect(text).not.toContain('| Canyon Aeroad CFR Alpecin Premier-Tech |')
   })
 })
