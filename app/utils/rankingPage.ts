@@ -71,12 +71,13 @@ export function rankingPageHasLongClimb(
 }
 
 /**
- * The Ride's display name in the page's own words, for the Applied course and
- * the Applied laps - "Watopia Hilly Route in Watopia", "the Alpe du Zwift
- * climb in Watopia", "3 laps of Makuri 40 in Makuri Islands". The page
- * supplies it; the module decides where it goes.
+ * The Ride's display name in the page's own words, for the Applied course -
+ * "Watopia Hilly Route in Watopia", "the Alpe du Zwift climb in Watopia". It
+ * names the course rather than describing it: the lap count is the answer's
+ * scope line to state, and a name that stated it too would say it twice
+ * (issue #291). The page supplies it; the module decides where it goes.
  */
-export type RankingPageRideName = (course: RouteWithMeta, laps: number) => string
+export type RankingPageRideName = (course: RouteWithMeta) => string
 
 /** The Ride's half of the answer under the Recommendation - what `useRecommendationAnswer` takes from the page's side. */
 export interface RankingPageAnswerRide {
@@ -102,7 +103,7 @@ export function rankingPageAnswerRide(
   if (!ride || !course) return undefined
   const laps = rankingPageLaps(ride)
   return {
-    rideName: rideName(course, laps),
+    rideName: rideName(course),
     distanceKm: computeRouteTotals(course, laps).distanceKm,
     laps: ride.laps,
     rideRules: ride.raceFormat ? rideRulesLine(ride.raceFormat) : undefined

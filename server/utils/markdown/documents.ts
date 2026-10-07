@@ -601,7 +601,11 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
     : '_This group races a route the catalog does not carry, so no ranking can be computed for it._'
 
   const lines = [
-    ...rankingHeader(question, (ranking && course && ride && answerLine(ranking, ride, { rideName: `${rideName} in ${course.worldName}`, distanceKm: totals?.distanceKm })) ?? unavailable, canonical),
+    // The answer names the course and world only, as the page's does: its
+    // scope line states the lap count, and a Ride name stating it too would
+    // say it twice (issue #291). The prose below is the twin's own account
+    // of the race, and keeps it.
+    ...rankingHeader(question, (ranking && course && ride && answerLine(ranking, ride, { rideName: `${course.name} in ${course.worldName}`, distanceKm: totals?.distanceKm })) ?? unavailable, canonical),
     '',
     `${title} is a ${RACE_FORMAT_LABELS[race.format].toLowerCase()} on ${race.date}${course ? `, over ${rideName} in ${course.worldName}` : ''}.`,
     ''

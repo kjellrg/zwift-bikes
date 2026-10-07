@@ -108,8 +108,9 @@ const canonicalUrl = useCanonicalUrl()
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-race-${seasonSlug.value}-${raceSlug.value}`,
-  // The lap count leads: the Category group fixes it, and it changes the ride.
-  rideName: (course, laps) => `${laps} lap${laps === 1 ? '' : 's'} of ${course.name} in ${course.worldName}`,
+  // The course and world only, as the route page names it: the answer's
+  // scope line states the Category group's lap count (issue #291).
+  rideName: course => `${course.name} in ${course.worldName}`,
   faqQuestion: () => `What bike should I ride for ${raceTitle.value}?`,
   // The deepest trail on the site: a race under its season under the events
   // hub, named "Events" as the visible trail and the nav name it. None for a

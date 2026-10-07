@@ -29,17 +29,17 @@ describe('rankingPageHasLongClimb', () => {
 
 describe('rankingPageAnswerRide', () => {
   const hilly = getRouteBySlug('hilly-route')!
-  const name = (course: { name: string, worldName: string }, laps: number) => `${laps} x ${course.name} in ${course.worldName}`
+  const name = (course: { name: string, worldName: string }) => `${course.name} in ${course.worldName}`
 
-  it('names the Applied course for the Applied laps, and times its distance with the lead-in once', () => {
+  it('names the Applied course, and times the Applied laps with the lead-in once', () => {
     const answer = rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 3 }, hilly, name)
-    expect(answer).toEqual({ rideName: '3 x Watopia Hilly Route in Watopia', distanceKm: expect.closeTo(0.502 + 3 * 9.193, 6), laps: 3, rideRules: undefined })
+    expect(answer).toEqual({ rideName: 'Watopia Hilly Route in Watopia', distanceKm: expect.closeTo(0.502 + 3 * 9.193, 6), laps: 3, rideRules: undefined })
   })
 
   it('states no lap count for a segment, and times the segment\'s own length', () => {
     const segment = { ...flat, slug: 'a-segment', distance: 1.4, leadInDistance: undefined, lap: false }
     const answer = rankingPageAnswerRide({ course: { kind: 'segment', slug: 'a-segment' }, power: 'sprint' }, segment, name)
-    expect(answer).toEqual({ rideName: `1 x ${flat.name} in ${flat.worldName}`, distanceKm: 1.4, laps: undefined, rideRules: undefined })
+    expect(answer).toEqual({ rideName: `${flat.name} in ${flat.worldName}`, distanceKm: 1.4, laps: undefined, rideRules: undefined })
   })
 
   it('leads with the Race format rules line of the Applied Ride', () => {
@@ -117,7 +117,7 @@ describe('a segment\'s Ranking page', () => {
   const acropolis = segmentCourse('acropolis-sprint')
   const climb: Ride = { course: { kind: 'segment', slug: 'alpe-du-zwift' }, power: 'race' }
   const sprint: Ride = { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }
-  // The segment page's own words, which ignore the lap count: a segment Ride has none.
+  // The segment page's own words for the segment.
   const segmentName = (type: string) => (course: { name: string, worldName: string }) => `the ${course.name} ${type} in ${course.worldName}`
   const segmentSubject = (ride: Ride | undefined) => ride?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
 
@@ -190,8 +190,9 @@ describe('a race\'s Ranking page', () => {
     laps: race.categories[index]!.laps,
     ...rideRulesForFormat(race.format!)
   })
-  // The race page's own words: the lap count leads, because the group fixes it.
-  const raceName = (course: { name: string, worldName: string }, laps: number) => `${laps} lap${laps === 1 ? '' : 's'} of ${course.name} in ${course.worldName}`
+  // The race page's own words: the course and world, the lap count left to
+  // the answer's scope line (issue #291).
+  const raceName = (course: { name: string, worldName: string }) => `${course.name} in ${course.worldName}`
   const raceSubject = (race: EventRace) => (ride: Ride | undefined) => {
     const group = categoryGroupRacing(race, ride?.course.slug, ride?.laps)
     return group ? formatCategoryGroup(group) : undefined
@@ -204,7 +205,7 @@ describe('a race\'s Ranking page', () => {
 
   it('answers for the Applied course over the Applied laps, timed with the lead-in once, under the Race format\'s rules', () => {
     expect(rankingPageAnswerRide(groupRide(byLaps, 1), innsbruckring, raceName)).toEqual({
-      rideName: '3 laps of Innsbruckring in Innsbruck',
+      rideName: 'Innsbruckring in Innsbruck',
       distanceKm: expect.closeTo(0.222 + 3 * 8.799, 6),
       laps: 3,
       rideRules: 'TT bikes are disabled for this scratch race.'
@@ -215,11 +216,11 @@ describe('a race\'s Ranking page', () => {
     // The selector is on C/D (Urumaze); the ranking on screen is still A/B's.
     const applied = groupRide(byRoute, 0)
     expect(rankingPageAnswerRide(applied, makuri40, raceName)).toMatchObject({
-      rideName: '1 lap of Makuri 40 in Makuri Islands',
+      rideName: 'Makuri 40 in Makuri Islands',
       distanceKm: expect.closeTo(0.137 + 40.115, 6),
       rideRules: 'TT bikes are disabled for this points race.'
     })
-    expect(rankingPageAnswerRide(groupRide(byRoute, 1), urumaze, raceName)?.rideName).toBe('1 lap of Urumaze in Makuri Islands')
+    expect(rankingPageAnswerRide(groupRide(byRoute, 1), urumaze, raceName)?.rideName).toBe('Urumaze in Makuri Islands')
   })
 
   it('bars TT frames from the Ride under a format that bars them, and ranks a TTT with them', () => {

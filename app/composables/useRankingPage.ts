@@ -22,7 +22,7 @@ export interface RankingPageInputs {
   ride: () => Ride | undefined
   /** The recommend request's key, passed to `useRecommendRequest` unchanged - see `RecommendRequestOptions.key`. */
   key: string
-  /** The Ride's display name, for the Applied course and the Applied laps - see `RankingPageRideName`. */
+  /** The Ride's display name, for the Applied course - see `RankingPageRideName`. */
   rideName: RankingPageRideName
   /** The question the page's title asks: the answer section's heading and the FAQ entry's question. */
   faqQuestion: () => string | undefined
