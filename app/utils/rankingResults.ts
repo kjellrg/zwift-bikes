@@ -205,6 +205,20 @@ export function comboPhysicsDelta(combo: Pick<ComboScore, 'frame' | 'wheelset'>)
   }
 }
 
+/** How many of a bike's other names a Ranking row spells out before counting the rest. */
+const ALSO_SOLD_AS_SHOWN = 2
+
+/**
+ * The line under a row's frame name when the row stands for a bike Zwift
+ * sells under several names - its Colourways (see `CONTEXT.md`) - so a
+ * rider who knows it by another name still finds it.
+ */
+export function alsoSoldAsLine(names: readonly string[] | undefined): string | undefined {
+  if (!names?.length) return undefined
+  const more = names.length - ALSO_SOLD_AS_SHOWN
+  return `Also sold as ${names.slice(0, ALSO_SOLD_AS_SHOWN).join(', ')}${more > 0 ? ` +${more} more` : ''}`
+}
+
 /** A delta as the table and the "why" section print it: always signed, `−` rather than `-`. */
 export function formatSignedDelta(value: number, digits: number): string {
   const rounded = Number(value.toFixed(digits))

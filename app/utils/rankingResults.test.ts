@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeFiltersLabel, breadcrumbScript, comboPhysicsDelta, courseNote, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
+import { activeFiltersLabel, alsoSoldAsLine, breadcrumbScript, comboPhysicsDelta, courseNote, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
 const course = (terrain: unknown, surface: unknown) => ({ terrain, surface } as RouteWithMeta)
@@ -218,5 +218,14 @@ describe('activeFiltersLabel', () => {
 
   it('names a directed search instead of a Halo rule it lifts', () => {
     expect(activeFiltersLabel({ ...restrictions, search: ' tarmac ' }, 'standard')).toBe('Standard (Road) · verified data only · search "tarmac"')
+  })
+})
+
+describe('alsoSoldAsLine', () => {
+  it('names the other names a bike is sold under, and counts what it leaves out', () => {
+    expect(alsoSoldAsLine(undefined)).toBeUndefined()
+    expect(alsoSoldAsLine(['Canyon Aeroad CFR Alpecin Premier-Tech'])).toBe('Also sold as Canyon Aeroad CFR Alpecin Premier-Tech')
+    expect(alsoSoldAsLine(['A', 'B'])).toBe('Also sold as A, B')
+    expect(alsoSoldAsLine(['A', 'B', 'C', 'D'])).toBe('Also sold as A, B +2 more')
   })
 })

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { bikeFrames } from 'zwift-data'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from '../data/frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES, drivetrainCrrDeltaForLevel, stageChartFor } from '../data/frameUpgradeSchemes'
-import { classifyBikeFrame, FIXED_WHEEL_FRAMES, interpolateGap, isRedundantCosmeticVariant, solveMeasuredFramePhysics } from './classifyBikeFrame'
+import { classifyBikeFrame, collapseColourways, COLOURWAYS, FIXED_WHEEL_FRAMES, interpolateGap, solveMeasuredFramePhysics } from './classifyBikeFrame'
 import { solveFrameEquipmentDelta, standardEquivalentClimbScore } from './physics/equipment'
 import { getFrames, UNLOCALIZED_FRAME_NAME } from './catalog'
+import { comboPhysicsKey } from './physics'
+import { UPGRADE_STAGES } from './upgradeStage'
 import { SUPPLEMENT_FRAMES, applyFrameSupplement } from '../data/frameSupplement'
 
 // What the app ships: zwift-data plus the supplement, as getFrames() merges them.
@@ -178,15 +180,66 @@ describe('TT climb scores cross the baseline correctly', () => {
   })
 })
 
-describe('cosmetic re-skin handling', () => {
-  const goldenTron = frameByName('Zwift Golden Concept Z1')
-  const tron = frameByName('Zwift Concept Z1')
+describe('Colourways', () => {
+  const at = (name: string, stage = 5) => classifyBikeFrame(frameByName(name), stage)
+  const tron = 'Zwift Concept Z1'
+  const goldenTron = 'Zwift Golden Concept Z1'
+  const other = 'Canyon Aeroad 2021'
+  const rows = (collapsed: ReturnType<typeof collapseColourways>) => collapsed.map(frame => [frame.name, frame.alsoSoldAs ?? []])
 
-  it('drops the Golden Concept Z1 from rankings unless the rider owns it - then drops the original instead', () => {
-    expect(isRedundantCosmeticVariant(goldenTron, new Set())).toBe(true)
-    expect(isRedundantCosmeticVariant(tron, new Set())).toBe(false)
-    const ownsGolden = new Set(['Zwift Golden Concept Z1'])
-    expect(isRedundantCosmeticVariant(goldenTron, ownsGolden)).toBe(false)
-    expect(isRedundantCosmeticVariant(tron, ownsGolden)).toBe(true)
+  it('lists a bike once, led by its shortest name, with the other names beside it', () => {
+    expect(rows(collapseColourways([at(goldenTron), at(other), at(tron)], {}))).toEqual([
+      [tron, [goldenTron]],
+      [other, []]
+    ])
+  })
+
+  it('is led by the name the rider owns, at the stage they own it', () => {
+    const owned = { [frameByName(goldenTron).id]: 2 }
+    const collapsed = collapseColourways([at(tron), at(goldenTron, 2)], owned)
+    expect(rows(collapsed)).toEqual([[goldenTron, [tron]]])
+    expect(collapsed[0]!.level).toBe(2)
+  })
+
+  it('keeps two owned names apart when they are owned at different stages', () => {
+    const owned = { [frameByName(tron).id]: 5, [frameByName(goldenTron).id]: 2 }
+    expect(rows(collapseColourways([at(tron), at(goldenTron, 2)], owned))).toEqual([[tron, []], [goldenTron, []]])
+    // At the same stage they are one bike again, led by the plainer name.
+    const sameStage = { [frameByName(tron).id]: 3, [frameByName(goldenTron).id]: 3 }
+    expect(rows(collapseColourways([at(goldenTron, 3), at(tron, 3)], sameStage))).toEqual([[tron, [goldenTron]]])
+  })
+})
+
+describe('the Colourway list against the catalog', () => {
+  // Measured frames whose physics meet at some stage but which are decided to
+  // be different bikes - the bot tests part them at the other stages.
+  const DIFFERENT_BIKES: readonly (readonly [string, string])[] = [
+    ['Giant Trinity Advanced SL', 'Liv Avow Advanced SL'], // stage 0 only
+    ['Chapter2 Tere', 'Specialized Tarmac'], // stage 5 only
+    ['Scott Plasma', 'Specialized Shiv S-Works'], // stage 1 only
+    ['BMC Timemachine01', 'Specialized Shiv'] // stage 1 only
+  ]
+  const decided = (a: string, b: string) => COLOURWAYS.some(names => names.includes(a) && names.includes(b))
+    || DIFFERENT_BIKES.some(pair => pair.includes(a) && pair.includes(b))
+
+  it('names only frames the catalog has', () => {
+    for (const name of COLOURWAYS.flat()) frameByName(name)
+  })
+
+  it('decides every pair of measured frames that share their physics, so a new colourway cannot slip in as a silent duplicate', () => {
+    const undecided: string[] = []
+    for (const stage of UPGRADE_STAGES) {
+      const byPhysics = new Map<string, string[]>()
+      for (const frame of getFrames().map(f => classifyBikeFrame(f, stage)).filter(f => f.confidence === 'measured')) {
+        const key = comboPhysicsKey({ frame, wheelset: undefined }) + `|${frame.category}|${frame.hasFixedWheels}`
+        byPhysics.set(key, [...(byPhysics.get(key) ?? []), frame.name])
+      }
+      for (const names of byPhysics.values()) {
+        for (const [i, a] of names.entries()) {
+          for (const b of names.slice(i + 1)) if (!decided(a, b)) undecided.push(`${a} / ${b} (stage ${stage})`)
+        }
+      }
+    }
+    expect(undecided, 'add each pair to COLOURWAYS if it is one bike repainted, or to DIFFERENT_BIKES if not').toEqual([])
   })
 })

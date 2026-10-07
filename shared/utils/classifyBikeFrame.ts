@@ -214,32 +214,78 @@ export const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1
 // Exported for `scripts/validate-speed-data.mjs`.
 export const PURCHASABLE_HALO_FRAMES = new Set(['Pinarello Espada', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade'])
 
-// `Zwift Golden Concept Z1` is the plain `Zwift Concept Z1` with a gold light
-// scheme - the same frame, sharing one `FRAME_SPEED_DATA` sample - so a ranked
-// result list showing both would just repeat one bike in two adjacent rows.
-const COSMETIC_RESKIN = 'Zwift Golden Concept Z1'
-const RESKINNED_ORIGINAL = 'Zwift Concept Z1'
+// Each entry is one bike that Zwift sells under several names and paints: a
+// Colourway (see `CONTEXT.md`). Which frames are the same bike is a decision,
+// confirmed against Zwift's own listing, not something physics decides - two
+// frames whose numbers merely match are two bikes and stay off this list.
+// - `Zwift Golden Concept Z1` is the plain Concept Z1 with a gold light
+//   scheme, sharing one `FRAME_SPEED_DATA` sample. Carried over from the
+//   re-skin rule this list replaced; ZwiftInsider never tested the golden one.
+// - The CANYON//SRAM Aeroad CFR has "the same performance specs as the Aeroad
+//   CFR Alpecin Premier-Tech ... with a different paintjob"
+//   (zwiftinsider.com/frame/canyon-aeroad-cfr-canyon-sram/), and the bot
+//   tests agree to the tenth at both powers (#266).
+// Exported for the catalog check in `classifyBikeFrame.test.ts`, which fails
+// when two measured frames share their physics but no decision covers them.
+export const COLOURWAYS: readonly (readonly string[])[] = [
+  ['Zwift Concept Z1', 'Zwift Golden Concept Z1'],
+  ['Canyon Aeroad CFR - CANYON//SRAM', 'Canyon Aeroad CFR Alpecin Premier-Tech']
+]
+
+const colourwayOf = new Map(COLOURWAYS.flatMap((names, group) => names.map(name => [name, group] as const)))
+
+/** Shortest name first, ties by id: the plainest name a rider would recognise. */
+function byPlainestName(a: BikeFrame, b: BikeFrame): number {
+  return a.name.length - b.name.length || a.id - b.id
+}
 
 /**
- * True when `frame` is the redundant half of a cosmetic re-skin pair and
- * should be left out of a ranked result list (both halves always stay in the
- * catalog itself - `/api/bikes`/garage - so the re-skin can be owned in the
- * first place).
- *
- * Exactly one of the pair is ever listed. The re-skin is pure noise for the
- * vast majority of riders, who don't own it, so by default it's the one
- * dropped. A rider who has explicitly added it to their garage clearly does
- * want to see it, and it stands in for the original for them - carrying their
- * real unlock level, which the original wouldn't have - so it's the original
- * that drops out instead.
- *
- * `ownedFrameNames` is the rider's garage by frame name (`zwift-data` ids are
- * what the garage actually stores, so the caller resolves them to names).
+ * One bike's rows: one per Upgrade stage its owned names sit at, each led by
+ * an owned name, with the unowned names beside the first. Owned at two stages,
+ * the bike has two sets of physics, so two rows. Owning none, it is one row of
+ * unowned names.
  */
-export function isRedundantCosmeticVariant(frame: BikeFrame, ownedFrameNames: ReadonlySet<string>): boolean {
-  const ownsReskin = ownedFrameNames.has(COSMETIC_RESKIN)
-  if (frame.name === COSMETIC_RESKIN) return !ownsReskin
-  return frame.name === RESKINNED_ORIGINAL && ownsReskin
+function colourwayRows<T extends ClassifiedBikeFrame>(members: readonly T[], ownedStages: Readonly<Record<string, number>>): T[] {
+  const isOwned = (frame: T) => frame.id.toString() in ownedStages
+  const unowned = members.filter(frame => !isOwned(frame))
+  const byStage = new Map<number, T[]>()
+  for (const frame of members.filter(isOwned)) byStage.set(frame.level, [...(byStage.get(frame.level) ?? []), frame])
+  const rows = [...byStage.values()].map(sameStage => [...sameStage].sort(byPlainestName))
+  if (rows.length === 0) rows.push([...unowned].sort(byPlainestName))
+  else rows.sort((a, b) => byPlainestName(a[0]!, b[0]!))[0]!.push(...[...unowned].sort(byPlainestName))
+  return rows.map(([lead, ...others]) => others.length ? { ...lead!, alsoSoldAs: others.map(other => other.name) } : lead!)
+}
+
+/**
+ * A ranked pool with each bike listed once: the frames on one `COLOURWAYS`
+ * entry become a single frame, the lead, carrying the others' names in
+ * `alsoSoldAs`. The lead is the name the rider owns, otherwise the plainest.
+ * A bike's row takes the place of its first frame in `frames`.
+ *
+ * `frames` already carry their Upgrade stage, and `ownedStages` is the
+ * Garage's frames, by id. Every frame stays in the catalog itself -
+ * `/api/bikes`, the Garage - so any name can be owned; only a ranking
+ * collapses them.
+ */
+export function collapseColourways<T extends ClassifiedBikeFrame>(frames: readonly T[], ownedStages: Readonly<Record<string, number>>): T[] {
+  const groups = new Map<number, T[]>()
+  for (const frame of frames) {
+    const group = colourwayOf.get(frame.name)
+    if (group !== undefined) groups.set(group, [...(groups.get(group) ?? []), frame])
+  }
+  const collapsed: T[] = []
+  for (const frame of frames) {
+    const group = colourwayOf.get(frame.name)
+    if (group === undefined) {
+      collapsed.push(frame)
+      continue
+    }
+    const members = groups.get(group)
+    if (!members) continue
+    groups.delete(group)
+    collapsed.push(...colourwayRows(members, ownedStages))
+  }
+  return collapsed
 }
 
 // The Concept Z1 ("Tron") frames match `FUNBIKE_RE` on name, but they are not

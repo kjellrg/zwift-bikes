@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComboScore } from '../../shared/types/catalog'
 import type { AppliedRanking } from '../utils/recommendRequest'
-import { comboPhysicsDelta, formatSignedDelta } from '../utils/rankingResults'
+import { alsoSoldAsLine, comboPhysicsDelta, formatSignedDelta } from '../utils/rankingResults'
 import { gapAxisTickLabel } from '../utils/gapAxis'
 
 /**
@@ -62,6 +62,7 @@ const botTested = computed(() => isBotTested(props.combo))
 const delta = computed(() => comboPhysicsDelta(props.combo))
 const wheelType = computed(() => props.combo.wheelset ? WHEEL_CATEGORY_LABELS[props.combo.wheelset.rear.category] : 'Fixed')
 const style = computed(() => props.combo.frame.style ? BIKE_STYLE_LABELS[props.combo.frame.style] : undefined)
+const alsoSoldAs = computed(() => alsoSoldAsLine(props.combo.frame.alsoSoldAs))
 const dataSource = computed(() => botTested.value ? 'Bot-tested' : 'Estimate')
 
 const detailId = useId()
@@ -109,6 +110,12 @@ function onRowClick(event: MouseEvent) {
         >
           {{ combo.frame.name }}
         </button>
+        <p
+          v-if="alsoSoldAs"
+          class="text-xs text-muted break-words"
+        >
+          {{ alsoSoldAs }}
+        </p>
         <p class="text-sm text-muted break-words">
           {{ combo.wheelset?.name ?? 'Fixed disc wheels' }}<span
             v-if="!botTested"

@@ -99,6 +99,12 @@ export interface ClassifiedBikeFrame extends BikeFrame {
   upgradeCurve?: UpgradeCurve
   /** Zwift's upgrade scheme for this frame (progression axis x price tier), when catalogued - see `frameUpgradeSchemes.ts`. */
   upgradeScheme?: UpgradeScheme
+  /**
+   * The other names this bike is sold under, when a Ranking collapsed its
+   * Colourways into this frame's row (see `CONTEXT.md` and
+   * `collapseColourways`). Absent everywhere else, the catalog included.
+   */
+  alsoSoldAs?: string[]
 }
 
 export interface ClassifiedWheel {

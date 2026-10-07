@@ -59,13 +59,6 @@ describe('buildRecommendationAnswer', () => {
       .toMatch(/ The Canyon Aeroad 2024 with Zipp 858\/Super9 is less than 0\.01 s behind\.$/)
   })
 
-  it('calls a tie between setups with the same physics identical, not a coincidence', () => {
-    // The two Canyon Aeroads (#266): one bike under two names, so one time.
-    const twin = combo('Canyon Aeroad CFR Alpecin Premier-Tech', 'Shimano C99/Disc', 1062)
-    expect(buildRecommendationAnswer({ ...base, ranking: [rank1, twin] })!.summary)
-      .toMatch(/ The Canyon Aeroad CFR Alpecin Premier-Tech with Shimano C99\/Disc is identical to it in the model, and tied with it\.$/)
-  })
-
   it('names no runner-up when the Ranking has a single row', () => {
     const summary = buildRecommendationAnswer({ ...base, ranking: [rank1] })!.summary
     expect(summary).toMatch(/finishing in 17:42 \(~32\.9 km\/h\)\.$/)
