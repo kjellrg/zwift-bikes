@@ -14,7 +14,7 @@ import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
  * includes the wheel never produces a duplicate. Once that happens, `scripts/validate-speed-data.mjs` fails the
  * build naming the now-redundant entry, and the fix is deleting it here.
  *
- * The list also carries RENAMES, the way `frameSupplement.ts` does: an
+ * The list can also carry RENAMES, the way `frameSupplement.ts` does: an
  * entry sharing an id with an upstream record replaces that record in place
  * (front and rear are separate records with their own ids, so a rename is
  * two entries). Name is the wheelset key a garage holds, so a rename also
@@ -24,12 +24,12 @@ import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
  * The 2026 Shimano wheels replaced the older revisions in the game: the
  * older ones are gone from the garage and the wheel picker, and the 2026
  * wheels took their names ("Shimano DURA-ACE C36" ...; checked in game
- * 2026-10-07). The dictionary still lists the older records under those
- * same names, and zwift-data 1.50 ships them, so they are WITHDRAWN below
- * by id - otherwise the catalog would hold two wheels per name, sharing one
- * name-keyed speed row. The 2026 entries carry the dictionary's names
- * verbatim. ZwiftInsider's sheet titles the older rows "... C36 2025" /
- * "... C50 2021" / "... C60 2019"; their measurements left with the wheels.
+ * 2026-10-07). zwift-data 2.1 ships the 2026 wheels, but the dictionary
+ * still lists the older records under those same names and the package
+ * still ships them too, so they are WITHDRAWN below by id - otherwise the
+ * catalog would hold two wheels per name, sharing one name-keyed speed row.
+ * ZwiftInsider's sheet titles the older rows "... C36 2025" / "... C50
+ * 2021" / "... C60 2019"; their measurements left with the wheels.
  *
  * The three update-1.123 discs (Reserve Infinity, CADEX 4-Spoke, Black Inc
  * THREE/ZERO) have dictionary records whose names are still localization
@@ -42,29 +42,16 @@ import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
  * row and its garage key (`RENAMED_WHEELSET_KEYS`) then.
  */
 export const SUPPLEMENT_FRONT_WHEELS: BikeFrontWheel[] = [
-  { id: 3842759965, name: 'Shimano DURA-ACE C36', imageName: 'Wheel_ShimanoDuraAceC362026' },
-  { id: 2489344011, name: 'Shimano DURA-ACE C50', imageName: 'Wheel_ShimanoDuraAceC502026' },
-  { id: 3181958393, name: 'Shimano DURA-ACE C60', imageName: 'Wheel_ShimanoDuraAceC602026' },
-  { id: 1160815788, name: 'Shimano DURA-ACE C99 + Disc', imageName: 'Wheel_ShimanoDuraAceC992026' },
+  // Placeholder stand-ins (see above): the id replaces upstream's record in place.
   { id: 3667484525, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
   { id: 3827121667, name: 'CADEX 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
-  { id: 1690454004, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' },
-  // Renamed in the game (dictionary fetched 2026-10-07); zwift-data 1.50
-  // still says "Roval Sprint CLX" and "Princeton  Mach TSV2/Blur Disc\u00A0".
-  { id: 3400914270, name: 'Roval Rapide Sprint CLX', imageName: 'Wheel_RovalRapideCLX' },
-  { id: 817265411, name: 'Princeton Mach TSV2/Blur Disc', imageName: 'Wheel_PrincetonCarbonWorksMachTSV2Blur' }
+  { id: 1690454004, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' }
 ]
 
 export const SUPPLEMENT_REAR_WHEELS: BikeRearWheel[] = [
-  { id: 14115933, name: 'Shimano DURA-ACE C36', imageName: 'Wheel_ShimanoDuraAceC362026' },
-  { id: 3673160473, name: 'Shimano DURA-ACE C50', imageName: 'Wheel_ShimanoDuraAceC502026' },
-  { id: 3415380320, name: 'Shimano DURA-ACE C60', imageName: 'Wheel_ShimanoDuraAceC602026' },
-  { id: 827108797, name: 'Shimano DURA-ACE C99 + Disc', imageName: 'Wheel_ShimanoDuraAceC992026' },
   { id: 659802619, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
   { id: 3443883036, name: 'CADEX 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
-  { id: 2002469001, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' },
-  { id: 3517161569, name: 'Roval Rapide Sprint CLX', imageName: 'Wheel_RovalRapideCLX' },
-  { id: 3710951039, name: 'Princeton Mach TSV2/Blur Disc', imageName: 'Wheel_PrincetonCarbonWorksMachTSV2Blur' }
+  { id: 2002469001, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' }
 ]
 
 /** An upstream wheel record the game no longer has, named for the reader and the validator. */

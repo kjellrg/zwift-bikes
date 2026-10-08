@@ -25,10 +25,10 @@ describe('applyFrameSupplement', () => {
   })
 
   it('a renamed frame keeps the id a garage holds, so the garage entry survives', () => {
-    const merged = applyFrameSupplement(bikeFrames, SUPPLEMENT_FRAMES)
-    const sl9 = merged.filter(f => f.id === 3371227947)
-    expect(sl9.map(f => f.name)).toEqual(['Specialized S-Works Tarmac SL9'])
-    expect(merged.some(f => f.name === 'Specialized Tarmac SL9')).toBe(false)
+    // The shape the Specialized S-Works Tarmac SL9 rename had until
+    // zwift-data 2.1 caught up: same id, the game's newer name.
+    const merged = applyFrameSupplement([{ id: 3371227947, name: 'Specialized Tarmac SL9', isTT: false }], [{ id: 3371227947, name: 'Specialized S-Works Tarmac SL9', isTT: false }])
+    expect(merged.map(f => [f.id, f.name])).toEqual([[3371227947, 'Specialized S-Works Tarmac SL9']])
   })
 
   it('provisional ids sit above every possible Zwift signature', () => {
@@ -54,6 +54,35 @@ describe('the shipped supplement', () => {
   })
 })
 
+describe('the placeholder stand-ins (update 1.123\'s TT frames)', () => {
+  // zwift-data 2.1 ships these four ids under localization placeholders
+  // (`Giant LOC_ENTITLEMENT_CYCLING_BIKE_GIANT_TRINITY_ADVANCED_SL_2026_NAME`
+  // ...). The supplement entry sharing the id is what the catalog shows,
+  // and it is the key of the frame's measured speed row - so the placeholder
+  // must never win, whatever the package ships.
+  const STAND_INS: Record<number, string> = {
+    244289700: 'Giant Trinity Advanced SL',
+    2124063579: 'Cannondale SuperSlice LAB71',
+    3719018442: 'Factor Hanzō',
+    3851032184: 'Liv Avow Advanced SL'
+  }
+
+  it('upstream still carries each one as a placeholder', () => {
+    for (const id of Object.keys(STAND_INS).map(Number)) {
+      expect(bikeFrames.find(f => f.id === id)?.name, String(id)).toMatch(UNLOCALIZED_FRAME_NAME)
+    }
+  })
+
+  it('the catalog shows our name for each, once, as a measured TT frame', () => {
+    for (const [id, name] of Object.entries(STAND_INS)) {
+      const matches = getFrames().filter(f => f.id === Number(id))
+      expect(matches.map(f => f.name), id).toEqual([name])
+      expect(matches[0]?.category, name).toBe('tt')
+      expect(matches[0]?.confidence, name).toBe('measured')
+    }
+  })
+})
+
 describe('the Wilier Filante SLR ID2 We Ride Paris (#272)', () => {
   const RECORD = { id: 3123624451, name: 'Wilier Filante SLR ID2 We Ride Paris', modelYear: 2026, isTT: false }
 
@@ -75,9 +104,9 @@ describe('the Wilier Filante SLR ID2 We Ride Paris (#272)', () => {
     expect(FRAME_UPGRADE_SCHEMES[RECORD.name]).toEqual({ axis: 'distance', tier: 'high', derived: true })
   })
 
-  it('gives way to zwift-data once the package ships it', () => {
-    const merged = applyFrameSupplement([...bikeFrames, RECORD], SUPPLEMENT_FRAMES)
-    expect(merged.filter(f => f.id === RECORD.id || f.name === RECORD.name)).toEqual([RECORD])
+  it('ships from zwift-data itself now, with no supplement entry left behind', () => {
+    expect(bikeFrames.filter(f => f.id === RECORD.id || f.name === RECORD.name)).toEqual([RECORD])
+    expect(SUPPLEMENT_FRAMES.some(f => f.id === RECORD.id || f.name === RECORD.name)).toBe(false)
   })
 })
 

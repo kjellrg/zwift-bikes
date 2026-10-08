@@ -37,6 +37,13 @@ describe('the sitemap on a given day', () => {
     expect(urls.filter(loc => /^\/events\/[^/]+\/[^/]+$/.test(loc))).toEqual([])
   })
 
+  it('lists a re-slugged route under its readable slug only, never the retired numeric one', () => {
+    const urls = locs('2026-10-08')
+    expect(urls).toContain('/routes/urumaze')
+    expect(urls).not.toContain('/routes/4092230492')
+    expect(urls.filter(loc => /^\/routes\/\d+$/.test(loc))).toEqual([])
+  })
+
   it('dates a race by its curated entry, not by the day it is built', () => {
     const week2 = sitemapUrls('2026-09-25').find(url => url.loc === '/events/zrl-2026-27/round-1-week-2')
     // Week 2's entry was last revised on 14 Aug.

@@ -235,7 +235,7 @@ describe('useRankingPage', () => {
     // A/B race Makuri 40, C/D Urumaze - a points race, which bars TT frames.
     const race = getRaceBySlug('zrl-2026-27', 'round-1-week-3')!
     const makuri40 = getRouteBySlug('makuri-40')!
-    const urumaze = getRouteBySlug('4092230492')!
+    const urumaze = getRouteBySlug('urumaze')!
     const groupRide = (index: number, format = race.format!): Ride => ({
       course: { kind: 'route', slug: race.categories[index]!.routeSlug! },
       laps: race.categories[index]!.laps,

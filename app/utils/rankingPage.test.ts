@@ -184,7 +184,7 @@ describe('a race\'s Ranking page', () => {
   const rot = getRaceBySlug('zrl-2026-27', 'round-1-week-1')!
   const innsbruckring = getRouteBySlug('innsbruckring')!
   const makuri40 = getRouteBySlug('makuri-40')!
-  const urumaze = getRouteBySlug('4092230492')!
+  const urumaze = getRouteBySlug('urumaze')!
   const groupRide = (race: EventRace, index: number): Ride => ({
     course: { kind: 'route', slug: race.categories[index]!.routeSlug! },
     laps: race.categories[index]!.laps,

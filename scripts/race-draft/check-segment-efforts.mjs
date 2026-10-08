@@ -5,7 +5,7 @@
 // from the time they actually rode.
 //
 //   node scripts/race-draft/check-segment-efforts.mjs
-//   node scripts/race-draft/check-segment-efforts.mjs --route 2919739330
+//   node scripts/race-draft/check-segment-efforts.mjs --route mech-isle-mayhem
 //
 // What makes this different from spot-check-shipped-race-mode.mjs: there is no
 // distance to argue about. That script has to assume a ridden distance (route
