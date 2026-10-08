@@ -49,6 +49,7 @@ export const SUPPLEMENT_FRONT_WHEELS: BikeFrontWheel[] = [
 ]
 
 export const SUPPLEMENT_REAR_WHEELS: BikeRearWheel[] = [
+  // The same three stand-ins, rear.
   { id: 659802619, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
   { id: 3443883036, name: 'CADEX 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
   { id: 2002469001, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' }

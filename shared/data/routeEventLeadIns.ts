@@ -18,8 +18,9 @@ import { routes } from 'zwift-data'
  * turned out not to be".
  *
  * There is no tell in the source data itself, which is the point. Zwift
- * publishes `85.2417526245` m for Urumaze, Mech Isle Mayhem and Mech Isle Loop
- * Run, and it is tempting to read one value across three routes as a copied
+ * published `85.2417526245` m for Urumaze, Mech Isle Mayhem and Mech Isle Loop
+ * Run (until it corrected the first two itself, in zwift-data 2.1), and it
+ * is tempting to read one value across three routes as a copied
  * placeholder - but sharing is normal and proves nothing: 147 of the 393
  * routes in the dictionary share a lead-in with at least one other route,
  * usually because they start from the same pen (six London routes share
@@ -43,9 +44,9 @@ import { routes } from 'zwift-data'
  * `eventOnly` route, compare the organiser's published distance against
  * `route.distance x laps + route.leadInDistance` BEFORE trusting our number.
  * `scripts/events/validate-events.mjs` already does this and warns; that
- * warning is a finding, not noise. Twenty event-only cycling routes still
- * carry sub-200 m lead-ins and have never been checked against a published
- * event distance.
+ * warning is a finding, not noise. Seventeen event-only cycling routes
+ * (zwift-data 2.1) still carry sub-200 m lead-ins and have never been
+ * checked against a published event distance.
  */
 export interface EventLeadInOverride {
   /** Ridden distance from the event pen to the route's start line, km. */

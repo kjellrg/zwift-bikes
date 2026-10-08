@@ -17,8 +17,11 @@ describe('the retired route slugs', () => {
     }
   })
 
-  it('still name the same route: the old slug was the route id the new slug now carries', () => {
+  it('still name the same route: a retired numeric slug was that route\'s id', () => {
+    // Holds for the slugs retired so far, which were all bare route ids. A
+    // retired readable slug has no such tell and is simply skipped here.
     for (const [from, to] of Object.entries(ROUTE_SLUG_REDIRECTS)) {
+      if (!/^\d+$/.test(from)) continue
       expect(String(getRouteBySlug(to)?.id), from).toBe(from)
     }
   })
