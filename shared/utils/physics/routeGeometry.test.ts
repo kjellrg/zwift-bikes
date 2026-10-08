@@ -128,10 +128,14 @@ describe('the simulator and the finish-time estimate ride the same road', () => 
     }
   })
 
-  it('rides Peaky Pave\'s cobbles even though nobody has traced it', () => {
-    const route = getRouteBySlug('peaky-pave')!
+  it('rides Handful of Gravel Run\'s gravel even though nobody has traced it', () => {
+    // The one route still on a curated mix (`CURATED_SURFACE`): no Strava
+    // segment, so the simulator rides its 90% of dirt as one block. Peaky
+    // Pave held this seat until zwift-data 2.1 gave it a trace.
+    const route = getRouteBySlug('handful-of-gravel-run')!
+    expect(route.surface.confidence).toBe('curated')
     const geometry = geometryForRouteLaps(route, 1)
     const lap = share(geometry.surfaceSegments, (route.leadInDistance ?? 0) * 1000, geometry.totalDistanceM)
-    expect(lap.cobbles).toBeCloseTo(30, 0)
+    expect(lap.dirt).toBeCloseTo(90, 0)
   })
 })

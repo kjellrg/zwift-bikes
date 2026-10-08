@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { getRoutesWithMeta } from './shared/utils/catalog'
+import { routeSlugRedirectRules } from './shared/data/routeSlugRedirects'
 import { getIndexedRaces, getIndexedSeasons, isoDay } from './shared/utils/events'
 import { getAllSegmentSummaries } from './shared/utils/routeSegments'
 
@@ -102,7 +103,11 @@ export default defineNuxtConfig({
     // behind 8f05185. Shorter max-age than the catalog rules so the
     // site-flags gate's 503 (events can be switched off at runtime) is not
     // masked by a cached 200 for minutes.
-    '/api/events/**': { headers: { 'cache-control': 'public, max-age=60, stale-while-revalidate=3600' } }
+    '/api/events/**': { headers: { 'cache-control': 'public, max-age=60, stale-while-revalidate=3600' } },
+    // Route pages whose slug zwift-data has changed since they went live:
+    // the old URL redirects permanently to the new one. The table and its
+    // reasons are in `shared/data/routeSlugRedirects.ts`.
+    ...routeSlugRedirectRules()
   },
 
   compatibilityDate: '2026-06-30',

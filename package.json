@@ -46,7 +46,7 @@
     "nuxt-og-image": "^6.10.0",
     "tailwindcss": "^4.3.3",
     "zod": "^4.6.5",
-    "zwift-data": "^1.50.0"
+    "zwift-data": "^2.1.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

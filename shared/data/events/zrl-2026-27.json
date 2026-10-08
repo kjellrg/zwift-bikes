@@ -104,12 +104,12 @@
             },
             {
               "cats": ["C", "D"],
-              "routeSlug": "4092230492",
+              "routeSlug": "urumaze",
               "routeName": "Urumaze",
               "laps": 1,
               "officialDistanceKm": 24.8,
               "officialElevationM": 193.4,
-              "curatorNote": "zwift-data has no readable slug for Urumaze - the numeric id is the real slug, not a placeholder. Same route ZRacing 2026 August stage 2 uses. WTRL publishes 24.8 km here, which is the route lap; our 26.8 km adds the event-pen lead-in that Zwift under-reports as 85 m (see shared/data/routeEventLeadIns.ts). The distance warning on this race is therefore expected, and the larger figure is the one riders actually cover. The three scoring segments are linked but carry no on-profile positions: zwift-data ships no segment placements for Urumaze at all (its segmentsOnRoute is empty), so the race page falls back to the table alone here. The slugs resolve through their host routes elsewhere in Makuri, and the table's plain /segments/<slug> links work regardless.",
+              "curatorNote": "Same route ZRacing 2026 August stage 2 uses. WTRL publishes 24.8 km here, which is the route lap; our 26.8 km adds the ~2 km event-pen lead-in (which Zwift under-reported as 85 m until zwift-data 2.1, when it corrected the figure itself and the override in shared/data/routeEventLeadIns.ts left; the slug was the bare numeric id until then too, and that URL now redirects). The distance warning on this race is therefore expected, and the larger figure is the one riders actually cover. The three scoring segments are linked but carry no on-profile positions: zwift-data ships no segment placements for Urumaze at all (its segmentsOnRoute is empty), so the race page falls back to the table alone here. The slugs resolve through their host routes elsewhere in Makuri, and the table's plain /segments/<slug> links work regardless.",
               "falSegments": [
                 { "name": "Tidepool FWD Sprint", "slug": "tidepool-sprint", "times": 3 },
                 { "name": "Tower FWD Sprint", "slug": "tower-sprint", "times": 1 },

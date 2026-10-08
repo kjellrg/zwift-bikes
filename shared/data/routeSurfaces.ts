@@ -16,15 +16,16 @@ import generated from './routeSurfaces.generated.json'
  * entries generated before those changes won't have them until the script is
  * re-run.
  *
- * Keys are whatever `route.slug` zwift-data currently exposes, which for a
- * handful of event-only routes is a bare numeric id rather than a readable
- * name (`4092230492` is Urumaze, `2919739330` Mech Isle Mayhem, `362278484`
- * Twilight Crit, `811898717` WhatYumeziWereLost). Those keys have to be
- * re-pointed if zwift-data ever gives those routes readable slugs, together
- * with the matching `routeSlug` values in `shared/data/events/` - a stale key
- * matches nothing and drops the route back to the heuristic estimate without
- * failing anything. `compute-route-surfaces.mjs` warns about keys that match
- * no route, which is how that gets caught.
+ * Keys are whatever `route.slug` zwift-data currently exposes, and a slug can
+ * change: four Makuri Madness routes carried bare numeric ids until zwift-data
+ * 2.1 gave them readable slugs (`4092230492` became `urumaze`, `2919739330`
+ * `mech-isle-mayhem`, `362278484` `twilight-crit`, `811898717`
+ * `what-yumezi-were-lost`), and the keys here were re-pointed in the same
+ * change as the matching `routeSlug` values in `shared/data/events/` and the
+ * redirects in `shared/data/routeSlugRedirects.ts`. A stale key matches
+ * nothing and drops the route back to the heuristic estimate without failing
+ * anything. `compute-route-surfaces.mjs` warns about keys that match no
+ * route, which is how that gets caught.
  */
 /**
  * As GENERATED: every position here is in the source Strava trace's own km,

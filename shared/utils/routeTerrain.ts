@@ -71,7 +71,11 @@ function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
 // wrong wheel by a factor of six and made every finish-time estimate on the
 // route optimistic. Curated percentages from route descriptions are a
 // stopgap for ranking, not a second opinion on measured data, and they are
-// worst exactly where they matter most - predicted time.
+// worst exactly where they matter most - predicted time. `peaky-pave` went
+// the same way with zwift-data 2.1: carried as 30% cobbles on the strength
+// of its name, it measures 2.6% - the two Pavé Sprint stretches, 0.8 km of
+// a 30.6 km lap, the same village cobbles every other traced France route
+// shows at 3-6%. Road wheels won it either way.
 //
 // A curated entry carries percentages but no positions, so the simulator
 // rides these routes as one block per surface, in share order, rather than
@@ -80,8 +84,7 @@ function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
 // why the previous behaviour (100% of the dominant surface, i.e. Peaky Pave
 // as pure tarmac) was worse than an approximate layout.
 const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {
-  'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 },
-  'peaky-pave': { road: 70, gravel: 0, cobble: 30 }
+  'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 }
 }
 
 export function estimateSurface(route: Route): SurfaceEstimate {

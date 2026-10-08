@@ -120,9 +120,10 @@ export const raceCategoryGroupSchema = z.strictObject({
    *
    * Always set, even when `routeSlug` resolves - it's what the slug was
    * mapped *from*, so it both documents the mapping and gives the page a
-   * human name without joining to the catalog first (`zwift-data` has routes
-   * whose slug is a bare numeric id, e.g. Urumaze's `4092230492`, which is
-   * not something to show a rider). The validator compares the two and warns
+   * human name without joining to the catalog first (`zwift-data` has
+   * shipped routes whose slug was a bare numeric id - Urumaze was
+   * `4092230492` until 2.1 - which is not something to show a rider). The
+   * validator compares the two and warns
    * when they diverge, which is how a mis-mapped slug gets caught.
    */
   routeName: z.string().optional(),

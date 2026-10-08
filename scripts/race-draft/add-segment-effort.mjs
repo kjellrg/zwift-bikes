@@ -30,7 +30,7 @@
 //
 //   # From numbers someone reports to you (no API access needed).
 //   node scripts/race-draft/add-segment-effort.mjs \
-//     --route 4092230492 --sec 1642 --watts 265 --weight 79 --height 180 \
+//     --route urumaze --sec 1642 --watts 265 --weight 79 --height 180 \
 //     --draft race --append ./scripts/race-draft/segment-efforts.json
 //
 // Token setup is the same as scripts/route-surfaces/compute-route-surfaces.mjs

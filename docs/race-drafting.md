@@ -344,10 +344,12 @@ the more interesting one:
 
 - ~~Its geometry is synthesised.~~ **Resolved.** The route now has a measured
   elevation profile and measured surface data, and its dataset entry is keyed on
-  `2919739330` - zwift-data's slug for it is the bare numeric id, and the
-  readable slug it used to carry resolved to nothing, which silently dropped the
-  race out of every report until `validate-dataset-routes.mjs` was added to
-  refuse that. With real geometry its implied saving moves 19.3% → 27.7%.
+  `2919739330` - zwift-data's slug for it was the bare numeric id at the
+  time, and the readable slug it used to carry resolved to nothing, which
+  silently dropped the race out of every report until
+  `validate-dataset-routes.mjs` was added to refuse that. (zwift-data 2.1 gave
+  it back the readable slug `mech-isle-mayhem`, so the dataset entry is keyed
+  on that again.) With real geometry its implied saving moves 19.3% → 27.7%.
 - **Its ridden distance is not what the route says, and this is now measured.**
   `zwift-data` gives route + lead-in as 18.42 km; ZwiftInsider publishes 20.4 km
   for the stage. A Strava segment effort on the route settles it: the activity

@@ -217,8 +217,9 @@ surface end to end (Paris: all cobbles, pens included) - see
 `unmeasuredLeadInSurface`, which `estimateFinishTimeSec`'s `leadInCrr` also
 calls so the ranking key and the simulator agree.
 
-**Routes with a mix but no positions**: a handful of routes have no Strava
-segment at all and carry hand-curated percentages instead. They are ridden as
+**Routes with a mix but no positions**: a route with no Strava segment at all
+carries hand-curated percentages instead (one left, Handful of Gravel Run;
+Peaky Pavé was the other until zwift-data 2.1 gave it a trace). They are ridden as
 one block per surface, sized to its share and laid out biggest first
 (`surfaceSegmentsFromComposition`, issue #172). The amount of each surface is
 right and its position is not, which is the honest reading of what a curated

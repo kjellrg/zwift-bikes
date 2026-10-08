@@ -15,18 +15,12 @@ describe('findNameClashes', () => {
   })
 })
 
-// The game dictionary's 2026 Shimano records (fetched 2026-10-07): the same
-// names as the older revisions. This is what a zwift-data release that
-// catches up with the dictionary ships.
-const SHIMANO_2026_FRONT = [
-  { id: 3842759965, name: 'Shimano DURA-ACE C36', imageName: 'Wheel_ShimanoDuraAceC362026' },
-  { id: 2489344011, name: 'Shimano DURA-ACE C50', imageName: 'Wheel_ShimanoDuraAceC502026' },
-  { id: 3181958393, name: 'Shimano DURA-ACE C60', imageName: 'Wheel_ShimanoDuraAceC602026' },
-  { id: 1160815788, name: 'Shimano DURA-ACE C99 + Disc', imageName: 'Wheel_ShimanoDuraAceC992026' }
-]
-
+// zwift-data 2.1 ships both Shimano generations: the 2026 DURA-ACE records
+// (the game dictionary's, fetched 2026-10-07) under the same names as the
+// older revisions it still carries. `wheelSupplement.ts` withdraws the old
+// ones by id; this is what happens without that.
 describe('both Shimano generations arriving under one name', () => {
-  const upstream = [...bikeFrontWheels, ...SHIMANO_2026_FRONT]
+  const upstream = bikeFrontWheels
 
   it('is caught, naming each pair, when nothing withdraws the older revisions', () => {
     const clashes = findNameClashes(applyWheelSupplement(upstream, SUPPLEMENT_FRONT_WHEELS, []), KNOWN_SHARED_WHEEL_NAMES)

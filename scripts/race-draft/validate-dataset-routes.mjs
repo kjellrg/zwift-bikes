@@ -4,8 +4,10 @@
 //
 // This exists because of a real failure, not a hypothetical one. The dataset
 // carried Makuri Madness stage 1 as `"routeSlug": "mech-isle-mayhem"`, which
-// zwift-data does not use - its slug for that route is the bare numeric id
-// `2919739330`. The spot-check printed one "skipped" line and went on to pool
+// zwift-data did not use at the time - its slug for that route was the bare
+// numeric id `2919739330` until 2.1, which flipped it back to the readable
+// slug and made every entry keyed on the id rot the same way. The spot-check
+// printed one "skipped" line and went on to pool
 // and PASS without it, and the analyzer threw mid-run with a bare `Unknown
 // route:` and no indication that the fix is a re-key rather than a missing
 // route. A race can leave the calibration set for a documented reason; it must
