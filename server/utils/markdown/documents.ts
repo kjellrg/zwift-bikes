@@ -327,7 +327,7 @@ function categoryAssumption(category: BikeCategory | 'all'): string {
  * Each line follows `DEFAULT_RIDER_INPUTS` - the category and draft through
  * the Applied rider, which is those defaults made legal for the Ride - so a
  * changed default changes what the document says it ranked. The one line
- * that does not is "one row per frame": that cap is `buildRecommendQuery`'s
+ * that does not is "one row per bike": that cap is `buildRecommendQuery`'s
  * own, sent with every request, not a rider default.
  */
 function rankingAssumptions(rider: AppliedRiderInputs, extra: string[]): string[] {
@@ -339,7 +339,7 @@ function rankingAssumptions(rider: AppliedRiderInputs, extra: string[]): string[
       ? '- Verified equipment only: frames and wheels whose numbers come from real ZwiftInsider bot tests.'
       : '- Verified and estimated equipment: frames and wheels with no bot-test data are ranked on heuristic estimates.',
     `- Every frame assumed at Zwift upgrade stage ${stage} of ${MAX_UPGRADE_STAGE}${stage === MAX_UPGRADE_STAGE ? ' (fully upgraded)' : stage === 0 ? ' (stock, as bought)' : ''}${includeHaloBikes ? ', with the purchasable Halo frames included' : ', and unowned Halo frames excluded'}.`,
-    '- One row per frame, paired with its own fastest wheelset for this ride.',
+    '- One row per bike, paired with its own fastest wheelset for this ride; a frame Zwift sells in several paints is one row, the other paints named beside it.',
     ...extra,
     '',
     defaultRiderNote(rider)

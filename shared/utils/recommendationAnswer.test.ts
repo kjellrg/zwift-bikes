@@ -2,19 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { ComboScore } from '../types/catalog'
 import { buildRecommendationAnswer, type RecommendationAnswerInputs } from './recommendationAnswer'
 
-/**
- * A ranked setup as the builder reads it. The physics are what decide
- * whether two setups on one time are the same bike under two names, so each
- * fixture carries its own - see `twin` below.
- */
-function combo(frameName: string, wheelsetName: string | undefined, finishTimeSec: number, cdaDeltaM2 = 0): ComboScore {
+/** A ranked setup as the builder reads it. */
+function combo(frameName: string, wheelsetName: string | undefined, finishTimeSec: number): ComboScore {
   return {
     frame: {
       id: frameName.length,
       name: frameName,
       category: 'standard',
       hasFixedWheels: wheelsetName === undefined,
-      physics: { cdaDeltaM2, bikeMassDeltaKg: 0, crrDelta: 0 }
+      physics: { cdaDeltaM2: 0, bikeMassDeltaKg: 0, crrDelta: 0 }
     },
     wheelset: wheelsetName === undefined
       ? undefined
@@ -24,7 +20,7 @@ function combo(frameName: string, wheelsetName: string | undefined, finishTimeSe
 }
 
 const rank1 = combo('Specialized Tarmac SL9', 'Shimano C99/Disc', 1062)
-const runnerUp = combo('Canyon Aeroad 2024', 'Zipp 858/Super9', 1062.33, 0.001)
+const runnerUp = combo('Canyon Aeroad 2024', 'Zipp 858/Super9', 1062.33)
 
 const base: RecommendationAnswerInputs = {
   ranking: [rank1, runnerUp],
@@ -50,20 +46,13 @@ describe('buildRecommendationAnswer', () => {
   })
 
   it('says "tied" only when the gap is exactly zero', () => {
-    const tied = combo('Canyon Aeroad 2024', 'Zipp 858/Super9', 1062, 0.001)
+    const tied = combo('Canyon Aeroad 2024', 'Zipp 858/Super9', 1062)
     expect(buildRecommendationAnswer({ ...base, ranking: [rank1, tied] })!.summary)
       .toMatch(/ The Canyon Aeroad 2024 with Zipp 858\/Super9 is tied with it\.$/)
     // A hundredth that rounds away is still a gap, and is said as one.
-    const nearly = combo('Canyon Aeroad 2024', 'Zipp 858/Super9', 1062.003, 0.001)
+    const nearly = combo('Canyon Aeroad 2024', 'Zipp 858/Super9', 1062.003)
     expect(buildRecommendationAnswer({ ...base, ranking: [rank1, nearly] })!.summary)
       .toMatch(/ The Canyon Aeroad 2024 with Zipp 858\/Super9 is less than 0\.01 s behind\.$/)
-  })
-
-  it('calls a tie between setups with the same physics identical, not a coincidence', () => {
-    // The two Canyon Aeroads (#266): one bike under two names, so one time.
-    const twin = combo('Canyon Aeroad CFR Alpecin Premier-Tech', 'Shimano C99/Disc', 1062)
-    expect(buildRecommendationAnswer({ ...base, ranking: [rank1, twin] })!.summary)
-      .toMatch(/ The Canyon Aeroad CFR Alpecin Premier-Tech with Shimano C99\/Disc is identical to it in the model, and tied with it\.$/)
   })
 
   it('names no runner-up when the Ranking has a single row', () => {

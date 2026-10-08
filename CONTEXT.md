@@ -24,7 +24,7 @@ The URL carries a shared view's non-default values. A page's own selection is a 
 _Avoid_: URL state, per-visit knobs, query params, visit override
 
 **Directed search**:
-A term typed on a ranking page, which reaches the whole eligible catalog rather than narrowing the rows already on screen. The pool's tidiness rules are lifted for it: the one-row-per-frame cap, the collapsing of a cosmetic re-skin into the bike it re-skins, and the hiding of the purchasable Halo frames - a rider who typed a bike's name is asking for that bike, not for a tidy list. Eligibility itself still applies (category, verification, the garage, compatibility), so a directed search can legitimately find nothing.
+A term typed on a ranking page, which reaches the whole eligible catalog rather than narrowing the rows already on screen. The pool's tidiness rules are lifted for it: the one-row-per-frame cap, the collapsing of Colourways into one row, and the hiding of the purchasable Halo frames - a rider who typed a bike's name is asking for that bike, not for a tidy list. Eligibility itself still applies (category, verification, the garage, compatibility), so a directed search can legitimately find nothing.
 _Avoid_: filter, query, list search, bike filter
 
 **Garage fallback**:
@@ -91,9 +91,21 @@ _Avoid_: owned bikes, my bikes, inventory, collection
 Where a frame stands on Zwift's five-step upgrade ladder. Stage 0 is the frame as bought, stage 5 is fully upgraded, and each stage is earned by riding it. A frame in the garage is ranked at the stage the rider set; a frame outside it at the stage the profile assumes for unowned frames, which is 5 unless changed and flatters a bike the rider might buy. Wheels have no stages. A frame nobody has bot-tested has no per-stage numbers, so its stage cannot be set.
 _Avoid_: level, upgrade level, tier (a frame's price class, a different axis). The API query key `defaultUnownedLevel` and the MCP `upgradeLevel` argument keep the old word on purpose - they are a published contract, not drift.
 
+**Supplement**:
+A frame or wheel that is live in Zwift but that the catalog's upstream package has not caught up with, kept by hand until it has. An entry can add equipment the package lacks, or rename equipment the package still names the old way; either way it is matched to the package's record by Zwift's id, so a rider's Garage entry for a frame survives the rename. When the package ships the same thing, the package wins and the entry is deleted.
+_Avoid_: patch, override list, extra equipment
+
+**Provisional id**:
+The stand-in id a frame carries while Zwift has published no record for it at all. It sits above the range of real Zwift ids, so it can never collide with one, and it is replaced when the real id lands - which costs a rider who owned the frame its Garage entry.
+_Avoid_: fake id, temporary id, placeholder id (a placeholder is an unlocalised name, a different gap)
+
 **Ranking**:
 Every eligible setup for a Ride, ordered by the finish time the Applied rider gets on it, fastest first. It is one list, shown whole as a table from rank 1 down: the Recommendation above it is rank 1 shown as the page's answer, and rank 1's own row stays in the table so the fastest and the rest can be read together. A row carries what belongs to a row - the comparison pick, its disclosure and its Wheel alternatives - so those exist once, on the row. A Directed search, a filter change or a Garage change produces a new ranking rather than narrowing this one, and a ranking of a single setup is a recommendation with one row beneath it.
 _Avoid_: results list, alternatives list, the field, matches
+
+**Colourway**:
+The same bike under another name and paint: two frames Zwift sells separately that the model cannot tell apart because they are one frame repainted (the two Canyon Aeroads that share a measurement; Concept Z1 and its golden one). A Ranking lists a bike once, so its Colourways share one row, led by the name the rider owns, otherwise the plainest, with the other names beside it. It is a decision about what is the same bike, not something physics decides: two frames whose estimated numbers happen to match are two bikes and keep two rows. A Directed search lifts it, so every name a rider types finds its own row. The same word covers a wheel sold in several paints, which the Ranking already counts once.
+_Avoid_: twin (a Twin is a page's markdown), alias, duplicate, variant, cosmetic re-skin
 
 **Recommendation**:
 Rank 1 of the Ranking, shown as the page's answer: the setup, its estimated finish time, the evidence lines that say what the time rests on, and the paths deeper into it (the Equipment drawer, the Garage, the note on a quicker setup the rules exclude, the Climb trade). It is not a judgement separate from the ranking; whatever the ranking puts first is the recommendation, so anything that reorders the ranking moves the recommendation with it. The controls that belong to a row - comparison, disclosure, Wheel alternatives - are on rank 1's row in the table, not repeated here.

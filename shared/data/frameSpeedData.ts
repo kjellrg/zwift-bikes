@@ -95,8 +95,8 @@ export interface FrameSpeedSample {
 // `Zwift Golden Concept Z1` is the same bike with a gold light scheme and is
 // not tested separately by ZwiftInsider, so both frames deliberately share
 // this one sample instead of carrying two copies of the numbers that could
-// drift apart. Only one of the two is ever listed in ranked results - see
-// `isRedundantCosmeticVariant`.
+// drift apart. A ranking lists the two as one bike - see `COLOURWAYS` in
+// `classifyBikeFrame.ts`.
 const CONCEPT_Z1: FrameSpeedSample = { flatGapSec0: 114.6, flatGapSec5: 144, climbGapSec0: 31.1, climbGapSec5: 68, flatGapSecByStage: [114.6, 126.8, 128, 140.1, 144.2, 144], climbGapSecByStage: [31.1, 33.7, 48.8, 60.8, 60.6, 68], at150W: { flatGapSec0: 111.8, flatGapSec5: 149.7, climbGapSec0: 22.7, climbGapSec5: 60.7 } }
 
 export const FRAME_SPEED_DATA: Record<string, FrameSpeedSample> = {
@@ -123,7 +123,8 @@ export const FRAME_SPEED_DATA: Record<string, FrameSpeedSample> = {
   // The sheet's "Canyon Aeroad CFR - CANYON//SRAM" row, which both importers
   // once mapped onto "Canyon Aeroad 2024 / SRAM" (id 1122831861) - a
   // different frame nobody has measured, now estimated (issue #272). The
-  // numbers equal the Alpecin's below: one frame in two paints.
+  // numbers equal the Alpecin's below: one frame in two paints, which a
+  // ranking lists once (`COLOURWAYS` in `classifyBikeFrame.ts`, #266).
   'Canyon Aeroad CFR - CANYON//SRAM': { flatGapSec0: 63.3, flatGapSec5: 92.4, climbGapSec0: 43.6, climbGapSec5: 80.1, flatGapSecByStage: [63.3, 74.6, 75.8, 87.6, 92.1, 92.4], climbGapSecByStage: [43.6, 44.6, 60.7, 71.7, 72.6, 80.1] },
   'Canyon Aeroad CFR Alpecin Premier-Tech': { flatGapSec0: 63.3, flatGapSec5: 92.4, climbGapSec0: 43.6, climbGapSec5: 80.1, flatGapSecByStage: [63.3, 74.6, 75.8, 87.6, 92.1, 92.4], climbGapSecByStage: [43.6, 44.6, 60.7, 71.7, 72.6, 80.1] },
   'Canyon Inflite': { flatGapSec0: -138.7, flatGapSec5: -113.9, climbGapSec0: -158.8, climbGapSec5: -124.5, flatGapSecByStage: [-138.7, -127.6, -125, -112.5, -113.2, -113.9], climbGapSecByStage: [-158.8, -157.4, -135, -124.5, -125.4, -124.5], at150W: { flatGapSec0: -237.6, flatGapSec5: -202.5, climbGapSec0: -176.3, climbGapSec5: -141.1 } },

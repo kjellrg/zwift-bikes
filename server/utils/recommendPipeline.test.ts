@@ -12,6 +12,8 @@ import { getFrames, getRouteBySlug } from '../../shared/utils/catalog'
 import { getWheelsets } from '../../shared/utils/wheelsets'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../shared/utils/routeSegments'
 import { rideForRoute, rideForSegment } from '../../shared/utils/recommendRide'
+import { buildRecommendQuery, DEFAULT_RIDER_INPUTS } from '../../shared/utils/recommendQuery'
+import { comboPhysicsKey } from '../../shared/utils/physics'
 
 /**
  * Invariants of the shared orchestration (issue #77), exercised against the
@@ -203,12 +205,37 @@ describe('runRecommendPipeline', () => {
     expect(new Set(searched.combos.map(combo => combo.frame.id)).size).toBeLessThan(searched.combos.length)
   })
 
-  it('lets a search reach the cosmetic re-skin the ranked pool leaves out', async () => {
-    // With an empty garage the re-skin is the half of the pair that drops out
-    // of a ranking (`isRedundantCosmeticVariant`, covered at the classifier),
-    // so a rider who types its name is the only one who can ask for it.
-    const searched = await runRecommendPipeline(fakeEvent(), query({ search: 'golden' }), routeRide([]))
-    expect(searched.combos.map(combo => combo.frame.name)).toContain('Zwift Golden Concept Z1')
+  it('lists a bike once on the page\'s default query, so rank 2 is a setup with different physics (#266)', async () => {
+    // One of the routes where the two Canyon Aeroad CFRs - one bike in two
+    // paints - took ranks 1 and 2 between them.
+    const libbyHill = fixtureRoute('libby-hill-after-party')
+    const pageQuery = rankingRequestFromQuery(recommendRouteQuerySchema.parse(
+      buildRecommendQuery(DEFAULT_RIDER_INPUTS, { course: { kind: 'route', slug: libbyHill.slug } })
+    ))
+    const { combos } = await runRecommendPipeline(fakeEvent(), pageQuery, routeRide([], { route: libbyHill }))
+    const aeroads = combos.filter(combo => combo.frame.name.startsWith('Canyon Aeroad CFR'))
+    expect(aeroads.map(combo => [combo.frame.name, combo.frame.otherPaints]))
+      .toEqual([['Canyon Aeroad CFR - CANYON//SRAM', ['Canyon Aeroad CFR Alpecin Premier-Tech']]])
+    const [rank1, rank2] = combos
+    expect(comboPhysicsKey(rank2!)).not.toBe(comboPhysicsKey(rank1!))
+  })
+
+  it('lets a search find each Colourway by its own name', async () => {
+    // A ranking lists the golden Concept Z1 beside the plain one, so a rider
+    // who types its name is the only one who can ask for it alone.
+    const golden = await runRecommendPipeline(fakeEvent(), query({ search: 'golden' }), routeRide([]))
+    expect(golden.combos.map(combo => combo.frame.name)).toContain('Zwift Golden Concept Z1')
+
+    const aeroads = await runRecommendPipeline(fakeEvent(), query({ search: 'aeroad cfr', maxWheelsetsPerFrame: '1' }), routeRide([]))
+    expect(new Set(aeroads.combos.map(combo => combo.frame.name)))
+      .toEqual(new Set(['Canyon Aeroad CFR - CANYON//SRAM', 'Canyon Aeroad CFR Alpecin Premier-Tech']))
+    expect(aeroads.combos.every(combo => combo.frame.otherPaints === undefined)).toBe(true)
+
+    // The row a search found opens its own Wheel alternatives, whichever name it is.
+    const alpecin = aeroads.combos.find(combo => combo.frame.name === 'Canyon Aeroad CFR Alpecin Premier-Tech')!.frame
+    const drillDown = await runRecommendPipeline(fakeEvent(), query({ wheelsForFrame: String(alpecin.id), limit: '6' }), routeRide([]))
+    expect(drillDown.combos.length).toBeGreaterThan(0)
+    expect(drillDown.combos.every(combo => combo.frame.id === alpecin.id)).toBe(true)
   })
 
   it('answers a drill-down with one frame, no wheel-options count, and an upgrade curve', async () => {

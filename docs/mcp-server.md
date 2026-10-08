@@ -181,8 +181,10 @@ it - is deliberately not part of this (issue #241). A model that knows what the
 user is racing passes the format; it does not have to know which race.
 
 They return at most 9 combos per call - the same cap the HTTP endpoint
-enforces - with `offset` for paging, and **one row per frame**, paired with
-that frame's fastest wheelset for the route. The web UI can afford to show a
+enforces - with `offset` for paging, and **one row per bike**, paired with
+that frame's fastest wheelset for the route. A frame Zwift sells in several
+paints (its Colourways) is one row, the other paints named beside it in the
+Frame cell. The web UI can afford to show a
 frame's top few wheelsets side by side; in a chat answer those extra rows push
 distinct *bikes* off the page, which is what was actually asked about. The cap
 is applied after ranking (via `maxWheelsetsPerFrame`, which the endpoints now

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeFiltersLabel, breadcrumbScript, comboPhysicsDelta, courseNote, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
+import { activeFiltersLabel, otherPaintsLine, breadcrumbScript, comboPhysicsDelta, courseNote, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
 const course = (terrain: unknown, surface: unknown) => ({ terrain, surface } as RouteWithMeta)
@@ -218,5 +218,14 @@ describe('activeFiltersLabel', () => {
 
   it('names a directed search instead of a Halo rule it lifts', () => {
     expect(activeFiltersLabel({ ...restrictions, search: ' tarmac ' }, 'standard')).toBe('Standard (Road) · verified data only · search "tarmac"')
+  })
+})
+
+describe('otherPaintsLine', () => {
+  it('names the same frame\'s other paints, and counts what it leaves out', () => {
+    expect(otherPaintsLine(undefined)).toBeUndefined()
+    expect(otherPaintsLine(['Canyon Aeroad CFR Alpecin Premier-Tech'])).toBe('Same frame in another paint: Canyon Aeroad CFR Alpecin Premier-Tech')
+    expect(otherPaintsLine(['A', 'B'])).toBe('Same frame in other paints: A, B')
+    expect(otherPaintsLine(['A', 'B', 'C', 'D'])).toBe('Same frame in other paints: A, B +2 more')
   })
 })

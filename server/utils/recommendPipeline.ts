@@ -4,7 +4,7 @@ import type { ComboTiming, RecommendRide, SimulateComboOptions } from '../../sha
 import { getFrames } from '../../shared/utils/catalog'
 import { getWheelsets } from '../../shared/utils/wheelsets'
 import { capWheelsetsPerFrame, countWheelOptionsByFrame, rankCombos, searchCombos } from '../../shared/utils/scoring'
-import { classifyBikeFrame, isRedundantCosmeticVariant, PURCHASABLE_HALO_FRAMES } from '../../shared/utils/classifyBikeFrame'
+import { classifyBikeFrame, collapseColourways, PURCHASABLE_HALO_FRAMES } from '../../shared/utils/classifyBikeFrame'
 import { estimateFinishTimeSec, estimateSurfaceTimePenaltySec } from '../../shared/utils/finishTime'
 import { comboPhysicsKey, confirmWheelPicks, equipmentPhysics, fastestWheelOfEachKind, FASTEST_OVERALL_ORDER_MARGIN, orderBySimulatedTime, RACE_DRAFT_SAVING, resolveDraft, simulateRoute, SIMULATED_ORDER_MARGIN, tttFrontPullPowerW, tttLastWheelPowerW, WHEEL_OPTIONS_ORDER_MARGIN, wheelKind } from '../../shared/utils/physics'
 import type { RideDraft } from '../../shared/utils/physics'
@@ -149,8 +149,7 @@ export async function runRecommendPipeline(
   const heightCm = request.rider?.heightCm ?? 0
   const powerW = request.rider?.powerW ?? 0
 
-  // The rider's garage, by frame name - `isRedundantCosmeticVariant` needs to
-  // know whether a cosmetic re-skin was explicitly added before it earns a row.
+  // The rider's garage, by frame name - a Halo frame they added earns a row.
   const ownedFrameNames = new Set(getFrames().filter(f => f.id.toString() in ownedStages).map(f => f.name))
 
   // True when `frame` is a purchasable Halo bike the ranked pool should not
@@ -158,23 +157,15 @@ export async function runRecommendPipeline(
   // find any real, valid combo, and `searchCombos` only sees combos ranked
   // from `frames`, so the bypass has to happen here, pre-rank. Also bypassed
   // by ownership: a rider who put a Halo bike in their garage wants it
-  // ranked - the same argument as `isRedundantCosmeticVariant`.
+  // ranked.
   const isHiddenHalo = (frame: { name: string }) => !includeHalo && !search
     && PURCHASABLE_HALO_FRAMES.has(frame.name) && !ownedFrameNames.has(frame.name)
 
   // Built WITHOUT the category and Halo filters, which are applied separately
-  // below. Every other filter - cosmetic dedupe, ownership, verified -
+  // below. Every other filter - ownership, verified, the Colourway collapse -
   // belongs to both the ranked results and the `fastestOverall` comparison at
   // the end, so the two can only ever differ by those two display filters.
   let allFrames = getFrames().filter((frame) => {
-    // Never list the same bike twice: a cosmetic re-skin and the frame it
-    // re-skins are one bike, so only one of the pair is shown - the re-skin
-    // only when it's explicitly in the rider's garage. Bypassed while
-    // searching, for the same reason `isHiddenHalo` above is: tidiness is
-    // not a reason to answer "nothing matches" to someone who typed a real
-    // bike's name. `fastestOverall` never sees the difference - it is gated
-    // on an unsearched request.
-    if (!search && isRedundantCosmeticVariant(frame, ownedFrameNames)) return false
     if (filterFramesByOwnership && !(frame.id.toString() in ownedStages)) return false
     return true
   }).map((frame) => {
@@ -190,6 +181,15 @@ export async function runRecommendPipeline(
     wheelsets = wheelsets.filter(w => w.confidence === 'measured')
   }
   if (ride.excludeTT) allFrames = allFrames.filter(f => f.category !== 'tt')
+  // Never list the same bike twice: a bike's Colourways become one frame,
+  // led by the name the rider owns, here - after the Garage and the stages,
+  // before anything selects from the pool - so the wheel cap, the simulated
+  // window, pagination and the Climb trade only ever see one frame per bike.
+  // Lifted while searching, for the same reason `isHiddenHalo` above is:
+  // tidiness is not a reason to answer "nothing matches" to someone who typed
+  // a real bike's name. And for Wheel alternatives, whose pool is the one
+  // frame a row opened - a searched row may be any of the names.
+  if (!search && wheelsForFrame === undefined) allFrames = collapseColourways(allFrames, ownedStages)
   const rankable = allFrames.filter(f => !isHiddenHalo(f))
   const frames = category ? rankable.filter(f => f.category === category) : rankable
   // The wheel-options drill-down: same request, same filters, same rider -
@@ -249,7 +249,7 @@ export async function runRecommendPipeline(
   //
   // Every timing under the request's own draft keeps its Climb times, by
   // physics key - the same key `orderBySimulatedTime` dedupes by, so a
-  // physics twin it never simulated still finds them - and the Climb trade
+  // setup with the same physics that it never simulated still finds them - and the Climb trade
   // below reads them out of the very simulations that timed the rows rather
   // than timing anything again.
   const timings = new Map<string, ComboTiming>()

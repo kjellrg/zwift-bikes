@@ -2,7 +2,6 @@ import type { BikeCategory, ComboScore } from '../types/catalog'
 import { BIKE_CATEGORY_LABELS, BIKE_CATEGORY_WORDS } from './bikeCategories'
 import { formatDuration, formatGapSeconds, formatSpeedKmh } from './duration'
 import type { DraftMode } from './physics/draft'
-import { comboPhysicsKey } from './physics/simulatedOrdering'
 
 /**
  * The rider the time was computed for. The same shape as the pages'
@@ -124,18 +123,14 @@ function article(value: number): string {
  * How far behind rank 2 is. No close-call threshold: on the default query
  * rank 2 is within 0.3% on 326 of 335 routes, so tie wording on a share
  * would say "tied" almost everywhere and mean nothing. "Tied" is kept for a
- * gap of exactly zero, and a tie between setups the simulator cannot tell
- * apart (a re-skin, the two Canyon Aeroads - #266) says why.
+ * gap of exactly zero. A bike's Colourways share one row (#266), so rank 2
+ * is never rank 1 under another name.
  */
-function runnerUpSentence(best: AnswerCombo, bestSec: number, second: AnswerCombo): string | undefined {
+function runnerUpSentence(bestSec: number, second: AnswerCombo): string | undefined {
   if (second.finishTimeSec === undefined) return undefined
   const gapSec = second.finishTimeSec - bestSec
   const name = setupName(second)
-  if (gapSec === 0) {
-    return comboPhysicsKey(best) === comboPhysicsKey(second)
-      ? `The ${name} is identical to it in the model, and tied with it.`
-      : `The ${name} is tied with it.`
-  }
+  if (gapSec === 0) return `The ${name} is tied with it.`
   return `The ${name} is ${formatGapSeconds(gapSec)} behind.`
 }
 
@@ -182,7 +177,7 @@ export function buildRecommendationAnswer(inputs: RecommendationAnswerInputs): R
     + `finishing in ${formatDuration(best.finishTimeSec)}${speed}.`
   ]
   if (second) {
-    const runnerUp = runnerUpSentence(best, best.finishTimeSec, second)
+    const runnerUp = runnerUpSentence(best.finishTimeSec, second)
     if (runnerUp) sentences.push(runnerUp)
   }
   const leftOut = inputs.fastestOverall && leftOutSentence(inputs.fastestOverall, Boolean(inputs.rideRules))

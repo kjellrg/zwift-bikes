@@ -613,7 +613,7 @@ const TOOLS: ToolDefinition[] = [
         formatTttAssumption(physics),
         formatRaceAssumption(physics),
         `- All bikes assumed at upgrade stage ${upgradeLevelFor(args)}${upgradeLevelFor(args) === 5 ? ' (fully upgraded)' : upgradeLevelFor(args) === 0 ? ' (stock)' : ''}`,
-        '- One row per frame, paired with its fastest wheelset for this route'
+        '- One row per bike, paired with its fastest wheelset for this route; a frame sold in several paints is one row, the other paints named beside it'
       ].filter(Boolean)
 
       return text([
@@ -676,7 +676,7 @@ const TOOLS: ToolDefinition[] = [
         formatTttAssumption(physics),
         formatRaceAssumption(physics),
         `- All bikes assumed at upgrade stage ${upgradeLevelFor(args)}${upgradeLevelFor(args) === 5 ? ' (fully upgraded)' : upgradeLevelFor(args) === 0 ? ' (stock)' : ''}`,
-        '- One row per frame, paired with its fastest wheelset for this route'
+        '- One row per bike, paired with its fastest wheelset for this route; a frame sold in several paints is one row, the other paints named beside it'
       ].filter(Boolean)
 
       return text([

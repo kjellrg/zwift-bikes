@@ -205,6 +205,22 @@ export function comboPhysicsDelta(combo: Pick<ComboScore, 'frame' | 'wheelset'>)
   }
 }
 
+/** How many of a frame's other paints a Ranking row spells out before counting the rest. */
+const OTHER_PAINTS_SHOWN = 2
+
+/**
+ * The line under a row's frame name when the row stands for a frame Zwift
+ * sells in several paints - its Colourways (see `CONTEXT.md`) - so a rider
+ * who knows it by another paint's name still finds it, and knows it is the
+ * same frame rather than a different one that happens to tie.
+ */
+export function otherPaintsLine(names: readonly string[] | undefined): string | undefined {
+  if (!names?.length) return undefined
+  const more = names.length - OTHER_PAINTS_SHOWN
+  const paints = names.length === 1 ? 'another paint' : 'other paints'
+  return `Same frame in ${paints}: ${names.slice(0, OTHER_PAINTS_SHOWN).join(', ')}${more > 0 ? ` +${more} more` : ''}`
+}
+
 /** A delta as the table and the "why" section print it: always signed, `−` rather than `-`. */
 export function formatSignedDelta(value: number, digits: number): string {
   const rounded = Number(value.toFixed(digits))
