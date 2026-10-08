@@ -123,15 +123,16 @@ export function sliceSurfaceSegments(
 
 /**
  * The surface stretches to ride when a route has a known surface MIX but no
- * measured positions for it - the two curated routes (`peaky-pave`,
- * `handful-of-gravel-run`) that zwift-data still has no `stravaSegmentId`
- * for, and any future route in the same position. One block per surface,
- * sized to its share of the composition and ordered by descending share.
+ * measured positions for it - the one curated route left
+ * (`handful-of-gravel-run`, which zwift-data still has no `stravaSegmentId`
+ * for; `peaky-pave` was the other until 2.1 gave it one) and any future
+ * route in the same position. One block per surface, sized to its share of
+ * the composition and ordered by descending share.
  *
  * Before issue #172 these routes were ridden as 100% of their single most
  * prevalent surface, because the only thing built from a composition was one
- * segment of the dominant type. Peaky Pave is a 70/30 tarmac/cobbles route
- * and simulated as pure tarmac, while `estimateFinishTimeSec` - which blends
+ * segment of the dominant type. Peaky Pave was carried as a 70/30
+ * tarmac/cobbles route and simulated as pure tarmac, while `estimateFinishTimeSec` - which blends
  * Crr across the same composition - correctly charged for the cobbles. The
  * two halves of the model disagreed about the road, and the simulator, which
  * decides the ranking, was the one that was wrong.
