@@ -46,7 +46,7 @@
               "laps": 1,
               "officialDistanceKm": 20.4,
               "officialElevationM": 121,
-              "curatorNote": "zwift-data's slug for Mech Isle Mayhem is the bare numeric id. ZwiftInsider's published 20.4 km ran about 2 km over route + lead-in (18.4 km) because Zwift's game dictionary publishes an 85 m lead-in for this route - the same value it gives Urumaze and a Mech Isle running route. Corrected in shared/data/routeEventLeadIns.ts from the published distance and confirmed by a Strava segment effort, so our total now matches the listing."
+              "curatorNote": "zwift-data's slug for Mech Isle Mayhem is the bare numeric id. ZwiftInsider's published 20.4 km ran about 2 km over route + lead-in (18.4 km) because Zwift's game dictionary publishes an 85 m lead-in for this route - the same value it gives Urumaze and a Mech Isle running route. Corrected in shared/data/routeEventLeadIns.ts from the published distance and confirmed by a Strava segment effort, so our total matched the listing. Since zwift-data 2.1 (2026-10-08) the slug is readable and Zwift publishes the ~2 km lead-in itself, so the override table is empty; the old numeric URL redirects (shared/data/routeSlugRedirects.ts)."
             }
           ],
           "note": "The month opens with a single lap of Mech Isle Mayhem - about 20 km with only 121 m of climbing, so expect a fast, draft-heavy race that stays together. Only a third of the lap is tarmac, but the 35% beach sand rolls at tarmac speed in Zwift, so road wheels still win comfortably; it's the 21% dirt that costs time. Feather and Ghost are the powerups on offer.",
@@ -73,7 +73,7 @@
               "laps": 1,
               "officialDistanceKm": 26.8,
               "officialElevationM": 202,
-              "curatorNote": "Same route ZRL 2026/27 R1W3 gives C/D - zwift-data's numeric id is the real slug. The published 26.8 km exceeds route + lead-in for the same reason as stage 1, and is corrected in shared/data/routeEventLeadIns.ts; 152 real finishers reproduce at +1.07% on the corrected distance against -5.78% on the uncorrected one."
+              "curatorNote": "Same route ZRL 2026/27 R1W3 gives C/D - zwift-data's numeric id is the real slug. The published 26.8 km exceeded route + lead-in for the same reason as stage 1, and was corrected in shared/data/routeEventLeadIns.ts; 152 real finishers reproduce at +1.07% on the corrected distance against -5.78% on the uncorrected one. Since zwift-data 2.1 (2026-10-08) the slug is readable and Zwift publishes the ~2 km lead-in itself, so the override table is empty; the old numeric URL redirects (shared/data/routeSlugRedirects.ts)."
             }
           ],
           "note": "Urumaze is a clean, rolling lap where ordinary road aero wins - the 202 m of climbing never bites hard enough to hand the race to a lightweight build. Two fifths of the lap is beach sand, which sounds slow and isn't: Zwift rolls sand at tarmac Crr, so it costs road wheels nothing. Feather and Aero powerups.",
@@ -99,7 +99,7 @@
               "laps": 1,
               "officialDistanceKm": 17.6,
               "officialElevationM": 288,
-              "curatorNote": "ZwiftInsider styles the name \"WhatYumeziWe'reLost?\"; zwift-data (and the game) spell it WhatYumeziWereLost. Published figures match route + lead-in within 1%."
+              "curatorNote": "ZwiftInsider styles the name \"WhatYumeziWe'reLost?\"; zwift-data (and the game) spell it WhatYumeziWereLost. Published figures match route + lead-in within 1%. The slug was the bare numeric id until zwift-data 2.1 (2026-10-08); that URL now redirects (shared/data/routeSlugRedirects.ts)."
             }
           ],
           "note": "The hilliest stage of the month: 288 m of climbing packed into under 18 km, over twice the gradient density of the other three stages. That makes it the month's closest call between aero and light: aero, climbing and all-rounder frames finish within seconds of each other, and a full aero build only just edges a pure climbing one - by less still for lighter riders. The Feather powerup rewards the climbs. It is also the dirtiest stage - a quarter of the route is dirt, the surface that hurts road wheels most here, though not enough to beat them. Draft is the other powerup.",
@@ -125,7 +125,7 @@
               "laps": 5,
               "officialDistanceKm": 21.2,
               "officialElevationM": 116,
-              "curatorNote": "zwift-data's numeric id is the real slug; the route is a 3.9 km lap circuit, and 5 laps + lead-in comes to 19.6 km against ZwiftInsider's published 21.2 km - the same ~2 km event-pen overshoot as stages 1 and 2."
+              "curatorNote": "The route is a 3.9 km lap circuit, and 5 laps + Zwift's old lead-in came to 19.6 km against ZwiftInsider's published 21.2 km - the same ~2 km event-pen overshoot as stages 1 and 2, corrected in shared/data/routeEventLeadIns.ts. Since zwift-data 2.1 (2026-10-08) the slug is readable and Zwift publishes the ~2 km lead-in itself, so the override table is empty; the old numeric URL redirects (shared/data/routeSlugRedirects.ts)."
             }
           ],
           "note": "The month closes with a crit: five laps of the 3.9 km Twilight Crit circuit, near-flat and relentlessly fast. Over 40% of each lap is brick, which is bumpy to look at but barely slower than tarmac on road wheels - this stays a pure aero race. With Draft and Aero as the powerups, the equipment and the powerups are pulling in the same direction.",
