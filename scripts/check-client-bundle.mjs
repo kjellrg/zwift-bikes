@@ -12,6 +12,10 @@
 //   - zwift-data's full route catalog, reachable from `shared/utils/catalog.ts`
 //     and `shared/utils/routeSegments.ts`.
 //
+// shared/data/segmentPlacements.generated.json (#273) is reachable the same
+// way, through `shared/utils/catalog.ts`; its marker is a reason only its
+// unplaced report carries.
+//
 // Nuxt auto-imports every export of `shared/utils/*.ts` into every `.vue`
 // file, so a single bare call to e.g. `getRoutesWithMeta()` in a component
 // re-creates the leak with no import statement to review. The markers below
@@ -30,7 +34,8 @@ const chunkDir = path.join(repoRoot, '.output/public/_nuxt')
 
 const MARKERS = [
   { text: 'traceCoveredLeadIn', payload: 'shared/data/routeSurfaces.generated.json' },
-  { text: 'stravaSegmentId', payload: 'the zwift-data route catalog' }
+  { text: 'stravaSegmentId', payload: 'the zwift-data route catalog' },
+  { text: 'no-segment-track', payload: 'shared/data/segmentPlacements.generated.json' }
 ]
 const MAX_CHUNK_BYTES = 512 * 1024
 

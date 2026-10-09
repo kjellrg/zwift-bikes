@@ -3,6 +3,8 @@ import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta } from '../types/
 import { classifyBikeFrame } from './classifyBikeFrame'
 import { SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME, applyFrameSupplement } from '../data/frameSupplement'
 import { eventLeadIn } from '../data/routeEventLeadIns'
+import { SUPPLEMENT_SEGMENT_HOSTS } from '../data/segmentHostSupplement'
+import { getGeneratedSegmentPlacements } from '../data/segmentPlacements'
 import { computeTerrain, estimateSurface } from './routeTerrain'
 
 const worldNameBySlug = new Map<string, string>(worlds.map(w => [w.slug, w.name]))
@@ -61,7 +63,19 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
         // `geometryForRouteLaps`)
         // work from the same lead-in - previously the raw route leaked into
         // terrain classification (issue #126's exploration, "trap 2").
-        const corrected = { ...route, ...eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation) }
+        //
+        // Segment hosts beyond zwift-data merge in here too, for the same
+        // reason (#273): the Host routes `segmentHostSupplement.ts` adds from
+        // the game dictionary, after the package's own (the package wins - an
+        // entry it already ships is skipped), and the placements measured by
+        // matching tracks (`segmentPlacements.ts`), which only ever cover
+        // pairs zwift-data has not placed. Both are in place before
+        // computeTerrain reads the climbs and sprints.
+        const corrected = {
+          ...route,
+          ...eventLeadIn(route.slug, route.leadInDistance, route.leadInElevation),
+          ...withSegmentHostsBeyondPackage(route)
+        }
         return {
           ...corrected,
           worldName: getWorldName(route.world),
@@ -71,6 +85,17 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
       })
   }
   return cachedRoutes
+}
+
+function withSegmentHostsBeyondPackage(route: (typeof routes)[number]): Pick<(typeof routes)[number], 'segments' | 'segmentsOnRoute'> {
+  const added = SUPPLEMENT_SEGMENT_HOSTS
+    .filter(host => host.route === route.slug && !route.segments?.includes(host.segment))
+    .map(host => host.segment)
+  const placed = getGeneratedSegmentPlacements(route.slug)
+  return {
+    segments: added.length ? [...route.segments ?? [], ...added] : route.segments,
+    segmentsOnRoute: placed.length ? [...route.segmentsOnRoute ?? [], ...placed].sort((a, b) => a.from - b.from) : route.segmentsOnRoute
+  }
 }
 
 export function getRouteBySlug(slug: string): RouteWithMeta | undefined {

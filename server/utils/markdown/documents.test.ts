@@ -284,6 +284,14 @@ describe('the segment document', () => {
     expect(markdown).toMatch(/- \[.+\]\(https:\/\/zwift-bikes-pr-1\.workers\.dev\/routes\/[a-z0-9-]+\)/)
   })
 
+  it('links every host route, placed or not - the dictionary\'s and the ones zwift-data never placed (#273)', async () => {
+    const pave = (await markdownDocumentFor('/segments/pave-sprint')!(PAUSED)).markdown
+    expect(pave).toContain('- [Sacre Bleu](https://zwift-bikes-pr-1.workers.dev/routes/sacre-bleu)')
+    expect(pave).toContain('- [Knights of the Roundabout](https://zwift-bikes-pr-1.workers.dev/routes/knights-of-the-roundabout)')
+    const titans = (await markdownDocumentFor('/segments/titans-grove-kom')!(PAUSED)).markdown
+    expect(titans).toContain('- [Canopies and Coastlines](https://zwift-bikes-pr-1.workers.dev/routes/canopies-and-coastlines)')
+  })
+
   it('404s a segment the catalog does not have', async () => {
     await expect(markdownDocumentFor('/segments/no-such-segment')!(CONTEXT)).rejects.toMatchObject({ statusCode: 404 })
   })

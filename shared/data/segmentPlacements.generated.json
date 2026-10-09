@@ -1,0 +1,1826 @@
+{
+  "placements": {
+    "gran-fondo": [
+      {
+        "segment": "epic-kom",
+        "from": 87.809,
+        "to": 97.214
+      }
+    ],
+    "richmond-rollercoaster": [
+      {
+        "segment": "richmond-sprint",
+        "from": 0.531,
+        "to": 0.754
+      }
+    ],
+    "tempus-fugit": [
+      {
+        "segment": "fuego-flats",
+        "from": 16.764,
+        "to": 17.258
+      }
+    ],
+    "london-the-prl-full": [
+      {
+        "segment": "london-sprint-rev",
+        "from": 171.908,
+        "to": 172.093
+      }
+    ],
+    "london-classique": [
+      {
+        "segment": "london-sprint-rev",
+        "from": 5.25,
+        "to": 5.436
+      }
+    ],
+    "kaze-kicker": [
+      {
+        "segment": "tidepool-sprint-rev",
+        "from": 1.337,
+        "to": 1.644
+      }
+    ],
+    "mech-isle-mayhem": [
+      {
+        "segment": "boardwalk-sprint-rev",
+        "from": 3.302,
+        "to": 3.603
+      },
+      {
+        "segment": "boardwalk-sprint-rev",
+        "from": 9.964,
+        "to": 10.265
+      }
+    ],
+    "bambino-fondo": [
+      {
+        "segment": "volcano-kom",
+        "from": 48.383,
+        "to": 52.097
+      }
+    ],
+    "petite-douleur": [
+      {
+        "segment": "petit-kom",
+        "from": 11.188,
+        "to": 13.86
+      }
+    ]
+  },
+  "unplaced": [
+    {
+      "route": "lady-liberty",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "rolling-highlands",
+      "segment": "breakaway-brae",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "electric-break",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "glasgow-crit-six",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "glasgow-crit-six",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "hilly-route-rev",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sacre-bleu",
+      "segment": "pave-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "scotland-smash",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "scotland-smash",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "scotland-smash",
+      "segment": "breakaway-brae",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "elevation-evaluation",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "elevation-evaluation",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "elevation-evaluation",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-madness",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "makuri-madness",
+      "segment": "tidepool-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-madness",
+      "segment": "boardwalk-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "island-outskirts",
+      "segment": "shisa-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "island-outskirts",
+      "segment": "tidepool-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sugar-cookie",
+      "segment": "stoneway-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sugar-cookie",
+      "segment": "acropolis-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sugar-cookie",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "gran-fondo",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "loop-de-loop",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "thats-amore",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tides-and-temples",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tides-and-temples",
+      "segment": "stoneway-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tides-and-temples",
+      "segment": "acropolis-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "gotham-grind-rev",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "twilight-crit",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "braek-fast-crits-and-grits",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "braek-fast-crits-and-grits",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "braek-fast-crits-and-grits",
+      "segment": "breakaway-brae-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "fine-and-sandy",
+      "segment": "boardwalk-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "fine-and-sandy",
+      "segment": "tidepool-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "gotham-grind",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "two-bridges-loop-run",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "countryside-tour",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "figure-8-reverse",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "country-to-coastal",
+      "segment": "village-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "country-to-coastal",
+      "segment": "country-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "country-to-coastal",
+      "segment": "shisa-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "country-to-coastal",
+      "segment": "tidepool-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "flat-irons",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "loch-loop",
+      "segment": "breakaway-brae",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "hudson-hustle",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "zwift-games-2024-epic",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "zwift-games-2024-epic",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "zwift-games-2024-epic",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "zwift-games-2024-epic",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "zwift-games-2024-epic",
+      "segment": "watopia-sprint",
+      "reason": "ride-relative-route",
+      "detail": "the route's placements and track run from the ride start, and a generated placement is lap-relative"
+    },
+    {
+      "route": "navig8",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "navig8",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "navig8",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "navig8",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "navig8",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "what-yumezi-were-lost",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "roule-ma-poule",
+      "segment": "pave-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-40",
+      "segment": "village-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-40",
+      "segment": "country-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-40",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "makuri-40",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-40",
+      "segment": "shisa-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "electric-loop",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "electric-loop",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "peaky-pave",
+      "segment": "pave-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "downtown-dolphin",
+      "segment": "prime-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "watts-of-the-wild",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "douce-france",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "douce-france",
+      "segment": "pave-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "richmond-uci-rev",
+      "segment": "broad-st-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "richmond-uci-rev",
+      "segment": "richmond-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "accelerate-to-elevate",
+      "segment": "fuego-flats",
+      "reason": "start-off-track",
+      "detail": "start is 446 m from the route track (limit 25 m)"
+    },
+    {
+      "route": "accelerate-to-elevate",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "accelerate-to-elevate",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "accelerate-to-elevate",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "accelerate-to-elevate",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "neokyo-crit-course",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "neokyo-crit-course",
+      "segment": "castle-park-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "power-punches",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "duchy-estate",
+      "segment": "yorkshire-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "everything-bagel",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "everything-bagel",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mech-isle-loop",
+      "segment": "village-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mech-isle-loop",
+      "segment": "country-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mech-isle-loop",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "mech-isle-loop",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mech-isle-loop",
+      "segment": "shisa-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "neon-after-party",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "neon-after-party",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "neon-after-party",
+      "segment": "castle-park-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "loch-loop-run",
+      "segment": "breakaway-brae-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "la-reine",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "temple-trek-run",
+      "segment": "stoneway-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "temple-trek-run",
+      "segment": "acropolis-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "neokyo-all-nighter",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "neokyo-all-nighter",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "neokyo-all-nighter",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "twilight-harbor",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "climb-control",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "climb-control",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-uber-pretzel",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "astoria-line-8",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "gentil-8",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "thats-amore-rev",
+      "segment": "watopia-sprint",
+      "reason": "no-route-track",
+      "detail": "zwift-data/streams has no track for the route"
+    },
+    {
+      "route": "glyph-heights",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "glyph-heights",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "going-coastal",
+      "segment": "fuego-flats",
+      "reason": "start-off-track",
+      "detail": "start is 446 m from the route track (limit 25 m)"
+    },
+    {
+      "route": "going-coastal",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "going-coastal",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-big-ring",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-big-ring",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-big-ring",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-big-ring",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "hilly-route-rev-run",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "bridges-and-boardwalks",
+      "segment": "boardwalk-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "bridges-and-boardwalks",
+      "segment": "shisa-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "rgv",
+      "segment": "pave-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "rgv",
+      "segment": "marina-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "yorkshire-double-loop",
+      "segment": "yorkshire-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "hell-of-the-north",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "park-perimeter-loop",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "knickerbocker-reverse",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "harrogate-circuit",
+      "segment": "yorkshire-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "hilltop-hustle-run",
+      "segment": "the-grade-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "hilltop-hustle-run",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "power-to-the-tower",
+      "segment": "the-grade-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "double-parked",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "france-classic-fondo",
+      "segment": "pave-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "france-classic-fondo",
+      "segment": "pave-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "france-classic-fondo",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "france-classic-fondo",
+      "segment": "marina-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "island-hopper",
+      "segment": "boardwalk-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "island-hopper",
+      "segment": "tidepool-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "island-hopper",
+      "segment": "shisa-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "oh-hill-no-run",
+      "segment": "the-grade-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "park-perimeter-rev",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "dun-dash",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "dun-dash",
+      "segment": "breakaway-brae-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "shorelines-and-summits",
+      "segment": "stoneway-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "shorelines-and-summits",
+      "segment": "acropolis-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "shorelines-and-summits",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "temple-trek",
+      "segment": "stoneway-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "temple-trek",
+      "segment": "acropolis-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-climb-finish",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-climb-finish",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-climb-finish",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-climb-finish",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "new-york-kom-after-party",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tire-bouchon",
+      "segment": "marina-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tire-bouchon",
+      "segment": "pave-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tire-bouchon",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tire-bouchon",
+      "segment": "pave-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "laguardia-loop",
+      "segment": "new-york-kom",
+      "reason": "start-off-track",
+      "detail": "start is 101 m from the route track (limit 25 m)"
+    },
+    {
+      "route": "2022-cycling-esports-world-championships-route",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "loop-de-loop-run",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-pretzel",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "yumezi-grit",
+      "segment": "village-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-crusher",
+      "segment": "stoneway-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-crusher",
+      "segment": "acropolis-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-crusher",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-crusher",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-crusher",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-crusher",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-crusher",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "innsbruckring",
+      "segment": "innsbruck-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "titans-grove-kom-rev",
+      "reason": "start-off-track",
+      "detail": "start is 238 m from the route track (limit 25 m)"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "titans-grove-kom",
+      "reason": "direction",
+      "detail": "the route passes the start (2.592 km) only riding the other way"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "zwift-kom-rev",
+      "reason": "start-off-track",
+      "detail": "start is 2732 m from the route track (limit 25 m)"
+    },
+    {
+      "route": "canopies-and-coastlines",
+      "segment": "watopia-sprint",
+      "reason": "start-off-track",
+      "detail": "start is 2689 m from the route track (limit 25 m)"
+    },
+    {
+      "route": "triple-twist",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "two-village-loop",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "two-village-loop",
+      "segment": "village-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "jarvis-seaside-sprint",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coastal-crown-loop",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coastal-crown-loop",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "outer-scotland",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "outer-scotland",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "outer-scotland",
+      "segment": "breakaway-brae",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "kaze-kicker",
+      "segment": "boardwalk-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "petit-boucle",
+      "segment": "pave-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "petit-boucle",
+      "segment": "pave-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "petit-boucle",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "petit-boucle",
+      "segment": "marina-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "chasing-the-sun",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "chasing-the-sun",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "chasing-the-sun",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "bell-lap",
+      "segment": "prime-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "red-zone-repeats",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "red-zone-repeats",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "watts-the-limit",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "2022-medio-fondo",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "royal-pump-room-8",
+      "segment": "yorkshire-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-pretzel",
+      "segment": "country-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-pretzel",
+      "segment": "shisa-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-pretzel",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "makuri-pretzel",
+      "segment": "shisa-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-pretzel",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-pretzel",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "makuri-pretzel",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "grand-central-circuit",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "knickerbocker",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "climbers-gambit",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "power-to-the-portal",
+      "segment": "jarvis-sprint-rev",
+      "reason": "no-route-track",
+      "detail": "zwift-data/streams has no track for the route"
+    },
+    {
+      "route": "power-to-the-portal",
+      "segment": "jarvis-kom-rev",
+      "reason": "no-route-track",
+      "detail": "zwift-data/streams has no track for the route"
+    },
+    {
+      "route": "rising-empire",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "stay-puft-pursuit",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "2023-continental-qualifiers",
+      "segment": "innsbruck-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "2018-uci-worlds-course-short-lap",
+      "segment": "innsbruck-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "flatland-loop",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sleepless-city",
+      "segment": "castle-park-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "two-bridges-loop",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "going-coastal-run",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "going-coastal-run",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "snowman",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "shisa-shakedown",
+      "segment": "castle-park-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "shisa-shakedown",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "shisa-shakedown",
+      "segment": "shisa-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "glasgow-crit-circuit-run",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "glasgow-crit-circuit-run",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sprinters-playground",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sprinters-playground",
+      "segment": "castle-park-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "sprinters-playground",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "sukis-playground",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "three-village-loop",
+      "segment": "castle-kom",
+      "reason": "end-off-track",
+      "detail": "end is 107 m from the route track (limit 25 m)"
+    },
+    {
+      "route": "three-village-loop",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "figure-8",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "neon-flats",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "neon-flats",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "seaside-sprint-run",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "triple-flat-loops",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "triple-flat-loops",
+      "segment": "watopia-sprint",
+      "reason": "direction",
+      "detail": "the route passes the start (23.618 km) only riding the other way"
+    },
+    {
+      "route": "seaside-sprint",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-epiloch",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-epiloch",
+      "segment": "breakaway-brae-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "three-step-sisters",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "three-step-sisters",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "peak-performance",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "peak-performance",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "neon-shore-loop",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "neon-shore-loop",
+      "segment": "boardwalk-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tropic-rush",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "tropic-rush",
+      "segment": "shisa-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tropic-rush",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "tropic-rush",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "innsbruck-kom-after-party",
+      "segment": "innsbruck-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-muckle-yin",
+      "segment": "breakaway-brae",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "the-muckle-yin",
+      "segment": "breakaway-brae-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
+    },
+    {
+      "route": "the-muckle-yin",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "the-muckle-yin",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "laguardia-after-party",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "fuhgeddaboudit",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "southern-coast-cruise",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "southern-coast-cruise",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "southern-coast-cruise",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "grand-central-circuit-rev",
+      "segment": "new-york-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "chain-chomper",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "castle-to-castle",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "castle-to-castle",
+      "segment": "castle-park-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "glasgow-crit-circuit",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "glasgow-crit-circuit",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "laguardia-loop-reverse",
+      "segment": "new-york-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "flat-route-rev",
+      "segment": "watopia-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "wandering-flats",
+      "segment": "country-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "wandering-flats",
+      "segment": "tower-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "wandering-flats",
+      "segment": "alley-sprint-rev",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "casse-pattes",
+      "segment": "pave-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "casse-pattes",
+      "segment": "marina-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "knights-of-the-roundabout",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "knights-of-the-roundabout",
+      "segment": "pave-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "jurassic-coast",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "jurassic-coast",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "achterbahn",
+      "segment": "innsbruck-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mayan-8",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mayan-8",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "urumaze",
+      "segment": "shisa-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "radio-rendezvous",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-party",
+      "segment": "woodland-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-party",
+      "segment": "sasquatch-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-party",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "itza-party",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "petite-douleur",
+      "segment": "ballon-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "coast-to-coast",
+      "segment": "sasquatch-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "scotland-after-party",
+      "segment": "champions-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "scotland-after-party",
+      "segment": "the-clyde-kicker",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "turf-n-surf",
+      "segment": "alley-sprint",
+      "reason": "held",
+      "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
+    },
+    {
+      "route": "turf-n-surf",
+      "segment": "shisa-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mayan-mash",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "mayan-mash",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    }
+  ]
+}
