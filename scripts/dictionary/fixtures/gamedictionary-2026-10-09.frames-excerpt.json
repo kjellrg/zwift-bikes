@@ -1,0 +1,174 @@
+{
+  "GameDictionary": {
+    "BIKEFRAMES": [
+      {
+        "BIKEFRAME": [
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "Giant",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2026",
+              "name": "Giant Trinity Advanced SL",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "244289700"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "Cervelo",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2026",
+              "name": "Cervelo P5",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "1969226988"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "Cannondale",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2026",
+              "name": "Cannondale SuperSlice LAB71",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "2124063579"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "Cube",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2026",
+              "name": "Cube Aerium C:68X",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "2389526374"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "Specialized",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2019",
+              "name": "Specialized S-Works Shiv Disc",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "2460287610"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "QuintanaRoo",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2026",
+              "name": "QuintanaRoo V-PRI",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "2475649027"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "Factor",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2026",
+              "name": "Factor Hanzō",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "3719018442"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "HIGH_END",
+              "brand": "Liv",
+              "isTT": "1",
+              "lvId": "405837660",
+              "modelYear": "2026",
+              "name": "Liv Avow Advanced SL",
+              "price0": "100000",
+              "price1": "200000",
+              "price2": "350000",
+              "price3": "500000",
+              "price4": "750000",
+              "signature": "3851032184"
+            }
+          },
+          {
+            "$": {
+              "bikeClass": "MID_RANGE",
+              "brand": "Cervelo",
+              "isTT": "1",
+              "lvId": "4128915623",
+              "modelYear": "2015",
+              "name": "Cervelo P5",
+              "price0": "50000",
+              "price1": "100000",
+              "price2": "150000",
+              "price3": "200000",
+              "price4": "250000",
+              "signature": "3932292289"
+            }
+          }
+        ]
+      }
+    ],
+    "BIKEFRONTWHEELS": [
+      {
+        "BIKEFRONTWHEEL": []
+      }
+    ],
+    "BIKEREARWHEELS": [
+      {
+        "BIKEREARWHEEL": []
+      }
+    ],
+    "ROUTES": [
+      {
+        "ROUTE": []
+      }
+    ],
+    "PORTAL_SEGMENTS": [
+      {
+        "PORTAL_SEGMENT": []
+      }
+    ]
+  }
+}

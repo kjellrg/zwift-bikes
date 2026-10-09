@@ -33,9 +33,18 @@ decisions with citations in the code comments.
   rather than assuming a URL** - it has moved before. Prefer the CSV export
   (`/export?format=csv&gid=<gid>`) over scraping rendered HTML, and report
   which URL and gid you used so a human can re-check you.
-- `node_modules/zwift-data` - authoritative for names/IDs the *game* uses.
-  `bikeFrames` (166 entries: `{id, name, modelYear, isTT}`), `bikeFrontWheels`
+- `node_modules/zwift-data` - the npm package of names/IDs the *game* uses.
+  `bikeFrames` (`{id, name, modelYear, isTT}`), `bikeFrontWheels`
   and `bikeRearWheels`. Read it with `node -e "..."`, not by eye.
+- Zwift's game dictionary, which zwift-data is generated from and which runs
+  weeks to months ahead of it. Don't parse it yourself: **run
+  `npm run dictionary:check`**, which fetches it and compares it with the
+  whole catalog (frames, wheels, routes and upgrade schemes). Its exit code is
+  1 only for a difference not on its `ACCEPTED_GAPS` list. Quote its
+  "not on the accepted-gaps list" lines and its "Upgrade schemes" section
+  verbatim. The scheme lines never fail the run and are reported for a human
+  decision, never as drift to fix. If the fetch fails, say so and continue
+  with the rest of the audit.
 
 ## What the repo currently claims
 
@@ -101,12 +110,14 @@ itself wrong.
    parse to a temp file and diff programmatically against the repo tables.
 4. Enumerate `zwift-data` names with `node -e` and set-compare against the
    repo's keys.
-5. Spot-check 3-5 rows by reading the CSV directly, to confirm your parser
+5. Run `npm run dictionary:check` and keep its output for the report.
+6. Spot-check 3-5 rows by reading the CSV directly, to confirm your parser
    found the columns it thinks it did.
 
 ## Report
 
-Report only what actually differs, most consequential first, as three tables:
+Report only what actually differs, most consequential first, as three tables
+and the dictionary check:
 
 **Changed values** - key, field, repo value, source value, delta. Flag
 anything where the sign flips or the change exceeds ~2 s/hour, since that is
@@ -119,6 +130,11 @@ fix should go. These are the highest-severity finding: they are silent.
 absent from the tables (candidates to add), and repo keys no longer present in
 either (possibly renamed or withdrawn). Exclude the deliberate omissions
 listed above.
+
+**Game dictionary** - the `dictionary:check` exit code, each difference it
+lists as not on the accepted-gaps list, and its upgrade-scheme lines
+(disagreements, suggested lines, unknown `lvId`s), kept apart from the drift
+above.
 
 Then state plainly: the sheet URL/gid used, the date the source appears to
 have been updated, and anything you could not verify. If the sheet was

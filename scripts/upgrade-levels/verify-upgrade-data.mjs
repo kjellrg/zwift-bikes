@@ -95,9 +95,10 @@ for (const n of Object.keys(FRAME_UPGRADE_SCHEMES)) {
   // A scheme keyed on a name zwift-data doesn't use is dead data - the lookup
   // silently misses and the frame quietly falls back to linear interpolation.
   if (!realNames.has(n)) fail(`scheme key "${n}" matches no zwift-data frame name`)
-  // A scheme derived from the dictionary's lvId waits for the frame's first
-  // measurement on purpose (see `UpgradeScheme.derived`); any other is dead.
-  if (!measuredFor(n) && !FRAME_UPGRADE_SCHEMES[n].derived) fail(`scheme "${n}" has no speed data, so its level is inert`)
+  // A scheme read off the dictionary's lvId waits for the frame's first
+  // measurement on purpose (see `UpgradeScheme.awaitingMeasurement`); any
+  // other is dead.
+  if (!measuredFor(n) && !FRAME_UPGRADE_SCHEMES[n].awaitingMeasurement) fail(`scheme "${n}" has no speed data, so its level is inert`)
 }
 console.log(`   ${measuredNames.length} measured frames, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} scheme entries\n`)
 

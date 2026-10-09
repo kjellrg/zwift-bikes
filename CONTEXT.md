@@ -91,6 +91,10 @@ _Avoid_: owned bikes, my bikes, inventory, collection
 Where a frame stands on Zwift's five-step upgrade ladder. Stage 0 is the frame as bought, stage 5 is fully upgraded, and each stage is earned by riding it. A frame in the garage is ranked at the stage the rider set; a frame outside it at the stage the profile assumes for unowned frames, which is 5 unless changed and flatters a bike the rider might buy. Wheels have no stages. A frame nobody has bot-tested has no per-stage numbers, so its stage cannot be set.
 _Avoid_: level, upgrade level, tier (a frame's price class, a different axis). The API query key `defaultUnownedLevel` and the MCP `upgradeLevel` argument keep the old word on purpose - they are a published contract, not drift.
 
+**Upgrade scheme**:
+The ladder a frame's Upgrade stages are earned and gained on: what the rider must do to earn each stage (distance, duration or elevation) crossed with the frame's price tier (entry, mid-range, high-end, or Halo, which upgrades exactly like high-end). Frames on the same scheme follow the same upgrade chart, though a bot-tested frame's own per-stage numbers can stray from it by a second or two. The scheme belongs to the ladder, not the frame: Zwift's Game dictionary gives each scheme one identity and points every frame at it, which is trustworthy once the frame has a real name and not before.
+_Avoid_: upgrade level, upgrade category, upgrade path
+
 **Supplement**:
 A frame or wheel that is live in Zwift but that the catalog's upstream package has not caught up with, kept by hand until it has. An entry can add equipment the package lacks, or rename equipment the package still names the old way; either way it is matched to the package's record by Zwift's id, so a rider's Garage entry for a frame survives the rename. When the package ships the same thing, the package wins and the entry is deleted.
 _Avoid_: patch, override list, extra equipment
@@ -98,6 +102,10 @@ _Avoid_: patch, override list, extra equipment
 **Provisional id**:
 The stand-in id a frame carries while Zwift has published no record for it at all. It sits above the range of real Zwift ids, so it can never collide with one, and it is replaced when the real id lands - which costs a rider who owned the frame its Garage entry.
 _Avoid_: fake id, temporary id, placeholder id (a placeholder is an unlocalised name, a different gap)
+
+**Game dictionary**:
+Zwift's own published record of every frame, wheel, route and segment in the game, and the authority on their names and ids. The catalog's upstream package is generated from it and runs weeks to months behind it, so it is where a rename, a new frame or a real name for a placeholder shows up first. It is consulted to see what is coming, never ranked from: what the site ranks is the catalog. Zwift changes it without notice, including which upgrade scheme a frame sits on.
+_Avoid_: Zwift API, Zwift catalog, game data
 
 **Ranking**:
 Every eligible setup for a Ride, ordered by the finish time the Applied rider gets on it, fastest first. It is one list, shown whole as a table from rank 1 down: the Recommendation above it is rank 1 shown as the page's answer, and rank 1's own row stays in the table so the fastest and the rest can be read together. A row carries what belongs to a row - the comparison pick, its disclosure and its Wheel alternatives - so those exist once, on the row. A Directed search, a filter change or a Garage change produces a new ranking rather than narrowing this one, and a ranking of a single setup is a recommendation with one row beneath it.
