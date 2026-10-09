@@ -14,25 +14,27 @@ import type { BikeFrame } from 'zwift-data'
  *
  * - **id / isTT / modelYear** are verbatim from the dictionary wherever it
  *   has a record for the frame.
- * - **name** is the dictionary's only when the dictionary has a real one.
- *   For update 1.123's frames it has either a localization placeholder
- *   (`Factor LOC_ENTITLEMENT_CYCLING_BIKE_FACTOR_HANZO_NAME`) or no record
- *   at all, so the name here is ZwiftInsider's spelling (its sheet and the
- *   article at https://zwiftinsider.com/update-1-123-166757/), the only
+ * - **name** is the dictionary's whenever it has a real one, with one
+ *   documented exception (Cervelo P5 2026, below). A frame whose record is
+ *   still a localization placeholder
+ *   (`Factor LOC_ENTITLEMENT_CYCLING_BIKE_FACTOR_HANZO_NAME`), or that has
+ *   no record at all, takes ZwiftInsider's spelling (its sheet and articles
+ *   such as https://zwiftinsider.com/update-1-123-166757/), the only
  *   published human name - a PROVISIONAL key, chosen deliberately over
- *   hiding a measured frame until Zwift localizes it. The dictionary is
- *   the authority once it speaks: `npm run supplement:check` fetches it and
- *   reports every entry whose id now carries a real name (or, for the
- *   provisional ids below, whose name now has a record), and the entry is
- *   then re-keyed to the dictionary's spelling.
- * - **id** is provisional for frames with no dictionary record at all:
+ *   hiding a measured frame until Zwift localizes it. Update 1.123's seven
+ *   TT frames shipped that way and had all taken the dictionary's names by
+ *   2026-10-09. The dictionary is the authority once it speaks: `npm run
+ *   supplement:check` fetches it and reports every entry whose id now
+ *   carries a real name (or, for a provisional id, whose name now has a
+ *   record), and the entry is then re-keyed to the dictionary's spelling.
+ * - **id** is provisional for a frame with no dictionary record at all:
  *   `PROVISIONAL_FRAME_ID_BASE + n`. Zwift's ids are 32-bit signatures, so
  *   anything at or above 2^32 can never collide with a real one, and
  *   `isProvisionalFrameId` tells the validator and the check script which
  *   entries still need their real id. Garages key frames by id, so a rider
  *   who adds one of these loses that garage entry when the real id lands -
  *   accepted. (A wheel rename, by contrast, carries the garage over through
- *   `RENAMED_WHEELSET_KEYS` in `wheelSupplement.ts`.)
+ *   `RENAMED_WHEELSET_KEYS` in `wheelSupplement.ts`.) None is in use now.
  *
  * Speed data for update 1.123's seven TT frames is measured (ZwiftInsider's
  * 300 W bot tests, sheet fetched 2026-10-06) and lives in
@@ -43,8 +45,8 @@ import type { BikeFrame } from 'zwift-data'
  *
  * The same list can also carry RENAMES: a frame the package already ships
  * under an older name that the dictionary has since changed (the Specialized
- * S-Works Tarmac SL9 and the Canyon Aeroad CFR - CANYON//SRAM were, until
- * zwift-data 2.1 caught up). The entry keeps the frame's id - which is what
+ * S-Works Shiv Disc is one; the S-Works Tarmac SL9 and the Canyon Aeroad
+ * CFR - CANYON//SRAM were, until zwift-data 2.1 caught up). The entry keeps the frame's id - which is what
  * garages, the `owned` query and the wheel drill-down key on, so a rider's
  * garage entry survives the rename untouched - and only the name moves,
  * with the speed-data and scheme tables re-keyed in the same commit. The

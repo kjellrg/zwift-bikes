@@ -43,14 +43,14 @@ import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
  * `RENAMED_WHEELSET_KEYS`.
  */
 export const SUPPLEMENT_FRONT_WHEELS: BikeFrontWheel[] = [
-  // Placeholder stand-ins (see above): the id replaces upstream's record in place.
+  // Renames of upstream's placeholder records (see above): the id replaces the record in place.
   { id: 3667484525, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
   { id: 3827121667, name: 'Cadex 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
   { id: 1690454004, name: 'BlackInc Three/Zero', imageName: 'Wheel_BlackIncThreeZero2026' }
 ]
 
 export const SUPPLEMENT_REAR_WHEELS: BikeRearWheel[] = [
-  // The same three stand-ins, rear.
+  // The same three, rear.
   { id: 659802619, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
   { id: 3443883036, name: 'Cadex 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
   { id: 2002469001, name: 'BlackInc Three/Zero', imageName: 'Wheel_BlackIncThreeZero2026' }

@@ -93,6 +93,7 @@ const FRAME_ALIASES = {
   'Cube Aerium 2019': 'Cube Aerium',
   'Quintana Roo V-PR 2022': 'QuintanaRoo Roo V-PR',
   'Pinarello Bolide 2015': 'Pinarello Bolide',
+  // The new Quintana Roo, under the game's spelling since 2026-10-09.
   'Quintana Roo V-PRi': 'QuintanaRoo V-PRI'
 }
 

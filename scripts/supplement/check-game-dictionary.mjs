@@ -4,8 +4,8 @@
 // the file zwift-data is generated from, and the only authority on names,
 // ids and imageNames. The supplements exist because zwift-data lags the
 // dictionary by months and some entries ship before Zwift even localizes
-// their names, so this is the "look again later" the provisional names
-// and ids in frameSupplement.ts promise. Maintenance only; network-bound,
+// their names, so this is the "look again later" that frameSupplement.ts
+// promises for any provisional name or id. Maintenance only; network-bound,
 // so it is not part of `npm run validate`:
 //
 //   npm run supplement:check                       # fetch the live dictionary
@@ -41,7 +41,8 @@ const PLACEHOLDER = /\bLOC_[A-Za-z0-9_]+/
 // by id: the dictionary calls both Cervelo P5s plain "Cervelo P5" (2015:
 // 3932292289, 2026: 1969226988), and name is the key of every speed-data
 // and scheme table, so the 2026 bike keeps its year (see frameSupplement.ts).
-// Accepted only while the dictionary still says exactly `dictionaryName`.
+// Accepted only while the dictionary still says exactly `dictionaryName`;
+// a dictionary rename of this frame is a finding like any other.
 const KEPT_FRAME_NAMES = new Map([
   [1969226988, { name: 'Cervelo P5 2026', dictionaryName: 'Cervelo P5' }]
 ])
@@ -72,11 +73,12 @@ for (const frame of SUPPLEMENT_FRAMES) {
     continue
   }
   const record = dictFrameById.get(frame.id)
+  const kept = KEPT_FRAME_NAMES.get(frame.id)
   if (!record) {
     findings.push(`frame ${JSON.stringify(frame.name)} (id ${frame.id}): the dictionary no longer has this id - withdrawn, or the id was mistranscribed`)
   } else if (PLACEHOLDER.test(record.name)) {
     console.log(`frame ${JSON.stringify(frame.name)} (id ${frame.id}): dictionary name is still the placeholder ${JSON.stringify(record.name)}`)
-  } else if (record.name !== frame.name && KEPT_FRAME_NAMES.get(frame.id)?.name === frame.name && KEPT_FRAME_NAMES.get(frame.id)?.dictionaryName === record.name) {
+  } else if (kept?.name === frame.name && kept.dictionaryName === record.name) {
     console.log(`frame ${JSON.stringify(frame.name)} (id ${frame.id}): the dictionary names it ${JSON.stringify(record.name)}; the name is kept on purpose (documented exception)`)
   } else if (record.name !== frame.name) {
     findings.push(`frame ${JSON.stringify(frame.name)} (id ${frame.id}): the dictionary now names it ${JSON.stringify(record.name)} - re-key the supplement entry, its speed data and its upgrade scheme`)
@@ -84,9 +86,6 @@ for (const frame of SUPPLEMENT_FRAMES) {
     console.log(`frame ${JSON.stringify(frame.name)} (id ${frame.id}): dictionary name matches`)
   }
   if (record && (Number(record.isTT) === 1) !== frame.isTT) findings.push(`frame ${JSON.stringify(frame.name)}: dictionary isTT=${record.isTT}, supplement says ${frame.isTT}`)
-}
-for (const [id, { name }] of KEPT_FRAME_NAMES) {
-  if (!SUPPLEMENT_FRAMES.some(f => f.id === id && f.name === name)) findings.push(`kept-name exception for ${JSON.stringify(name)} (id ${id}) matches no supplement entry - delete the exception`)
 }
 const knownFrameIds = new Set([...bikeFrames, ...SUPPLEMENT_FRAMES].map(f => f.id))
 for (const record of dictFrames) {

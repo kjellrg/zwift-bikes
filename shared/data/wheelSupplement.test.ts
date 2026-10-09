@@ -119,24 +119,18 @@ describe('the update-1.123 discs the dictionary named on 2026-10-09 (#314)', () 
       expect(getWheelsets().some(w => w.key === from), from).toBe(false)
     }
   })
-
-  it('a garage that held the old keys keeps both wheels under the new names', () => {
-    expect(migrateWheelsetKeys({ 'CADEX 4-Spoke/Disc': true, 'Black Inc THREE/ZERO': true, 'Zipp 808': true })).toEqual({
-      'Cadex 4-Spoke/Disc': true,
-      'BlackInc Three/Zero': true,
-      'Zipp 808': true
-    })
-  })
 })
 
 describe('a garage saved before the renames', () => {
   it('keeps every wheel, under the name the game now uses', () => {
-    const saved = { 'Roval Sprint CLX': true, 'Princeton  Mach TSV2/Blur Disc\u00A0': true, 'Shimano C36': true, 'Shimano C99/Disc': true, 'Zipp 808': true } as const
+    const saved = { 'Roval Sprint CLX': true, 'Princeton  Mach TSV2/Blur Disc\u00A0': true, 'Shimano C36': true, 'Shimano C99/Disc': true, 'CADEX 4-Spoke/Disc': true, 'Black Inc THREE/ZERO': true, 'Zipp 808': true } as const
     expect(migrateWheelsetKeys(saved)).toEqual({
       'Roval Rapide Sprint CLX': true,
       'Princeton Mach TSV2/Blur Disc': true,
       'Shimano DURA-ACE C36': true,
       'Shimano DURA-ACE C99 + Disc': true,
+      'Cadex 4-Spoke/Disc': true,
+      'BlackInc Three/Zero': true,
       'Zipp 808': true
     })
   })
