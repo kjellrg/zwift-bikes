@@ -139,7 +139,9 @@ describe('upgrade schemes', () => {
 
 describe('the supplement as it was before #314, against the 2026-10-09 dictionary', () => {
   // Verbatim BIKEFRAME records from the dictionary fetched 2026-10-09 (sha256
-  // 7bb10a6b...), for the frames below only.
+  // 7bb10a6b...), for the frames below only. Zwift's data, not ours, and not
+  // under this project's license (see the file's $comment and
+  // THIRD_PARTY_NOTICES.md).
   const DICTIONARY = JSON.parse(readFileSync(new URL('./fixtures/gamedictionary-2026-10-09.frames-excerpt.json', import.meta.url), 'utf8'))
   const PROVISIONAL = 2 ** 32
   // zwift-data 2.1's records for these ids, with SUPPLEMENT_FRAMES as it stood

@@ -1,4 +1,9 @@
 {
+  "$comment": [
+    "Not this project's work, and not covered by its MIT license.",
+    "These records are copied verbatim from Zwift's game dictionary (https://www.zwift.com/zwift-web-pages/gamedictionary), fetched 2026-10-09 (sha256 7bb10a6b87c3472d...). The data is Zwift's.",
+    "It is a test fixture only: 9 BIKEFRAME records, used by scripts/dictionary/checkDictionary.test.mjs to check the supplement as it was before #314. Nothing in the build or the site reads it. See THIRD_PARTY_NOTICES.md."
+  ],
   "GameDictionary": {
     "BIKEFRAMES": [
       {
