@@ -42,9 +42,9 @@ decisions with citations in the code comments.
   whole catalog (frames, wheels, routes and upgrade schemes). Its exit code is
   1 only for a difference not on its `ACCEPTED_GAPS` list. Quote its
   "not on the accepted-gaps list" lines and its "Upgrade schemes" section
-  verbatim. The scheme lines never fail the run and are reported for a human
-  decision, never as drift to fix. If the fetch fails, say so and continue
-  with the rest of the audit.
+  verbatim. The scheme lines never fail the run (an unknown `lvId` is a
+  finding instead) and are reported for a human decision, never as drift to
+  fix. If the fetch fails, say so and continue with the rest of the audit.
 
 ## What the repo currently claims
 
@@ -133,7 +133,7 @@ listed above.
 
 **Game dictionary** - the `dictionary:check` exit code, each difference it
 lists as not on the accepted-gaps list, and its upgrade-scheme lines
-(disagreements, suggested lines, unknown `lvId`s), kept apart from the drift
+(disagreements and suggested lines), kept apart from the drift
 above.
 
 Then state plainly: the sheet URL/gid used, the date the source appears to

@@ -150,6 +150,8 @@ catalog frame with it:
   fails the run. If an entry then changes, run `physics-regression-check`,
   because a scheme moves stages 1–4 of a frame measured only at stages 0 and 5,
   and it changes the drawer's label.
+- An **`lvId` the table doesn't know** means Zwift added or renumbered a
+  scheme. Unlike a disagreement, it fails the run until `LVID_SCHEMES` maps it.
 - A **measured frame with no entry** gets the exact line to paste, e.g.
   `'Cervelo P5 2026': { axis: 'duration', tier: 'high' },  // lvId 405837660`.
   An unmeasured frame is only counted, since its scheme is inert until it is

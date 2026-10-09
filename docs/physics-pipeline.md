@@ -437,7 +437,9 @@ It reports:
   `EVENT_LEAD_IN_OVERRIDES` entry is listed against the dictionary's figure.
 - **Upgrade schemes:** see
   [bike-upgrade-levels.md](./bike-upgrade-levels.md#which-scheme-a-frame-is-on).
-  These are reported for a decision and never affect the exit code.
+  These are reported for a decision and never affect the exit code. The
+  exception is an `lvId` the check's table doesn't know: that is an upstream
+  change, and it fails the run until the table maps it.
 
 Differences known and accepted, such as the Gravel Mountain routes zwift-data
 has no world for, sit in `ACCEPTED_GAPS` in `scripts/dictionary/checkDictionary.mjs`,

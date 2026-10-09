@@ -6,6 +6,15 @@
 /** Zwift's unlocalised-name shape: `Factor LOC_ENTITLEMENT_..._NAME`, `Zwift LOC_WHEELNAME_ZWIFT_BigSpinCruiser2024`. */
 export const PLACEHOLDER = /\bLOC_[A-Za-z0-9_]+/
 
+/** Every kind of finding the check reports; an ACCEPTED_GAPS pattern must name one of these. */
+export const FINDING_KINDS = new Set([
+  'frame-rename', 'frame-is-tt', 'frame-not-in-dictionary', 'frame-not-in-catalog', 'provisional-has-record', 'unknown-lvid',
+  'wheel-rename', 'wheel-image', 'wheel-not-in-dictionary', 'wheel-not-in-catalog', 'placeholder',
+  'duplicate-name',
+  'route-rename', 'route-length', 'route-event-only', 'route-not-in-dictionary', 'route-not-in-catalog',
+  'override-not-event-only', 'override-redundant', 'override-without-route'
+])
+
 /** Route lengths closer than this agree: zwift-data rounds the dictionary's metres to whole metres in km. */
 export const ROUTE_TOLERANCE_M = 10
 
@@ -38,7 +47,7 @@ export const LVID_SCHEMES = new Map([
   [1253068759, { axis: 'elevation', tier: 'high' }]
 ])
 
-const q = JSON.stringify
+const quote = JSON.stringify
 
 /**
  * Differences known and accepted, one reason each. A finding matching one of
@@ -89,11 +98,11 @@ export const ACCEPTED_GAPS = [
     ]
   },
   {
-    reason: 'two novelty Zwift BigWheel records under one name, both shipped by zwift-data; nothing measured or schemed is keyed on the name',
+    reason: 'two novelty Zwift BigWheel records under one name, both shipped by zwift-data; the catalog lets the name be shared on purpose (KNOWN_SHARED_FRAME_NAMES, catalogNames.ts) and nothing measured or schemed is keyed on it',
     findings: [{ kind: 'duplicate-name', group: 'frame', name: 'Zwift BigWheel', ids: [2029842509, 3079625256] }]
   },
   {
-    reason: 'the Zwift Concept wheels are the plain and Gold skins of one wheel on different imageNames, which getWheelsets() pairs front to rear by imageName',
+    reason: 'the Zwift Concept wheels are the plain and Gold skins of one wheel on different imageNames, which getWheelsets() pairs front to rear by imageName (KNOWN_SHARED_WHEEL_NAMES, catalogNames.ts)',
     findings: [
       { kind: 'duplicate-name', group: 'front wheel', name: 'Zwift Concept', ids: [998391700, 1344753875] },
       { kind: 'duplicate-name', group: 'rear wheel', name: 'Zwift Concept', ids: [961116451, 4151822963] }
@@ -109,39 +118,52 @@ function records(dictionary, group, item) {
 
 const normalize = name => name.toLowerCase().replace(/\s+/gu, ' ').trim()
 
-const EQUIPMENT_GROUPS = [
-  ['frame', 'BIKEFRAMES', 'BIKEFRAME'],
-  ['front wheel', 'BIKEFRONTWHEELS', 'BIKEFRONTWHEEL'],
-  ['rear wheel', 'BIKEREARWHEELS', 'BIKEREARWHEEL']
-]
+/** Each equipment group's records in the dictionary: `GameDictionary.<GROUP>[0].<ITEM>[]`. */
+const EQUIPMENT_GROUPS = new Map([
+  ['frame', ['BIKEFRAMES', 'BIKEFRAME']],
+  ['front wheel', ['BIKEFRONTWHEELS', 'BIKEFRONTWHEEL']],
+  ['rear wheel', ['BIKEREARWHEELS', 'BIKEREARWHEEL']]
+])
+const equipment = (dictionary, group) => records(dictionary, ...EQUIPMENT_GROUPS.get(group))
+
+/** The dictionary groups this check reads that `dictionary` lacks: a layout change, which the CLI refuses to guess past. */
+export function missingGroups(dictionary) {
+  return [...[...EQUIPMENT_GROUPS.values()].map(([group]) => group), 'ROUTES', 'PORTAL_SEGMENTS'].filter(group => !dictionary.GameDictionary?.[group]?.[0])
+}
 
 function checkDuplicateNames(dictionary, report) {
-  for (const [group, groupKey, item] of EQUIPMENT_GROUPS) {
+  for (const group of EQUIPMENT_GROUPS.keys()) {
     const byName = new Map()
-    for (const record of records(dictionary, groupKey, item)) {
+    for (const record of equipment(dictionary, group)) {
       const key = normalize(record.name)
       byName.set(key, [...(byName.get(key) ?? []), record])
     }
     for (const same of byName.values()) {
       if (same.length < 2) continue
-      const ids = same.map(r => r.id).sort((a, b) => a - b)
-      report.finding({ kind: 'duplicate-name', group, name: same[0].name, ids }, `dictionary ${group}s ${ids.join(' and ')} share the name ${q(same[0].name)} - every name-keyed table would give them one row`)
+      // By id, so the name reported (and matched against ACCEPTED_GAPS) does
+      // not depend on the dictionary's order when spellings differ in case.
+      const [first, ...rest] = same.sort((a, b) => a.id - b.id)
+      const ids = [first, ...rest].map(r => r.id)
+      report.finding({ kind: 'duplicate-name', group, name: first.name, ids }, `dictionary ${group}s ${ids.join(' and ')} share the name ${quote(first.name)} - every name-keyed table would give them one row`)
     }
   }
 }
 
+/** Dictionary frames by normalised name, for matching a Provisional-id frame to the record that has since landed. */
+const framesByName = dictFrames => new Map(dictFrames.map(r => [normalize(r.name), r]))
+
 function checkFrames(dictionary, catalog, report) {
-  const dictFrames = records(dictionary, 'BIKEFRAMES', 'BIKEFRAME')
+  const dictFrames = equipment(dictionary, 'frame')
   const byId = new Map(dictFrames.map(r => [r.id, r]))
-  const byName = new Map(dictFrames.map(r => [normalize(r.name), r]))
+  const byName = framesByName(dictFrames)
   const claimed = new Set(catalog.frames.map(f => f.id))
   for (const frame of catalog.frames) {
-    const label = `frame ${q(frame.name)} (id ${frame.id})`
+    const label = `frame ${quote(frame.name)} (id ${frame.id})`
     if (frame.provisional) {
       const match = byName.get(normalize(frame.name))
       if (match) {
         claimed.add(match.id)
-        report.finding({ kind: 'provisional-has-record', name: frame.name, recordId: match.id }, `${label}: the dictionary now has a record for it (id ${match.id}, name ${q(match.name)}) - take the real id`)
+        report.finding({ kind: 'provisional-has-record', name: frame.name, recordId: match.id }, `${label}: the dictionary now has a record for it (id ${match.id}, name ${quote(match.name)}) - take the real id`)
       } else {
         report.note(`${label}: provisional id, no dictionary record yet`)
       }
@@ -154,36 +176,36 @@ function checkFrames(dictionary, catalog, report) {
     }
     const oursIsPlaceholder = PLACEHOLDER.test(frame.name)
     if (PLACEHOLDER.test(record.name)) {
-      report.note(`${label}: the dictionary's name is still the placeholder ${q(record.name)}${oursIsPlaceholder ? '; the frame stays off the site until Zwift names it' : ''}`)
+      report.note(`${label}: the dictionary's name is still the placeholder ${quote(record.name)}${oursIsPlaceholder ? ', as in zwift-data' : ''}`)
     } else if (record.name !== frame.name) {
       const fix = oursIsPlaceholder
         ? 'zwift-data still ships the placeholder: add a SUPPLEMENT_FRAMES entry under the real name'
         : frame.source === 'supplement'
           ? 're-key the supplement entry, its speed data and its upgrade scheme'
           : 'add a rename entry to SUPPLEMENT_FRAMES and re-key its speed data and upgrade scheme'
-      report.finding({ kind: 'frame-rename', id: frame.id, ours: frame.name, theirs: record.name }, `${label}: the dictionary now names it ${q(record.name)} - ${fix}`)
+      report.finding({ kind: 'frame-rename', id: frame.id, ours: frame.name, theirs: record.name }, `${label}: the dictionary now names it ${quote(record.name)} - ${fix}`)
     }
     if ((record.isTT === '1') !== frame.isTT) report.finding({ kind: 'frame-is-tt', id: frame.id }, `${label}: the dictionary says isTT=${record.isTT}, the catalog ${frame.isTT}`)
   }
   for (const record of dictFrames) {
-    if (!claimed.has(record.id)) report.finding({ kind: 'frame-not-in-catalog', id: record.id, name: record.name }, `dictionary frame ${q(record.name)} (id ${record.id}, isTT=${record.isTT}, modelYear=${record.modelYear}, lvId ${record.lvId}) is in neither zwift-data nor the supplement`)
+    if (!claimed.has(record.id)) report.finding({ kind: 'frame-not-in-catalog', id: record.id, name: record.name }, `dictionary frame ${quote(record.name)} (id ${record.id}, isTT=${record.isTT}, modelYear=${record.modelYear}, lvId ${record.lvId}) is in neither zwift-data nor the supplement`)
   }
 }
 
 function checkWheels(dictionary, catalog, report) {
-  for (const [group, groupKey, item, wheels, withdrawn] of [
-    ['front wheel', 'BIKEFRONTWHEELS', 'BIKEFRONTWHEEL', catalog.frontWheels, catalog.withdrawnFrontWheels],
-    ['rear wheel', 'BIKEREARWHEELS', 'BIKEREARWHEEL', catalog.rearWheels, catalog.withdrawnRearWheels]
+  for (const [group, wheels, withdrawn] of [
+    ['front wheel', catalog.frontWheels, catalog.withdrawnFrontWheels],
+    ['rear wheel', catalog.rearWheels, catalog.withdrawnRearWheels]
   ]) {
-    const dictWheels = records(dictionary, groupKey, item)
+    const dictWheels = equipment(dictionary, group)
     const byId = new Map(dictWheels.map(r => [r.id, r]))
     // A withdrawal rests on an in-game check, not on the dictionary, which can
     // keep a record the game no longer offers - so it is noted, never failed.
     for (const wheel of withdrawn) {
-      report.note(`${group} ${q(wheel.name)} (id ${wheel.id}): withdrawn - ${byId.has(wheel.id) ? 'the dictionary still lists it' : 'the dictionary has dropped it too; delete the withdrawal once zwift-data does'}`)
+      report.note(`${group} ${quote(wheel.name)} (id ${wheel.id}): withdrawn - ${byId.has(wheel.id) ? 'the dictionary still lists it' : 'the dictionary has dropped it too; delete the withdrawal once zwift-data does'}`)
     }
     for (const wheel of wheels) {
-      const label = `${group} ${q(wheel.name)} (id ${wheel.id})`
+      const label = `${group} ${quote(wheel.name)} (id ${wheel.id})`
       const record = byId.get(wheel.id)
       if (!record) {
         report.finding({ kind: 'wheel-not-in-dictionary', group, id: wheel.id, name: wheel.name }, `${label}: the dictionary no longer has this id`)
@@ -193,20 +215,20 @@ function checkWheels(dictionary, catalog, report) {
       if (PLACEHOLDER.test(record.name)) {
         // Unlike frames, a placeholder-named wheel is not hidden from the site.
         if (oursIsPlaceholder) report.finding({ kind: 'placeholder', group, id: wheel.id, name: wheel.name }, `${label}: a placeholder in zwift-data and the dictionary alike, and shown under it`)
-        else report.note(`${label}: the dictionary's name is still the placeholder ${q(record.name)}`)
+        else report.note(`${label}: the dictionary's name is still the placeholder ${quote(record.name)}`)
       } else if (record.name !== wheel.name) {
         const fix = oursIsPlaceholder
           ? 'zwift-data still ships the placeholder: add a supplement entry under the real name'
           : wheel.source === 'supplement'
             ? 're-key the supplement entry and its speed data'
             : 'add a rename entry to the wheel supplement, re-key its speed data and add the old key to RENAMED_WHEELSET_KEYS'
-        report.finding({ kind: 'wheel-rename', group, id: wheel.id, ours: wheel.name, theirs: record.name }, `${label}: the dictionary now names it ${q(record.name)} - ${fix}`)
+        report.finding({ kind: 'wheel-rename', group, id: wheel.id, ours: wheel.name, theirs: record.name }, `${label}: the dictionary now names it ${quote(record.name)} - ${fix}`)
       }
-      if (record.imageName !== wheel.imageName) report.finding({ kind: 'wheel-image', group, id: wheel.id }, `${label}: imageName is ${q(record.imageName)} in the dictionary, ${q(wheel.imageName)} in the catalog`)
+      if (record.imageName !== wheel.imageName) report.finding({ kind: 'wheel-image', group, id: wheel.id }, `${label}: imageName is ${quote(record.imageName)} in the dictionary, ${quote(wheel.imageName)} in the catalog`)
     }
     const known = new Set([...wheels, ...withdrawn].map(w => w.id))
     for (const record of dictWheels) {
-      if (!known.has(record.id)) report.finding({ kind: 'wheel-not-in-catalog', group, id: record.id, name: record.name }, `dictionary ${group} ${q(record.name)} (id ${record.id}, image ${record.imageName}) is in neither zwift-data nor the supplement`)
+      if (!known.has(record.id)) report.finding({ kind: 'wheel-not-in-catalog', group, id: record.id, name: record.name }, `dictionary ${group} ${quote(record.name)} (id ${record.id}, image ${record.imageName}) is in neither zwift-data nor the supplement`)
     }
   }
 }
@@ -215,18 +237,22 @@ function checkWheels(dictionary, catalog, report) {
 // dictionary disagrees with zwift-data, so a difference from the dictionary is
 // expected and noted. It is a finding only once it has nothing left to
 // correct, or corrects a route `eventLeadIn()` no longer applies it to.
-function checkOverride(route, override, zwiftDataM, dictionaryM, agree, report) {
+// Returns whether the override carries the dictionary's own figure, in which
+// case zwift-data lagging behind it is not a finding either.
+function checkOverride(route, override, zwiftDataM, dictionaryM, report) {
   const overrideM = Math.round(override.distanceKm * 1000)
-  const label = `event lead-in override for ${q(route.name)} (${route.slug})`
+  const carriesDictionaryFigure = Math.abs(overrideM - dictionaryM) <= ROUTE_TOLERANCE_M
+  const label = `event lead-in override for ${quote(route.name)} (${route.slug})`
   if (!route.eventOnly) {
     report.finding({ kind: 'override-not-event-only', slug: route.slug }, `${label}: the route is no longer event-only, so the override is not applied - delete it`)
-  } else if (agree && Math.abs(overrideM - dictionaryM) <= ROUTE_TOLERANCE_M) {
+  } else if (carriesDictionaryFigure && Math.abs(zwiftDataM - dictionaryM) <= ROUTE_TOLERANCE_M) {
     report.finding({ kind: 'override-redundant', slug: route.slug }, `${label}: zwift-data (${Math.round(zwiftDataM)} m) and the dictionary (${Math.round(dictionaryM)} m) both agree with its ${overrideM} m now - delete it`)
-  } else if (Math.abs(overrideM - dictionaryM) <= ROUTE_TOLERANCE_M) {
-    report.note(`route ${q(route.name)}: lead-in is ${Math.round(zwiftDataM)} m in zwift-data, ${Math.round(dictionaryM)} m in the dictionary; the override carries the dictionary's figure until zwift-data catches up`)
+  } else if (carriesDictionaryFigure) {
+    report.note(`route ${quote(route.name)}: lead-in is ${Math.round(zwiftDataM)} m in zwift-data, ${Math.round(dictionaryM)} m in the dictionary; the override carries the dictionary's figure until zwift-data catches up`)
   } else {
     report.note(`${label}: ${overrideM} m stands against the dictionary's ${Math.round(dictionaryM)} m (zwift-data ${Math.round(zwiftDataM)} m) - ${override.source}, checked ${override.checkedAt}`)
   }
+  return carriesDictionaryFigure
 }
 
 function checkRoutes(dictionary, catalog, report) {
@@ -237,49 +263,51 @@ function checkRoutes(dictionary, catalog, report) {
   const byId = new Map(dictRoutes.map(r => [r.id, r]))
   for (const route of catalog.routes) {
     const record = byId.get(route.id)
-    const label = `route ${q(route.name)} (id ${route.id})`
+    const label = `route ${quote(route.name)} (id ${route.id})`
     if (!record) {
       report.finding({ kind: 'route-not-in-dictionary', id: route.id, name: route.name }, `${label}: the dictionary no longer has this id`)
       continue
     }
-    if (record.name !== route.name) report.finding({ kind: 'route-rename', id: route.id, ours: route.name, theirs: record.name }, `${label}: the dictionary now names it ${q(record.name)}`)
+    if (record.name !== route.name) report.finding({ kind: 'route-rename', id: route.id, ours: route.name, theirs: record.name }, `${label}: the dictionary now names it ${quote(record.name)}`)
     const override = catalog.eventLeadInOverrides[route.slug]
     for (const [field, ours, theirs] of ROUTE_LENGTHS) {
+      // zwift-data omits a free-ride or meetup lead-in where the dictionary
+      // has none or 0, so a missing figure on either side reads as 0 m.
       const oursM = (route[ours] ?? 0) * 1000
       const theirsM = Number(record[theirs] ?? 0)
-      const agree = Math.abs(oursM - theirsM) <= ROUTE_TOLERANCE_M
-      if (field === 'lead-in' && override) {
-        checkOverride(route, override, oursM, theirsM, agree, report)
-        if (Math.abs(override.distanceKm * 1000 - theirsM) <= ROUTE_TOLERANCE_M) continue
-      }
-      if (!agree) report.finding({ kind: 'route-length', id: route.id, field }, `${label}: ${field} is ${Math.round(oursM)} m in zwift-data, ${Math.round(theirsM)} m in the dictionary`)
+      if (field === 'lead-in' && override && checkOverride(route, override, oursM, theirsM, report)) continue
+      if (Math.abs(oursM - theirsM) > ROUTE_TOLERANCE_M) report.finding({ kind: 'route-length', id: route.id, field }, `${label}: ${field} is ${Math.round(oursM)} m in zwift-data, ${Math.round(theirsM)} m in the dictionary`)
     }
     if ((record.eventOnly === '1') !== route.eventOnly) report.finding({ kind: 'route-event-only', id: route.id }, `${label}: event-only is ${route.eventOnly} in zwift-data, ${record.eventOnly === '1'} in the dictionary`)
   }
   const slugs = new Set(catalog.routes.map(r => r.slug))
   for (const slug of Object.keys(catalog.eventLeadInOverrides)) {
-    if (!slugs.has(slug)) report.finding({ kind: 'override-without-route', slug }, `event lead-in override ${q(slug)}: no zwift-data route has this slug`)
+    if (!slugs.has(slug)) report.finding({ kind: 'override-without-route', slug }, `event lead-in override ${quote(slug)}: no zwift-data route has this slug`)
   }
   const catalogIds = new Set(catalog.routes.map(r => r.id))
   for (const record of dictRoutes) {
-    if (!catalogIds.has(record.id)) report.finding({ kind: 'route-not-in-catalog', id: record.id, name: record.name }, `dictionary route ${q(record.name)} (id ${record.id}, eventOnly=${record.eventOnly}, sports=${record.sports}) is not in zwift-data`)
+    if (!catalogIds.has(record.id)) report.finding({ kind: 'route-not-in-catalog', id: record.id, name: record.name }, `dictionary route ${quote(record.name)} (id ${record.id}, eventOnly=${record.eventOnly}, sports=${record.sports}) is not in zwift-data`)
   }
 }
 
-function checkSchemes(dictionary, catalog, schemes) {
-  const byId = new Map(records(dictionary, 'BIKEFRAMES', 'BIKEFRAME').map(r => [r.id, r]))
+function checkSchemes(dictionary, catalog, schemes, report) {
+  const dictFrames = equipment(dictionary, 'frame')
+  const byId = new Map(dictFrames.map(r => [r.id, r]))
+  const byName = framesByName(dictFrames)
   for (const frame of catalog.frames) {
     const scheme = catalog.schemes[frame.name]
-    if (frame.provisional) {
-      // No dictionary record yet, so nothing to read a scheme off: the
-      // table entry is assigned by hand, with a comment naming its source.
+    // A Provisional-id frame is read off the record that has landed for it,
+    // if one has ("take the real id" is reported by checkFrames).
+    const record = frame.provisional ? byName.get(normalize(frame.name)) : byId.get(frame.id)
+    if (frame.provisional && !record) {
+      // Nothing to read a scheme off: the table entry is assigned by hand,
+      // with a comment naming its source.
       if (scheme) {
         schemes.handAssigned.push({ frame, scheme })
         schemes.comparison.push({ frame, scheme, unread: 'assigned by hand: no dictionary record' })
       }
       continue
     }
-    const record = byId.get(frame.id)
     // A placeholder name on either side is a frame the site does not show
     // (ours) or a record whose lvId is still a default (theirs).
     if (!record || PLACEHOLDER.test(frame.name) || PLACEHOLDER.test(record.name)) {
@@ -288,7 +316,9 @@ function checkSchemes(dictionary, catalog, schemes) {
     }
     const fromLvId = LVID_SCHEMES.get(Number(record.lvId))
     if (scheme) schemes.comparison.push({ frame, scheme, lvId: record.lvId, fromLvId, unread: fromLvId ? undefined : 'unknown lvId' })
-    if (!fromLvId) schemes.unknownLvIds.push({ frame, lvId: record.lvId })
+    // A new lvId is a scheme Zwift added or renumbered: an upstream change,
+    // so unlike a disagreement it fails the run until LVID_SCHEMES maps it.
+    if (!fromLvId) report.finding({ kind: 'unknown-lvid', id: frame.id, lvId: record.lvId }, `frame ${quote(frame.name)} (id ${frame.id}): lvId ${record.lvId} is not in LVID_SCHEMES - map it to its scheme`)
     else if (scheme && !sameScheme(scheme, fromLvId)) schemes.disagreements.push({ frame, scheme, lvId: record.lvId, fromLvId })
     // A scheme matters only to a frame with stage data to shape (see
     // `UpgradeScheme.awaitingMeasurement`), so only a measured frame is
@@ -307,15 +337,18 @@ export function checkDictionary(dictionary, catalog, acceptedGaps) {
   const all = []
   const notes = []
   const report = {
-    finding: (subject, message) => all.push({ ...subject, message }),
+    finding: (subject, message) => {
+      if (!FINDING_KINDS.has(subject.kind)) throw new Error(`unknown finding kind ${quote(subject.kind)}`)
+      all.push({ ...subject, message })
+    },
     note: message => notes.push(message)
   }
-  const schemes = { comparison: [], disagreements: [], suggestions: [], unknownLvIds: [], handAssigned: [], unmeasuredWithoutScheme: [] }
+  const schemes = { comparison: [], disagreements: [], suggestions: [], handAssigned: [], unmeasuredWithoutScheme: [] }
   checkFrames(dictionary, catalog, report)
   checkWheels(dictionary, catalog, report)
   checkDuplicateNames(dictionary, report)
   checkRoutes(dictionary, catalog, report)
-  checkSchemes(dictionary, catalog, schemes)
+  checkSchemes(dictionary, catalog, schemes, report)
 
   const accepted = []
   const failing = []
@@ -329,7 +362,7 @@ export function checkDictionary(dictionary, catalog, acceptedGaps) {
 }
 
 function matches(finding, pattern) {
-  return Object.entries(pattern).every(([key, value]) => q(finding[key]) === q(value))
+  return Object.entries(pattern).every(([key, value]) => quote(finding[key]) === quote(value))
 }
 
 /** The printed report, and the exit code: 1 only when a finding is not an accepted gap. */
@@ -341,7 +374,7 @@ export function formatReport(result) {
   }
   if (result.stale.length) {
     lines.push('', 'Accepted gaps that no longer occur - delete them from ACCEPTED_GAPS:')
-    for (const { pattern } of result.stale) lines.push(`  ${q(pattern)}`)
+    for (const { pattern } of result.stale) lines.push(`  ${quote(pattern)}`)
   }
   lines.push(...formatSchemes(result.schemes))
   if (result.failing.length) {
@@ -360,22 +393,19 @@ export function schemeLine(name, scheme, lvId) {
 
 function formatSchemes(schemes) {
   const lines = ['', 'Upgrade schemes - reported for a decision, never failing the run:']
-  lines.push(`  ${schemes.comparison.length} scheme entries compared with the frame's lvId: ${schemes.disagreements.length} disagree`)
+  const read = schemes.comparison.filter(row => !row.unread).length
+  lines.push(`  ${read} scheme entries compared with the frame's lvId: ${schemes.disagreements.length} disagree${read < schemes.comparison.length ? `; ${schemes.comparison.length - read} could not be read (see --schemes)` : ''}`)
   if (schemes.disagreements.length) {
     lines.push('', 'Scheme disagreements (FRAME_UPGRADE_SCHEMES vs the scheme the dictionary\'s lvId names):')
-    for (const { frame, scheme, lvId, fromLvId } of schemes.disagreements) lines.push(`  ${q(frame.name)} (id ${frame.id}): the table says ${schemeName(scheme)}; lvId ${lvId} is ${schemeName(fromLvId)}`)
+    for (const { frame, scheme, lvId, fromLvId } of schemes.disagreements) lines.push(`  ${quote(frame.name)} (id ${frame.id}): the table says ${schemeName(scheme)}; lvId ${lvId} is ${schemeName(fromLvId)}`)
   }
   if (schemes.suggestions.length) {
     lines.push('', 'Measured frames with no scheme - add to FRAME_UPGRADE_SCHEMES:')
     for (const { frame, lvId, fromLvId } of schemes.suggestions) lines.push(`  ${schemeLine(frame.name, fromLvId, lvId)}`)
   }
-  if (schemes.unknownLvIds.length) {
-    lines.push('', 'lvIds the scheme table in checkDictionary.mjs does not know - map them:')
-    for (const { frame, lvId } of schemes.unknownLvIds) lines.push(`  lvId ${lvId}: ${q(frame.name)} (id ${frame.id})`)
-  }
   if (schemes.handAssigned.length) {
     lines.push('', 'Assigned by hand, not yet checked (provisional id, no dictionary record):')
-    for (const { frame, scheme } of schemes.handAssigned) lines.push(`  ${q(frame.name)}: ${schemeName(scheme)}`)
+    for (const { frame, scheme } of schemes.handAssigned) lines.push(`  ${quote(frame.name)}: ${schemeName(scheme)}`)
   }
   if (schemes.unmeasuredWithoutScheme.length) lines.push('', `${schemes.unmeasuredWithoutScheme.length} unmeasured frames have no scheme; one is inert until the frame is measured.`)
   return lines

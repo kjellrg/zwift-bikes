@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { ACCEPTED_GAPS, checkDictionary, formatReport, formatSchemeComparison } from './checkDictionary.mjs'
+import { ACCEPTED_GAPS, checkDictionary, FINDING_KINDS, formatReport, formatSchemeComparison, missingGroups } from './checkDictionary.mjs'
 
 // A dictionary in the shape Zwift publishes it: `GameDictionary.<GROUP>[0].<ITEM>[].$`,
 // every attribute a string.
@@ -109,6 +109,21 @@ describe('upgrade schemes', () => {
     expect(exitCode).toBe(0)
   })
 
+  it('an lvId the table does not know is an upstream change, and fails the run', () => {
+    const catalog = catalogOf({ frames: [P5_2026], measuredFrameNames: new Set([P5_2026.name]), schemes: { 'Cervelo P5 2026': { axis: 'duration', tier: 'high' } } })
+    const { text, exitCode } = run(dictionaryOf({ frames: [{ ...p5Record, lvId: 12345 }] }), catalog, renamedOnPurpose)
+    expect(exitCode).toBe(1)
+    expect(text).toMatch(/Cervelo P5 2026.*lvId 12345 is not in LVID_SCHEMES/)
+  })
+
+  it('a provisional-id frame whose record has landed is checked against that record\'s lvId', () => {
+    const provisional = { id: 2 ** 32 + 1, name: 'Cube Aerium C:68X', isTT: true, source: 'supplement', provisional: true }
+    const record = { name: 'Cube Aerium C:68X', signature: 2389526374, isTT: 1, lvId: 405837660 }
+    const result = checkDictionary(dictionaryOf({ frames: [record] }), catalogOf({ frames: [provisional], schemes: { 'Cube Aerium C:68X': { axis: 'duration', tier: 'mid' } } }), [])
+    expect(result.schemes.handAssigned).toEqual([])
+    expect(result.schemes.disagreements.map(d => d.frame.name)).toEqual(['Cube Aerium C:68X'])
+  })
+
   it('the full comparison sets every schemed frame beside its lvId\'s scheme, and says why one could not be read', () => {
     const hanzo = { id: 3719018442, name: 'Factor Hanzō', isTT: true, source: 'supplement' }
     const catalog = catalogOf({
@@ -172,10 +187,11 @@ describe('the supplement as it was before #314, against the 2026-10-09 dictionar
 describe('the accepted-gaps list', () => {
   const hilltop = { name: 'Hilltop Hustle', signature: 3961473046, eventOnly: 0, sports: 1, distanceInMeters: 13633.9 }
 
-  it('gives every entry a reason and at least one pattern', () => {
+  it('gives every entry a reason and at least one pattern, each naming a kind the check reports', () => {
     for (const gap of ACCEPTED_GAPS) {
       expect(gap.reason.length, JSON.stringify(gap.findings)).toBeGreaterThan(20)
       expect(gap.findings.length).toBeGreaterThan(0)
+      for (const pattern of gap.findings) expect(FINDING_KINDS.has(pattern.kind), pattern.kind).toBe(true)
     }
   })
 
@@ -201,5 +217,14 @@ describe('frames on a provisional id', () => {
     const { text, exitCode } = run(dictionaryOf(), catalogOf({ frames: [frame], schemes: { 'New TT Bike': { axis: 'duration', tier: 'high' } } }))
     expect(text).toMatch(/Assigned by hand, not yet checked[\s\S]*New TT Bike.*duration \/ high/)
     expect(exitCode).toBe(0)
+  })
+})
+
+describe('the dictionary layout', () => {
+  it('names every group the check reads that a dictionary lacks', () => {
+    expect(missingGroups(dictionaryOf())).toEqual([])
+    const { ROUTES, ...withoutRoutes } = dictionaryOf().GameDictionary
+    expect(ROUTES).toBeDefined()
+    expect(missingGroups({ GameDictionary: withoutRoutes })).toEqual(['ROUTES'])
   })
 })

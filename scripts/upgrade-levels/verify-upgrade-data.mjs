@@ -98,7 +98,7 @@ for (const n of Object.keys(FRAME_UPGRADE_SCHEMES)) {
   // A scheme read off the dictionary's lvId waits for the frame's first
   // measurement on purpose (see `UpgradeScheme.awaitingMeasurement`); any
   // other is dead.
-  if (!measuredFor(n) && !FRAME_UPGRADE_SCHEMES[n].awaitingMeasurement) fail(`scheme "${n}" has no speed data, so its level is inert`)
+  if (!measuredFor(n) && !FRAME_UPGRADE_SCHEMES[n].awaitingMeasurement) fail(`scheme "${n}" has no speed data, so its stage is inert`)
 }
 console.log(`   ${measuredNames.length} measured frames, ${Object.keys(FRAME_UPGRADE_SCHEMES).length} scheme entries\n`)
 

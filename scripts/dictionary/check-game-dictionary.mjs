@@ -20,13 +20,14 @@
 //     than 10 m apart, the event-only flag, routes either side lacks, and
 //     each event lead-in override against the dictionary's figure
 //   - upgrade schemes, against the scheme each frame's lvId names: reported
-//     under their own heading and never failing the run
+//     under their own heading and never failing the run, except an lvId the
+//     check's table does not know, which is an upstream change
 //
 // Exits 1 only when a difference is not on ACCEPTED_GAPS (checkDictionary.mjs).
 import { readFileSync } from 'node:fs'
 import { bikeFrames, bikeFrontWheels, bikeRearWheels, routes } from 'zwift-data'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
-import { ACCEPTED_GAPS, checkDictionary, formatReport, formatSchemeComparison } from './checkDictionary.mjs'
+import { ACCEPTED_GAPS, checkDictionary, formatReport, formatSchemeComparison, missingGroups } from './checkDictionary.mjs'
 
 const { SUPPLEMENT_FRAMES, applyFrameSupplement, isProvisionalFrameId } = loadSharedModule('shared/data/frameSupplement.ts')
 const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, WITHDRAWN_FRONT_WHEELS, WITHDRAWN_REAR_WHEELS, applyWheelSupplement } = loadSharedModule('shared/data/wheelSupplement.ts')
@@ -37,10 +38,16 @@ const { EVENT_LEAD_IN_OVERRIDES } = loadSharedModule('shared/data/routeEventLead
 export const DICTIONARY_URL = 'https://www.zwift.com/zwift-web-pages/gamedictionary'
 
 const args = Object.fromEntries(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')))
-const raw = args.dictionary ? readFileSync(args.dictionary, 'utf8') : await (await fetch(DICTIONARY_URL)).text()
-const dictionary = JSON.parse(raw)
-const groups = ['BIKEFRAMES', 'BIKEFRONTWHEELS', 'BIKEREARWHEELS', 'ROUTES', 'PORTAL_SEGMENTS']
-const missing = groups.filter(group => !dictionary.GameDictionary?.[group]?.[0])
+async function fetchDictionary() {
+  const response = await fetch(DICTIONARY_URL)
+  if (!response.ok) {
+    console.error(`Could not fetch the game dictionary: HTTP ${response.status} from ${DICTIONARY_URL}`)
+    process.exit(1)
+  }
+  return response.text()
+}
+const dictionary = JSON.parse(args.dictionary ? readFileSync(args.dictionary, 'utf8') : await fetchDictionary())
+const missing = missingGroups(dictionary)
 if (missing.length) {
   console.error(`Dictionary layout changed - no ${missing.join('/')} found; refusing to guess.`)
   process.exit(1)
