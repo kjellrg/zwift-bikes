@@ -322,7 +322,7 @@ describe('the 300 W-solved deltas predict measurements they were never fitted to
     // (106 counted, the Golden Concept Z1 sharing the Tron's sample), 65
     // wheels at 150 W, 64 on the Zwift TT. Bump when the importer brings in
     // more; never down - except for a block that stops describing its bike:
-    // update 1.123 (2026-10) re-tested the Specialized Shiv Disc and the
+    // update 1.123 (2026-10) re-tested the Specialized S-Works Shiv Disc and the
     // sheet has no 150 W stage 5 for the new revision yet, so its old block
     // was dropped (105). Bump back to 106 when the importer refills it.
     const frames = [...Object.values(FRAME_SPEED_DATA), ...Object.values(TT_FRAME_SPEED_DATA)].filter(sample => sample.at150W)

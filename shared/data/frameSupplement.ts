@@ -14,25 +14,27 @@ import type { BikeFrame } from 'zwift-data'
  *
  * - **id / isTT / modelYear** are verbatim from the dictionary wherever it
  *   has a record for the frame.
- * - **name** is the dictionary's only when the dictionary has a real one.
- *   For update 1.123's frames it has either a localization placeholder
- *   (`Factor LOC_ENTITLEMENT_CYCLING_BIKE_FACTOR_HANZO_NAME`) or no record
- *   at all, so the name here is ZwiftInsider's spelling (its sheet and the
- *   article at https://zwiftinsider.com/update-1-123-166757/), the only
+ * - **name** is the dictionary's whenever it has a real one, with one
+ *   documented exception (Cervelo P5 2026, below). A frame whose record is
+ *   still a localization placeholder
+ *   (`Factor LOC_ENTITLEMENT_CYCLING_BIKE_FACTOR_HANZO_NAME`), or that has
+ *   no record at all, takes ZwiftInsider's spelling (its sheet and articles
+ *   such as https://zwiftinsider.com/update-1-123-166757/), the only
  *   published human name - a PROVISIONAL key, chosen deliberately over
- *   hiding a measured frame until Zwift localizes it. The dictionary is
- *   the authority once it speaks: `npm run supplement:check` fetches it and
- *   reports every entry whose id now carries a real name (or, for the
- *   provisional ids below, whose name now has a record), and the entry is
- *   then re-keyed to the dictionary's spelling.
- * - **id** is provisional for frames with no dictionary record at all:
+ *   hiding a measured frame until Zwift localizes it. Update 1.123's seven
+ *   TT frames shipped that way and had all taken the dictionary's names by
+ *   2026-10-09. The dictionary is the authority once it speaks: `npm run
+ *   supplement:check` fetches it and reports every entry whose id now
+ *   carries a real name (or, for a provisional id, whose name now has a
+ *   record), and the entry is then re-keyed to the dictionary's spelling.
+ * - **id** is provisional for a frame with no dictionary record at all:
  *   `PROVISIONAL_FRAME_ID_BASE + n`. Zwift's ids are 32-bit signatures, so
  *   anything at or above 2^32 can never collide with a real one, and
  *   `isProvisionalFrameId` tells the validator and the check script which
  *   entries still need their real id. Garages key frames by id, so a rider
  *   who adds one of these loses that garage entry when the real id lands -
  *   accepted. (A wheel rename, by contrast, carries the garage over through
- *   `RENAMED_WHEELSET_KEYS` in `wheelSupplement.ts`.)
+ *   `RENAMED_WHEELSET_KEYS` in `wheelSupplement.ts`.) None is in use now.
  *
  * Speed data for update 1.123's seven TT frames is measured (ZwiftInsider's
  * 300 W bot tests, sheet fetched 2026-10-06) and lives in
@@ -43,8 +45,8 @@ import type { BikeFrame } from 'zwift-data'
  *
  * The same list can also carry RENAMES: a frame the package already ships
  * under an older name that the dictionary has since changed (the Specialized
- * S-Works Tarmac SL9 and the Canyon Aeroad CFR - CANYON//SRAM were, until
- * zwift-data 2.1 caught up). The entry keeps the frame's id - which is what
+ * S-Works Shiv Disc is one; the S-Works Tarmac SL9 and the Canyon Aeroad
+ * CFR - CANYON//SRAM were, until zwift-data 2.1 caught up). The entry keeps the frame's id - which is what
  * garages, the `owned` query and the wheel drill-down key on, so a rider's
  * garage entry survives the rename untouched - and only the name moves,
  * with the speed-data and scheme tables re-keyed in the same commit. The
@@ -70,20 +72,29 @@ export function isProvisionalFrameId(id: number): boolean {
 export const UNLOCALIZED_FRAME_NAME = /\bLOC_[A-Z0-9_]+_NAME\b/
 
 export const SUPPLEMENT_FRAMES: BikeFrame[] = [
-  // Dictionary records with placeholder names (id/isTT/modelYear verbatim).
+  // zwift-data 2.1 ships these four under placeholder names; the dictionary
+  // has named them since (id/name/isTT/modelYear verbatim).
   { id: 3719018442, name: 'Factor Hanzō', modelYear: 2026, isTT: true },
   { id: 2124063579, name: 'Cannondale SuperSlice LAB71', modelYear: 2026, isTT: true },
   { id: 244289700, name: 'Giant Trinity Advanced SL', modelYear: 2026, isTT: true },
   { id: 3851032184, name: 'Liv Avow Advanced SL', modelYear: 2026, isTT: true },
-  // No dictionary record yet (2026-10-06): provisional ids. The sheet calls
-  // the new Cervelo simply "Cervelo P5" and retitled the 2015 bike "Cervelo
-  // P5 2015", but in the game the 2015 bike still owns the name "Cervelo
-  // P5", so the new one is keyed with its year until the dictionary says
-  // otherwise. The old Quintana Roo is "QuintanaRoo Roo V-PR" in the game;
-  // the sheet's spelling is used for the new one as for every other entry.
-  { id: PROVISIONAL_FRAME_ID_BASE + 1, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true },
-  { id: PROVISIONAL_FRAME_ID_BASE + 2, name: 'Quintana Roo V-PRi', modelYear: 2026, isTT: true },
-  { id: PROVISIONAL_FRAME_ID_BASE + 3, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true }
+  // Rename: zwift-data 2.1 still ships id 2460287610 as "Specialized Shiv
+  // Disc"; the dictionary renamed it on 2026-10-09, the name ZwiftInsider
+  // re-tested it under in update 1.123.
+  { id: 2460287610, name: 'Specialized S-Works Shiv Disc', modelYear: 2019, isTT: true },
+  // Not in zwift-data 2.1 at all. They had provisional ids until the
+  // dictionary gave them records on 2026-10-09 (id/isTT/modelYear verbatim).
+  // The new Quintana Roo takes the dictionary's spelling, brand run together
+  // like the old "QuintanaRoo Roo V-PR".
+  { id: 2475649027, name: 'QuintanaRoo V-PRI', modelYear: 2026, isTT: true },
+  { id: 2389526374, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true },
+  // The one entry whose name does NOT follow the dictionary. The dictionary
+  // calls this frame plain "Cervelo P5", which is also the name of the 2015
+  // bike (3932292289) - and name is the key of every speed-data and scheme
+  // table, so the two would share one row. The 2015 bike keeps the plain
+  // name, so nothing measured or owned for it moves; this one keeps its
+  // year. `supplement:check` accepts the difference for this id only.
+  { id: 1969226988, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true }
 ]
 
 /**

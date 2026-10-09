@@ -45,10 +45,10 @@ export interface WheelSpeedSample {
 }
 
 export const WHEEL_SPEED_DATA: Record<string, WheelSpeedSample> = {
-  'Black Inc THREE/ZERO': { flatGapSec: 52.7, climbGapSec: -14.3, at150W: { flatGapSec: 50.3, climbGapSec: -24.1 }, onTtFrame: { flatGapSec: 70.8, climbGapSec: -15.1 } },
+  'BlackInc Three/Zero': { flatGapSec: 52.7, climbGapSec: -14.3, at150W: { flatGapSec: 50.3, climbGapSec: -24.1 }, onTtFrame: { flatGapSec: 70.8, climbGapSec: -15.1 } },
   'Bontrager Aeolus5': { flatGapSec: 17.3, climbGapSec: -3.1, at150W: { flatGapSec: 16.6, climbGapSec: -6 }, onTtFrame: { flatGapSec: 19.5, climbGapSec: -4.2 } },
   'Cadex 36': { flatGapSec: 5.2, climbGapSec: 6.4, at150W: { flatGapSec: 6, climbGapSec: 5.4 }, onTtFrame: { flatGapSec: 5.8, climbGapSec: 5 } },
-  'CADEX 4-Spoke/Disc': { flatGapSec: 53.5, climbGapSec: -7.4, at150W: { flatGapSec: 51.2, climbGapSec: -16.1 }, onTtFrame: { flatGapSec: 71.4, climbGapSec: -8.3 } },
+  'Cadex 4-Spoke/Disc': { flatGapSec: 53.5, climbGapSec: -7.4, at150W: { flatGapSec: 51.2, climbGapSec: -16.1 }, onTtFrame: { flatGapSec: 71.4, climbGapSec: -8.3 } },
   'Cadex 42': { flatGapSec: 14.7, climbGapSec: 6.7, at150W: { flatGapSec: 14.8, climbGapSec: 5.1 }, onTtFrame: { flatGapSec: 16, climbGapSec: 5.5 } },
   'Cadex 65': { flatGapSec: 31.7, climbGapSec: 2.5, at150W: { flatGapSec: 30.9, climbGapSec: -1.5 }, onTtFrame: { flatGapSec: 35.8, climbGapSec: 1.4 } },
   'Cadex Max 50': { flatGapSec: 31.8, climbGapSec: 11.1, at150W: { flatGapSec: 40.7, climbGapSec: 6.6 }, onTtFrame: { flatGapSec: 45.5, climbGapSec: 8.4 } },

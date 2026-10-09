@@ -129,3 +129,45 @@ describe('the two Canyon Aeroads the sheet\'s CANYON//SRAM row was confused betw
     expect(sram?.upgradeCurve).toBeUndefined()
   })
 })
+
+describe('the frames the dictionary gave real records on 2026-10-09 (#314)', () => {
+  const byId = (id: number) => getFrames().filter(f => f.id === id)
+
+  it('each is one measured TT frame under its real id, and no provisional id is left in the catalog', () => {
+    // Dictionary ids and names; the Cervelo is the one name kept (below).
+    const REAL: Record<number, string> = {
+      2460287610: 'Specialized S-Works Shiv Disc',
+      2389526374: 'Cube Aerium C:68X',
+      2475649027: 'QuintanaRoo V-PRI',
+      1969226988: 'Cervelo P5 2026'
+    }
+    for (const [id, name] of Object.entries(REAL)) {
+      const matches = byId(Number(id))
+      expect(matches.map(f => f.name), id).toEqual([name])
+      expect(matches[0]?.category, name).toBe('tt')
+      expect(matches[0]?.confidence, name).toBe('measured')
+      expect(matches[0]?.upgradeScheme, name).toEqual({ axis: 'duration', tier: 'high' })
+    }
+    expect(getFrames().filter(f => isProvisionalFrameId(f.id)).map(f => f.name)).toEqual([])
+    for (const old of ['Specialized Shiv Disc', 'Quintana Roo V-PRi']) expect(getFrames().some(f => f.name === old), old).toBe(false)
+  })
+
+  it('the Shiv Disc keeps its own re-tested measurement under the new name', () => {
+    // The sheet's 300 W row for the 1.123 re-test, stages 0-5.
+    const shiv = byId(2460287610)[0]
+    expect(shiv?.upgradeCurve?.flat).toEqual([43.8, 52.5, 52.9, 64.8, 65.2, 91.7])
+    expect(shiv?.upgradeCurve?.climb?.[0]).toBe(20.2)
+  })
+
+  it('the Cervelo P5 of 2015 and of 2026 are two frames with their own ids, schemes and measurements', () => {
+    // The dictionary calls both "Cervelo P5"; the 2026 bike keeps its year
+    // so no name-keyed table confuses them.
+    const p5 = byId(3932292289)
+    const p5of2026 = byId(1969226988)
+    expect(p5.map(f => [f.name, f.modelYear])).toEqual([['Cervelo P5', 2015]])
+    expect(p5of2026.map(f => [f.name, f.modelYear])).toEqual([['Cervelo P5 2026', 2026]])
+    expect(p5[0]?.upgradeScheme).toEqual({ axis: 'duration', tier: 'mid' })
+    expect(p5of2026[0]?.upgradeCurve?.flat[0]).toBe(48.4)
+    expect(p5[0]?.upgradeCurve?.flat).not.toEqual(p5of2026[0]?.upgradeCurve?.flat)
+  })
+})

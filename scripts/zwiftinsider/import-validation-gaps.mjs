@@ -86,13 +86,15 @@ const FRAME_ALIASES = {
   'WilierFilante Filante SLR ID2 Team': 'Wilier Filante SLR ID2 Team',
   'Quintana Roo V-PR': 'QuintanaRoo Roo V-PR',
   // Update 1.123 retitled the superseded TT frames' rows with their model
-  // year (the game keeps the old names) and re-tested the Shiv Disc under
-  // an "S-Works" spelling - same aliases as import-stage-curves.mjs.
+  // year (the game keeps the old names) - same aliases as
+  // import-stage-curves.mjs.
   'Cervelo P5': 'Cervelo P5 2026',
   'Cervelo P5 2015': 'Cervelo P5',
   'Cube Aerium 2019': 'Cube Aerium',
   'Quintana Roo V-PR 2022': 'QuintanaRoo Roo V-PR',
-  'Specialized S-Works Shiv Disc': 'Specialized Shiv Disc'
+  'Pinarello Bolide 2015': 'Pinarello Bolide',
+  // The new Quintana Roo, under the game's spelling since 2026-10-09.
+  'Quintana Roo V-PRi': 'QuintanaRoo V-PRI'
 }
 
 // Verified against the WHEEL_SPEED_DATA keys (which validate-speed-data.mjs
@@ -119,6 +121,9 @@ const WHEEL_ALIASES = {
   'CADEX 42': 'Cadex 42',
   'CADEX 65': 'Cadex 65',
   'CADEX Max 50': 'Cadex Max 50',
+  // Update 1.123's discs, which the game named on 2026-10-09.
+  'CADEX 4-Spoke/Disc': 'Cadex 4-Spoke/Disc',
+  'Black Inc THREE/ZERO': 'BlackInc Three/Zero',
   'ENVE SES 2.2': 'Enve SES 2.2',
   'ENVE SES 3.4': 'Enve SES 3.4',
   'ENVE SES 4.5 PRO': 'Enve SES 4.5 PRO',

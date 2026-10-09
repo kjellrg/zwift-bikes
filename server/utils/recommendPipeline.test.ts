@@ -316,7 +316,7 @@ describe('runRecommendPipeline', () => {
       expect(race.climbTrade).toMatchObject({ frameName: 'Specialized Aethos S-Works', sameFrame: false, climbName: 'Innsbruck KOM', passes: 1 })
       // Measured on the live API: about 21 s on the KOM for about 8 s over the
       // race, when the Aethos raced on the Princeton Wake 6560. Update 1.123's
-      // CADEX 4-Spoke/Disc (a disc that climbs almost like a mid-depth wheel)
+      // Cadex 4-Spoke/Disc (a disc that climbs almost like a mid-depth wheel)
       // became its race wheel and halves the trade: about 14.5 s for 5.5 s.
       expect(race.climbTrade!.gainSec).toBeGreaterThan(10)
       expect(race.climbTrade!.costSec).toBeGreaterThan(0)

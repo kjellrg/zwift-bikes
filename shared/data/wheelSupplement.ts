@@ -31,28 +31,29 @@ import type { BikeFrontWheel, BikeRearWheel } from 'zwift-data'
  * ZwiftInsider's sheet titles the older rows "... C36 2025" / "... C50
  * 2021" / "... C60 2019"; their measurements left with the wheels.
  *
- * The three update-1.123 discs (Reserve Infinity, CADEX 4-Spoke, Black Inc
- * THREE/ZERO) have dictionary records whose names are still localization
- * placeholders (`Reserve LOC_ENTITLEMENT_CYCLING_WHEELS_RESERVE_INFINITY_NAME`),
- * so ids and imageNames are verbatim and the names are ZwiftInsider's
- * spelling (sheet + https://zwiftinsider.com/update-1-123-166757/, fetched
- * 2026-10-06) - provisional keys, the same call `frameSupplement.ts` makes
- * and documents. `npm run supplement:check` reports the moment the
- * dictionary names them for real; re-key the entry, its `WHEEL_SPEED_DATA`
- * row and its garage key (`RENAMED_WHEELSET_KEYS`) then.
+ * The three update-1.123 discs (Reserve Infinity, Cadex 4-Spoke, BlackInc
+ * Three/Zero) ship in zwift-data 2.1 under localization placeholders
+ * (`Reserve LOC_ENTITLEMENT_CYCLING_WHEELS_RESERVE_INFINITY_NAME`), so the
+ * entries below replace those records by id. Until 2026-10-09 the
+ * dictionary had placeholders too and the names were ZwiftInsider's
+ * spelling (sheet + https://zwiftinsider.com/update-1-123-166757/); the
+ * dictionary has named all three since, and the names below are its own,
+ * verbatim. The Cadex and BlackInc changed spelling at that point
+ * ("CADEX 4-Spoke/Disc", "Black Inc THREE/ZERO"), so their old keys are in
+ * `RENAMED_WHEELSET_KEYS`.
  */
 export const SUPPLEMENT_FRONT_WHEELS: BikeFrontWheel[] = [
-  // Placeholder stand-ins (see above): the id replaces upstream's record in place.
+  // Renames of upstream's placeholder records (see above): the id replaces the record in place.
   { id: 3667484525, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
-  { id: 3827121667, name: 'CADEX 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
-  { id: 1690454004, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' }
+  { id: 3827121667, name: 'Cadex 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
+  { id: 1690454004, name: 'BlackInc Three/Zero', imageName: 'Wheel_BlackIncThreeZero2026' }
 ]
 
 export const SUPPLEMENT_REAR_WHEELS: BikeRearWheel[] = [
-  // The same three stand-ins, rear.
+  // The same three, rear.
   { id: 659802619, name: 'Reserve Infinity Disc-set', imageName: 'Wheel_ReserveInfinityDisc2026' },
-  { id: 3443883036, name: 'CADEX 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
-  { id: 2002469001, name: 'Black Inc THREE/ZERO', imageName: 'Wheel_BlackIncThreeZero2026' }
+  { id: 3443883036, name: 'Cadex 4-Spoke/Disc', imageName: 'Wheel_Cadex4SpokeDisc65' },
+  { id: 2002469001, name: 'BlackInc Three/Zero', imageName: 'Wheel_BlackIncThreeZero2026' }
 ]
 
 /** An upstream wheel record the game no longer has, named for the reader and the validator. */
@@ -123,7 +124,11 @@ export const RENAMED_WHEELSET_KEYS: Readonly<Record<string, string>> = {
   'Shimano C36': 'Shimano DURA-ACE C36',
   'Shimano C50': 'Shimano DURA-ACE C50',
   'Shimano C60': 'Shimano DURA-ACE C60',
-  'Shimano C99/Disc': 'Shimano DURA-ACE C99 + Disc'
+  'Shimano C99/Disc': 'Shimano DURA-ACE C99 + Disc',
+  // ZwiftInsider's spelling, which the two update-1.123 discs carried until
+  // the dictionary named them (2026-10-09).
+  'CADEX 4-Spoke/Disc': 'Cadex 4-Spoke/Disc',
+  'Black Inc THREE/ZERO': 'BlackInc Three/Zero'
 }
 
 /** The key a wheel has now: its new key when the game renamed it, otherwise the key as given. */
