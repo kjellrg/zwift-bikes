@@ -101,7 +101,7 @@ const anyWheelNames = [...new Set([...frontWheelNames, ...rearWheelNames])]
 // Fail the build with the exact cleanup instruction instead of letting
 // either state linger. An entry on an upstream id with a different name is
 // a rename, legitimate until upstream ships the same name - warned, the way
-// frame renames are, and proved by `npm run supplement:check`.
+// frame renames are, and proved by `npm run dictionary:check`.
 for (const [label, supplement, upstream, withdrawnLabel, withdrawn] of [
   ['SUPPLEMENT_FRONT_WHEELS', SUPPLEMENT_FRONT_WHEELS, bikeFrontWheels, 'WITHDRAWN_FRONT_WHEELS', WITHDRAWN_FRONT_WHEELS],
   ['SUPPLEMENT_REAR_WHEELS', SUPPLEMENT_REAR_WHEELS, bikeRearWheels, 'WITHDRAWN_REAR_WHEELS', WITHDRAWN_REAR_WHEELS]
@@ -115,7 +115,7 @@ for (const [label, supplement, upstream, withdrawnLabel, withdrawn] of [
     const byName = upstreamByNormalized.get(normalize(wheel.name))
     if (byId) {
       if (byId.name === wheel.name) errors.push(`${label}: zwift-data now ships ${JSON.stringify(wheel.name)} (id ${wheel.id}) - delete its supplement entry`)
-      else console.warn(`WARN: ${label}: ${JSON.stringify(wheel.name)} (id ${wheel.id}) overrides the upstream name ${JSON.stringify(byId.name)} - \`npm run supplement:check\` confirms the game still agrees`)
+      else console.warn(`WARN: ${label}: ${JSON.stringify(wheel.name)} (id ${wheel.id}) overrides the upstream name ${JSON.stringify(byId.name)} - \`npm run dictionary:check\` confirms the game still agrees`)
       if (byName && byName.id !== wheel.id) errors.push(`${label}: ${JSON.stringify(wheel.name)} (id ${wheel.id}) is also the upstream name of id ${byName.id} - two wheels cannot share a name-keyed row`)
       continue
     }
@@ -133,7 +133,7 @@ for (const [label, supplement, upstream, withdrawnLabel, withdrawn] of [
 // `getFrames()` merges them. An id is one frame, so a supplement entry on
 // an upstream id is an override of that record's name (placeholder stand-in
 // or rename): legitimate while the names differ - the game dictionary, not
-// the package, decides what a bike is called, and `supplement:check` is
+// the package, decides what a bike is called, and `dictionary:check` is
 // what proves the override - and dead weight the moment upstream ships the
 // same name. A new id under a name upstream already uses is dropped by the
 // merge, so it fails here rather than silently attaching no data.
@@ -149,7 +149,7 @@ const frameNames = frames.map(f => f.name)
       if (byId.name === frame.name) {
         errors.push(`SUPPLEMENT_FRAMES: upstream now ships ${JSON.stringify(frame.name)} - delete its supplement entry`)
       } else if (!UNLOCALIZED_FRAME_NAME.test(byId.name)) {
-        console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) overrides the upstream name ${JSON.stringify(byId.name)} - \`npm run supplement:check\` confirms the game still agrees`)
+        console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) overrides the upstream name ${JSON.stringify(byId.name)} - \`npm run dictionary:check\` confirms the game still agrees`)
       }
       if (byName && byName.id !== frame.id) errors.push(`SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) is also the upstream name of id ${byName.id} - two frames cannot share a name-keyed row`)
       continue
@@ -158,7 +158,7 @@ const frameNames = frames.map(f => f.name)
       errors.push(`SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} (id ${frame.id}) matches upstream frame id ${byName.id}${byName.name === frame.name ? '' : ' by spelling'} - the merge drops the entry; take the upstream id or delete it - first differing span:\n${diffSpan(frame.name, byName.name)}`)
       continue
     }
-    if (isProvisionalFrameId(frame.id)) console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} has a provisional id - run \`npm run supplement:check\` to see whether the game dictionary has a record for it yet`)
+    if (isProvisionalFrameId(frame.id)) console.warn(`WARN: SUPPLEMENT_FRAMES: ${JSON.stringify(frame.name)} has a provisional id - run \`npm run dictionary:check\` to see whether the game dictionary has a record for it yet`)
   }
 }
 

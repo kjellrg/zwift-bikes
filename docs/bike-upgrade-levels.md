@@ -132,6 +132,43 @@ the cheapest available regression check, and
 [`compare-deployments.mjs`](../scripts/upgrade-levels/compare-deployments.mjs)
 exists partly to run it.
 
+### Which scheme a frame is on
+
+ZwiftInsider's [bike upgrade details](https://zwiftinsider.com/bike-upgrade-details/)
+table is where most entries in `FRAME_UPGRADE_SCHEMES` came from. Zwift's own
+[game dictionary](https://www.zwift.com/zwift-web-pages/gamedictionary) says
+the same thing a second way: every frame record carries an `lvId`, and each of
+its 11 values is one scheme (the nine axis × tier pairs, plus a Halo value on
+distance and one on duration). On 2026-10-09 all 129 schemed frames agreed with
+their `lvId`. Only a frame with a real name counts: a record still under a
+placeholder name carries a default `lvId`, not its scheme.
+
+`npm run dictionary:check` holds that 11-value table and compares every
+catalog frame with it:
+
+- A **disagreement** is printed under its own heading for a decision and never
+  fails the run. If an entry then changes, run `physics-regression-check`,
+  because a scheme moves stages 1–4 of a frame measured only at stages 0 and 5,
+  and it changes the drawer's label.
+- An **`lvId` the table doesn't know** means Zwift added or renumbered a
+  scheme. Unlike a disagreement, it fails the run until `LVID_SCHEMES` maps it.
+- A **measured frame with no entry** gets the exact line to paste, e.g.
+  `'Cervelo P5 2026': { axis: 'duration', tier: 'high' },  // lvId 405837660`.
+  An unmeasured frame is only counted, since its scheme is inert until it is
+  measured.
+- An entry for a frame nobody has measured yet is marked
+  `awaitingMeasurement: true`, which is the only way `verify-upgrade-data.mjs`
+  lets a scheme with no speed data stay on the table.
+- A frame on a Provisional id has no dictionary record to read, so its scheme
+  is assigned by hand, with a comment naming the source
+  (`// by hand: no dictionary record yet; sibling X is duration-high`). The
+  check lists it as "assigned by hand, not yet checked" until the real record
+  lands.
+
+`-- --schemes` also prints the full comparison table, one row per schemed
+frame. The command itself is described in
+[physics-pipeline.md](./physics-pipeline.md#checking-the-catalog-against-the-game-dictionary).
+
 ### Do the two sources agree?
 
 Each scheme's chart total should equal the measured Stage 0 → 5 gain of the

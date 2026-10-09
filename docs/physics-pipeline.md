@@ -361,6 +361,7 @@ flowchart TD
     ZIUP(["ZwiftInsider upgrade charts<br/>+ per-frame scheme table"])
     ZICRR(["ZwiftInsider Crr table<br/>official Zwift values"])
     ZD(["zwift-data · npm dependency"])
+    GD(["Zwift game dictionary"])
 
     POLY["extract-surface-polygons.mjs"]
     COMPUTE["compute-route-surfaces.mjs"]
@@ -381,6 +382,7 @@ flowchart TD
     ZI -- "by hand" --> SPEED
     ZIUP -- "by hand" --> UPGRADE
     ZICRR -- "by hand" --> CRR
+    GD -. "generates, weeks behind" .-> ZD
 
     GEN --> TERRAIN
     ZD --> TERRAIN
@@ -403,6 +405,49 @@ the only way a newly added route gets its real elevation profile and
 metre-by-metre surface data. Until then that route falls back to synthetic
 geometry, and `routeTerrain.ts` marks it `unverified` rather than asserting it
 is fully paved.
+
+### Checking the catalog against the game dictionary
+
+zwift-data is generated from Zwift's
+[game dictionary](https://www.zwift.com/zwift-web-pages/gamedictionary), but it
+is released in bursts weeks to months apart, so the dictionary is where a
+rename, a new frame, a real name for a placeholder or a corrected lead-in shows
+up first. Nothing in the build reads the dictionary (the dotted edge above);
+`npm run dictionary:check` compares it with the catalog on demand:
+
+```
+npm run dictionary:check                       # the live dictionary
+npm run dictionary:check -- --dictionary=path  # an offline copy
+npm run dictionary:check -- --schemes          # plus the full upgrade-scheme comparison
+```
+
+It reports:
+
+- **Frames and wheels:** a rename of anything the catalog keys data by, from
+  zwift-data or the supplements alike. It also reports a changed `isTT` or
+  `imageName`, an id the dictionary dropped, a record the catalog lacks, a
+  Provisional-id frame that now has a record, and a wheel still shown under a
+  placeholder name.
+- **Duplicate names:** two dictionary records sharing a name, which would share
+  one row in every name-keyed table.
+- **Routes:** every route, not only upcoming races. It reports renames,
+  distance and the event, free-ride and meetup lead-ins more than 10 m apart,
+  a changed event-only flag, and routes either side lacks. Climb portals,
+  which the dictionary publishes as route records, are left out. Each
+  `EVENT_LEAD_IN_OVERRIDES` entry is listed against the dictionary's figure.
+- **Upgrade schemes:** see
+  [bike-upgrade-levels.md](./bike-upgrade-levels.md#which-scheme-a-frame-is-on).
+  These are reported for a decision and never affect the exit code. The
+  exception is an `lvId` the check's table doesn't know: that is an upstream
+  change, and it fails the run until the table maps it.
+
+Differences known and accepted, such as the Gravel Mountain routes zwift-data
+has no world for, sit in `ACCEPTED_GAPS` in `scripts/dictionary/checkDictionary.mjs`,
+each with a reason. A run exits 1 only when something not on that list has
+changed, and it lists any accepted gap that no longer occurs so the entry can be
+deleted. Run it after a Zwift game update, before a zwift-data upgrade, and
+whenever the supplements are touched. The `zwift-data-drift` agent runs it as
+part of its audit.
 
 ## 6. The segment endpoint's one difference
 

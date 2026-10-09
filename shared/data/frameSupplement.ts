@@ -24,7 +24,7 @@ import type { BikeFrame } from 'zwift-data'
  *   hiding a measured frame until Zwift localizes it. Update 1.123's seven
  *   TT frames shipped that way and had all taken the dictionary's names by
  *   2026-10-09. The dictionary is the authority once it speaks: `npm run
- *   supplement:check` fetches it and reports every entry whose id now
+ *   dictionary:check` fetches it and reports every entry whose id now
  *   carries a real name (or, for a provisional id, whose name now has a
  *   record), and the entry is then re-keyed to the dictionary's spelling.
  * - **id** is provisional for a frame with no dictionary record at all:
@@ -41,7 +41,7 @@ import type { BikeFrame } from 'zwift-data'
  * `TT_FRAME_SPEED_DATA` under these exact names. A frame nobody has measured
  * can be supplemented too (the Wilier Filante SLR ID2 We Ride Paris was,
  * until zwift-data 2.1 shipped it): it ranks as estimated, and its upgrade
- * scheme is marked `derived`.
+ * scheme is marked `awaitingMeasurement`.
  *
  * The same list can also carry RENAMES: a frame the package already ships
  * under an older name that the dictionary has since changed (the Specialized
@@ -51,7 +51,7 @@ import type { BikeFrame } from 'zwift-data'
  * garage entry survives the rename untouched - and only the name moves,
  * with the speed-data and scheme tables re-keyed in the same commit. The
  * dictionary is the authority on what the game calls a bike;
- * `supplement:check` proves each rename is still what it says. The entry is
+ * `dictionary:check` proves each rename is still what it says. The entry is
  * deleted once the package catches up (the validator says so).
  */
 
@@ -93,7 +93,8 @@ export const SUPPLEMENT_FRAMES: BikeFrame[] = [
   // bike (3932292289) - and name is the key of every speed-data and scheme
   // table, so the two would share one row. The 2015 bike keeps the plain
   // name, so nothing measured or owned for it moves; this one keeps its
-  // year. `supplement:check` accepts the difference for this id only.
+  // year. `dictionary:check` accepts the difference for this id only
+  // (its ACCEPTED_GAPS).
   { id: 1969226988, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true }
 ]
 

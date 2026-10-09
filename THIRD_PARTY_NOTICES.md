@@ -22,6 +22,17 @@ attribution as ZwiftInsider's own bot-test results, publicly shared by them
 for exactly this kind of community use. No ZwiftInsider code is used - only
 the numeric test results.
 
+## Zwift game dictionary
+
+`scripts/dictionary/fixtures/gamedictionary-2026-10-09.frames-excerpt.json`
+holds nine frame records copied verbatim from Zwift's own
+[game dictionary](https://www.zwift.com/zwift-web-pages/gamedictionary)
+(fetched 2026-10-09). The data is Zwift's, not this project's, and is not
+covered by this project's MIT license. It is used only as a test fixture for
+`npm run dictionary:check` (`scripts/dictionary/checkDictionary.test.mjs`);
+nothing in the build or the site reads it. The check itself fetches the live
+dictionary at run time and stores no copy of it.
+
 ## zwift-data
 
 This project depends on the [zwift-data](https://github.com/andipaetzold/zwift-data)

@@ -40,7 +40,7 @@ describe('applyFrameSupplement', () => {
 })
 
 describe('the shipped supplement', () => {
-  it('every entry is scheme-mapped, unique against upstream by name, and measured unless its scheme says it is derived', () => {
+  it('every entry is scheme-mapped, unique against upstream by name, and measured unless its scheme is awaiting measurement', () => {
     const upstreamNames = new Set(bikeFrames.map(f => f.name))
     const seen = new Set<number>()
     for (const frame of SUPPLEMENT_FRAMES) {
@@ -49,7 +49,7 @@ describe('the shipped supplement', () => {
       seen.add(frame.id)
       const scheme = FRAME_UPGRADE_SCHEMES[frame.name]
       expect(scheme, `${frame.name} scheme`).toBeDefined()
-      if (!scheme?.derived) expect((frame.isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[frame.name], `${frame.name} speed row`).toBeDefined()
+      if (!scheme?.awaitingMeasurement) expect((frame.isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[frame.name], `${frame.name} speed row`).toBeDefined()
     }
   })
 })
@@ -100,8 +100,8 @@ describe('the Wilier Filante SLR ID2 We Ride Paris (#272)', () => {
     expect(wilier?.scores).not.toEqual(team?.scores)
   })
 
-  it('upgrades on the scheme its dictionary lvId names, distance / high-end, marked as derived', () => {
-    expect(FRAME_UPGRADE_SCHEMES[RECORD.name]).toEqual({ axis: 'distance', tier: 'high', derived: true })
+  it('upgrades on the scheme its dictionary lvId names, distance / high-end, awaiting measurement', () => {
+    expect(FRAME_UPGRADE_SCHEMES[RECORD.name]).toEqual({ axis: 'distance', tier: 'high', awaitingMeasurement: true })
   })
 
   it('ships from zwift-data itself now, with no supplement entry left behind', () => {

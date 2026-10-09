@@ -19,6 +19,16 @@
  * `frameSpeedData.ts`'s keys), not ZwiftInsider's sheet/table spelling,
  * since the two frequently differ - see `classifyBikeFrame.ts`'s notes on
  * Van Rysel/Tarmac naming.
+ *
+ * Zwift's game dictionary points every frame at its scheme (the frame
+ * record's `lvId`), and `npm run dictionary:check` compares this table with
+ * it: a disagreement is reported for a decision, never failed, and a
+ * measured frame with no entry gets the exact line to add. A frame on a
+ * Provisional id has no dictionary record to read, so its entry is assigned
+ * by hand and carries a comment naming the source, e.g.
+ * `// by hand: no dictionary record yet; sibling Cervelo P5 is duration-high`.
+ * The check lists such entries as "assigned by hand, not yet checked" until
+ * the real record lands.
  */
 
 export type UpgradeAxis = 'distance' | 'duration' | 'elevation'
@@ -28,13 +38,13 @@ export interface UpgradeScheme {
   axis: UpgradeAxis
   tier: UpgradeTier
   /**
-   * Not from ZwiftInsider's table: read off the frame's game-dictionary
-   * `lvId`, as the scheme the table gives the other frames of its kind on
-   * that `lvId`, for a frame nobody has measured yet. The entry is ready
-   * for the frame's first measurement and inert until then, which
-   * `scripts/upgrade-levels/verify-upgrade-data.mjs` allows only here.
+   * On the table before the frame has speed data: the scheme is read off the
+   * frame's game-dictionary `lvId` for a frame nobody has measured yet, so
+   * the entry is ready for the first measurement and inert until then.
+   * `scripts/upgrade-levels/verify-upgrade-data.mjs` fails any other entry
+   * without speed data as dead.
    */
-  derived?: true
+  awaitingMeasurement?: true
 }
 
 /**
@@ -138,8 +148,8 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   'Canyon Aeroad 2021': { axis: 'distance', tier: 'high' },
   'Canyon Aeroad 2024': { axis: 'distance', tier: 'high' },
   // Not measured: the sheet's CANYON//SRAM row is the CFR's, not this
-  // frame's (issue #272). Derived from lvId 4169711732, like the Wilier.
-  'Canyon Aeroad 2024 / SRAM': { axis: 'distance', tier: 'high', derived: true },
+  // frame's (issue #272). Read off lvId 4169711732, like the Wilier.
+  'Canyon Aeroad 2024 / SRAM': { axis: 'distance', tier: 'high', awaitingMeasurement: true },
   'Canyon Aeroad CFR - CANYON//SRAM': { axis: 'distance', tier: 'high' },
   'Canyon Aeroad CFR Alpecin Premier-Tech': { axis: 'distance', tier: 'high' },
   'Canyon Inflite': { axis: 'distance', tier: 'entry' },
@@ -223,7 +233,7 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   // lvId 4169711732 (dictionary fetched 2026-10-07): every road frame this
   // table has on it - 41 of them - is distance / high-end. Estimated: not
   // measured yet (issue #272).
-  'Wilier Filante SLR ID2 We Ride Paris': { axis: 'distance', tier: 'high', derived: true },
+  'Wilier Filante SLR ID2 We Ride Paris': { axis: 'distance', tier: 'high', awaitingMeasurement: true },
   'Zwift Aero': { axis: 'distance', tier: 'entry' },
   'Zwift Carbon': { axis: 'distance', tier: 'entry' },
   'Zwift Concept Z1': { axis: 'distance', tier: 'high' },

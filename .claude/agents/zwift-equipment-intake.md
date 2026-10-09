@@ -1,6 +1,6 @@
 ---
 name: zwift-equipment-intake
-description: Prepares verified data for NEW frames/wheels before they're added to the repo - game-dictionary identity, correct zwift-data spelling, ZwiftInsider 300W speed values, Crr class, and whether the entry belongs in the main tables or wheelSupplement.ts. Use when Zwift ships new equipment and the app needs entries for it. Reports verified inputs only - never edits.
+description: Prepares verified data for NEW frames/wheels before they're added to the repo - game-dictionary identity, upgrade scheme from its lvId, correct zwift-data spelling, ZwiftInsider 300W speed values, Crr class, and whether the entry belongs in the main tables or wheelSupplement.ts. Use when Zwift ships new equipment and the app needs entries for it. Reports verified inputs only - never edits.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 ---
 
@@ -25,7 +25,10 @@ the full fact sheet below.
   own dictionary, and the sole file zwift-data's daily update workflow is
   generated from. Owns: `id`, `name`, `imageName` - copied **verbatim**,
   never invented, never taken from ZwiftInsider's spelling. This is the only
-  acceptable source for a `wheelSupplement.ts` entry.
+  acceptable source for a `wheelSupplement.ts` entry. For a frame it also
+  owns the **Upgrade scheme**: the record's `lvId` names it, through the
+  11-entry `LVID_SCHEMES` table in `scripts/dictionary/checkDictionary.mjs`.
+  Read the table from that file; don't retype it.
 - **`node_modules/zwift-data`** (`bikeFrames`, `bikeFrontWheels`,
   `bikeRearWheels`) - owns whether the item has reached the npm package yet,
   and the exact key spelling the repo's tables must use. Enumerate with
@@ -69,6 +72,14 @@ the full fact sheet below.
   exist.
 - **Halo bikes** (integrated-wheel frames like the Concept Z1) are tested as
   one unit and belong in the frame table only.
+- **A placeholder-named frame record carries a default `lvId`**, not its
+  scheme. Update 1.123's TT frames sat on a distance-high `lvId` while their
+  names were `LOC_...` and moved to duration-high once named. Propose a
+  scheme from the `lvId` only when the record has a real name. Otherwise, or
+  when there is no record at all (a Provisional id), propose it from the
+  closest sibling and say so. The table entry then carries a comment naming
+  that source (`// by hand: no dictionary record yet; sibling X is
+  duration-high`).
 
 ## Method
 
@@ -77,7 +88,7 @@ the full fact sheet below.
    the classifiers (`classifyBikeFrame.ts`, `classifyWheel.ts`), so your
    recommendations match how entries actually land.
 2. Pull the game dictionary and locate each item; record id/name/imageName
-   verbatim.
+   verbatim, and for a frame its `lvId`, `isTT` and `modelYear`.
 3. Enumerate zwift-data; determine present/absent and the exact key.
 4. Pull the sheet CSV; parse with a script in the scratchpad (never eyeball
    it); extract the 300 W rows; spot-check against the rendered chart page.
@@ -98,6 +109,14 @@ One fact sheet per item:
   If untested, say "no bot test published yet" - the entry ships as
   `estimated` until there is one.
 - **Crr class** (wheels) with the /crr/ page as cited source.
+- **Upgrade scheme** (frames): the scheme the `lvId` names, as the exact
+  `FRAME_UPGRADE_SCHEMES` line to add, e.g.
+  `'Cervelo P5 2026': { axis: 'duration', tier: 'high' },  // lvId 405837660`.
+  Add `awaitingMeasurement: true` when there is no bot test yet, because
+  `verify-upgrade-data.mjs` fails a scheme with no speed data otherwise. If
+  ZwiftInsider's bike-upgrade-details table lists the frame and disagrees,
+  report both and leave the choice to the human. For a placeholder name or no
+  record, give the by-hand proposal and its source.
 - **Recommended destination**: which file/table, `measured` or `estimated`,
   and anything the human must decide (e.g. TT vs road, halo handling).
 

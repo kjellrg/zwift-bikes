@@ -35,6 +35,13 @@ import { routes } from 'zwift-data'
  * 2. A Strava segment effort: an activity's total distance minus the route
  *    segment's own distance, provided the rider stopped at the line. Build one
  *    with `scripts/race-draft/add-segment-effort.mjs`.
+ * 3. The game dictionary itself, once Zwift has corrected its own figure there
+ *    and zwift-data has not shipped the correction yet (zwift-data releases
+ *    weeks to months apart). `npm run dictionary:check` reports any route
+ *    whose lead-in is more than 10 m from the dictionary's. An entry that
+ *    carries the dictionary's figure stops that report, and the check says
+ *    to delete the entry once zwift-data agrees too. Cite the dictionary's
+ *    figure and the date it was fetched.
  *
  * Never from a solve against finish times alone. That is what produced the
  * sand mistake: a missing kilometre and a slow surface are the same flat
@@ -44,7 +51,8 @@ import { routes } from 'zwift-data'
  * `eventOnly` route, compare the organiser's published distance against
  * `route.distance x laps + route.leadInDistance` BEFORE trusting our number.
  * `scripts/events/validate-events.mjs` already does this and warns; that
- * warning is a finding, not noise. Seventeen event-only cycling routes
+ * warning is a finding, not noise. `npm run dictionary:check` lists every
+ * entry against the dictionary's figure. Seventeen event-only cycling routes
  * (zwift-data 2.1) still carry sub-200 m lead-ins and have never been
  * checked against a published event distance.
  */
