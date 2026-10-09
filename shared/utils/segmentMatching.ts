@@ -26,7 +26,7 @@ export interface TrackMatch {
 }
 
 /** How far a segment's start or end may sit from the route's polyline. */
-export const MAX_OFF_TRACK_M = 25
+const MAX_OFF_TRACK_M = 25
 
 /**
  * How far the placed length may differ from the segment track's own length,
@@ -34,7 +34,7 @@ export const MAX_OFF_TRACK_M = 25
  * a route riding one has the other's end on its track too; the length is
  * what rejects the wrong one.
  */
-export const MAX_LENGTH_ERROR = 0.2
+const MAX_LENGTH_ERROR = 0.2
 
 /**
  * How far the route's heading where it passes a segment's start or end may
@@ -132,8 +132,9 @@ function turnDeg(a: number, b: number): number {
   return d > 180 ? 360 - d : d
 }
 
-function ridesTheSameWay(route: Track, pass: Projection, segmentHeading: number): boolean {
-  return turnDeg(headingBetween(route, pass.alongM - HEADING_SPAN_M, pass.alongM + HEADING_SPAN_M), segmentHeading) <= MAX_HEADING_TURN_DEG
+/** How far the route's heading where it passes a point turns from the segment's heading there. */
+function turnAt(route: Track, pass: Projection, segmentHeading: number): number {
+  return turnDeg(headingBetween(route, pass.alongM - HEADING_SPAN_M, pass.alongM + HEADING_SPAN_M), segmentHeading)
 }
 
 function nearest(projections: Projection[]): Projection {
@@ -144,7 +145,8 @@ function nearest(projections: Projection[]): Projection {
  * Where a route track rides a segment's track: every pass, in km along the
  * route track from its first point.
  *
- * Every start the route passes is paired with every end after it, and a pair
+ * Only a pass riding the segment's way counts (`MAX_HEADING_TURN_DEG`). Every
+ * start the route passes is paired with every end after it, and a pair
  * qualifies when the length it spans is within `MAX_LENGTH_ERROR` of the
  * segment track's. The qualifying pairs are then taken best fit first,
  * skipping any that overlaps one already taken - so a lap-marker segment
@@ -167,10 +169,12 @@ export function placeSegmentOnTrack(route: Track, segment: Track): TrackMatch {
   const segmentStartM = segment.distance[0]!
   const segmentEndM = segment.distance[segment.distance.length - 1]!
   const segmentM = segmentEndM - segmentStartM
-  const starts = startPasses.filter(p => ridesTheSameWay(route, p, headingBetween(segment, segmentStartM, segmentStartM + 2 * HEADING_SPAN_M)))
-  const ends = endPasses.filter(p => ridesTheSameWay(route, p, headingBetween(segment, segmentEndM - 2 * HEADING_SPAN_M, segmentEndM)))
-  if (!starts.length) return otherWay('start', nearest(startPasses))
-  if (!ends.length) return otherWay('end', nearest(endPasses))
+  const startHeading = headingBetween(segment, segmentStartM, segmentStartM + 2 * HEADING_SPAN_M)
+  const endHeading = headingBetween(segment, segmentEndM - 2 * HEADING_SPAN_M, segmentEndM)
+  const starts = startPasses.filter(p => turnAt(route, p, startHeading) <= MAX_HEADING_TURN_DEG)
+  const ends = endPasses.filter(p => turnAt(route, p, endHeading) <= MAX_HEADING_TURN_DEG)
+  if (!starts.length) return otherWay('start', nearest(startPasses), turnAt(route, nearest(startPasses), startHeading))
+  if (!ends.length) return otherWay('end', nearest(endPasses), turnAt(route, nearest(endPasses), endHeading))
 
   const fits: { fromM: number, toM: number, error: number }[] = []
   let closest: { placedM: number, error: number } | undefined
@@ -195,7 +199,7 @@ export function placeSegmentOnTrack(route: Track, segment: Track): TrackMatch {
   if (!closest) {
     const start = nearest(starts)
     const end = nearest(ends)
-    return { placements: [], rejection: { rule: 'order', detail: `the start (${km(start.alongM)} km) comes after the end (${km(end.alongM)} km)` } }
+    return { placements: [], rejection: { rule: 'order', detail: `the start (${formatKm(start.alongM)} km) comes after the end (${formatKm(end.alongM)} km)` } }
   }
   return {
     placements: [],
@@ -203,8 +207,11 @@ export function placeSegmentOnTrack(route: Track, segment: Track): TrackMatch {
   }
 }
 
-function otherWay(which: 'start' | 'end', pass: Projection): TrackMatch {
-  return { placements: [], rejection: { rule: 'direction', detail: `the route passes the ${which} (${km(pass.alongM)} km) only riding the other way` } }
+function otherWay(which: 'start' | 'end', pass: Projection, turn: number): TrackMatch {
+  return {
+    placements: [],
+    rejection: { rule: 'direction', detail: `the route passes the ${which} (${formatKm(pass.alongM)} km) only riding the other way (turned ${Math.round(turn)}° from the segment, limit ${MAX_HEADING_TURN_DEG}°)` }
+  }
 }
 
 function offTrack(which: 'start' | 'end', offM: number): TrackMatch {
@@ -214,6 +221,7 @@ function offTrack(which: 'start' | 'end', offM: number): TrackMatch {
   }
 }
 
-function km(m: number): string {
+/** Metres as km, to the metre, for a rejection's detail. */
+function formatKm(m: number): string {
   return (m / 1000).toFixed(3)
 }

@@ -34,7 +34,7 @@
  *
  * - **Alley Sprint Rev on Makuri 40.** Makuri 40's track rides the forward
  *   `alley-sprint` stream, from 16.02 to 16.41 km; on the reverse stream the
- *   start comes after the end.
+ *   start comes after the end. (Since explained by swapped ids - below.)
  * - **Breakaway Brae Rev on The Epiloch and on BRAEk-fast Crits and Grits.**
  *   `zwift-data`'s two Breakaway Brae Strava ids look swapped: the
  *   `breakaway-brae` id (33620168) has a 622 m stream and the
@@ -52,10 +52,13 @@
  * segment 30412903 and its Alley Sprint Reverse page 30412916 ("only 380
  * meters long, not the 480 meters shown in game"); `zwift-data` has
  * `alley-sprint` on 30412916 (a 388 m stream) and `alley-sprint-rev` on
- * 30412903 (415 m). That explains Makuri 40: its track rides 30412916, which
- * IS the reverse, as `zwift-data`'s membership says. Every Alley Sprint host
- * is held for the same reason as Breakaway Brae's, which keeps both segments
- * exactly as they were before #273 placed anything: listed, unplaced.
+ * 30412903 (415 m). That explains Makuri 40 in `zwift-data`'s favour: its
+ * track rides 30412916, which IS the reverse, as its membership says - so
+ * the membership stands, and nothing is unresolved about its name. What is
+ * wrong is which track carries which name, so every Alley Sprint host is held
+ * for the same reason as Breakaway Brae's: both segments stay exactly as
+ * they were before #273 placed anything, listed and unplaced, until the ids
+ * are fixed upstream or here.
  *
  * The ~47 reverse-direction dictionary pairs that look like noise are out of
  * scope - not here, not in the generator's report.
@@ -104,6 +107,22 @@ export const HELD_SEGMENTS: HeldSegment[] = [
 /** Why this segment is held, if it is. */
 export function heldReason(segment: string): string | undefined {
   return HELD_SEGMENTS.find(h => h.segment === segment)?.reason
+}
+
+/**
+ * The segments the supplement adds to this route: its entries for the route
+ * that the route's own membership doesn't already have (the package wins).
+ * In `SUPPLEMENT_SEGMENT_HOSTS` order, to go after the package's own.
+ */
+export function supplementHostsFor(route: { slug: string, segments?: readonly string[] }): string[] {
+  return SUPPLEMENT_SEGMENT_HOSTS
+    .filter(host => host.route === route.slug && !route.segments?.includes(host.segment))
+    .map(host => host.segment)
+}
+
+/** Whether this host comes from the supplement rather than the package. */
+export function isSupplementHost(segment: string, route: string): boolean {
+  return SUPPLEMENT_SEGMENT_HOSTS.some(host => host.segment === segment && host.route === route)
 }
 
 /**

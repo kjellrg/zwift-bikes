@@ -3,7 +3,7 @@ import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta } from '../types/
 import { classifyBikeFrame } from './classifyBikeFrame'
 import { SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME, applyFrameSupplement } from '../data/frameSupplement'
 import { eventLeadIn } from '../data/routeEventLeadIns'
-import { SUPPLEMENT_SEGMENT_HOSTS } from '../data/segmentHostSupplement'
+import { supplementHostsFor } from '../data/segmentHostSupplement'
 import { getGeneratedSegmentPlacements } from '../data/segmentPlacements'
 import { computeTerrain, estimateSurface } from './routeTerrain'
 
@@ -88,9 +88,7 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
 }
 
 function withSegmentHostsBeyondPackage(route: (typeof routes)[number]): Pick<(typeof routes)[number], 'segments' | 'segmentsOnRoute'> {
-  const added = SUPPLEMENT_SEGMENT_HOSTS
-    .filter(host => host.route === route.slug && !route.segments?.includes(host.segment))
-    .map(host => host.segment)
+  const added = supplementHostsFor(route)
   const placed = getGeneratedSegmentPlacements(route.slug)
   return {
     segments: added.length ? [...route.segments ?? [], ...added] : route.segments,

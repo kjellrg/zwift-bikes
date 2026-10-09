@@ -54,7 +54,7 @@ describe('placeSegmentOnTrack', () => {
     const westbound = track(range(0.01, 0, 0.0004))
     const result = placeSegmentOnTrack(westbound, track(range(0.003, 0.005, 0.0001)))
     expect(result.placements).toEqual([])
-    expect(result.rejection).toEqual({ rule: 'direction', detail: 'the route passes the start (0.779 km) only riding the other way' })
+    expect(result.rejection).toEqual({ rule: 'direction', detail: 'the route passes the start (0.779 km) only riding the other way (turned 180° from the segment, limit 90°)' })
   })
 
   it('reports a start that comes after the end when the route rides each end the right way', () => {

@@ -96,7 +96,7 @@ The ladder a frame's Upgrade stages are earned and gained on: what the rider mus
 _Avoid_: upgrade level, upgrade category, upgrade path
 
 **Supplement**:
-A frame or wheel that is live in Zwift but that the catalog's upstream package has not caught up with, kept by hand until it has. An entry can add equipment the package lacks, or rename equipment the package still names the old way; either way it is matched to the package's record by Zwift's id, so a rider's Garage entry for a frame survives the rename. When the package ships the same thing, the package wins and the entry is deleted.
+A frame or wheel that is live in Zwift but that the catalog's upstream package has not caught up with, kept by hand until it has. An entry can add equipment the package lacks, or rename equipment the package still names the old way; either way it is matched to the package's record by Zwift's id, so a rider's Garage entry for a frame survives the rename. The same goes for a Host route the Game dictionary gives a segment and the package lacks: that entry names the segment and the route by the package's slugs, and only ever adds the host. When the package ships the same thing, the package wins and the entry is deleted.
 _Avoid_: patch, override list, extra equipment
 
 **Provisional id**:

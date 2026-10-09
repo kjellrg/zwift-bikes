@@ -3,7 +3,7 @@ import { segments } from 'zwift-data'
 import type { RouteSegmentPlacement, RouteWithMeta, SegmentSummary, SurfaceSegment } from '../types/catalog'
 import type { PhysicsSurface } from '../types/physics'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
-import { SUPPLEMENT_SEGMENT_HOSTS } from '../data/segmentHostSupplement'
+import { isSupplementHost } from '../data/segmentHostSupplement'
 import { sliceElevationProfile } from './elevationGeometry'
 import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
@@ -12,10 +12,6 @@ import { computeTerrain } from './routeTerrain'
 import { courseProfile, profileSilhouette, SILHOUETTE_LISTING_SAMPLES } from './silhouette'
 
 let cachedSummaries: SegmentSummary[] | undefined
-
-function isSupplementHost(segment: string, route: string): boolean {
-  return SUPPLEMENT_SEGMENT_HOSTS.some(h => h.segment === segment && h.route === route)
-}
 
 /**
  * Every rankable segment (climb or sprint - the 15 generic "segment"-type

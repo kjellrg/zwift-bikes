@@ -3,7 +3,7 @@ import type { Track, TrackRejection } from './segmentMatching'
 import { placeSegmentOnTrack } from './segmentMatching'
 import { placementsAreRideRelative } from './routeClimbs'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
-import { SUPPLEMENT_SEGMENT_HOSTS, heldReason } from '../data/segmentHostSupplement'
+import { heldReason, supplementHostsFor } from '../data/segmentHostSupplement'
 
 /** One generated Placement, in the shape of a `zwift-data` `segmentsOnRoute` entry: km from the lap start. */
 export interface GeneratedSegmentPlacement {
@@ -35,19 +35,23 @@ export interface StreamTracks {
 
 const segmentsBySlug = new Map(segments.map(segment => [segment.slug, segment]))
 
-function km(value: number): number {
+/** Km rounded to the metre, as `zwift-data` writes `segmentsOnRoute`. */
+function roundKm(value: number): number {
   return Math.round(value * 1000) / 1000
 }
 
 /**
- * Whether a route's track runs from the ride start rather than the lap start.
- * Generated placements are lap-relative - the frame `zwift-data` uses on
- * almost every route, so `traceScale` applies to them unchanged - and a route
- * whose own placements are ride-relative (`placementsAreRideRelative`), or
- * whose recorded trace covered its lead-in, would end up with two frames
- * mixed in one `segmentsOnRoute`. Such a route is not placed on.
+ * Whether a route is ride-relative for placing on: its placements or its
+ * track run from the ride start rather than the lap start. Generated
+ * placements are lap-relative - the frame `zwift-data` uses on almost every
+ * route, so `traceScale` applies to them unchanged - and a route whose own
+ * placements are ride-relative would end up with two frames mixed in one
+ * `segmentsOnRoute`. Wider than `placementsAreRideRelative`, which answers
+ * only for a route that has placements: a route with none whose recorded
+ * trace covered the lead-in would read as ride-relative the moment a
+ * generated placement landed on it. Such a route is not placed on.
  */
-function measuredFromRideStart(route: (typeof routes)[number]): boolean {
+function isRideRelativeForPlacing(route: (typeof routes)[number]): boolean {
   return placementsAreRideRelative(route) || ((route.leadInDistance ?? 0) > 0 && !!getGeneratedRouteSurface(route.slug)?.traceCoveredLeadIn)
 }
 
@@ -66,8 +70,7 @@ export function placeSegmentHosts(tracks: StreamTracks): SegmentPlacementsFile {
   const unplaced: UnplacedSegmentHost[] = []
 
   for (const route of routes) {
-    const supplemented = SUPPLEMENT_SEGMENT_HOSTS.filter(h => h.route === route.slug && !route.segments?.includes(h.segment)).map(h => h.segment)
-    for (const slug of [...route.segments ?? [], ...supplemented]) {
+    for (const slug of [...route.segments ?? [], ...supplementHostsFor(route)]) {
       const segment = segmentsBySlug.get(slug)
       if (segment?.type !== 'sprint' && segment?.type !== 'climb') continue
       if (route.segmentsOnRoute?.some(p => p.segment === slug)) continue
@@ -88,12 +91,12 @@ export function placeSegmentHosts(tracks: StreamTracks): SegmentPlacementsFile {
         report('no-route-track', 'zwift-data/streams has no track for the route')
         continue
       }
-      if (measuredFromRideStart(route)) {
+      if (isRideRelativeForPlacing(route)) {
         report('ride-relative-route', 'the route\'s placements and track run from the ride start, and a generated placement is lap-relative')
         continue
       }
       const match = placeSegmentOnTrack(routeTrack, segmentTrack)
-      for (const p of match.placements) (placements[route.slug] ??= []).push({ segment: slug, from: km(p.fromKm), to: km(p.toKm) })
+      for (const p of match.placements) (placements[route.slug] ??= []).push({ segment: slug, from: roundKm(p.fromKm), to: roundKm(p.toKm) })
       if (match.rejection) report(match.rejection.rule, match.rejection.detail)
     }
     placements[route.slug]?.sort((a, b) => a.from - b.from)

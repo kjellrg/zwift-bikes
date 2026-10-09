@@ -1088,7 +1088,7 @@
       "route": "canopies-and-coastlines",
       "segment": "titans-grove-kom",
       "reason": "direction",
-      "detail": "the route passes the start (2.592 km) only riding the other way"
+      "detail": "the route passes the start (2.592 km) only riding the other way (turned 164° from the segment, limit 90°)"
     },
     {
       "route": "canopies-and-coastlines",
@@ -1478,7 +1478,7 @@
       "route": "triple-flat-loops",
       "segment": "watopia-sprint",
       "reason": "direction",
-      "detail": "the route passes the start (23.618 km) only riding the other way"
+      "detail": "the route passes the start (23.618 km) only riding the other way (turned 177° from the segment, limit 90°)"
     },
     {
       "route": "seaside-sprint",
