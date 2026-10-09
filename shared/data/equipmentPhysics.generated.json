@@ -3714,38 +3714,6 @@
     "crrDelta": -0.0003
    }
   ],
-  "Quintana Roo V-PRi": [
-   {
-    "cdaDeltaM2": -0.010693096175636935,
-    "bikeMassDeltaKg": -0.5479654686634765,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.012787238077986901,
-    "bikeMassDeltaKg": -0.4963304702072415,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.01268660343327846,
-    "bikeMassDeltaKg": -0.7142520592214376,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.012677062458126026,
-    "bikeMassDeltaKg": -0.7129059907617412,
-    "crrDelta": -0.0003
-   },
-   {
-    "cdaDeltaM2": -0.012598765544571205,
-    "bikeMassDeltaKg": -0.834469103737363,
-    "crrDelta": -0.0003
-   },
-   {
-    "cdaDeltaM2": -0.018980182011437446,
-    "bikeMassDeltaKg": -0.8290346090978735,
-    "crrDelta": -0.0003
-   }
-  ],
   "QuintanaRoo Roo V-PR": [
    {
     "cdaDeltaM2": -0.004994205491146515,
@@ -3775,6 +3743,38 @@
    {
     "cdaDeltaM2": -0.012982414341179055,
     "bikeMassDeltaKg": -0.7698583634140599,
+    "crrDelta": -0.0003
+   }
+  ],
+  "QuintanaRoo V-PRI": [
+   {
+    "cdaDeltaM2": -0.010693096175636935,
+    "bikeMassDeltaKg": -0.5479654686634765,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012787238077986901,
+    "bikeMassDeltaKg": -0.4963304702072415,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01268660343327846,
+    "bikeMassDeltaKg": -0.7142520592214376,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012677062458126026,
+    "bikeMassDeltaKg": -0.7129059907617412,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.012598765544571205,
+    "bikeMassDeltaKg": -0.834469103737363,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018980182011437446,
+    "bikeMassDeltaKg": -0.8290346090978735,
     "crrDelta": -0.0003
    }
   ],
@@ -3842,6 +3842,38 @@
     "crrDelta": -0.0003
    }
   ],
+  "Specialized S-Works Shiv Disc": [
+   {
+    "cdaDeltaM2": -0.010614182085231766,
+    "bikeMassDeltaKg": -0.4129635722476772,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012768167286380333,
+    "bikeMassDeltaKg": -0.3816383242224086,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.012729450859533004,
+    "bikeMassDeltaKg": -0.5805438181519813,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.01249475031931227,
+    "bikeMassDeltaKg": -0.5785225601597839,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.01252515120058792,
+    "bikeMassDeltaKg": -0.6831091837275372,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.018936061817603628,
+    "bikeMassDeltaKg": -0.708996976062422,
+    "crrDelta": -0.0003
+   }
+  ],
   "Specialized Shiv": [
    {
     "cdaDeltaM2": -0.004994879056947371,
@@ -3871,38 +3903,6 @@
    {
     "cdaDeltaM2": -0.013062209672633301,
     "bikeMassDeltaKg": -0.721751487366503,
-    "crrDelta": -0.0003
-   }
-  ],
-  "Specialized Shiv Disc": [
-   {
-    "cdaDeltaM2": -0.010614182085231766,
-    "bikeMassDeltaKg": -0.4129635722476772,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.012768167286380333,
-    "bikeMassDeltaKg": -0.3816383242224086,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.012729450859533004,
-    "bikeMassDeltaKg": -0.5805438181519813,
-    "crrDelta": 0
-   },
-   {
-    "cdaDeltaM2": -0.01249475031931227,
-    "bikeMassDeltaKg": -0.5785225601597839,
-    "crrDelta": -0.0003
-   },
-   {
-    "cdaDeltaM2": -0.01252515120058792,
-    "bikeMassDeltaKg": -0.6831091837275372,
-    "crrDelta": -0.0003
-   },
-   {
-    "cdaDeltaM2": -0.018936061817603628,
-    "bikeMassDeltaKg": -0.708996976062422,
     "crrDelta": -0.0003
    }
   ],
@@ -4068,7 +4068,7 @@
   ]
  },
  "wheels": {
-  "Black Inc THREE/ZERO": {
+  "BlackInc Three/Zero": {
    "cdaDeltaM2": -0.015146399936241367,
    "bikeMassDeltaKg": 0.5398587666077992,
    "crrDelta": 0
@@ -4078,14 +4078,14 @@
    "bikeMassDeltaKg": 0.1363613614158874,
    "crrDelta": 0
   },
-  "CADEX 4-Spoke/Disc": {
-   "cdaDeltaM2": -0.015235051477260925,
-   "bikeMassDeltaKg": 0.36198461559573847,
-   "crrDelta": 0
-  },
   "Cadex 36": {
    "cdaDeltaM2": -0.0013607350582307276,
    "bikeMassDeltaKg": -0.15139735814245414,
+   "crrDelta": 0
+  },
+  "Cadex 4-Spoke/Disc": {
+   "cdaDeltaM2": -0.015235051477260925,
+   "bikeMassDeltaKg": 0.36198461559573847,
    "crrDelta": 0
   },
   "Cadex 42": {

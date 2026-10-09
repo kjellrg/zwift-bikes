@@ -100,6 +100,35 @@ describe('the 2026 Shimano DURA-ACE wheels', () => {
   })
 })
 
+describe('the update-1.123 discs the dictionary named on 2026-10-09 (#314)', () => {
+  // Sheet values (ZwiftInsider 300 W, Zwift Carbon), as in the table before
+  // the re-key - the measurement moves with the name, unchanged.
+  const renamed = [
+    { from: 'CADEX 4-Spoke/Disc', to: 'Cadex 4-Spoke/Disc', frontId: 3827121667, rearId: 3443883036, flatGapSec: 53.5, climbGapSec: -7.4 },
+    { from: 'Black Inc THREE/ZERO', to: 'BlackInc Three/Zero', frontId: 1690454004, rearId: 2002469001, flatGapSec: 52.7, climbGapSec: -14.3 }
+  ]
+
+  it('each is one measured disc wheelset under the dictionary\'s name, on the same ids', () => {
+    for (const { from, to, frontId, rearId, flatGapSec, climbGapSec } of renamed) {
+      const sets = getWheelsets().filter(w => w.front.id === frontId)
+      expect(sets.map(w => w.key), to).toEqual([to])
+      expect(sets[0]!.rear.id, to).toBe(rearId)
+      expect(sets[0]!.rear.category, to).toBe('disc')
+      expect(sets[0]!.confidence, to).toBe('measured')
+      expectPhysicsOf(sets[0]!.physics, flatGapSec, climbGapSec, to)
+      expect(getWheelsets().some(w => w.key === from), from).toBe(false)
+    }
+  })
+
+  it('a garage that held the old keys keeps both wheels under the new names', () => {
+    expect(migrateWheelsetKeys({ 'CADEX 4-Spoke/Disc': true, 'Black Inc THREE/ZERO': true, 'Zipp 808': true })).toEqual({
+      'Cadex 4-Spoke/Disc': true,
+      'BlackInc Three/Zero': true,
+      'Zipp 808': true
+    })
+  })
+})
+
 describe('a garage saved before the renames', () => {
   it('keeps every wheel, under the name the game now uses', () => {
     const saved = { 'Roval Sprint CLX': true, 'Princeton  Mach TSV2/Blur Disc\u00A0': true, 'Shimano C36': true, 'Shimano C99/Disc': true, 'Zipp 808': true } as const

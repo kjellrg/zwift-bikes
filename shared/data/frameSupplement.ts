@@ -70,20 +70,29 @@ export function isProvisionalFrameId(id: number): boolean {
 export const UNLOCALIZED_FRAME_NAME = /\bLOC_[A-Z0-9_]+_NAME\b/
 
 export const SUPPLEMENT_FRAMES: BikeFrame[] = [
-  // Dictionary records with placeholder names (id/isTT/modelYear verbatim).
+  // zwift-data 2.1 ships these four under placeholder names; the dictionary
+  // has named them since (id/name/isTT/modelYear verbatim).
   { id: 3719018442, name: 'Factor Hanzō', modelYear: 2026, isTT: true },
   { id: 2124063579, name: 'Cannondale SuperSlice LAB71', modelYear: 2026, isTT: true },
   { id: 244289700, name: 'Giant Trinity Advanced SL', modelYear: 2026, isTT: true },
   { id: 3851032184, name: 'Liv Avow Advanced SL', modelYear: 2026, isTT: true },
-  // No dictionary record yet (2026-10-06): provisional ids. The sheet calls
-  // the new Cervelo simply "Cervelo P5" and retitled the 2015 bike "Cervelo
-  // P5 2015", but in the game the 2015 bike still owns the name "Cervelo
-  // P5", so the new one is keyed with its year until the dictionary says
-  // otherwise. The old Quintana Roo is "QuintanaRoo Roo V-PR" in the game;
-  // the sheet's spelling is used for the new one as for every other entry.
-  { id: PROVISIONAL_FRAME_ID_BASE + 1, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true },
-  { id: PROVISIONAL_FRAME_ID_BASE + 2, name: 'Quintana Roo V-PRi', modelYear: 2026, isTT: true },
-  { id: PROVISIONAL_FRAME_ID_BASE + 3, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true }
+  // Rename: zwift-data 2.1 still ships id 2460287610 as "Specialized Shiv
+  // Disc"; the dictionary renamed it on 2026-10-09, the name ZwiftInsider
+  // re-tested it under in update 1.123.
+  { id: 2460287610, name: 'Specialized S-Works Shiv Disc', modelYear: 2019, isTT: true },
+  // Not in zwift-data 2.1 at all. They had provisional ids until the
+  // dictionary gave them records on 2026-10-09 (id/isTT/modelYear verbatim).
+  // The new Quintana Roo takes the dictionary's spelling, brand run together
+  // like the old "QuintanaRoo Roo V-PR".
+  { id: 2475649027, name: 'QuintanaRoo V-PRI', modelYear: 2026, isTT: true },
+  { id: 2389526374, name: 'Cube Aerium C:68X', modelYear: 2026, isTT: true },
+  // The one entry whose name does NOT follow the dictionary. The dictionary
+  // calls this frame plain "Cervelo P5", which is also the name of the 2015
+  // bike (3932292289) - and name is the key of every speed-data and scheme
+  // table, so the two would share one row. The 2015 bike keeps the plain
+  // name, so nothing measured or owned for it moves; this one keeps its
+  // year. `supplement:check` accepts the difference for this id only.
+  { id: 1969226988, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true }
 ]
 
 /**

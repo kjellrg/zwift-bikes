@@ -33,7 +33,7 @@ import { solveWheelEquipmentDelta } from './physics/equipment'
  */
 
 const GRAVEL_RE = /xplr|terra|gravel|g23|\bgrc\b|\bgr\b|mountain/i
-// "three/zero" is the Black Inc THREE/ZERO, a disc rear whose name never
+// "three/zero" is the BlackInc Three/Zero, a disc rear whose name never
 // says so (update 1.123); without it the wheel would classify allrounder
 // and miss the TT-disc residual in physics/equipment.ts.
 const DISC_RE = /disc|super\s?9|tri.?spoke|time trial|supersonic|big spin|three\/zero/i
