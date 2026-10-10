@@ -164,7 +164,7 @@ The plain-text numbers a rider chooses a Ride by, set under the page's heading: 
 _Avoid_: ride briefing, stats row, header stats, badges
 
 **Course hero**:
-The Ride's elevation profile drawn large at the top of a ranking page, in the neutral ink, with its surfaces on a strip beneath, its named climbs marked as bands and its sprints marked, for the Applied lap count with the lead-in once. On a segment page it draws the segment itself; on a race page the scoring segments are starred. A Ride with no measured profile has no hero, only the fact row and a line saying its terrain is approximated. The hero is Ride-only and never waits for a Ranking.
+The Ride's elevation profile drawn large at the top of a ranking page, in the neutral ink, with its surfaces on a strip beneath, its named climbs marked as bands and its sprints marked, for the selected lap count with the lead-in once - the Ride as selected, like the Fact row, not the Applied one. On a segment page it draws the segment itself; on a race page the scoring segments are starred. A Ride with no measured profile has no hero, only the fact row and a line saying its terrain is approximated. The hero is Ride-only and never waits for a Ranking.
 _Avoid_: elevation chart, profile chart, banner, header image
 
 **Silhouette**:
