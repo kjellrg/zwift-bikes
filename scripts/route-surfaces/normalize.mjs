@@ -51,9 +51,10 @@ function compositionFromSegments(segments) {
  * A handful of community Strava segments carry a flat/garbage altitude
  * stream: the profile RDP-simplifies to two points with ~0m of ascent on a
  * route officially climbing 33-262m (16 routes as of 2026-08, jons-route
- * and most `-run` segments among them). Keeping such a profile is worse
- * than having none - the geometry builder trusts it and models the route
- * pancake-flat, where the no-profile fallback synthesizes the official
+ * and most `-run` segments among them - running-only routes, which left the
+ * catalog in #324). Keeping such a profile is worse than having none - the
+ * geometry builder trusts it and models the route pancake-flat, where the
+ * no-profile fallback synthesizes the official
  * elevation. Discard it (surfaces are lat/lng-based and stay fine) when the
  * measured ascent is implausibly below the official figure on a route with
  * real climbing.
@@ -75,8 +76,9 @@ const FLAT_PROFILE_ASCENT_FRACTION = 0.25
  * close. A lap route's profile must end within noise of where it started -
  * `geometryForRouteLaps` chains laps by appending the profile end-to-end, so
  * an unclosed lap climbs (or falls) by its net gain again on EVERY lap.
- * 5k-loop shipped a two-point profile `[0 m, 0 m] -> [5006 m, 50 m]` on a
- * lap with an official 31 m of ascent: a 1% ramp that never came back down,
+ * 5k-loop (a running-only route, out of the catalog since #324) shipped a
+ * two-point profile `[0 m, 0 m] -> [5006 m, 50 m]` on a lap with an
+ * official 31 m of ascent: a 1% ramp that never came back down,
  * +250 m and ~292 s over five laps. The flat-profile rule cannot see it
  * (its ascent is 161% of official, not under 25%). Reject the profile when
  * a lap's net elevation change exceeds the larger of an absolute GPS-noise

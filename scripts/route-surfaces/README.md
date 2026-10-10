@@ -1,8 +1,8 @@
 # Route surface data
 
 Generates real per-route surface composition (% tarmac/gravel/cobbles/brick/
-wood/dirt/snow/grass/sand) for every route in `zwift-data`, the same way
-[zwiftmap.com](https://zwiftmap.com) computes it: classify a route's real GPS
+wood/dirt/snow/grass/sand) for every cycling route in `zwift-data`, the same
+way [zwiftmap.com](https://zwiftmap.com) computes it: classify a route's real GPS
 trace against hand-mapped per-world surface polygons.
 
 This isn't a live app dependency - it's a one-off/periodic data-generation
@@ -103,6 +103,14 @@ the next run unless you pass `--force`:
 
 ```sh
 STRAVA_ACCESS_TOKEN=xxx npm run route-surfaces:compute -- --force
+```
+
+Running-only routes are skipped: the catalog is cycling-only since #324, so
+their surfaces would never be read. To see what a run would fetch without a
+token or any requests:
+
+```sh
+npm run route-surfaces:compute -- --dry-run
 ```
 
 Commit the resulting diff to `shared/data/routeSurfaces.generated.json`.

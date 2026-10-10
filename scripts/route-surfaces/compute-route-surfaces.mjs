@@ -34,8 +34,11 @@
 // stream), pass --only with one or more slugs - implies --force for exactly
 // those routes and touches nothing else:
 //
-//   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only jons-route
-//   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only jons-route --only ocean-blvd
+//   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only tempus-fugit
+//   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only tempus-fugit --only the-pretzel
+//
+// --dry-run lists the routes a run would fetch and exits - no token, no
+// requests, nothing written.
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
@@ -52,13 +55,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '../..')
 const outPath = path.join(repoRoot, 'shared/data/routeSurfaces.generated.json')
 
-const token = process.env.STRAVA_ACCESS_TOKEN
-if (!token) {
-  console.error('Missing STRAVA_ACCESS_TOKEN - see the comment at the top of this script for setup.')
-  process.exit(1)
-}
-
 const force = process.argv.includes('--force')
+const dryRun = process.argv.includes('--dry-run')
 const onlySlugs = new Set(process.argv.flatMap((arg, i) => (arg === '--only' && process.argv[i + 1] ? [process.argv[i + 1]] : [])))
 const requestDelayMs = 9_500 // ~1 req/9.5s, comfortably under Strava's 100 req/15min
 
@@ -93,17 +91,31 @@ async function fetchStreams(stravaSegmentId) {
   return { latlng, distance, altitude }
 }
 
-const routesToProcess = routes.filter(r => r.slug && r.stravaSegmentId
-  && (onlySlugs.size > 0 ? onlySlugs.has(r.slug) : (force || !existing[r.slug])))
-console.log(`${routesToProcess.length} routes to process (${routes.length - routesToProcess.length} already done or skippable)\n`)
+// #324: the catalog is cycling-only, so a running-only route's surfaces are never read.
+const cyclingRoutes = routes.filter(r => r.sports.includes('cycling'))
 
-// A typoed --only slug (or one whose route has no stravaSegmentId in
-// zwift-data - including the ~13 entries whose segment ids exist only in the
-// generated file) would otherwise just silently fetch nothing.
+const routesToProcess = cyclingRoutes.filter(r => r.slug && r.stravaSegmentId
+  && (onlySlugs.size > 0 ? onlySlugs.has(r.slug) : (force || !existing[r.slug])))
+console.log(`${routesToProcess.length} routes to process (${cyclingRoutes.length - routesToProcess.length} already done or skippable)\n`)
+
+// A typoed --only slug (or a running-only route, or one with no
+// stravaSegmentId in zwift-data - including the ~13 entries whose segment ids
+// exist only in the generated file) would otherwise just silently fetch nothing.
 for (const slug of onlySlugs) {
   if (!routesToProcess.some(r => r.slug === slug)) {
-    console.warn(`WARNING: --only ${slug} matches no fetchable route (unknown slug, or no stravaSegmentId in zwift-data - see the README on hand-sourced segment ids).`)
+    console.warn(`WARNING: --only ${slug} matches no fetchable route (unknown slug, running-only, or no stravaSegmentId in zwift-data - see the README on hand-sourced segment ids).`)
   }
+}
+
+if (dryRun) {
+  for (const route of routesToProcess) console.log(`  ${route.world}/${route.slug}`)
+  process.exit(0)
+}
+
+const token = process.env.STRAVA_ACCESS_TOKEN
+if (!token) {
+  console.error('Missing STRAVA_ACCESS_TOKEN - see the comment at the top of this script for setup.')
+  process.exit(1)
 }
 
 /**
@@ -176,7 +188,7 @@ console.log(`\nWrote ${outPath} (${Object.keys(results).length} routes total)`)
 // Every entry in the file, not just the ones this run fetched: a drifting
 // trace is a standing data-quality problem, and it should be visible on any
 // run rather than only on the run that happened to refetch that route.
-const drifting = routes
+const drifting = cyclingRoutes
   .map(route => ({ slug: route.slug, drift: traceDriftPercent(results[route.slug], route.distance) }))
   .filter(row => row.drift !== undefined && Math.abs(row.drift) > TRACE_DRIFT_WARN_PERCENT)
   .sort((a, b) => Math.abs(b.drift) - Math.abs(a.drift))
@@ -186,10 +198,10 @@ if (drifting.length > 0) {
   console.warn('Runtime rescales them onto the official distance (traceScale.ts), but a better-cut Strava segment would beat a stretched one.')
 }
 
-const catalogSlugs = new Set(routes.map(r => r.slug))
+const catalogSlugs = new Set(cyclingRoutes.map(r => r.slug))
 const orphaned = Object.keys(results).filter(slug => !catalogSlugs.has(slug))
 if (orphaned.length > 0) {
-  console.warn(`\nWARNING: ${orphaned.length} entr${orphaned.length === 1 ? 'y' : 'ies'} match no route in zwift-data and are being ignored at runtime:`)
+  console.warn(`\nWARNING: ${orphaned.length} entr${orphaned.length === 1 ? 'y' : 'ies'} match no cycling route in zwift-data and are being ignored at runtime:`)
   for (const slug of orphaned) console.warn(`  ${slug}`)
   console.warn('Re-key them to the current slug (and update any event-page references) or delete them.')
 }

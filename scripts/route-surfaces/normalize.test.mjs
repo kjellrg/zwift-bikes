@@ -14,7 +14,7 @@ const RAMP = [{ distanceM: 0, elevationM: 0 }, { distanceM: 5000, elevationM: 50
 const CLOSED = [{ distanceM: 0, elevationM: 0 }, { distanceM: 2500, elevationM: 30 }, { distanceM: 5000, elevationM: 2 }]
 
 describe('unclosed lap profiles', () => {
-  it('drops a lap profile that ends well above where it started (5k-loop)', () => {
+  it('drops a lap profile that ends well above where it started (5k-loop, a running-only route since #324)', () => {
     const { entry, profileDropped } = normalizeRouteSurfaceEntry(lapEntry(RAMP), 5, 0, 31, true)
     expect(profileDropped).toBe(true)
     expect(entry.elevationProfile).toBeUndefined()
