@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { routes } from 'zwift-data'
+import { getRoutesWithMeta } from '../../shared/utils/catalog'
 import { sitemapUrls } from './sitemapUrls'
 
 /**
@@ -42,6 +44,16 @@ describe('the sitemap on a given day', () => {
     expect(urls).toContain('/routes/urumaze')
     expect(urls).not.toContain('/routes/4092230492')
     expect(urls.filter(loc => /^\/routes\/\d+$/.test(loc))).toEqual([])
+  })
+
+  it('lists every catalog route and none of the running-only ones zwift-data ships (#324)', () => {
+    // The catalog's own count is pinned at 293 in `shared/utils/catalog.test.ts`.
+    const routeLocs = locs('2026-10-10').filter(loc => loc.startsWith('/routes/'))
+    expect(routeLocs).toHaveLength(getRoutesWithMeta().length)
+    expect(routeLocs).toContain('/routes/hilly-route')
+    const runningOnly = routes.filter(r => !r.sports.includes('cycling')).map(r => `/routes/${r.slug}`)
+    expect(runningOnly).toContain('/routes/lutece-express-run')
+    expect(routeLocs.filter(loc => runningOnly.includes(loc))).toEqual([])
   })
 
   it('dates a race by its curated entry, not by the day it is built', () => {

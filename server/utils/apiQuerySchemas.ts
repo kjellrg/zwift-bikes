@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import { createError, getQuery } from 'h3'
 import { z } from 'zod'
-import type { Sport, WorldSlug } from 'zwift-data'
+import type { WorldSlug } from 'zwift-data'
 import type { BikeCategory, RouteFilters } from '../../shared/types/catalog'
 import { currentWheelsetKey } from '../../shared/data/wheelSupplement'
 import { getWorlds } from '../../shared/utils/catalog'
@@ -39,12 +39,10 @@ import { DEFAULT_UNOWNED_LEVEL, MAX_UPGRADE_STAGE, toUpgradeStage } from '../../
  * union member missing from the list - drift fails typecheck both ways.
  */
 export const BIKE_CATEGORIES = ['standard', 'tt', 'gravel', 'handbike', 'funbike'] as const satisfies readonly BikeCategory[]
-export const SPORTS = ['cycling', 'running'] as const satisfies readonly Sport[]
 export const ROUTE_SURFACE_FILTERS = ['gravel', 'cobble'] as const satisfies readonly NonNullable<RouteFilters['surface']>[]
 
 type ExpectNever<T extends never> = T
 export type _BikeCategoryDriftGuard = ExpectNever<Exclude<BikeCategory, (typeof BIKE_CATEGORIES)[number]>>
-export type _SportDriftGuard = ExpectNever<Exclude<Sport, (typeof SPORTS)[number]>>
 
 // Rider profile bounds live in `shared/utils/riderBounds.ts` - shared with
 // the MCP session module and with `useRiderProfile`, which clamps its
@@ -164,7 +162,6 @@ export const segmentsQuerySchema = z.object({
 export const routesQuerySchema = z.object({
   search: qSearch,
   world: qWorld,
-  sport: qEnum(SPORTS),
   minDistance: qNumber,
   maxDistance: qNumber,
   minElevation: qNumber,

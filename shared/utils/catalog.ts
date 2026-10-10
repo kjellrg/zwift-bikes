@@ -48,8 +48,12 @@ export function getFrameById(id: number): ClassifiedBikeFrame | undefined {
 export function getRoutesWithMeta(): RouteWithMeta[] {
   if (!cachedRoutes) {
     cachedRoutes = routes
-      // Routes without a stable slug can't be linked to reliably.
-      .filter(r => r.slug)
+      // Routes without a stable slug can't be linked to reliably. Running-only
+      // routes leave too (#324): ranking bikes for a run is not an answer this
+      // site gives, and this is the one place every route enters the catalog,
+      // so the prerender list, sitemap, Twin, MCP tools and route cards all
+      // follow.
+      .filter(r => r.slug && r.sports.includes('cycling'))
       .map((route) => {
         // Applied here, once, so every consumer sees the same ride: route
         // totals, the finish-time estimate, the simulator's geometry and the

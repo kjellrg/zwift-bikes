@@ -8,7 +8,6 @@ export default defineEventHandler((event) => {
   const routes = getRoutesWithMeta().filter((route) => {
     if (filters.search && !route.name.toLowerCase().includes(filters.search)) return false
     if (filters.world && route.world !== filters.world) return false
-    if (filters.sport && !route.sports.includes(filters.sport)) return false
     if (filters.minDistance !== undefined && route.distance < filters.minDistance) return false
     if (filters.maxDistance !== undefined && route.distance > filters.maxDistance) return false
     if (filters.minElevation !== undefined && route.elevation < filters.minElevation) return false

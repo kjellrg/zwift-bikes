@@ -1,5 +1,7 @@
+import type { H3Event } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RouteSimulationStallError, simulateRoute } from '../../../shared/utils/physics/simulator'
+import { getRoutesWithMeta } from '../../../shared/utils/catalog'
 import { DEFAULT_SITE_FLAGS } from '../../../shared/utils/siteFlags'
 import type { RpcContext } from './protocol'
 import { callTool } from './tools'
@@ -8,6 +10,8 @@ import { callTool } from './tools'
 // (`server/utils/rankRide.ts`), so these tests run the real ranking against
 // the real catalog, with no `$fetch` anywhere: Nitro's `$fetch` does not
 // exist in this environment, so a tool that still reached for it would throw.
+// The one exception is the `list_routes` block at the end, which stubs
+// `$fetch` with the real routes handler for its own tests only.
 //
 // The simulator is wrapped, not replaced: every test runs the real physics
 // except the one that needs a stall. A rider the MCP bounds accept cannot
@@ -127,5 +131,32 @@ describe('the upgrade stage a recommend call reports', () => {
   it('still labels the two ends of the ladder', async () => {
     expect(await headerFor(9)).toContain('upgrade stage 5 (fully upgraded)')
     expect(await headerFor(-1)).toContain('upgrade stage 0 (stock)')
+  })
+})
+
+describe('list_routes (#324)', () => {
+  // `list_routes` reads `/api/routes` through Nitro's `$fetch`, which this
+  // suite has not got. For these tests only, `$fetch` is the real routes
+  // handler and nothing else, so the tool runs end to end on the catalog.
+  beforeEach(async () => {
+    vi.stubGlobal('defineEventHandler', (handler: unknown) => handler)
+    const { default: routesHandler } = await import('../../api/routes/index.get')
+    vi.stubGlobal('$fetch', async (path: string, { query }: { query: Record<string, unknown> }) => {
+      if (path !== '/api/routes') throw new Error(`no $fetch for ${path} in this suite`)
+      const params = new URLSearchParams()
+      for (const [key, value] of Object.entries(query)) if (value !== undefined) params.set(key, String(value))
+      // The handler reads nothing of the event but its path (`getQuery`).
+      return routesHandler({ path: `${path}?${params}` } as unknown as H3Event)
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('lists every catalog route and finds no running-only one', async () => {
+    // The catalog's count (293) is pinned in `shared/utils/catalog.test.ts`.
+    expect(textOf(await callTool('list_routes', { limit: 100 }, RUNNING))).toMatch(new RegExp(`^${getRoutesWithMeta().length} route\\(s\\) matched\\.`))
+    expect(textOf(await callTool('list_routes', { search: 'Lutece Express Run' }, RUNNING))).toBe('No routes matched those filters.')
   })
 })

@@ -187,10 +187,19 @@ describe('placeSegmentHosts', () => {
     const hosts = [
       ...routes.flatMap(r => (r.segments ?? []).map(segment => ({ route: r.slug, segment }))),
       ...SUPPLEMENT_SEGMENT_HOSTS
-    ].filter(h => rankable.has(h.segment) && !routes.find(r => r.slug === h.route)!.segmentsOnRoute?.some(p => p.segment === h.segment))
+    ].filter((h) => {
+      const route = routes.find(r => r.slug === h.route)!
+      return rankable.has(h.segment) && route.sports.includes('cycling') && !route.segmentsOnRoute?.some(p => p.segment === h.segment)
+    })
     const missing = hosts.filter(h => !placed(h.route, h.segment) === !unplaced(h.route, h.segment))
     expect(missing).toEqual([])
     expect(new Set(result.unplaced.map(u => `${u.segment} on ${u.route}`)).size).toBe(result.unplaced.length)
+  })
+
+  it('places and reports no host on a running-only route: the catalog never reads one (#324)', () => {
+    const running = new Set(routes.filter(r => !r.sports.includes('cycling')).map(r => r.slug))
+    expect(Object.keys(result.placements).filter(route => running.has(route))).toEqual([])
+    expect(result.unplaced.filter(u => running.has(u.route))).toEqual([])
   })
 
   it('refuses a route whose placements run from the ride start rather than the lap start', () => {

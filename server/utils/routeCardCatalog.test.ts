@@ -7,10 +7,9 @@ import { toRouteCard } from '../../shared/utils/routeCards'
 import { allRouteCards, relatedRouteCards, routeCardSilhouette } from './routeCardCatalog'
 
 describe('allRouteCards', () => {
-  it('lists every cycling route once, by name, as its card', () => {
+  it('lists every catalog route once, by name, as its card', () => {
     const cards = allRouteCards()
-    const cycling = getRoutesWithMeta().filter(route => route.sports.includes('cycling'))
-    expect(cards.map(card => card.slug).sort()).toEqual(cycling.map(route => route.slug).sort())
+    expect(cards.map(card => card.slug).sort()).toEqual(getRoutesWithMeta().map(route => route.slug).sort())
     const names = cards.map(card => card.name)
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)))
     const tempus = getRouteBySlug('tempus-fugit')!

@@ -13,9 +13,9 @@ import { measuredTraceScale, rescaleElevationProfile, rescaleSurfaceSegments } f
  * 1. Uses `routeSurfaces.ts`'s generated data where available - real
  *    per-route composition computed from each route's actual GPS trace, the
  *    same way zwiftmap.com does it (see `scripts/route-surfaces/`).
- * 2. Falls back to a curated table for a small, well-known set of
- *    gravel/cobble routes not yet covered by generated data (approximate
- *    percentages, based on public route descriptions).
+ * 2. Falls back to a curated table (`CURATED_SURFACE`) for a gravel/cobble
+ *    route not yet covered by generated data (approximate percentages, based
+ *    on public route descriptions) - empty since #324, kept for the next one.
  * 3. For everything else, checks `zwiftmapSurfaceZones` (community-mapped
  *    surface data adapted from zwiftmap, MIT licensed - see
  *    /THIRD_PARTY_NOTICES.md) to see whether this route's *world* is known
@@ -53,14 +53,19 @@ function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
   }
 }
 
-// slug -> approximate surface mix, for the small remaining set of routes
-// `routeSurfaces.generated.json` doesn't (and can't yet) cover: they have no
-// `stravaSegmentId` in zwift-data at all, so `compute-route-surfaces.mjs`
-// has no GPS trace to work from. Every other route that used to be listed
-// here now has real measured data instead (see `estimateSurface` below,
-// which always checks generated data first) - re-check this list whenever
-// zwift-data adds a `stravaSegmentId` for one of these, since the curated
-// entry becomes dead weight the moment generated data covers it too.
+// slug -> approximate surface mix, for a route `routeSurfaces.generated.json`
+// doesn't (and can't yet) cover: one with no `stravaSegmentId` in zwift-data
+// at all, so `compute-route-surfaces.mjs` has no GPS trace to work from.
+// Every route that used to be listed here now has real measured data instead
+// (see `estimateSurface` below, which always checks generated data first) or
+// has left the catalog - re-check this list whenever zwift-data adds a
+// `stravaSegmentId` for an entry, since the curated entry becomes dead
+// weight the moment generated data covers it too.
+//
+// The table has been empty since #324: its last entry,
+// `handful-of-gravel-run` (90% gravel), was a running-only route and left the
+// catalog with the rest of them. The table and `curatedSurface` stay for the
+// next untraced route.
 //
 // `handful-of-gravel`, `jungle-circuit-rev` and `cobbled-crown` were dropped
 // from here for exactly that reason once zwift-data gained their segment ids.
@@ -83,9 +88,7 @@ function curatedSurface(mix: CuratedSurfaceMix): SurfaceEstimate {
 // `surfaceSegmentsFromComposition` for that approximation and issue #172 for
 // why the previous behaviour (100% of the dominant surface, i.e. Peaky Pave
 // as pure tarmac) was worse than an approximate layout.
-const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {
-  'handful-of-gravel-run': { road: 10, gravel: 90, cobble: 0 }
-}
+const CURATED_SURFACE: Record<string, CuratedSurfaceMix> = {}
 
 export function estimateSurface(route: Route): SurfaceEstimate {
   const measured = getGeneratedRouteSurface(route.slug)
