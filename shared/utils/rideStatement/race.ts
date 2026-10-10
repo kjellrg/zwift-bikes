@@ -46,7 +46,7 @@ export interface RaceStatementInputs {
 /** One Category group's course as the organiser publishes it, for the per-group table. */
 export interface RaceGroupCourse {
   label: string
-  /** The course's published name, or "TBC". */
+  /** The course's published name, or "TBC" where there is no course yet. */
   routeName: string
   /** Set where the catalog has the route. */
   routeSlug: string | undefined
@@ -224,7 +224,7 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
   // is what the physics runs on. ZwiftInsider's ZRacing figures run ~2 km
   // over route data, consistent with an event-pen lead-in.
   const published = group && [
-    group.officialDistanceKm ? formatDistance(group.officialDistanceKm) : undefined,
+    group.officialDistanceKm !== undefined ? formatDistance(group.officialDistanceKm) : undefined,
     group.officialElevationM !== undefined ? formatElevation(group.officialElevationM) : undefined
   ].filter(Boolean).join(' / ')
   const officialFiguresNote = group && totals && officialFiguresDiffer(group, totals)
@@ -295,10 +295,11 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
     coursesDiffer,
     groups: race.categories.map(entry => ({
       label: formatCategoryGroup(entry),
-      routeName: entry.routeName ?? 'TBC',
+      // The organiser's name for it; the slug it was mapped to where it gave none.
+      routeName: entry.routeName ?? entry.routeSlug ?? 'TBC',
       routeSlug: entry.routeSlug,
       laps: entry.laps,
-      distance: entry.officialDistanceKm ? formatDistance(entry.officialDistanceKm) : '-',
+      distance: entry.officialDistanceKm !== undefined ? formatDistance(entry.officialDistanceKm) : '-',
       elevation: entry.officialElevationM !== undefined ? formatElevation(entry.officialElevationM) : '-'
     })),
     dateLabel,

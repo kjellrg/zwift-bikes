@@ -120,7 +120,9 @@ is its **Ride statement** ([CONTEXT.md](../CONTEXT.md)), built by
 [`shared/utils/rideStatement`](../shared/utils/rideStatement/index.ts). The
 page renders it and so does its document, which has no words of its own for
 any of it; `documents.test.ts` builds each kind's statement on its own and
-checks that every string of it is in the document.
+checks that every string the page prints from it in its body - the name,
+the question, the Fact row and its notes, a race's own facts - is in the
+document.
 
 A ranking that is not there leaves the document serving the page's facts
 with a note instead of the table: "temporarily paused" for the kill switch,

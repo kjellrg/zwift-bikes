@@ -115,8 +115,8 @@ export function surfaceSplit(composition: SurfaceComposition | undefined): Surfa
  * rides on one blended value like a curated one does.
  */
 export function surfaceCoverageLine(surface: SurfaceEstimate): string {
-  const mapped = (surface.segments?.length ?? 0) > 0
-  if (surface.confidence === 'measured') return mapped ? 'Mapped surfaces' : 'Measured surface mix; locations unavailable'
+  if (surfacesMapped(surface)) return 'Mapped surfaces'
+  if (surface.confidence === 'measured') return 'Measured surface mix; locations unavailable'
   if (surface.confidence === 'curated') return 'Curated surface estimate; locations unavailable'
   if (surface.confidence === 'unverified') return 'Surface unverified; road assumed by model'
   return 'Surface unmapped; road assumed by model'
@@ -127,6 +127,10 @@ export function surfaceCoverageLine(surface: SurfaceEstimate): string {
  * when the surfaces are mapped - the common case, which needs no caveat.
  */
 export function surfaceCoverageNote(surface: SurfaceEstimate): string | undefined {
-  const mapped = surface.confidence === 'measured' && (surface.segments?.length ?? 0) > 0
-  return mapped ? undefined : `${surfaceCoverageLine(surface)}.`
+  return surfacesMapped(surface) ? undefined : `${surfaceCoverageLine(surface)}.`
+}
+
+/** Whether the surfaces are measured and positioned along the course - "Mapped surfaces". */
+function surfacesMapped(surface: SurfaceEstimate): boolean {
+  return surface.confidence === 'measured' && (surface.segments?.length ?? 0) > 0
 }
