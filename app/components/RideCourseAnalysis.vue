@@ -6,9 +6,7 @@ import type { TttPlan } from '../composables/useTttPlan'
 import type { AppliedRiderInputs } from '../utils/recommendRequest'
 import { MIN_ROUTE_KM } from '#shared/utils/physics/racePlan'
 import { draftOf } from '#shared/utils/physics/draft'
-import { computeRouteSurfaceSpeedProfile } from '#shared/utils/physics/routeSurfaceSpeedProfile'
 import { surfaceFamily } from '#shared/utils/silhouette'
-import { hasElevationProfile, hasSurfaceLocations } from '../utils/rankingResults'
 
 /**
  * "The course": the tabs beside "Why this bike wins", under the answer. The
@@ -36,7 +34,7 @@ import { hasElevationProfile, hasSurfaceLocations } from '../utils/rankingResult
 const props = defineProps<{
   /** The Applied Ride, resolved - `resolveRankingPageRide` over the Applied Ranking's course. Every tab describes this one. */
   ride: RecommendRide
-  /** What the page ranks: a route gets the Segments tab; a sprint has no speed chart (a standing-start simulation says nothing about a flying sprint). */
+  /** What the page ranks: a route gets the Segments tab; a sprint has no speed chart. */
   kind: 'route' | 'climb' | 'sprint'
   /** The applied top combo; absent with zero matches. */
   combo?: ComboScore
@@ -58,8 +56,8 @@ const isRoute = computed(() => props.kind === 'route')
 const route = computed(() => props.ride.route)
 const laps = computed(() => props.ride.laps)
 const leadInKm = computed(() => route.value.leadInDistance ?? 0)
-const hasElevation = computed(() => hasElevationProfile(route.value))
-const hasSurfaceLocationsOnRide = computed(() => hasSurfaceLocations(route.value))
+const hasElevation = computed(() => props.ride.coverage.measuredLap)
+const hasSurfaceLocationsOnRide = computed(() => props.ride.coverage.positionedSurfaces)
 
 const items = computed(() => [
   ...(isRoute.value ? [{ label: 'Climbs and sprints', value: 'segments' as const, slot: 'segments' as const }] : []),
@@ -83,7 +81,7 @@ const shown = computed<CourseAnalysisTab>({
 
 const lapsLabel = (count: number) => `${count} lap${count === 1 ? '' : 's'}`
 
-const segments = computed(() => isRoute.value ? courseSegmentsInRideOrder(route.value, laps.value) : [])
+const segments = computed(() => isRoute.value ? courseSegmentsInRideOrder(props.ride) : [])
 
 const segmentsScope = computed(() => leadInKm.value > 0
   ? `${lapsLabel(laps.value)}; kilometre positions include the lead-in, ridden once.`
@@ -93,11 +91,13 @@ const setupLabel = computed(() => props.combo
   ? `${props.combo.frame.name} / ${props.combo.wheelset?.name ?? 'fixed disc wheels'}`
   : undefined)
 
-// Always one lap - see `computeRouteSurfaceSpeedProfile` - while the finish
-// estimate above is for every selected lap, so the scope says both.
+// A route's chart is one pass of the lap with the lead-in - see
+// `RecommendRide.speedProfile` - while the finish estimate above is for every
+// selected lap, so the scope says both. A segment's is the timed estimate's
+// own simulation, entered at speed off the warm-up.
 const speedScope = computed(() => {
   const ride = !isRoute.value
-    ? 'route-style simulation from a standing start, not the timed estimate'
+    ? 'the timed segment, entered at racing speed as the finish estimate is'
     : route.value.lap
       ? `one lap${leadInKm.value > 0 ? ' plus the lead-in' : ''}; the finish estimate covers ${lapsLabel(laps.value)}`
       : 'the whole ride'
@@ -138,8 +138,7 @@ onMounted(() => {
 const speedProfile = computed(() => {
   const combo = props.combo
   if (!speedOpened.value || !combo || speedUnavailable.value) return undefined
-  return computeRouteSurfaceSpeedProfile(route.value, combo.frame, combo.wheelset, props.rider.weightKg, props.rider.heightCm, props.rider.powerW,
-    draftOf({ draftMode: props.rider.draftMode, tttRiders: props.rider.tttRiders, tttClimbWkg: props.rider.tttClimbWkg }))
+  return props.ride.speedProfile(combo, props.rider, draftOf(props.rider))
 })
 const extraWatts = computed(() => speedProfile.value?.extraWattsBySurface)
 

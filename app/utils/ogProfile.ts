@@ -24,7 +24,7 @@ const FAMILY_COLORS: Record<SurfaceFamily, string> = { tarmac: OG_COLORS.rule, d
 /**
  * Heights per share-card Silhouette: the same shape every listing draws, at
  * the finer count a 1200 px card wants. The cards carry it through
- * `defineOgImage` as plain props - `routeSilhouette(route, laps, OG_SILHOUETTE_SAMPLES)`.
+ * `defineOgImage` as plain props - `rideSilhouette(ride, OG_SILHOUETTE_SAMPLES)`.
  */
 export const OG_SILHOUETTE_SAMPLES = 120
 

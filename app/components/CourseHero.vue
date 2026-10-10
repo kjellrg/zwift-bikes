@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { RouteWithMeta } from '../../shared/types/catalog'
-import { outlineRuns, routeCourseProfile, type OutlinePoint } from '#shared/utils/silhouette'
+import type { RecommendRide } from '../../shared/types/recommendRide'
+import { outlineRuns, type OutlinePoint } from '#shared/utils/silhouette'
 
 /**
  * The Course hero (see `CONTEXT.md`): the Ride's elevation profile drawn
@@ -9,9 +9,10 @@ import { outlineRuns, routeCourseProfile, type OutlinePoint } from '#shared/util
  * - on a race - its scoring segments starred. Hovering or touching it reads
  * the kilometre, elevation, grade and surface at that point.
  *
- * It is the Ride's full measured geometry (`routeCourseProfile`), the very one the
- * finish time was simulated over, for the lap count the rider has chosen
- * with the lead-in once. Ride-only: it never waits for a Ranking, and a
+ * It is the live resolved Ride's profile (`RecommendRide.profile`), drawn
+ * from the very geometry the finish time is simulated over, for the lap
+ * count the rider has chosen with the lead-in once - a segment's own stretch
+ * of road on a segment page. Ride-only: it never waits for a Ranking, and a
  * route with no measured profile gets a line saying its terrain is
  * approximated instead of a drawing of the model's own guess. A lead-in with
  * no measured profile is drawn - it is ridden - but dashed, with a line
@@ -23,16 +24,15 @@ import { outlineRuns, routeCourseProfile, type OutlinePoint } from '#shared/util
  * text, which would stretch with the box.
  */
 const props = defineProps<{
-  /** The route, or the synthetic segment-as-route a segment page ranks against. */
-  route: RouteWithMeta
-  laps: number
+  /** The live Ride, resolved (`useResolvedRide`): the route over the chosen laps, or the segment on its own geometry. */
+  ride: RecommendRide
   /** What the hero draws, in the page's words - for its accessible name. */
   name: string
   /** Scoring segments to star, on a race page. */
   scoringSlugs?: string[]
 }>()
 
-const shape = computed(() => routeCourseProfile(props.route, props.laps))
+const shape = computed(() => props.ride.profile())
 
 const VIEW_WIDTH = 1000
 const VIEW_HEIGHT = 240
@@ -54,13 +54,7 @@ const lineRuns = computed(() => shape.value
 const scoring = computed(() => new Set(props.scoringSlugs ?? []))
 
 /** Where each lap after the first starts, as fractions - dashed, so repeated laps read as laps. */
-const lapStarts = computed(() => {
-  const total = shape.value?.totalDistanceM
-  if (!total || props.laps < 2) return []
-  const leadInM = (props.route.leadInDistance ?? 0) * 1000
-  const lapM = props.route.distance * 1000
-  return Array.from({ length: props.laps - 1 }, (_, index) => (leadInM + (index + 1) * lapM) / total)
-})
+const lapStarts = computed(() => shape.value?.lapStarts ?? [])
 
 /**
  * The climb and sprint names over the profile. The first pass of each is

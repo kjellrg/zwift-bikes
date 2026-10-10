@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
-import { routeSilhouette } from '#shared/utils/silhouette'
+import { rideForRoute } from '#shared/utils/recommendRide'
+import { rideSilhouette } from '#shared/utils/silhouette'
 import { buildRecommendQuery, recommendEndpoint, rideRulesForFormat, type Ride } from '../utils/recommendRequest'
 import { curatedExampleRoute, exampleRiderInputs, exampleRiderLabel, type ExampleRider } from '../utils/homeExample'
 
@@ -41,7 +42,7 @@ interface ExampleCard {
   wheelName?: string
   finishTimeSec: number
   riderLabel: string
-  shape: ReturnType<typeof routeSilhouette>
+  shape: ReturnType<typeof rideSilhouette>
 }
 
 const CARD_SAMPLES = 96
@@ -96,7 +97,7 @@ async function answer(ride: Ride, label: ExampleLabel, href: string, rider: Exam
     wheelName: top.wheelset?.name,
     finishTimeSec: top.finishTimeSec,
     riderLabel: exampleRiderLabel(rider, stored),
-    shape: routeSilhouette(route, laps, CARD_SAMPLES)
+    shape: rideSilhouette(rideForRoute(route, laps), CARD_SAMPLES)
   }
 }
 

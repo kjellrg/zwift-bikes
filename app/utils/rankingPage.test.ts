@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getRouteBySlug } from '#shared/utils/catalog'
 import { getRaceBySlug, type EventRace } from '#shared/utils/events'
+import { rideForRoute, rideForSegment } from '#shared/utils/recommendRide'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import type { ComboScore } from '../../shared/types/catalog'
 import { rankingPageAnalysisKind, rankingPageAnswerRide, rankingPageHasLongClimb, rankingPageLaps, rankingPageReportLine, rankingPageShareCard, resolveRankingPageRide } from './rankingPage'
@@ -69,27 +70,27 @@ describe('rankingPageShareCard', () => {
   const rank1 = { frame: { name: 'Specialized Tarmac SL9' }, wheelset: { name: 'Shimano C99/Disc' } } as ComboScore
 
   it('names rank 1\'s frame and wheels, and draws the Applied course at the share card\'s finer count', () => {
-    const card = rankingPageShareCard(rank1, hilly, 1)
+    const card = rankingPageShareCard(rank1, rideForRoute(hilly, 1))
     expect(card.frameName).toBe('Specialized Tarmac SL9')
     expect(card.wheelName).toBe('Shimano C99/Disc')
     expect(card.silhouette?.heights).toHaveLength(120)
   })
 
   it('still draws the course when nothing is ranked', () => {
-    const card = rankingPageShareCard(undefined, hilly, 1)
+    const card = rankingPageShareCard(undefined, rideForRoute(hilly, 1))
     expect(card).toMatchObject({ frameName: undefined, wheelName: undefined })
     expect(card.silhouette?.heights).toHaveLength(120)
   })
 
   it('names no wheels for a frame ridden on its own', () => {
     const fixed = { frame: { name: 'Zwift Buffalo Fat Tire' } } as ComboScore
-    expect(rankingPageShareCard(fixed, hilly, 1).wheelName).toBeUndefined()
+    expect(rankingPageShareCard(fixed, rideForRoute(hilly, 1)).wheelName).toBeUndefined()
   })
 
   it('draws no Silhouette for a course with no measured profile, or no course', () => {
     const unmeasured = { ...hilly, terrain: { ...hilly.terrain, elevationProfile: [] } }
-    expect(rankingPageShareCard(rank1, unmeasured, 1).silhouette).toBeUndefined()
-    expect(rankingPageShareCard(rank1, undefined, 1).silhouette).toBeUndefined()
+    expect(rankingPageShareCard(rank1, rideForRoute(unmeasured, 1)).silhouette).toBeUndefined()
+    expect(rankingPageShareCard(rank1, undefined).silhouette).toBeUndefined()
   })
 })
 
@@ -152,10 +153,10 @@ describe('a segment\'s Ranking page', () => {
 
   it('carries a Silhouette on the share card only when the segment has a measured profile', () => {
     const rank1 = { frame: { name: 'Specialized Tarmac SL9' }, wheelset: { name: 'Shimano C99/Disc' } } as ComboScore
-    expect(rankingPageShareCard(rank1, alpe, 1).silhouette?.heights).toHaveLength(120)
+    expect(rankingPageShareCard(rank1, rideForSegment(alpe)).silhouette?.heights).toHaveLength(120)
     // A positional sprint's measured slice may be two points, and still counts.
-    expect(rankingPageShareCard(rank1, fuego, 1).silhouette?.heights).toHaveLength(120)
-    expect(rankingPageShareCard(rank1, acropolis, 1)).toEqual({ frameName: 'Specialized Tarmac SL9', wheelName: 'Shimano C99/Disc', silhouette: undefined })
+    expect(rankingPageShareCard(rank1, rideForSegment(fuego)).silhouette?.heights).toHaveLength(120)
+    expect(rankingPageShareCard(rank1, rideForSegment(acropolis))).toEqual({ frameName: 'Specialized Tarmac SL9', wheelName: 'Shimano C99/Disc', silhouette: undefined })
   })
 })
 
@@ -220,9 +221,9 @@ describe('a race\'s Ranking page', () => {
 
   it('draws the Applied group\'s course on the share card, for its laps', () => {
     const rank1 = { frame: { name: 'Specialized Tarmac SL9' }, wheelset: { name: 'Shimano C99/Disc' } } as ComboScore
-    const card = rankingPageShareCard(rank1, innsbruckring, 4)
+    const card = rankingPageShareCard(rank1, rideForRoute(innsbruckring, 4))
     expect(card).toMatchObject({ frameName: 'Specialized Tarmac SL9', wheelName: 'Shimano C99/Disc' })
     expect(card.silhouette?.heights).toHaveLength(120)
-    expect(card.silhouette).not.toEqual(rankingPageShareCard(rank1, innsbruckring, 1).silhouette)
+    expect(card.silhouette).not.toEqual(rankingPageShareCard(rank1, rideForRoute(innsbruckring, 1)).silhouette)
   })
 })

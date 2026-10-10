@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import type { RouteWithMeta } from '../../shared/types/catalog'
+import { rideForRoute } from '#shared/utils/recommendRide'
 import { courseSegmentsInRideOrder } from './courseSegments'
 
 // A hand-built route rather than one from the catalog: the Segments tab
-// reads the fetched route object alone (see `routeOccurrences.ts`), so the
-// test must not need zwift-data or the measured surface data either. A sprint
+// reads the Ride resolved from the fetched route object alone (see
+// `routeOccurrences.ts`), so the test must not need zwift-data or the
+// measured surface data either. A sprint
 // sits before the lap's climb, and a hill in the lead-in before both, so
 // ride order differs from "all climbs, then all sprints".
 const route = {
   slug: 'fixture',
   distance: 10,
+  lap: true,
   leadInDistance: 2.5,
+  surface: { road: 100, gravel: 0, cobble: 0, confidence: 'heuristic' },
   terrain: {
     climbs: [
       { name: 'Lap KOM', slug: 'lap-kom', fromKm: 4, toKm: 6, lengthKm: 2, elevationM: 100, avgGradePercent: 5, climbType: '3', perLap: true },
@@ -24,7 +28,7 @@ const route = {
 
 describe('courseSegmentsInRideOrder', () => {
   it('interleaves climbs and sprints by ride position across two laps, with the lead-in hill once', () => {
-    const rows = courseSegmentsInRideOrder(route, 2)
+    const rows = courseSegmentsInRideOrder(rideForRoute(route, 2))
     expect(rows.map(row => [row.kind, row.slug, row.lapNumber, row.leadIn])).toEqual([
       ['climb', 'lead-in-hill', undefined, true],
       ['sprint', 'lap-sprint', 1, false],
@@ -43,7 +47,7 @@ describe('courseSegmentsInRideOrder', () => {
   })
 
   it('keeps each row\'s own facts: climbs carry their category and elevation, sprints carry neither', () => {
-    const [hill, sprint, kom] = courseSegmentsInRideOrder(route, 1)
+    const [hill, sprint, kom] = courseSegmentsInRideOrder(rideForRoute(route, 1))
     expect(kom).toMatchObject({ kind: 'climb', name: 'Lap KOM', climbType: '3', lengthKm: 2, elevationM: 100, avgGradePercent: 5 })
     expect(hill).toMatchObject({ kind: 'climb', name: 'Lead-in hill', climbType: undefined, elevationM: 50 })
     expect(sprint).toMatchObject({ kind: 'sprint', name: 'Lap sprint', lengthKm: 0.3, avgGradePercent: 0 })
@@ -54,6 +58,6 @@ describe('courseSegmentsInRideOrder', () => {
 
   it('is empty for a route with nothing mapped', () => {
     const bare = { ...route, terrain: { climbs: [], sprints: [] } } as unknown as RouteWithMeta
-    expect(courseSegmentsInRideOrder(bare, 3)).toEqual([])
+    expect(courseSegmentsInRideOrder(rideForRoute(bare, 3))).toEqual([])
   })
 })

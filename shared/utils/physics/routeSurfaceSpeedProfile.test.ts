@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { getFrames, getRouteBySlug } from '../catalog'
 import { getWheelsets } from '../wheelsets'
+import { resolveDraft } from './draft'
+import { geometryForRouteLaps } from './routeGeometry'
 import { computeRouteSurfaceSpeedProfile } from './routeSurfaceSpeedProfile'
 import { simulateRoute } from './simulator'
 
-const frame = getFrames().find(candidate => candidate.name === 'Zwift Carbon')!
-const wheelset = getWheelsets().find(candidate => candidate.name === 'Zwift 32mm Carbon')!
+const setup = {
+  frame: getFrames().find(candidate => candidate.name === 'Zwift Carbon')!,
+  wheelset: getWheelsets().find(candidate => candidate.name === 'Zwift 32mm Carbon')!
+}
+const rider = { weightKg: 75, heightCm: 175, powerW: 225 }
 
 function recording() {
   const calls: Parameters<typeof simulateRoute>[0][] = []
@@ -19,22 +24,28 @@ function recording() {
 describe('computeRouteSurfaceSpeedProfile', () => {
   // Jungle Circuit: dirt and tarmac at measured positions, so every surface
   // the extra watts are averaged over is one the chart's strip draws.
-  const jungle = getRouteBySlug('jungle-circuit')!
+  const geometry = geometryForRouteLaps(getRouteBySlug('jungle-circuit')!, 1)
 
   it('runs one simulation per profile, and a second only for a drafted ride\'s solo line', () => {
     const solo = recording()
-    const profile = computeRouteSurfaceSpeedProfile(jungle, frame, wheelset, 75, 175, 225, { mode: 'solo' }, solo.simulate)
-    expect(profile).toBeDefined()
+    const profile = computeRouteSurfaceSpeedProfile(geometry, setup, rider, resolveDraft({ mode: 'solo' }, geometry, rider), {}, solo.simulate)
     expect(solo.calls).toHaveLength(1)
-    expect(profile!.soloComparison).toBeUndefined()
+    expect(profile.soloComparison).toBeUndefined()
 
     const race = recording()
-    expect(computeRouteSurfaceSpeedProfile(jungle, frame, wheelset, 75, 175, 225, { mode: 'race' }, race.simulate)!.soloComparison).toBeDefined()
+    expect(computeRouteSurfaceSpeedProfile(geometry, setup, rider, resolveDraft({ mode: 'race' }, geometry, rider), {}, race.simulate).soloComparison).toBeDefined()
     expect(race.calls).toHaveLength(2)
+    expect(race.calls[1]!.powerScaleAtSpeed).toBeUndefined()
+  })
+
+  it('enters the geometry at the speed it is handed, drafted and solo', () => {
+    const race = recording()
+    computeRouteSurfaceSpeedProfile(geometry, setup, rider, resolveDraft({ mode: 'race' }, geometry, rider), { initialSpeedMps: 11, soloInitialSpeedMps: 9 }, race.simulate)
+    expect(race.calls.map(call => call.initialSpeedMps)).toEqual([11, 9])
   })
 
   it('prices each surface the way the Surfaces tab shows it, from the chart\'s own segments', () => {
-    const profile = computeRouteSurfaceSpeedProfile(jungle, frame, wheelset, 75, 175, 225, { mode: 'solo' })!
+    const profile = computeRouteSurfaceSpeedProfile(geometry, setup, rider, resolveDraft({ mode: 'solo' }, geometry, rider))
     const totals: Record<string, { watts: number, km: number }> = {}
     for (const segment of profile.segments) {
       const total = totals[segment.surface] ??= { watts: 0, km: 0 }

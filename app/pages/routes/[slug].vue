@@ -28,6 +28,8 @@ const rankingPage = useRankingPage({
   statement: answer => routeData.value && routeStatement({ route: routeData.value, laps: laps.value, siteUrl: siteConfig.url, answer })
 })
 const { statement, tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
+// The live Ride resolved, for the Course hero: the laps the picker shows.
+const liveRide = useResolvedRide(() => ride.value, () => routeData.value)
 
 // Fired together (not sequentially): the recommendation depends on the Ride and the rider's own
 // stored state, never on the route lookup resolving first.
@@ -129,8 +131,8 @@ onMounted(() => {
     </RideFactRow>
 
     <CourseHero
-      :route="routeData"
-      :laps="laps"
+      v-if="liveRide"
+      :ride="liveRide"
       :name="routeData.name"
     />
 

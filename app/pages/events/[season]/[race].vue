@@ -77,6 +77,8 @@ const rankingPage = useRankingPage({
   statement: () => raceStatement({ season, race, groupIndex: categoryGroupIndex.value, course: routeInfo.value, today: today.value, siteUrl: siteConfig.url })
 })
 const { tttPlan, rules, bikeSearch, bikeSearchDebounced } = rankingPage
+// The live Ride resolved, for the Course hero: the selected group's course and laps.
+const liveRide = useResolvedRide(() => ride.value, () => routeInfo.value)
 // A race always has a statement: it is the race's own, with or without a course.
 const statement = computed(() => rankingPage.statement.value!)
 // The results announcement, which a group with no catalog route renders
@@ -233,9 +235,8 @@ if (shareCard) {
     </RideFactRow>
 
     <CourseHero
-      v-if="routeInfo && ride"
-      :route="routeInfo"
-      :laps="ride.laps ?? 1"
+      v-if="liveRide"
+      :ride="liveRide"
       :name="statement.routeName"
       :scoring-slugs="statement.scoring.starredSlugs"
     />

@@ -148,7 +148,7 @@ export function useRankingPage<S extends RideStatement>(inputs: RankingPageInput
 
   const reportLine = computed(() => rankingPageReportLine(appliedRide.value, appliedInputs.value, appliedStatement.value?.reportSubject))
 
-  const shareCard = computed(() => rankingPageShareCard(topCombo.value, appliedCourse.value, appliedLaps.value))
+  const shareCard = computed(() => rankingPageShareCard(topCombo.value, appliedResolvedRide.value))
 
   // The Race format rules of the live Ride - what the rider may pick, so a
   // control never offers a value the pending request will discard - with the

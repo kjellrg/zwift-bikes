@@ -1,12 +1,33 @@
-import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset, ZwiftSurfaceType } from '../../types/catalog'
-import type { RouteGeometryPoint } from '../../types/physics'
+import type { ClassifiedBikeFrame, Wheelset, ZwiftSurfaceType } from '../../types/catalog'
+import type { RouteGeometry, RouteGeometryPoint } from '../../types/physics'
 import { SURFACE_CRR } from '../../data/surfaceCrr'
-import type { Draft } from './draft'
-import { resolveDraft, tttFrontPullPowerW } from './draft'
+import type { RideDraft } from './draft'
+import { tttFrontPullPowerW } from './draft'
 import { equipmentPhysics, riderScaledCdaM2 } from './equipment'
 import { powerForSpeed } from './forces'
-import { geometryForRouteLaps } from './routeGeometry'
 import { simulateRoute } from './simulator'
+
+/** The ranked setup a speed profile is for. */
+export interface SpeedProfileSetup {
+  frame: ClassifiedBikeFrame
+  wheelset?: Wheelset
+}
+
+/** The rider a speed profile is for - every field, so the drag the chart rides is the ranking's. */
+export interface SpeedProfileRider {
+  weightKg: number
+  heightCm: number
+  powerW: number
+}
+
+/**
+ * The speed the rider enters the geometry at, drafted and solo: a segment is
+ * entered off its warm-up, a route from a standing start (absent).
+ */
+export interface SpeedProfileEntry {
+  initialSpeedMps?: number
+  soloInitialSpeedMps?: number
+}
 
 export interface RouteSurfaceSpeedSegment {
   fromKm: number
@@ -61,17 +82,8 @@ export interface RouteSurfaceSpeedProfile {
   speedSamples: RouteSurfaceSpeedSample[]
   /**
    * Elevation vs. distance for the exact same simulated geometry `segments`/
-   * `speedSamples` are built from - use this for any elevation backdrop
-   * rather than `route.terrain.elevationProfile` directly. The real GPS
-   * trace backing that raw profile doesn't always cover the official
-   * lead-in + lap distance exactly (occasionally by a wide margin, not just
-   * the few-metres slop most routes have) - `geometryForRouteLaps` already
-   * corrects for this by rescaling to fit, so a chart mixing the raw
-   * (unscaled) profile with this module's (rescaled) speed data would
-   * gradually drift apart over the course of the route, most visibly as
-   * hills that appear to slow a rider down at the wrong position. Deriving
-   * the backdrop from this same rescaled geometry instead makes the two
-   * impossible to disagree.
+   * `speedSamples` are built from - the resolved Ride's own - so the
+   * backdrop and the speed line cannot drift apart along the ride.
    */
   elevationPoints: RouteGeometryPoint[]
   /**
@@ -136,9 +148,17 @@ function interpolateTimeAt(points: { distanceM: number, elapsedSec: number }[], 
 /**
  * Per-surface-segment average speed and extra rolling-resistance wattage
  * (vs. an equivalent tarmac stretch at the same pace/grade), plus a
- * resampled elevation-aware `speedSamples` series, for one specific frame+
- * wheelset combo - using the same dynamic per-timestep simulator
- * (`simulateRoute`) the recommend endpoint already trusts for finish times.
+ * resampled elevation-aware `speedSamples` series, for one setup on one
+ * geometry - using the same dynamic per-timestep simulator (`simulateRoute`)
+ * the recommend endpoint times with.
+ *
+ * The geometry and the draft come from the resolved Ride
+ * (`RecommendRide.speedProfile`), which is the only caller in the app: the
+ * Ride decides what stretch of itself the chart shows (one pass of a
+ * route's lap with its lead-in; a segment whole), resolves the draft on its
+ * full geometry as the ranking does, and enters a segment at its warm-up's
+ * exit speed as `timeCombo` does - so the chart is the timed estimate's own
+ * simulation, cut finer.
  *
  * Real surface transitions and real grade changes happen at independent
  * positions (see `RouteSurfaceSegment`'s own doc comment) - a single long
@@ -157,33 +177,19 @@ function interpolateTimeAt(points: { distanceM: number, elapsedSec: number }[], 
  * within each bucket, not per-grade-point-interval, which is too fine to
  * read as a legible line (100-300+ points on a typical route).
  *
- * Returns `undefined` for routes without both a real measured elevation
- * profile AND real position-tagged surface segments (see `SurfaceEstimate`'s
- * `confidence`) - there's no real per-segment granularity to show for a
- * route whose surface is only known as a whole-route percentage/heuristic.
- * This re-evaluates from live route data every call, so a route gains this
- * automatically once `route-surfaces:compute` produces real data for it.
- *
- * Always computed for a single lap, regardless of how many laps the route
- * itself supports - `RouteSurfaceSpeedProfile.vue` labels its output
- * "(per lap)" for lap-based routes so this stays clear to the reader,
- * rather than repeating the same per-lap detail `laps` times over.
+ * Whether a course has the measured shape and positioned surfaces a chart
+ * needs is the Ride's coverage to say, not this function's.
  */
 export function computeRouteSurfaceSpeedProfile(
-  route: RouteWithMeta,
-  frame: ClassifiedBikeFrame,
-  wheelset: Wheelset | undefined,
-  weightKg: number,
-  heightCm: number,
-  powerW: number,
-  draft: Draft,
+  geometry: RouteGeometry,
+  setup: SpeedProfileSetup,
+  rider: SpeedProfileRider,
+  /** Resolved on the Ride's full geometry - the ranking's own `RideDraft`. */
+  rideDraft: RideDraft,
+  entry: SpeedProfileEntry = {},
   /** The simulator, injectable so a test can count the integrations a profile costs. */
   simulate: typeof simulateRoute = simulateRoute
-): RouteSurfaceSpeedProfile | undefined {
-  if (!route.terrain.elevationProfile || route.terrain.elevationProfile.length < 2) return undefined
-  if (!route.surface.segments || route.surface.segments.length === 0) return undefined
-
-  const geometry = geometryForRouteLaps(route, 1)
+): RouteSurfaceSpeedProfile {
   const totalDistanceM = geometry.totalDistanceM
 
   const gradeBoundariesM = geometry.points
@@ -192,12 +198,9 @@ export function computeRouteSurfaceSpeedProfile(
   const surfaceBoundariesM = geometry.surfaceSegments.slice(0, -1).map(segment => segment.toM)
   const boundariesM = Array.from(new Set([...gradeBoundariesM, ...surfaceBoundariesM])).sort((a, b) => a - b)
 
-  const rider = { weightKg, heightCm, powerW }
-  // Chart is per-lap (single lap geometry), so the draft - and with it any
-  // TTT pacing plan - is resolved on that same single-lap geometry, under the
-  // same resolver the endpoints use on their full laps+lead-in ride.
-  const rideDraft = resolveDraft(draft, geometry, rider)
-  const result = simulate({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: rideDraft.plan?.powerSegmentsW, powerScaleAtSpeed: rideDraft.powerScaleAtSpeed })
+  const { frame, wheelset } = setup
+  const { weightKg, heightCm } = rider
+  const result = simulate({ rider, frame, wheelset, geometry, boundariesM, initialSpeedMps: entry.initialSpeedMps, powerSegmentsW: rideDraft.plan?.powerSegmentsW, powerScaleAtSpeed: rideDraft.powerScaleAtSpeed })
 
   const timePoints = buildTimePoints(result, boundariesM, totalDistanceM)
 
@@ -244,16 +247,18 @@ export function computeRouteSurfaceSpeedProfile(
 
   // One extra simulation, only while the chart is open in a drafted mode: the
   // same ride under the draft's own `solo` - the same pacing with nothing but
-  // the draft removed - so the gap between the two lines is exactly what the
-  // draft is worth at each point on the route.
+  // the draft removed, entered at the solo warm-up's speed on a segment - so
+  // the gap between the two lines is exactly what the draft is worth at each
+  // point on the route.
   let soloComparison: RouteSurfaceSpeedProfile['soloComparison']
-  if (draft.mode !== 'solo') {
+  const setting = rideDraft.setting
+  if (setting.mode !== 'solo') {
     const solo = rideDraft.solo
-    const soloResult = simulate({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: solo.plan?.powerSegmentsW, powerScaleAtSpeed: solo.powerScaleAtSpeed })
+    const soloResult = simulate({ rider, frame, wheelset, geometry, boundariesM, initialSpeedMps: entry.soloInitialSpeedMps, powerSegmentsW: solo.plan?.powerSegmentsW, powerScaleAtSpeed: solo.powerScaleAtSpeed })
     soloComparison = {
       speedSamples: resampleSpeedSamples(buildTimePoints(soloResult, boundariesM, totalDistanceM), totalDistanceM),
       overallAvgSpeedKmh: Math.round(soloResult.averageSpeedMps * 3.6 * 10) / 10,
-      frontPullPowerW: draft.mode === 'ttt' ? Math.round(tttFrontPullPowerW(rider.powerW, draft.riders)) : undefined
+      frontPullPowerW: setting.mode === 'ttt' ? Math.round(tttFrontPullPowerW(rider.powerW, setting.riders)) : undefined
     }
   }
 

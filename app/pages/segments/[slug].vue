@@ -92,14 +92,16 @@ const siteConfig = useSiteConfig()
 // share card. A segment Ride has no lap count, so the module rides it once,
 // times the answer over the segment's own length and leaves the lap count
 // out of the answer. Its course analysis has no climbs tab; the speed chart
-// and TTT plan simulate the segment route-style, from a standing start, and
-// their scope lines say so.
+// and TTT plan ride the segment's own geometry, the chart entered at speed
+// off the warm-up as the timed estimate is.
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-segment-${slug.value}`,
   statement: answer => segmentData.value && segmentStatement({ segment: segmentData.value, course: segmentRoute.value, ride: ride.value, siteUrl: siteConfig.url, answer })
 })
 const { statement, rules, tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
+// The live Ride resolved, for the Course hero: the segment on its own geometry.
+const liveRide = useResolvedRide(() => ride.value, () => segmentRoute.value)
 await rankingPage.ready
 
 // `?rules=points&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No
@@ -197,8 +199,8 @@ watch(raceFormat, () => {
     </div>
 
     <CourseHero
-      :route="segmentRoute"
-      :laps="1"
+      v-if="liveRide"
+      :ride="liveRide"
       :name="segmentData.name"
     />
 

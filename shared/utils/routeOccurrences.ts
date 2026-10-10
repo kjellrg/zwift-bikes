@@ -27,6 +27,8 @@ export interface SegmentOccurrence {
 
 export interface RouteClimbOccurrence extends RouteClimb, SegmentOccurrence {}
 
+export interface RouteSprintOccurrence extends RouteSegmentPlacement, SegmentOccurrence {}
+
 /**
  * Expands any position-tagged, per-lap-repeating list (climbs, sprints - see
  * `RouteClimb`/`RouteSegmentPlacement`) into one entry per actual occurrence
@@ -88,6 +90,6 @@ export function expandClimbsForLaps(route: RouteWithMeta, laps: number): RouteCl
 }
 
 /** Expands a route's sprints (`getRouteSprints`/`computeTerrain`) into one entry per actual occurrence for a given lap count - see `expandOccurrencesForLaps`. */
-export function expandSprintsForLaps(route: RouteWithMeta, laps: number): (RouteSegmentPlacement & SegmentOccurrence)[] {
+export function expandSprintsForLaps(route: RouteWithMeta, laps: number): RouteSprintOccurrence[] {
   return expandOccurrencesForLaps(route.terrain.sprints, route, laps)
 }

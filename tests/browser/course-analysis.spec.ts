@@ -244,12 +244,13 @@ test.describe('course analysis tabs', () => {
     await expect(panel(page, 'Surfaces')).toContainText('they appear once a ranked setup')
   })
 
-  test('gives a climb the speed chart as a standing-start simulation, a sprint none, and neither a climbs tab', async ({ page }) => {
+  test('gives a climb the speed chart as its timed estimate, a sprint none, and neither a climbs tab', async ({ page }) => {
     await visit(page, CLIMB)
     await expect(tab(page, 'Climbs and sprints')).toHaveCount(0)
     await expect(hero(page)).toBeVisible()
     await tab(page, 'Speed by surface').click()
-    await expect(panel(page, 'Speed by surface')).toContainText('route-style simulation from a standing start, not the timed estimate.')
+    await expect(panel(page, 'Speed by surface')).toContainText('the timed segment, entered at racing speed as the finish estimate is.')
+    await expect(panel(page, 'Speed by surface')).not.toContainText('not the timed estimate')
     await expect(speedChart(page)).toBeVisible()
     await tab(page, 'Surfaces').click()
     await expect(panel(page, 'Surfaces')).toContainText('the shares describe the timed segment.')

@@ -43,8 +43,10 @@ const { getRouteBySlug, getRoutesWithMeta } = loadSharedModule('shared/utils/cat
 const { getWheelsets } = loadSharedModule('shared/utils/wheelsets.ts')
 const { classifyBikeFrame } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
 const { simulateRoute } = loadSharedModule('shared/utils/physics/simulator.ts')
-const { geometryForRouteLaps } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
-const { computeRouteSurfaceSpeedProfile } = loadSharedModule('shared/utils/physics/routeSurfaceSpeedProfile.ts')
+// The resolved Ride is the one way in to a route's geometry and its speed
+// chart (issue #319), so this script rides what the site rides.
+const { rideForRoute } = loadSharedModule('shared/utils/recommendRide.ts')
+const geometryOfOneLap = route => rideForRoute(route, 1).planGeometry()
 const { speedForPower } = loadSharedModule('shared/utils/physics/forces.ts')
 const {
   detectLongClimbBlocks,
@@ -169,7 +171,7 @@ for (const archetype of ARCHETYPES) {
     errors.push(`archetype route ${JSON.stringify(archetype.slug)} is no longer in the catalog - pick a replacement with a similar climb ratio`)
     continue
   }
-  const geometry = geometryForRouteLaps(route, 1)
+  const geometry = geometryOfOneLap(route)
   const soloSec = simulateRoute({ rider: RIDER, frame, wheelset, geometry }).elapsedSec
   const raceSec = simulateRoute({ rider: RIDER, frame, wheelset, geometry, powerScaleAtSpeed: racePowerScaleAtSpeed }).elapsedSec
   const estimateSoloSec = estimateFinishTimeSec(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, 1)
@@ -209,7 +211,7 @@ const STRENGTH_ROUTE = 'tempus-fugit'
 const strengthRows = []
 {
   const route = getRouteBySlug(STRENGTH_ROUTE)
-  const geometry = route ? geometryForRouteLaps(route, 1) : undefined
+  const geometry = route ? geometryOfOneLap(route) : undefined
   for (const wkg of [2.0, 2.5, 3.0, 3.5, 4.0, 4.5]) {
     if (!geometry) break
     const rider = { weightKg: RIDER.weightKg, heightCm: RIDER.heightCm, powerW: wkg * RIDER.weightKg }
@@ -231,7 +233,7 @@ const strengthRows = []
 for (const archetype of ARCHETYPES.slice(0, 3)) {
   const route = getRouteBySlug(archetype.slug)
   if (!route) continue
-  const geometry = geometryForRouteLaps(route, 1)
+  const geometry = geometryOfOneLap(route)
   const a = simulateRoute({ rider: RIDER, frame, wheelset, geometry }).elapsedSec
   const b = simulateRoute({ rider: RIDER, frame, wheelset, geometry, powerScaleAtSpeed: undefined }).elapsedSec
   check(a === b, `${archetype.slug}: passing powerScaleAtSpeed=undefined changed the simulated time (${a} vs ${b})`)
@@ -245,14 +247,15 @@ for (const archetype of ARCHETYPES.slice(0, 3)) {
 let swept = 0
 let skipped = 0
 for (const route of getRoutesWithMeta()) {
-  const hasChartData = (route.terrain.elevationProfile?.length ?? 0) >= 2 && (route.surface.segments?.length ?? 0) > 0
+  const ride = rideForRoute(route, 1)
+  const hasChartData = ride.coverage.measuredLap && ride.coverage.positionedSurfaces
   if (!hasChartData) {
     skipped++
     continue
   }
   let profile
   try {
-    profile = computeRouteSurfaceSpeedProfile(route, frame, wheelset, RIDER.weightKg, RIDER.heightCm, RIDER.powerW, { mode: 'race' })
+    profile = ride.speedProfile({ frame, wheelset }, RIDER, { mode: 'race' })
   } catch (error) {
     errors.push(`${route.slug}: the speed profile threw in race mode - ${error.message}`)
     continue
@@ -298,7 +301,7 @@ const CLIMB_SWEEP_STEP = 0.1
 const CLIMB_STEP_MAX_DELTA = 0.08
 let climbSweptRoutes = 0
 for (const route of getRoutesWithMeta()) {
-  const geometry = geometryForRouteLaps(route, 1)
+  const geometry = geometryOfOneLap(route)
   if (detectLongClimbBlocks(geometry, RIDER.powerW, RIDER.weightKg).length === 0) continue
   climbSweptRoutes++
   let referenceBlocks
@@ -363,7 +366,7 @@ for (const archetype of ARCHETYPES) {
   if (!route) {
     errors.push('greater-london-8 is no longer in the catalog - pick a replacement climb-threshold route for the simulator climb sweep')
   } else {
-    const geometry = geometryForRouteLaps(route, 1)
+    const geometry = geometryOfOneLap(route)
     let previousSec = Number.POSITIVE_INFINITY
     for (let climbWkg = TTT_MIN_CLIMB_WKG; climbWkg <= TTT_MAX_CLIMB_WKG + 1e-9; climbWkg += CLIMB_SWEEP_STEP) {
       const plan = tttPowerPlan(geometry, climbWkg, RIDER.weightKg, RIDER.powerW)

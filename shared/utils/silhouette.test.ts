@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { RouteWithMeta } from '../types/catalog'
-import { courseProfile, outlineRuns, routeCourseProfile, routeSilhouette, silhouetteOutline, SILHOUETTE_HEIGHT_SCALE, SILHOUETTE_LISTING_SAMPLES, SILHOUETTE_MIN_SPAN_M, SILHOUETTE_MIN_SURFACE_SPAN, surfaceFamily } from './silhouette'
+import { rideForListedRoute, rideForRoute } from './recommendRide'
+import { courseProfile, outlineRuns, rideSilhouette, silhouetteOutline, SILHOUETTE_HEIGHT_SCALE, SILHOUETTE_LISTING_SAMPLES, SILHOUETTE_MIN_SPAN_M, SILHOUETTE_MIN_SURFACE_SPAN, surfaceFamily } from './silhouette'
 
 // Hand-built routes rather than catalog ones, for the same reason as
-// `routeOccurrences.test.ts`: the pages draw a profile from the fetched
-// route object alone, so the helper must not need zwift-data or the
-// measured surface table to do it.
+// `routeOccurrences.test.ts`: the pages draw a profile from the Ride they
+// resolve from the fetched route object alone, so neither may need
+// zwift-data or the measured surface table to do it.
 function fixtureRoute(overrides: Partial<{ profile: { distanceM: number, elevationM: number }[], leadInDistance: number, segments: { fromKm: number, toKm: number, type: string }[] }> = {}): RouteWithMeta {
   return {
     slug: 'fixture',
     distance: 10,
     elevation: 100,
+    lap: true,
     leadInDistance: overrides.leadInDistance ?? 0,
     leadInElevation: 0,
     surface: {
@@ -124,7 +126,12 @@ describe('surfaceFamily', () => {
   })
 })
 
-describe('routeCourseProfile', () => {
+/** A route's CourseProfile, as the Course hero asks its resolved Ride for it. */
+const routeCourseProfile = (route: RouteWithMeta, laps: number) => rideForRoute(route, laps).profile()
+/** A route's Silhouette, as a listing or a share card asks for it. */
+const routeSilhouette = (route: RouteWithMeta, laps: number, samples?: number) => rideSilhouette(rideForRoute(route, laps), samples)
+
+describe('a resolved route Ride\'s CourseProfile', () => {
   it('repeats the lap for a multi-lap ride and places every lap\'s climbs and surfaces', () => {
     const shape = routeCourseProfile(fixtureRoute(), 2)!
     expect(shape.totalDistanceM).toBe(20000)
@@ -134,6 +141,14 @@ describe('routeCourseProfile', () => {
     expect(shape.climbs.map(band => [band.from, band.to])).toEqual([[0.1, 0.25], [0.6, 0.75]])
     expect(shape.sprints.map(band => [band.from, band.to])).toEqual([[0.4, 0.425], [0.9, 0.925]])
     expect(shape.surfaces.filter(span => span.family === 'dirt').map(span => [span.from, span.to])).toEqual([[0.2, 0.3], [0.7, 0.8]])
+    // Where the second lap starts, so the hero dashes it without working it out.
+    expect(shape.lapStarts).toEqual([0.5])
+  })
+
+  it('draws the laps the Ride rides, not the laps asked for', () => {
+    expect(routeCourseProfile(fixtureRoute(), 40)!.lapStarts).toHaveLength(14)
+    expect(routeCourseProfile({ ...fixtureRoute(), lap: false }, 3)!.totalDistanceM).toBe(10000)
+    expect(routeCourseProfile(fixtureRoute(), 1)!.lapStarts).toEqual([])
   })
 
   it('rides the lead-in once, ahead of the laps', () => {
@@ -162,7 +177,7 @@ describe('routeCourseProfile', () => {
       const route = fixtureRoute({ leadInDistance: leadInDistance ?? 0 })
       if (leadInDistance === undefined) delete (route as { leadInDistance?: number }).leadInDistance
       route.terrain.climbs.push({ name: 'Pen climb', slug: 'pen-climb', fromKm: 0.5, toKm: 1.5, lengthKm: 1, elevationM: 30, avgGradePercent: 3, perLap: false })
-      return routeCourseProfile(route, 1)!
+      return (leadInDistance === undefined ? rideForListedRoute(route) : rideForRoute(route, 1)).profile()!
     }
     expect(withLeadInClimb(undefined).climbs.map(band => band.slug)).toEqual(['lap-kom'])
     expect(withLeadInClimb(2).climbs.map(band => band.slug)).toEqual(['pen-climb', 'lap-kom'])
@@ -203,11 +218,11 @@ describe('outlineRuns', () => {
   })
 })
 
-describe('routeSilhouette', () => {
+describe('rideSilhouette', () => {
   it('is the course profile\'s outline as heights alone, resampled to a listing\'s count', () => {
     const route = fixtureRoute()
     const shape = routeSilhouette(route, 1)!
-    const profile = routeCourseProfile(route, 1, { samples: SILHOUETTE_LISTING_SAMPLES })!
+    const profile = rideForRoute(route, 1).profile({ samples: SILHOUETTE_LISTING_SAMPLES })!
     expect(SILHOUETTE_LISTING_SAMPLES).toBe(48)
     expect(shape.heights).toHaveLength(48)
     expect(shape.heights).toEqual(profile.points.map(point => Math.round(point.y * SILHOUETTE_HEIGHT_SCALE)))

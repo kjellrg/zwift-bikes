@@ -143,11 +143,8 @@ function monotoneCubicSegments(pts: { x: number, y: number }[]): CurveSegment[] 
   })
 }
 
-// Sourced from `profile.elevationPoints` (the same simulated geometry the speed curve is built from),
-// NOT `route.terrain.elevationProfile` directly - the raw profile's real GPS trace doesn't always cover
-// the official lead-in + lap distance exactly, and `computeRouteSurfaceSpeedProfile` already rescales
-// to correct for that. Using the raw, unscaled profile here would let this backdrop gradually drift out
-// of alignment with the (correctly rescaled) speed curve over the course of the route.
+// Sourced from `profile.elevationPoints` - the resolved Ride's own geometry, the one the speed curve
+// was simulated over - so the backdrop and the curve cannot drift apart along the ride.
 const elevationPoints = computed(() => profile.value?.elevationPoints ?? [])
 
 const MIN_ELEVATION_RANGE_M = 50
