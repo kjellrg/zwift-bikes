@@ -1,25 +1,18 @@
 <script setup lang="ts">
-import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from '../../shared/types/catalog'
-import type { DraftMode } from '../../shared/utils/physics/draft'
-import { draftOf, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
-import { computeRouteSurfaceSpeedProfile } from '#shared/utils/physics/routeSurfaceSpeedProfile'
+import type { RouteSurfaceSpeedProfile } from '../../shared/utils/physics/routeSurfaceSpeedProfile'
 
+/**
+ * The speed chart: a renderer of one setup's speed profile on the Ride,
+ * handed to it whole. It runs no simulation of its own - the course analysis
+ * asks the Applied Ride for the profile once, the first time a rider opens a
+ * tab that reads it, and the Surfaces tab's extra watts come off the same
+ * profile, so one render costs one simulation.
+ */
 const props = defineProps<{
-  route: RouteWithMeta
-  frame: ClassifiedBikeFrame
-  wheelset?: Wheelset
-  weightKg: number
-  heightCm: number
-  powerW: number
-  draftMode?: DraftMode
-  tttRiders?: number
-  tttClimbWkg?: number
-  /**
-   * Whether the tab panel holding the chart is the one on screen. A hidden
-   * tab panel stays mounted, so this - not mounting - is what first triggers
-   * the simulation.
-   */
-  active?: boolean
+  /** The profile to draw; absent until it has been asked for. */
+  profile?: RouteSurfaceSpeedProfile
+  /** Whether the profile is being worked out - a spinner stands in for the chart meanwhile. */
+  computing?: boolean
 }>()
 
 const VIEW_WIDTH = 800
@@ -44,49 +37,7 @@ const STRIP_Y = BASELINE_Y + STRIP_GAP
  * meaningless wattage spike that isn't worth calling out as "the" penalty for the route. */
 const MIN_PENALTY_SEGMENT_KM = 0.2
 
-// Cheap, prop-only check - mirrors `computeRouteSurfaceSpeedProfile`'s own early-return guards, so
-// the card's visibility can be decided without running the (expensive) simulation below.
-const hasSurfaceData = computed(() =>
-  (props.route.terrain.elevationProfile?.length ?? 0) >= 2
-  && (props.route.surface.segments?.length ?? 0) > 0
-)
-
-// The simulation only runs once the panel has been expanded (or, in `flat` mode, its tab selected)
-// at least once - it's the same `simulateRoute` the server already ran for `topCombo` to get its
-// finish time, so running it again eagerly (e.g. purely to populate the collapsed header's avg-speed
-// badge) would duplicate that work on every page load even for users who never open this panel.
-const hasOpened = ref(false)
-const isComputing = ref(false)
-
-// Always computed for one lap - see `computeRouteSurfaceSpeedProfile`'s own doc comment. The card title
-// gets a "(per lap)" qualifier below for lap-based routes so this scope stays clear to the reader; in
-// `flat` mode the tab panel's own scope line says it instead.
-const profile = computed(() => hasOpened.value
-  ? computeRouteSurfaceSpeedProfile(
-      props.route,
-      props.frame,
-      props.wheelset,
-      props.weightKg,
-      props.heightCm,
-      props.powerW,
-      draftOf({ draftMode: props.draftMode ?? 'solo', tttRiders: props.tttRiders ?? TTT_DEFAULT_RIDERS, tttClimbWkg: props.tttClimbWkg })
-    )
-  : undefined)
-
-async function handleOpenChange(open: boolean) {
-  if (!open || hasOpened.value) return
-  isComputing.value = true
-  await nextTick() // let the spinner paint before the synchronous simulation blocks the main thread
-  hasOpened.value = true
-  isComputing.value = false
-}
-// Client-only on purpose: the tab state a server render sees never selects this panel, and a
-// simulation in the server render would put the whole curve into every route's HTML.
-onMounted(() => {
-  watch(() => props.active, (active) => {
-    if (active) void handleOpenChange(true)
-  }, { immediate: true })
-})
+const profile = computed(() => props.profile)
 const segments = computed(() => profile.value?.segments)
 const speedSamples = computed(() => profile.value?.speedSamples)
 
@@ -303,9 +254,9 @@ const summaryText = computed(() => {
 </script>
 
 <template>
-  <div v-if="hasSurfaceData">
+  <div>
     <div
-      v-if="isComputing"
+      v-if="computing"
       class="flex justify-center py-10"
     >
       <UIcon

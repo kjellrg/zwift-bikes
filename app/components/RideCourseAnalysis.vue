@@ -115,39 +115,33 @@ const surfaceScope = computed(() =>
   `${surfaceCoverageLine(route.value.surface)}; the shares describe ${isRoute.value ? 'one lap' : 'the timed segment'}.`)
 
 /**
- * What each surface costs the fastest setup, in watts: the length-weighted
- * average of the speed profile's "extra power to hold this stretch's pace on
- * its real surface, against tarmac at the same pace". Equipment-dependent,
- * so for rank 1 on the Applied Ride; worked out the first time the tab is
- * shown, client-side, because it is the same simulation the speed chart runs.
+ * Rank 1's speed profile on the Applied Ride: the speed chart draws it and
+ * the Surfaces tab's extra watts are read off it - what each surface costs
+ * the fastest setup, the length-weighted average of "extra power to hold
+ * this stretch's pace on its real surface, against tarmac at the same pace".
+ * One simulation for both, worked out the first time either tab is shown and
+ * never in the server render: the tab state a server render sees never
+ * selects either panel, and a simulation there would put the whole curve
+ * into every page's HTML.
  */
-const extraWatts = shallowRef<Partial<Record<string, number>>>()
-function computeExtraWatts() {
-  const combo = props.combo
-  if (!combo) {
-    extraWatts.value = undefined
-    return
-  }
-  const profile = computeRouteSurfaceSpeedProfile(route.value, combo.frame, combo.wheelset, props.rider.weightKg, props.rider.heightCm, props.rider.powerW,
-    draftOf({ draftMode: props.rider.draftMode, tttRiders: props.rider.tttRiders, tttClimbWkg: props.rider.tttClimbWkg }))
-  if (!profile) {
-    extraWatts.value = undefined
-    return
-  }
-  const totals: Record<string, { watts: number, km: number }> = {}
-  for (const segment of profile.segments) {
-    const km = segment.toKm - segment.fromKm
-    const total = totals[segment.surface] ??= { watts: 0, km: 0 }
-    total.watts += segment.extraWattsVsTarmac * km
-    total.km += km
-  }
-  extraWatts.value = Object.fromEntries(Object.entries(totals).map(([surface, total]) => [surface, total.km > 0 ? Math.round(total.watts / total.km) : 0]))
-}
+const speedOpened = ref(false)
+const speedComputing = ref(false)
 onMounted(() => {
-  watch([() => shown.value === 'surface', () => props.ride, () => props.combo, () => props.rider], ([surfaceShown]) => {
-    if (surfaceShown) computeExtraWatts()
+  watch(() => shown.value === 'speed' || shown.value === 'surface', async (open) => {
+    if (!open || speedOpened.value) return
+    speedComputing.value = true
+    await nextTick() // let the spinner paint before the synchronous simulation blocks the main thread
+    speedOpened.value = true
+    speedComputing.value = false
   }, { immediate: true })
 })
+const speedProfile = computed(() => {
+  const combo = props.combo
+  if (!speedOpened.value || !combo || speedUnavailable.value) return undefined
+  return computeRouteSurfaceSpeedProfile(route.value, combo.frame, combo.wheelset, props.rider.weightKg, props.rider.heightCm, props.rider.powerW,
+    draftOf({ draftMode: props.rider.draftMode, tttRiders: props.rider.tttRiders, tttClimbWkg: props.rider.tttClimbWkg }))
+})
+const extraWatts = computed(() => speedProfile.value?.extraWattsBySurface)
 
 /** The surface table's rows: each surface's share and distance on one lap (or the segment), largest first. */
 const surfaceRows = computed(() => {
@@ -372,16 +366,8 @@ const planScope = computed(() => {
                 {{ speedScope }} The line is this setup's simulated pace at every grade and surface change, over a faint elevation backdrop; the strip beneath marks the surface behind each dip.
               </p>
               <RouteSurfaceSpeedProfile
-                :route="route"
-                :frame="combo.frame"
-                :wheelset="combo.wheelset"
-                :weight-kg="rider.weightKg"
-                :height-cm="rider.heightCm"
-                :power-w="rider.powerW"
-                :draft-mode="rider.draftMode"
-                :ttt-riders="rider.tttRiders"
-                :ttt-climb-wkg="rider.tttClimbWkg"
-                :active="shown === 'speed'"
+                :profile="speedProfile"
+                :computing="speedComputing"
               />
             </div>
           </template>

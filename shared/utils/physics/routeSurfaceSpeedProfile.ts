@@ -27,6 +27,13 @@ export interface RouteSurfaceSpeedSample {
 export interface RouteSurfaceSpeedProfile {
   segments: RouteSurfaceSpeedSegment[]
   /**
+   * What each surface costs this setup, in watts: the length-weighted average
+   * of `segments`' `extraWattsVsTarmac` per surface, rounded - the Surfaces
+   * tab's "Extra watts" column. Read off the same simulation as the chart, so
+   * the table and the strip under the curve cannot disagree.
+   */
+  extraWattsBySurface: Partial<Record<ZwiftSurfaceType, number>>
+  /**
    * Average speed (km/h) across the WHOLE simulated route (`result.distanceM
    * / result.elapsedSec`), not a per-segment figure - a route with one long,
    * steep climb (e.g. Accelerate to Elevate's embedded Alpe du Zwift) can
@@ -169,7 +176,9 @@ export function computeRouteSurfaceSpeedProfile(
   weightKg: number,
   heightCm: number,
   powerW: number,
-  draft: Draft
+  draft: Draft,
+  /** The simulator, injectable so a test can count the integrations a profile costs. */
+  simulate: typeof simulateRoute = simulateRoute
 ): RouteSurfaceSpeedProfile | undefined {
   if (!route.terrain.elevationProfile || route.terrain.elevationProfile.length < 2) return undefined
   if (!route.surface.segments || route.surface.segments.length === 0) return undefined
@@ -188,7 +197,7 @@ export function computeRouteSurfaceSpeedProfile(
   // TTT pacing plan - is resolved on that same single-lap geometry, under the
   // same resolver the endpoints use on their full laps+lead-in ride.
   const rideDraft = resolveDraft(draft, geometry, rider)
-  const result = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: rideDraft.plan?.powerSegmentsW, powerScaleAtSpeed: rideDraft.powerScaleAtSpeed })
+  const result = simulate({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: rideDraft.plan?.powerSegmentsW, powerScaleAtSpeed: rideDraft.powerScaleAtSpeed })
 
   const timePoints = buildTimePoints(result, boundariesM, totalDistanceM)
 
@@ -240,7 +249,7 @@ export function computeRouteSurfaceSpeedProfile(
   let soloComparison: RouteSurfaceSpeedProfile['soloComparison']
   if (draft.mode !== 'solo') {
     const solo = rideDraft.solo
-    const soloResult = simulateRoute({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: solo.plan?.powerSegmentsW, powerScaleAtSpeed: solo.powerScaleAtSpeed })
+    const soloResult = simulate({ rider, frame, wheelset, geometry, boundariesM, powerSegmentsW: solo.plan?.powerSegmentsW, powerScaleAtSpeed: solo.powerScaleAtSpeed })
     soloComparison = {
       speedSamples: resampleSpeedSamples(buildTimePoints(soloResult, boundariesM, totalDistanceM), totalDistanceM),
       overallAvgSpeedKmh: Math.round(soloResult.averageSpeedMps * 3.6 * 10) / 10,
@@ -250,11 +259,24 @@ export function computeRouteSurfaceSpeedProfile(
 
   return {
     segments,
+    extraWattsBySurface: extraWattsBySurface(segments),
     overallAvgSpeedKmh: Math.round(result.averageSpeedMps * 3.6 * 10) / 10,
     speedSamples,
     elevationPoints: geometry.points,
     soloComparison
   }
+}
+
+/** The length-weighted average of each surface's `extraWattsVsTarmac` - see `RouteSurfaceSpeedProfile.extraWattsBySurface`. */
+function extraWattsBySurface(segments: RouteSurfaceSpeedSegment[]): Partial<Record<ZwiftSurfaceType, number>> {
+  const totals: Partial<Record<ZwiftSurfaceType, { watts: number, km: number }>> = {}
+  for (const segment of segments) {
+    const km = segment.toKm - segment.fromKm
+    const total = totals[segment.surface] ??= { watts: 0, km: 0 }
+    total.watts += segment.extraWattsVsTarmac * km
+    total.km += km
+  }
+  return Object.fromEntries(Object.entries(totals).map(([surface, total]) => [surface, total.km > 0 ? Math.round(total.watts / total.km) : 0]))
 }
 
 /** The simulated elapsed time at every requested boundary (plus start/finish), as `interpolateTimeAt` inputs. */
