@@ -1,4 +1,5 @@
 import type { RouteWithMeta } from '../../types/catalog'
+import { getRouteBySlug } from '../catalog'
 import {
   categoryGroup,
   formatCategoryGroup,
@@ -46,7 +47,7 @@ export interface RaceStatementInputs {
 /** One Category group's course as the organiser publishes it, for the per-group table. */
 export interface RaceGroupCourse {
   label: string
-  /** The course's published name, or "TBC" where there is no course yet. */
+  /** The course's published name, the catalog's where none is published, or "TBC" where there is no course yet. */
   routeName: string
   /** Set where the catalog has the route. */
   routeSlug: string | undefined
@@ -83,6 +84,8 @@ export interface RaceStatement extends RideStatementBase {
   coursesDiffer: boolean
   /** Every Category group's course, laps and published figures, in the organiser's order. */
   groups: RaceGroupCourse[]
+  /** What that table holds, as its caption says it. */
+  groupsCaption: string
   /** The race day, or its window. */
   dateLabel: string
   /** The Rider card's fixed lap count, and why it is fixed. */
@@ -295,13 +298,14 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
     coursesDiffer,
     groups: race.categories.map(entry => ({
       label: formatCategoryGroup(entry),
-      // The organiser's name for it; the slug it was mapped to where it gave none.
-      routeName: entry.routeName ?? entry.routeSlug ?? 'TBC',
+      // The organiser's name for it; the catalog's where it gave none.
+      routeName: entry.routeName ?? (entry.routeSlug && getRouteBySlug(entry.routeSlug)?.name) ?? 'TBC',
       routeSlug: entry.routeSlug,
       laps: entry.laps,
       distance: entry.officialDistanceKm !== undefined ? formatDistance(entry.officialDistanceKm) : '-',
       elevation: entry.officialElevationM !== undefined ? formatElevation(entry.officialElevationM) : '-'
     })),
+    groupsCaption: 'Course, laps and published figures for each category group in this race',
     dateLabel,
     fixedLaps: {
       label: `${laps} lap${laps === 1 ? '' : 's'}`,

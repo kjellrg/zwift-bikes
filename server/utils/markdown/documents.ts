@@ -628,7 +628,9 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
     '',
     '### Category groups',
     '',
-    '| Group | Course | Laps | Published distance | Published elevation |',
+    `${statement.groupsCaption}:`,
+    '',
+    '| Group | Course | Laps | Distance | Elevation |',
     '| --- | --- | --- | --- | --- |',
     ...statement.groups.map((entry, index) =>
       `| ${entry.label}${index === 0 ? ' (ranked above)' : ''} | ${entry.routeSlug ? `[${entry.routeName}](${origin}/routes/${entry.routeSlug})` : entry.routeName} | ${entry.laps} | ${entry.distance} | ${entry.elevation} |`),

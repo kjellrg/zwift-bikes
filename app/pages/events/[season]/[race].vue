@@ -377,7 +377,7 @@ if (shareCard) {
       >
         <table class="w-full border-collapse text-sm">
           <caption class="sr-only">
-            Course, laps and published figures for each category group in this race
+            {{ statement.groupsCaption }}
           </caption>
           <thead>
             <tr class="border-b border-accented text-left text-xs text-muted">
