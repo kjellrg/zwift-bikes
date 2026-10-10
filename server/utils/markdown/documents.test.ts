@@ -4,7 +4,7 @@ import type { H3Event } from 'h3'
 import { createError } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RouteSimulationStallError, simulateRoute } from '../../../shared/utils/physics/simulator'
-import { getRouteBySlug } from '../../../shared/utils/catalog'
+import { getRouteBySlug, getRoutesWithMeta } from '../../../shared/utils/catalog'
 import { getRaceBySlug, getSeasonBySlug } from '../../../shared/utils/events'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, rideRulesForFormat, type RecommendQuery, type Ride } from '../../../shared/utils/recommendQuery'
 import { rideForRoute, rideForSegment } from '../../../shared/utils/recommendRide'
@@ -534,7 +534,10 @@ describe('the twins that are not races', () => {
 describe('the index documents', () => {
   it('lists the whole catalog with the slugs the API takes', async () => {
     const home = (await markdownDocumentFor('/')!(CONTEXT)).markdown
-    expect(home).toMatch(/## Every route \(\d{3,}\)/)
+    // Every catalog route - the running-only ones left it in #324 (the count
+    // itself is pinned in `shared/utils/catalog.test.ts`).
+    expect(home).toContain(`## Every route (${getRoutesWithMeta().length})`)
+    expect(home).not.toContain('lutece-express-run')
     expect(home).toContain('[Watopia Hilly Route](https://zwift-bikes-pr-1.workers.dev/routes/hilly-route)')
     expect(home).toContain('`hilly-route`')
 

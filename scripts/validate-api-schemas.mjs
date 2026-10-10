@@ -61,13 +61,13 @@ if (!WORLD_SLUGS.includes('watopia')) fail('WORLD_SLUGS', 'missing watopia - zwi
 // --- catalog endpoints ---
 ok(routesQuerySchema, 'routes: empty query', {}, { search: undefined, world: undefined, eventOnly: undefined })
 ok(routesQuerySchema, 'routes: full valid query',
-  { world: 'watopia', sport: 'cycling', minDistance: '10', maxDistance: '40.5', surface: 'gravel', eventOnly: 'false' },
-  { world: 'watopia', sport: 'cycling', minDistance: 10, maxDistance: 40.5, surface: 'gravel', eventOnly: false })
+  { world: 'watopia', minDistance: '10', maxDistance: '40.5', surface: 'gravel', eventOnly: 'false' },
+  { world: 'watopia', minDistance: 10, maxDistance: 40.5, surface: 'gravel', eventOnly: false })
 ok(routesQuerySchema, 'routes: empty string means no filter', { world: '', minDistance: '' }, { world: undefined, minDistance: undefined })
 ok(routesQuerySchema, 'routes: unknown params ignored', { utm_source: 'newsletter', fbclid: 'x' }, {})
 ok(routesQuerySchema, 'routes: search normalized', { search: '  Alpe ' }, { search: 'alpe' })
 bad(routesQuerySchema, 'routes: unknown world', { world: 'narnia' }, 'world')
-bad(routesQuerySchema, 'routes: unknown sport', { sport: 'swimming' }, 'sport')
+ok(routesQuerySchema, 'routes: retired sport param ignored (#324)', { sport: 'running' }, {})
 bad(routesQuerySchema, 'routes: unknown surface', { surface: 'tarmac' }, 'surface')
 bad(routesQuerySchema, 'routes: non-numeric minDistance', { minDistance: 'abc' }, 'minDistance')
 bad(routesQuerySchema, 'routes: Infinity rejected', { maxElevation: 'Infinity' }, 'maxElevation')

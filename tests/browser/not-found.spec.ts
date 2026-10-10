@@ -18,6 +18,9 @@ import { expect, test, type APIResponse, type Page } from '@playwright/test'
 /** One wrong URL of each kind a rider can land on. */
 const WRONG_URLS = [
   { kind: 'route', path: '/routes/no-such-route' },
+  // The 60 running-only routes left the catalog in #324 with no redirect, so
+  // their old URLs are wrong URLs like any other.
+  { kind: 'retired running-only route', path: '/routes/lutece-express-run' },
   { kind: 'segment', path: '/segments/no-such-segment' },
   { kind: 'race', path: '/events/zrl-2026-27/no-such-race' },
   { kind: 'top-level path', path: '/xyz' }

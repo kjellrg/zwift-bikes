@@ -123,11 +123,12 @@ export function sliceSurfaceSegments(
 
 /**
  * The surface stretches to ride when a route has a known surface MIX but no
- * measured positions for it - the one curated route left
- * (`handful-of-gravel-run`, which zwift-data still has no `stravaSegmentId`
- * for; `peaky-pave` was the other until 2.1 gave it one) and any future
- * route in the same position. One block per surface, sized to its share of
- * the composition and ordered by descending share.
+ * measured positions for it: a route on a curated mix (`CURATED_SURFACE`
+ * in `routeTerrain.ts`). That table has been empty since #324 took the
+ * running-only routes out of the catalog (`handful-of-gravel-run` was its last
+ * entry; `peaky-pave` left when zwift-data 2.1 gave it a trace), so this
+ * waits for the next route that ships without one. One block per surface,
+ * sized to its share of the composition and ordered by descending share.
  *
  * Before issue #172 these routes were ridden as 100% of their single most
  * prevalent surface, because the only thing built from a composition was one

@@ -114,8 +114,8 @@ async function runCase(name, kind, slug, queryString) {
 // the route endpoint's `physics.geometry` field distinguishes.
 const routes = catalog.getRoutesWithMeta()
 const bySlug = slug => routes.find(route => route.slug === slug)
+// The catalog is cycling-only since #324, so every route is a cycling route.
 const cyclingRoutes = routes
-  .filter(route => route.sports.includes('cycling'))
   .slice()
   .sort((a, b) => a.slug.localeCompare(b.slug))
 

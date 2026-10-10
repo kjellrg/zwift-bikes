@@ -84,6 +84,8 @@ export function placeSegmentHosts(tracks: StreamTracks, supplement: SupplementSt
   const fromSupplement = resolveSupplementTracks(supplement, tracks.segments)
 
   for (const route of routes) {
+    // #324: the catalog is cycling-only, so a host on a running-only route is never read.
+    if (!route.sports.includes('cycling')) continue
     for (const slug of [...route.segments ?? [], ...supplementHostsFor(route)]) {
       const segment = segmentsBySlug.get(slug)
       if (segment?.type !== 'sprint' && segment?.type !== 'climb') continue

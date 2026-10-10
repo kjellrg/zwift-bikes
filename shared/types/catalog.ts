@@ -437,7 +437,6 @@ export interface ComboScore {
 export interface RouteFilters {
   search?: string
   world?: WorldSlug
-  sport?: Sport
   minDistance?: number
   maxDistance?: number
   minElevation?: number

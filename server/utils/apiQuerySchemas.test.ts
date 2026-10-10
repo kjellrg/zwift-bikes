@@ -77,6 +77,14 @@ describe('wrong values reject rather than silently clamp', () => {
     expect(recommendRouteQuerySchema.safeParse({ utm_source: 'x', fbclid: 'y' }).success).toBe(true)
     expect(routesQuerySchema.safeParse({ utm_source: 'x', world: 'watopia' }).success).toBe(true)
   })
+
+  // The catalog is cycling-only since #324, so `/api/routes` dropped its
+  // `sport` filter: an old link that still sends one gets every route.
+  it('the retired sport parameter is ignored like any unknown key', () => {
+    const result = routesQuerySchema.safeParse({ sport: 'running' })
+    expect(result.success).toBe(true)
+    expect(result.data).not.toHaveProperty('sport')
+  })
 })
 
 describe('rider profile is all-or-nothing', () => {

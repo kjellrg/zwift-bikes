@@ -15,13 +15,15 @@ import type { Silhouette } from '../../shared/utils/silhouette'
 let cachedCards: RouteCardData[] | undefined
 let cachedBySlug: Map<string, RouteCardData> | undefined
 
-/** Every cycling route as its card, by name - what `/api/route-cards` serves. */
+/**
+ * Every catalog route as its card, by name - what `/api/route-cards` serves.
+ * The catalog holds cycling routes only since #324, so no filter here.
+ */
 export function allRouteCards(): RouteCardData[] {
   if (!cachedCards) {
     // From the listing's summary, as the homepage always drew them: the lap
     // alone, since a listing describes the route and not an event's lead-in.
     cachedCards = getRoutesWithMeta()
-      .filter(route => route.sports.includes('cycling'))
       .map(route => toRouteCard(toRouteSummary(route)))
       .sort((a, b) => a.name.localeCompare(b.name))
   }

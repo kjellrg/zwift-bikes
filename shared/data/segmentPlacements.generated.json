@@ -491,18 +491,6 @@
         "to": 2.832
       }
     ],
-    "glasgow-crit-circuit-run": [
-      {
-        "segment": "the-clyde-kicker",
-        "from": 1.105,
-        "to": 1.407
-      },
-      {
-        "segment": "champions-sprint",
-        "from": 2.838,
-        "to": 3.029
-      }
-    ],
     "sprinters-playground": [
       {
         "segment": "castle-park-sprint-rev",
@@ -716,12 +704,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "thats-amore",
-      "segment": "watopia-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
       "route": "tides-and-temples",
       "segment": "sasquatch-sprint",
       "reason": "no-segment-track",
@@ -758,12 +740,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "two-bridges-loop-run",
-      "segment": "watopia-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
       "route": "countryside-tour",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
@@ -780,12 +756,6 @@
       "segment": "shisa-sprint-rev",
       "reason": "direction",
       "detail": "the route passes the start (20.821 km) only riding the other way (turned 170° from the segment, limit 90°)"
-    },
-    {
-      "route": "flat-irons",
-      "segment": "new-york-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
       "route": "loch-loop",
@@ -1016,28 +986,10 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "loch-loop-run",
-      "segment": "breakaway-brae-rev",
-      "reason": "held",
-      "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
-    },
-    {
       "route": "la-reine",
       "segment": "ballon-sprint",
       "reason": "ride-relative-route",
       "detail": "the route's placements and track run from the ride start, and a generated placement is lap-relative"
-    },
-    {
-      "route": "temple-trek-run",
-      "segment": "stoneway-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "temple-trek-run",
-      "segment": "acropolis-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
       "route": "neokyo-all-nighter",
@@ -1080,12 +1032,6 @@
       "segment": "new-york-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "thats-amore-rev",
-      "segment": "watopia-sprint",
-      "reason": "no-route-track",
-      "detail": "zwift-data/streams has no track for the route"
     },
     {
       "route": "glyph-heights",
@@ -1142,12 +1088,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "hilly-route-rev-run",
-      "segment": "watopia-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
       "route": "bridges-and-boardwalks",
       "segment": "shisa-sprint",
       "reason": "direction",
@@ -1184,18 +1124,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "hilltop-hustle-run",
-      "segment": "the-grade-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "hilltop-hustle-run",
-      "segment": "sasquatch-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
       "route": "power-to-the-tower",
       "segment": "the-grade-sprint-rev",
       "reason": "no-segment-track",
@@ -1218,12 +1146,6 @@
       "segment": "shisa-sprint-rev",
       "reason": "direction",
       "detail": "the route passes the start (10.877 km) only riding the other way (turned 173° from the segment, limit 90°)"
-    },
-    {
-      "route": "oh-hill-no-run",
-      "segment": "the-grade-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
       "route": "park-perimeter-rev",
@@ -1318,12 +1240,6 @@
     {
       "route": "2022-cycling-esports-world-championships-route",
       "segment": "new-york-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "loop-de-loop-run",
-      "segment": "watopia-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
@@ -1622,18 +1538,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "going-coastal-run",
-      "segment": "woodland-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "going-coastal-run",
-      "segment": "sasquatch-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
       "route": "snowman",
       "segment": "watopia-sprint-rev",
       "reason": "no-segment-track",
@@ -1698,12 +1602,6 @@
       "segment": "alley-sprint",
       "reason": "held",
       "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
-    },
-    {
-      "route": "seaside-sprint-run",
-      "segment": "watopia-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
       "route": "triple-flat-loops",
