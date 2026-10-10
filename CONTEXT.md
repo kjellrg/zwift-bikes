@@ -59,6 +59,10 @@ _Avoid_: current results, result snapshot, accepted response
 A page that lists Rides to choose from and ranks nothing: the homepage lists routes, the segments page lists climbs and sprints, the events hub lists the Races still to run across every Season and a season page lists its own. When a discovery page has search or filters they belong to the page and are kept in its URL so that returning to it restores them; they are never a Shared view and never touch the rider's stored preferences. The events pages have none. What a discovery page shows about a Ride is its identity and the numbers a rider scans to choose it, not anything a ranking would answer.
 _Avoid_: hub, list page, index page, landing page
 
+**World page**:
+A Discovery page that lists every Ride in one of the game's worlds: its routes, then its climbs and sprints. It is where a world's name leads from wherever the site says it - the homepage, a route page's breadcrumb trail, the heading over its related rides. It lists the whole world at once, with no search or filters and nothing held back for a button to show; the homepage is where a rider narrows the catalog, a world page is where a world is read in full.
+_Avoid_: hub, world hub, world landing page, world index
+
 **Ranking page**:
 A page that ranks one Ride: a route, a segment or a Race. It states the Ride itself - its heading, selection control, Fact row and Course hero - and beneath that shows the Ranking results and the analysis of rank 1 the same way on every ranking page. It is the counterpart of a Discovery page, which lists Rides and ranks none.
 _Avoid_: detail page, ride page, results page
