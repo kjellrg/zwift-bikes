@@ -83,6 +83,7 @@ export const jsonLdTypes = blocks => blocks.map(block => block['@type'])
 const PAGE_KIND_JSON_LD = {
   'home': [],
   'segments hub': ['BreadcrumbList'],
+  'world page': ['BreadcrumbList'],
   'route': ['BreadcrumbList', 'FAQPage'],
   'climb segment': ['BreadcrumbList', 'FAQPage'],
   'sprint segment': ['BreadcrumbList', 'FAQPage'],

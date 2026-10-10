@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TerrainCategory } from '../../shared/types/catalog'
 import type { RouteCardData } from '#shared/utils/routeCards'
-import { filterRouteCards, ROUTE_DISTANCE_MAX_KM, ROUTE_ELEVATION_MAX_M } from '../utils/routeCardFilters'
+import { filterRouteCards, ROUTE_DISTANCE_MAX_KM, ROUTE_ELEVATION_MAX_M, ROUTE_LIST_PAGE_SIZE } from '../utils/routeCardFilters'
 
 // Without a page-level title the homepage inherits app.vue's bare
 // "ZwiftBikes", dropping the "best bike" phrase from the most-indexed page.
@@ -60,7 +60,7 @@ const onDistanceRangeInput = (value: number[] | number | undefined) => {
 const onElevationRangeInput = (value: number[] | number | undefined) => {
   pendingElevationRange.value = asRange(value) ?? pendingElevationRange.value
 }
-const visibleCount = ref(24)
+const visibleCount = ref(ROUTE_LIST_PAGE_SIZE)
 
 // Every cycling route's card, once (#262): the prerendered payload carries
 // them all - 48 heights and a few surface spans each - and every filter below
@@ -76,6 +76,13 @@ const worldOptions = computed(() => [
   // The game's own order, Watopia first, as the segments page lists them.
   ...(data.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
 ])
+
+// "Browse by world" (#58): every world's World page, with its route count,
+// under the search. Server-rendered links, unlike the World select further
+// down, so a crawler reaches every route page in two clicks from here -
+// the grid's first page alone left 113 of them with no link path at all.
+// Counted from the cards already fetched, so the payload does not grow.
+const worldLinks = computed(() => worldRouteCounts(allCards.value, data.value?.worlds ?? []))
 
 const surfaceOptions = [
   { label: 'Any surface', value: 'all' },
@@ -132,7 +139,7 @@ function resetFilters() {
 }
 
 watch(filters, () => {
-  visibleCount.value = 24
+  visibleCount.value = ROUTE_LIST_PAGE_SIZE
 })
 
 // The filters live in the URL too - `?q=alpe&world=watopia&surface=gravel
@@ -199,6 +206,28 @@ watch(filters, (value) => {
           placeholder="Route name, e.g. Road to Sky"
           class="mt-6 w-full max-w-xl"
         />
+        <nav
+          v-if="worldLinks.length"
+          aria-label="Browse by world"
+          class="mt-4 max-w-xl"
+        >
+          <p class="text-xs text-muted">
+            Browse by world
+          </p>
+          <ul class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <li
+              v-for="world in worldLinks"
+              :key="world.slug"
+            >
+              <NuxtLink
+                :to="`/worlds/${world.slug}`"
+                class="text-toned hover:text-highlighted hover:underline"
+              >
+                {{ world.name }} <span class="text-muted">{{ world.routes }}</span>
+              </NuxtLink>
+            </li>
+          </ul>
+        </nav>
         <p class="mt-3.5 text-sm text-muted">
           <template v-if="hasStoredProfile">
             Times are for you, {{ weightKg }} kg at {{ powerW }} W.
@@ -373,7 +402,7 @@ watch(filters, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              @click="visibleCount += 24"
+              @click="visibleCount += ROUTE_LIST_PAGE_SIZE"
             >
               Show more ({{ items.length - visibleCount }} remaining)
             </UButton>

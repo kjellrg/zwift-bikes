@@ -261,11 +261,18 @@ useHead({
           :key="group.world"
           :aria-labelledby="`world-${group.world}`"
         >
+          <!-- The world's name leads to its World page (#58), which lists
+               these segments again beside every route in the world. -->
           <h2
             :id="`world-${group.world}`"
             class="text-2xl font-semibold font-heading text-highlighted"
           >
-            {{ group.worldName }}
+            <NuxtLink
+              :to="`/worlds/${group.world}`"
+              class="hover:underline"
+            >
+              {{ group.worldName }}
+            </NuxtLink>
           </h2>
           <template v-if="group.climbs.length">
             <h3 class="mt-4 text-sm font-semibold text-muted">
