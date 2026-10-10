@@ -28,9 +28,10 @@
  * `prime`'s, and the entry sits there. Matched to the route tracks, Downtown
  * Dolphin rides it forward at 0.88-1.08 km and Bell Lap rides it the other
  * way - so by its track Downtown Dolphin hosts forward Prime, as the game
- * dictionary says and `zwift-data` does not. That is a direction question
- * (#273 leaves direction with `zwift-data`), recorded here and not acted on:
- * no route hosts `prime`, so the track places nothing yet.
+ * dictionary and ZwiftInsider say and `zwift-data` does not. On that
+ * evidence `segmentHostSupplement.ts` adds `prime` on Downtown Dolphin
+ * (the maintainer's call, 2026-10-10), and the track places it there;
+ * `zwift-data`'s `prime-rev` host stays listed, unplaced.
  *
  * ## Where the game's label is not the segment's length
  *
@@ -95,7 +96,7 @@ export const SUPPLEMENT_SEGMENT_STRAVA_IDS: SupplementSegmentStravaId[] = [
     segment: 'prime',
     stravaSegmentId: 38170270,
     source: BY_HAND_2026_10_10,
-    note: 'ZwiftInsider\'s "Downtown Dolphin Prime Sprint", 0.2 km. The fetched track is 200 m, so it is forward `prime` (197 m), not `prime-rev` (288 m); it was entered under `prime-rev` until the fetch decided. No zwift-data route hosts `prime`, so it places nothing until one does - see the header.'
+    note: 'ZwiftInsider\'s "Downtown Dolphin Prime Sprint", 0.2 km. The fetched track is 200 m, so it is forward `prime` (197 m), not `prime-rev` (288 m); it was entered under `prime-rev` until the fetch decided. Its host is the supplement\'s `prime` on Downtown Dolphin - see the header.'
   },
   { segment: 'tidepool-sprint', stravaSegmentId: 38169050, source: BY_HAND_2026_10_10 },
   { segment: 'boardwalk-sprint', stravaSegmentId: 38169040, source: BY_HAND_2026_10_10 },
