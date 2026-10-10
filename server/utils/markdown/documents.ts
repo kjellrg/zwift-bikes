@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { createError } from 'h3'
-import type { BikeCategory, ComboScore, RouteSummary } from '../../../shared/types/catalog'
+import type { BikeCategory, ComboScore, RouteSummary, SegmentSummary } from '../../../shared/types/catalog'
 import { getRouteBySlug, getRoutesWithMeta, toRouteSummary } from '../../../shared/utils/catalog'
 import { courseCoverage, type CourseApproximation } from '../../../shared/utils/courseCoverage'
 import {
@@ -22,9 +22,11 @@ import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } fr
 import type { SiteFlags } from '../../../shared/utils/siteFlags'
 import { formatDistance } from '../../../shared/utils/units'
 import { MAX_UPGRADE_STAGE } from '../../../shared/utils/upgradeStage'
+import { worldStatement } from '../../../shared/utils/worldStatement'
 import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from '../apiQuerySchemas'
 import { CONFIDENCE_NOTE, formatComboTable, formatSurface } from '../mcp/format'
 import { rankRideForQuery, type CourseToRank, type RankingFor, type RideForCourse, type RouteRanking, type SegmentRanking } from '../rankRide'
+import { routesInWorld, worldListing } from '../worldListing'
 
 /**
  * The markdown representation of the site's pages - what a caller that sent
@@ -237,7 +239,7 @@ function nextSteps(origin: string): string[] {
     '',
     `- **HTTP API**: \`GET ${origin}/api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=\`, and \`${origin}/api/recommend/segments/{segmentSlug}\` for a climb or sprint. JSON.`,
     `- **Site index for agents**: \`${origin}/llms.txt\`.`,
-    `- Every route, segment and race page answers in markdown when the request sends \`Accept: text/markdown\`, as this one did - as do \`${origin}/\` and \`${origin}/segments\`.`
+    `- Every route, segment and race page answers in markdown when the request sends \`Accept: text/markdown\`, as this one did - as do \`${origin}/\`, \`${origin}/segments\` and each world's page, \`${origin}/worlds/{worldSlug}\`.`
   ]
 }
 
@@ -445,7 +447,7 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
     '',
     ...facts([
       `- **Slug**: \`${route.slug}\` (the id the API takes)`,
-      `- **World**: ${route.worldName}`,
+      `- **World**: ${worldLink(route.world, route.worldName, origin)}`,
       `- **One lap**: ${route.distance.toFixed(1)} km, ${Math.round(route.elevation)} m`,
       route.leadInDistance ? `- **Lead-in** (ridden once): ${route.leadInDistance.toFixed(1)} km, ${Math.round(route.leadInElevation ?? 0)} m` : undefined,
       `- **Lappable**: ${route.lap ? `yes, up to ${maxLapsForRoute(route)} laps on this site` : 'no - point to point, ridden once'}`,
@@ -517,7 +519,7 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
     ...facts([
       `- **Slug**: \`${segment.slug}\` (the id the API takes)`,
       `- **Type**: ${segment.type}${segment.climbType ? `, climb category ${segment.climbType}` : ''}`,
-      `- **World**: ${segment.worldName}`,
+      `- **World**: ${worldLink(segment.world, segment.worldName, origin)}`,
       `- **Surface**: ${formatSurface(course.surface)}`
     ]),
     ''
@@ -670,6 +672,15 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
   }
 }
 
+/**
+ * A world's name as a twin says it: a link to its World page (#58), on the
+ * request's origin. See **World page** in CONTEXT.md - wherever the site
+ * names a world, the name leads to its page.
+ */
+function worldLink(slug: string, name: string, origin: string): string {
+  return `[${name}](${origin}/worlds/${slug})`
+}
+
 /** `| Slug | Name | ... |` for the route catalog, as the homepage lists it. */
 function routeTable(routes: RouteSummary[], origin: string): string[] {
   return [
@@ -677,6 +688,16 @@ function routeTable(routes: RouteSummary[], origin: string): string[] {
     '| --- | --- | --- | --- | --- | --- | --- |',
     ...routes.map(route =>
       `| [${route.name}](${origin}/routes/${route.slug}) | \`${route.slug}\` | ${route.worldName} | ${route.distance.toFixed(1)} km | ${Math.round(route.elevation)} m | ${route.terrain.category} | ${formatSurface(route.surface)} |`)
+  ]
+}
+
+/** `| Segment | Slug | ... |` for a list of climbs and sprints, as the segments index lists them. */
+function segmentTable(segments: SegmentSummary[], origin: string): string[] {
+  return [
+    '| Segment | Slug | Type | World | Length | Elevation | Avg grade |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    ...segments.map(segment =>
+      `| [${segment.name}](${origin}/segments/${segment.slug}) | \`${segment.slug}\` | ${segment.type}${segment.climbType ? ` (${segment.climbType})` : ''} | ${segment.worldName} | ${segment.lengthKm.toFixed(1)} km | ${Math.round(segment.measuredElevationM ?? segment.elevationM)} m | ${(segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)}% |`)
   ]
 }
 
@@ -727,11 +748,48 @@ async function renderSegmentsDiscoveryDocument({ origin, siteUrl }: MarkdownRend
     '',
     `## Every climb and sprint (${segments.length})`,
     '',
-    '| Segment | Slug | Type | World | Length | Elevation | Avg grade |',
-    '| --- | --- | --- | --- | --- | --- | --- |',
-    ...segments.map(segment =>
-      `| [${segment.name}](${origin}/segments/${segment.slug}) | \`${segment.slug}\` | ${segment.type}${segment.climbType ? ` (${segment.climbType})` : ''} | ${segment.worldName} | ${segment.lengthKm.toFixed(1)} km | ${Math.round(segment.measuredElevationM ?? segment.elevationM)} m | ${(segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)}% |`),
+    ...segmentTable(segments, origin),
     '',
+    ...nextSteps(origin),
+    ''
+  ].join('\n')
+}
+
+/**
+ * A World page's twin (#58): the world's routes in the homepage twin's
+ * table and its climbs and sprints in the segments twin's, in the order the
+ * page lists them - both read from `worldListing`, the page's own source,
+ * and headed by the page's own statement (`worldStatement`), so the H1 and
+ * the counts line are the page's words. A world with no segments has no
+ * segments section, as its page has none.
+ */
+async function renderWorldDocument(slug: string, { origin, siteUrl }: MarkdownRenderContext): Promise<string> {
+  const listing = worldListing(slug)
+  if (!listing) throw createError({ statusCode: 404, statusMessage: `World "${slug}" not found` })
+  const { world, segments } = listing
+  // The table takes the summary the homepage twin's does; the listing's
+  // cards say which routes and in what order.
+  const summaries = new Map(routesInWorld(world.slug).map(route => [route.slug, toRouteSummary(route)]))
+  const routes = listing.routes.map(card => summaries.get(card.slug)!)
+  const statement = worldStatement({
+    name: world.name,
+    routes: routes.length,
+    climbs: segments.filter(segment => segment.type === 'climb').length,
+    sprints: segments.filter(segment => segment.type === 'sprint').length
+  })
+  return [
+    `# ${statement.heading}`,
+    '',
+    `${statement.countLine}. Every cycling route in Zwift's ${world.name}${segments.length ? ', then its named climbs and sprints' : ''}, each linked to its own page, which ranks every frame and wheelset in the game by the finish time it gives a rider there. `
+    + `This is the whole world at once: \`${origin}/\` lists the routes of every world, and \`${origin}/segments\` every climb and sprint.`,
+    '',
+    `Canonical page: <${siteUrl}/worlds/${world.slug}>`,
+    '',
+    `## Routes (${routes.length})`,
+    '',
+    ...routeTable(routes, origin),
+    '',
+    ...(segments.length ? [`## Climbs and sprints (${segments.length})`, '', ...segmentTable(segments, origin), ''] : []),
     ...nextSteps(origin),
     ''
   ].join('\n')
@@ -741,8 +799,9 @@ async function renderSegmentsDiscoveryDocument({ origin, siteUrl }: MarkdownRend
  * Which pages have a markdown twin, and how a request path maps onto one.
  *
  * Every Ranking page - route, segment and race, the three that show an
- * Applied Ranking - plus the two Discovery pages that lead to them (see both
- * terms in CONTEXT.md). Nothing else: a page whose whole content is
+ * Applied Ranking - plus the Discovery pages that lead to them: the
+ * homepage, the segments index and the twelve World pages (see the terms in
+ * CONTEXT.md). Nothing else: a page whose whole content is
  * hand-written prose (`/about`) would need its text copied into a second
  * place, and the two copies would drift; a page that renders only from the
  * rider's own browser (`/profile`, `/garage`) has no content to serve at
@@ -757,6 +816,12 @@ async function renderSegmentsDiscoveryDocument({ origin, siteUrl }: MarkdownRend
 export function markdownDocumentFor(path: string): MarkdownDocument | undefined {
   if (path === '/') return async context => indexed(await renderHomeDocument(context))
   if (path === '/segments') return async context => indexed(await renderSegmentsDiscoveryDocument(context))
+
+  const world = /^\/worlds\/([^/]+)$/.exec(path)
+  if (world?.[1]) {
+    const slug = decodeURIComponent(world[1])
+    return async context => indexed(await renderWorldDocument(slug, context))
+  }
 
   const route = /^\/routes\/([^/]+)$/.exec(path)
   if (route?.[1]) {
@@ -790,7 +855,7 @@ export function markdownDocumentFor(path: string): MarkdownDocument | undefined 
  *
  * A rule is an exact path, or a prefix ending in `*`.
  */
-export const MARKDOWN_WORKER_FIRST_RULES = ['/', '/events/*', '/routes/*', '/segments', '/segments/*'] as const
+export const MARKDOWN_WORKER_FIRST_RULES = ['/', '/events/*', '/routes/*', '/segments', '/segments/*', '/worlds/*'] as const
 
 /**
  * Whether Cloudflare hands this path to the Worker ahead of the asset, under

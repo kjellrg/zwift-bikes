@@ -44,6 +44,7 @@ const EVENTS_DAY = new Date(`${EVENTS_SERVER_DAY}T12:00:00Z`)
 const PAGES: { kind: string, path: string, ranking?: boolean, events?: boolean }[] = [
   { kind: 'home', path: '/' },
   { kind: 'segments hub', path: '/segments' },
+  { kind: 'world page', path: '/worlds/watopia' },
   { kind: 'route', path: ROUTE, ranking: true },
   { kind: 'climb segment', path: '/segments/alpe-du-zwift', ranking: true },
   { kind: 'sprint segment', path: '/segments/fuego-flats', ranking: true },

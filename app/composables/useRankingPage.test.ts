@@ -131,7 +131,8 @@ describe('useRankingPage', () => {
     const [breadcrumbs, faq] = head().script!
     expect(JSON.parse(breadcrumbs!.innerHTML).itemListElement).toEqual([
       { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE },
-      { '@type': 'ListItem', 'position': 2, 'name': 'Watopia Hilly Route', 'item': `${SITE}/routes/hilly-route` }
+      { '@type': 'ListItem', 'position': 2, 'name': 'Watopia', 'item': `${SITE}/worlds/watopia` },
+      { '@type': 'ListItem', 'position': 3, 'name': 'Watopia Hilly Route', 'item': `${SITE}/routes/hilly-route` }
     ])
     const question = JSON.parse(faq!.innerHTML).mainEntity[0]
     expect(question.name).toBe('What\'s the fastest bike for Watopia Hilly Route?')

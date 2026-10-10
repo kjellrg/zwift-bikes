@@ -15,10 +15,12 @@ describe('routeStatement', () => {
     expect(statement.ogTitle).toBe('Fastest bike for Watopia Hilly Route')
     expect(statement.heading).toEqual({
       name: 'Watopia Hilly Route',
-      crumbs: [{ label: 'All routes', to: '/' }, { label: 'Watopia' }, { label: 'Rolling' }]
+      crumbs: [{ label: 'All routes', to: '/' }, { label: 'Watopia', to: '/worlds/watopia' }, { label: 'Rolling' }]
     })
+    // The world is the trail's middle entry, visible and marked up (#58).
     expect(statement.breadcrumbs).toEqual([
       { name: 'Home', item: SITE },
+      { name: 'Watopia', item: `${SITE}/worlds/watopia` },
       { name: 'Watopia Hilly Route', item: `${SITE}/routes/hilly-route` }
     ])
     expect(statement.reportItem).toBe('Watopia Hilly Route')

@@ -6,6 +6,13 @@ export const ROUTE_DISTANCE_MAX_KM = 120
 /** The top of the homepage's elevation slider, in m: a range ending here is open above. */
 export const ROUTE_ELEVATION_MAX_M = 2000
 
+/**
+ * How many cards the homepage shows before its "Show more" button, and how
+ * many each press adds. The first page is the only one in the server's HTML,
+ * which is why every route also has a World page to be linked from (#58).
+ */
+export const ROUTE_LIST_PAGE_SIZE = 24
+
 /** The homepage's route filters, as its controls hold them. */
 export interface RouteCardFilters {
   /** What the rider typed, as typed. */

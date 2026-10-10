@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SegmentSummary } from '../../../shared/types/catalog'
+import { climbsThenSprints } from '#shared/utils/segmentOrder'
 
 const search = ref('')
 const searchDebounced = ref('')
@@ -99,10 +100,10 @@ const catalogClimbs = climbCount.value
 const catalogSprints = sprintCount.value
 
 // Grouped by world, biggest catalog first, and each world split into its
-// climbs (by climbing gained, most first) and its sprints (by name). Groups a
+// climbs (by climbing gained, most first) and its sprints (by name) - the
+// order a World page gives the same segments (`climbsThenSprints`). Groups a
 // filter empties are dropped entirely - a world heading with nothing under it
 // reads as broken - and Show hides the section it excludes.
-const gainOf = (segment: SegmentSummary) => segment.measuredElevationM ?? segment.elevationM
 const worldGroups = computed(() => {
   const groups = new Map<string, { worldName: string, segments: SegmentSummary[] }>()
   for (const segment of segments.value) {
@@ -116,8 +117,7 @@ const worldGroups = computed(() => {
       world,
       worldName: group.worldName,
       total: group.segments.length,
-      climbs: group.segments.filter(segment => segment.type === 'climb').sort((a, b) => gainOf(b) - gainOf(a) || a.name.localeCompare(b.name)),
-      sprints: group.segments.filter(segment => segment.type === 'sprint').sort((a, b) => a.name.localeCompare(b.name))
+      ...climbsThenSprints(group.segments)
     }))
     .sort((a, b) => b.total - a.total || a.worldName.localeCompare(b.worldName))
 })
@@ -261,11 +261,18 @@ useHead({
           :key="group.world"
           :aria-labelledby="`world-${group.world}`"
         >
+          <!-- The world's name leads to its World page (#58), which lists
+               these segments again beside every route in the world. -->
           <h2
             :id="`world-${group.world}`"
             class="text-2xl font-semibold font-heading text-highlighted"
           >
-            {{ group.worldName }}
+            <NuxtLink
+              :to="`/worlds/${group.world}`"
+              class="hover:underline"
+            >
+              {{ group.worldName }}
+            </NuxtLink>
           </h2>
           <template v-if="group.climbs.length">
             <h3 class="mt-4 text-sm font-semibold text-muted">

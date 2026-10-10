@@ -95,9 +95,9 @@ const RETRY_AFTER_SEC = 60
  * rather than `isWorkerFirstPath` is what decides the markdown case: the
  * `/events/*` rule sweeps in season pages that have no document and are
  * handed straight back to the assets, and those cost nothing. Documents that
- * only read the catalog (`/`, `/segments`) are counted along with the ones
- * that rank - three URLs out of hundreds, not worth a second class of
- * metered request to exempt.
+ * only read the catalog (`/`, `/segments`, the twelve `/worlds/{slug}`) are
+ * counted along with the ones that rank - a handful of URLs out of hundreds,
+ * not worth a second class of metered request to exempt.
  */
 function isExpensive(event: H3Event, path: string): boolean {
   if (path.startsWith('/api/recommend/')) return true

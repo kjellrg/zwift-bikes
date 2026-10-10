@@ -57,14 +57,17 @@ export function routeStatement({ ride, siteUrl, answer }: RouteStatementInputs):
       name,
       crumbs: [
         { label: 'All routes', to: '/' },
-        { label: world },
+        { label: world, to: `/worlds/${route.world}` },
         { label: TERRAIN_LABELS[route.terrain.category] },
         ...(route.eventOnly ? [{ label: 'Event only' }] : [])
       ]
     },
-    // A route sits directly under the home page.
+    // A route sits under its world's World page (#58), which lists it with
+    // every other route in the world - the trail a crawler and a rider can
+    // both walk back up.
     breadcrumbs: [
       { name: 'Home', item: siteUrl },
+      { name: world, item: `${siteUrl}/worlds/${route.world}` },
       { name, item: `${siteUrl}/routes/${route.slug}` }
     ],
     reportItem: name,

@@ -1,4 +1,4 @@
-import { getRoutesWithMeta } from '../../shared/utils/catalog'
+import { getRoutesWithMeta, getWorlds } from '../../shared/utils/catalog'
 import { getAllSegmentSummaries } from '../../shared/utils/routeSegments'
 import { getIndexedRaces, getIndexedSeasons } from '../../shared/utils/events'
 
@@ -15,6 +15,10 @@ export interface SitemapUrl {
  * argument is what lets a test hold it.
  */
 export function sitemapUrls(today: string): SitemapUrl[] {
+  // A World page for each of the game's worlds (#58), from the same list the
+  // prerender list reads: the pages that link every route, so a crawler
+  // that starts here reaches the routes through them as well as directly.
+  const worldUrls = getWorlds().map(world => ({ loc: `/worlds/${world.slug}` }))
   const routeUrls = getRoutesWithMeta().map(route => ({ loc: `/routes/${route.slug}` }))
   const segmentUrls = getAllSegmentSummaries().map(segment => ({ loc: `/segments/${segment.slug}` }))
   // A season only while it has anything left to run, by the same rule as a
@@ -38,6 +42,7 @@ export function sitemapUrls(today: string): SitemapUrl[] {
     { loc: '/events' },
     ...seasonUrls,
     ...raceUrls,
+    ...worldUrls,
     ...routeUrls,
     ...segmentUrls
   ]

@@ -2,8 +2,8 @@
 
 Every Ranking page on the site - route, segment and race - answers in
 markdown when the request asks for it, at the same URL a browser uses, as do
-the two Discovery pages that list them (both terms are defined in
-[CONTEXT.md](../CONTEXT.md)).
+the Discovery pages that list them - the homepage, the segments index and the
+twelve World pages (the terms are defined in [CONTEXT.md](../CONTEXT.md)).
 
 ```
 $ curl -H 'Accept: text/markdown' https://zwiftbikes.com/routes/hilly-route
@@ -21,7 +21,7 @@ for a 75 kg rider at 225 W, finishing in 17:42 (~32.9 km/h). The Canyon Aeroad
 ```
 
 - **Negotiated pages:** `/routes/{slug}`, `/segments/{slug}`,
-  `/events/{season}/{race}`, plus `/` and `/segments`
+  `/events/{season}/{race}`, plus `/`, `/segments` and `/worlds/{world}`
 - **Response:** `Content-Type: text/markdown; charset=utf-8`, `Vary: Accept`,
   `x-markdown-tokens`, and a `Link: <...>; rel="canonical"` back to the page.
   The canonical is built from the configured site URL and never from the host

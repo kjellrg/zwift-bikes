@@ -4,13 +4,15 @@ import type { H3Event } from 'h3'
 import { createError } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RouteSimulationStallError, simulateRoute } from '../../../shared/utils/physics/simulator'
-import { getRouteBySlug, getRoutesWithMeta } from '../../../shared/utils/catalog'
+import { getRouteBySlug, getRoutesWithMeta, getWorlds } from '../../../shared/utils/catalog'
 import { getRaceBySlug, getSeasonBySlug } from '../../../shared/utils/events'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, rideRulesForFormat, type RecommendQuery, type Ride } from '../../../shared/utils/recommendQuery'
 import { rideForRoute, rideForSegment } from '../../../shared/utils/recommendRide'
 import { raceRide, raceStatement, routeStatement, segmentStatement, type RaceWithFormat, type RideStatement } from '../../../shared/utils/rideStatement'
-import { getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
+import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
+import { worldStatement } from '../../../shared/utils/worldStatement'
 import { DEFAULT_SITE_FLAGS } from '../../../shared/utils/siteFlags'
+import { worldListing } from '../worldListing'
 import { isWorkerFirstPath, markdownDocumentFor, MARKDOWN_WORKER_FIRST_RULES } from './documents'
 
 /**
@@ -53,8 +55,8 @@ const PAUSED = { ...CONTEXT, killSwitches: { ...DEFAULT_SITE_FLAGS.killSwitches,
 const ROUTE_PAGE = '/routes/hilly-route'
 
 describe('which paths have a markdown twin', () => {
-  it('resolves every ranking page and the two discovery pages that lead to them', () => {
-    for (const path of ['/', '/segments', '/routes/watopia-hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']) {
+  it('resolves every ranking page and the discovery pages that lead to them', () => {
+    for (const path of ['/', '/segments', '/worlds/watopia', '/worlds/bologna', '/routes/watopia-hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']) {
       expect(markdownDocumentFor(path), path).toBeTypeOf('function')
     }
   })
@@ -64,7 +66,7 @@ describe('which paths have a markdown twin', () => {
     // from the rider's own browser, and a season page is a discovery page
     // whose races each carry their own document. All must fall through to
     // the HTML rather than 404 as markdown.
-    for (const path of ['/about', '/profile', '/garage', '/report', '/events', '/events/zrl-2026-27', '/routes', '/api/routes']) {
+    for (const path of ['/about', '/profile', '/garage', '/report', '/events', '/events/zrl-2026-27', '/routes', '/worlds', '/api/routes']) {
       expect(markdownDocumentFor(path), path).toBeUndefined()
     }
   })
@@ -74,11 +76,14 @@ describe('which paths have a markdown twin', () => {
     // means one canonical URL per page; answering both would make two.
     expect(markdownDocumentFor('/routes/watopia-hilly-route/')).toBeUndefined()
     expect(markdownDocumentFor('/segments/')).toBeUndefined()
+    expect(markdownDocumentFor('/worlds/')).toBeUndefined()
+    expect(markdownDocumentFor('/worlds/watopia/')).toBeUndefined()
     expect(markdownDocumentFor('/events/zrl-2026-27/round-1-week-1/')).toBeUndefined()
   })
 
   it('does not read a slug as a path', () => {
     expect(markdownDocumentFor('/routes/a/b')).toBeUndefined()
+    expect(markdownDocumentFor('/worlds/watopia/routes')).toBeUndefined()
   })
 })
 
@@ -522,7 +527,7 @@ describe('the twin of a race that has been run', () => {
 
 describe('the twins that are not races', () => {
   it('say the same thing and nothing about the index, whatever the day', async () => {
-    for (const path of ['/', '/segments', ROUTE_PAGE, '/segments/titans-grove-kom']) {
+    for (const path of ['/', '/segments', '/worlds/watopia', ROUTE_PAGE, '/segments/titans-grove-kom']) {
       const early = await markdownDocumentFor(path)!({ ...PAUSED, today: BEFORE_ANY_RACE })
       const late = await markdownDocumentFor(path)!({ ...PAUSED, today: '2999-12-31' })
       expect(early.noindex, path).toBe(false)
@@ -544,6 +549,78 @@ describe('the index documents', () => {
     const segments = (await markdownDocumentFor('/segments')!(CONTEXT)).markdown
     expect(segments).toMatch(/## Every climb and sprint \(\d{2,}\)/)
     expect(segments).toContain('[Alpe du Zwift](https://zwift-bikes-pr-1.workers.dev/segments/alpe-du-zwift)')
+  })
+})
+
+/**
+ * A World page's twin (#58): the page lists a whole world, so its twin does
+ * too - every route and every segment of the world linked, counted against
+ * the listing the page itself is drawn from rather than against a number.
+ */
+describe('a World page\'s document', () => {
+  // The slugs the document links under `/routes/` or `/segments/`, in order:
+  // a split on the literal link prefix rather than a regex built from the
+  // origin, which would need escaping.
+  const links = (markdown: string, kind: 'routes' | 'segments') =>
+    markdown.split(`](${CONTEXT.origin}/${kind}/`).slice(1).map(rest => rest.slice(0, rest.indexOf(')')))
+
+  it('links every route and every segment of the world, and nothing outside it', async () => {
+    const listing = worldListing('watopia')!
+    const markdown = (await markdownDocumentFor('/worlds/watopia')!(CONTEXT)).markdown
+    expect(markdown.startsWith('# Every Zwift route in Watopia\n')).toBe(true)
+    expect(markdown).toContain('Canonical page: <https://zwiftbikes.com/worlds/watopia>')
+    expect(markdown).toContain(`## Routes (${listing.routes.length})`)
+    expect(markdown).toContain(`## Climbs and sprints (${listing.segments.length})`)
+    expect(links(markdown, 'routes')).toEqual(listing.routes.map(route => route.slug))
+    expect(links(markdown, 'segments')).toEqual(listing.segments.map(segment => segment.slug))
+    expect(markdown).toContain('[Alpe du Zwift](https://zwift-bikes-pr-1.workers.dev/segments/alpe-du-zwift)')
+    expect(markdown).toContain('`hilly-route`')
+  })
+
+  it('lists every world in full, the smallest included', async () => {
+    for (const slug of ['bologna', 'crit-city', 'london']) {
+      const listing = worldListing(slug)!
+      const markdown = (await markdownDocumentFor(`/worlds/${slug}`)!(CONTEXT)).markdown
+      expect(links(markdown, 'routes'), slug).toEqual(listing.routes.map(route => route.slug))
+      expect(links(markdown, 'segments'), slug).toEqual(listing.segments.map(segment => segment.slug))
+    }
+  })
+
+  it('links as many routes and segments as the catalog has in each world - all twelve', async () => {
+    for (const world of getWorlds()) {
+      const markdown = (await markdownDocumentFor(`/worlds/${world.slug}`)!(CONTEXT)).markdown
+      expect(links(markdown, 'routes'), world.slug).toHaveLength(getRoutesWithMeta().filter(route => route.world === world.slug).length)
+      expect(links(markdown, 'segments'), world.slug).toHaveLength(getAllSegmentSummaries().filter(segment => segment.world === world.slug).length)
+    }
+  })
+
+  it('says what its page says: the statement\'s heading and counts line, in the page\'s words', async () => {
+    const listing = worldListing('bologna')!
+    const statement = worldStatement({
+      name: listing.world.name,
+      routes: listing.routes.length,
+      climbs: listing.segments.filter(segment => segment.type === 'climb').length,
+      sprints: listing.segments.filter(segment => segment.type === 'sprint').length
+    })
+    const markdown = (await markdownDocumentFor('/worlds/bologna')!(CONTEXT)).markdown
+    expect(markdown.startsWith(`# ${statement.heading}\n\n${statement.countLine}. `)).toBe(true)
+  })
+
+  it('404s a world the game does not have', async () => {
+    await expect(markdownDocumentFor('/worlds/mars')!(CONTEXT)).rejects.toMatchObject({ statusCode: 404 })
+  })
+})
+
+/**
+ * Where a twin names a world, the name leads to the world's page, as it does
+ * on the page (see **World page** in CONTEXT.md).
+ */
+describe('a world named in a twin', () => {
+  it('links its World page from a route\'s document and a segment\'s', async () => {
+    const route = (await markdownDocumentFor(ROUTE_PAGE)!(PAUSED)).markdown
+    expect(route).toContain('- **World**: [Watopia](https://zwift-bikes-pr-1.workers.dev/worlds/watopia)')
+    const segment = (await markdownDocumentFor('/segments/box-hill')!(PAUSED)).markdown
+    expect(segment).toContain('- **World**: [London](https://zwift-bikes-pr-1.workers.dev/worlds/london)')
   })
 })
 
@@ -576,7 +653,7 @@ describe('the wrangler routing that lets any of this run', () => {
   })
 
   it('covers every path the resolver answers', () => {
-    for (const path of ['/', '/segments', '/routes/watopia-hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']) {
+    for (const path of ['/', '/segments', '/worlds/watopia', '/routes/watopia-hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']) {
       expect(markdownDocumentFor(path), path).toBeDefined()
       expect(isWorkerFirstPath(path), `${path} is not routed to the Worker`).toBe(true)
     }

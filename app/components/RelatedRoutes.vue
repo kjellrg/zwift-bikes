@@ -21,9 +21,11 @@ const { data } = await useFetch<{ cards: RelatedRouteCardData[] }>('/api/route-c
 })
 const cards = computed(() => data.value?.cards)
 
-const heading = computed(() => cards.value?.every(card => !card.otherWorld)
-  ? `Similar rides in ${props.route.worldName}`
-  : 'Similar rides')
+// "Similar rides in Watopia" when all four are the route's own world, with
+// the world's name a link to its World page (#58): the heading names the
+// world, and wherever the site names a world the name leads to its page.
+// Filled from other worlds, the heading names none.
+const sameWorld = computed(() => Boolean(cards.value?.every(card => !card.otherWorld)))
 </script>
 
 <template>
@@ -35,7 +37,15 @@ const heading = computed(() => cards.value?.every(card => !card.otherWorld)
       id="related-routes-heading"
       class="text-2xl font-semibold font-heading text-highlighted"
     >
-      {{ heading }}
+      <template v-if="sameWorld">
+        Similar rides in <NuxtLink
+          :to="`/worlds/${route.world}`"
+          class="underline decoration-rule-strong underline-offset-4 hover:decoration-current"
+        >{{ route.worldName }}</NuxtLink>
+      </template>
+      <template v-else>
+        Similar rides
+      </template>
     </h2>
     <ul class="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
       <li
