@@ -1,5 +1,4 @@
 import type { RouteWithMeta } from '../../types/catalog'
-import { getRouteBySlug } from '../catalog'
 import {
   categoryGroup,
   formatCategoryGroup,
@@ -47,7 +46,12 @@ export interface RaceStatementInputs {
 /** One Category group's course as the organiser publishes it, for the per-group table. */
 export interface RaceGroupCourse {
   label: string
-  /** The course's published name, the catalog's where none is published, or "TBC" where there is no course yet. */
+  /**
+   * The course's published name, or "TBC". Always published where the group
+   * has a route (the validator warns otherwise), and never joined to the
+   * catalog: this module reaches the race page's client bundle, which must
+   * stay free of `shared/utils/catalog` (see `events.ts`).
+   */
   routeName: string
   /** Set where the catalog has the route. */
   routeSlug: string | undefined
@@ -298,8 +302,7 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
     coursesDiffer,
     groups: race.categories.map(entry => ({
       label: formatCategoryGroup(entry),
-      // The organiser's name for it; the catalog's where it gave none.
-      routeName: entry.routeName ?? (entry.routeSlug && getRouteBySlug(entry.routeSlug)?.name) ?? 'TBC',
+      routeName: entry.routeName ?? 'TBC',
       routeSlug: entry.routeSlug,
       laps: entry.laps,
       distance: entry.officialDistanceKm !== undefined ? formatDistance(entry.officialDistanceKm) : '-',
