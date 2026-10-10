@@ -15,12 +15,12 @@ describe('worldRouteCounts', () => {
     expect(worldRouteCounts(cards, WORLDS)).toEqual([
       { slug: 'watopia', name: 'Watopia', routes: 3 },
       { slug: 'london', name: 'London', routes: 2 },
-      { slug: 'richmond', name: 'Richmond', routes: 2 }
+      { slug: 'richmond', name: 'Richmond', routes: 2 },
+      { slug: 'bologna', name: 'Bologna', routes: 0 }
     ])
   })
 
-  it('leaves out a world with no routes, which would be a link to an empty list', () => {
-    expect(worldRouteCounts([card('bologna')], WORLDS)).toEqual([{ slug: 'bologna', name: 'Bologna', routes: 1 }])
-    expect(worldRouteCounts([], WORLDS)).toEqual([])
+  it('keeps every world, whatever its count: each has a World page and there is no size rule', () => {
+    expect(worldRouteCounts([], WORLDS)).toHaveLength(WORLDS.length)
   })
 })

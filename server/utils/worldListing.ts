@@ -1,7 +1,8 @@
-import type { SegmentSummary } from '../../shared/types/catalog'
+import type { RouteWithMeta, SegmentSummary } from '../../shared/types/catalog'
 import { getRoutesWithMeta, getWorlds } from '../../shared/utils/catalog'
 import type { RouteCardData } from '../../shared/utils/routeCards'
 import { getAllSegmentSummaries } from '../../shared/utils/routeSegments'
+import { climbsThenSprints } from '../../shared/utils/segmentOrder'
 import { allRouteCards } from './routeCardCatalog'
 
 /**
@@ -26,7 +27,10 @@ export interface WorldListing {
   segments: SegmentSummary[]
 }
 
-const gainOf = (segment: SegmentSummary) => segment.measuredElevationM ?? segment.elevationM
+/** The catalog's routes in one world, for whatever wants more of a route than its card - the twin's table, a row's surface. */
+export function routesInWorld(slug: string): RouteWithMeta[] {
+  return getRoutesWithMeta().filter(route => route.world === slug)
+}
 
 /**
  * One world, read in full (#58): what its World page, the page's endpoint
@@ -36,24 +40,19 @@ const gainOf = (segment: SegmentSummary) => segment.measuredElevationM ?? segmen
  *
  * The routes are the homepage's cards, in the homepage's order (by name):
  * one ordering across every listing of routes. The segments come in the
- * order the segments index gives a world group - climbs by climbing gained,
- * most first, then sprints by name - so a world's climbs read the same on
- * both pages.
+ * order the segments page gives a world group (`climbsThenSprints`).
  */
 export function worldListing(slug: string): WorldListing | undefined {
   const world = getWorlds().find(entry => entry.slug === slug)
   if (!world) return undefined
-  const segments = getAllSegmentSummaries().filter(segment => segment.world === world.slug)
-  const surfaces = new Map(getRoutesWithMeta().filter(route => route.world === world.slug).map(route => [route.slug, route.surface]))
+  const { climbs, sprints } = climbsThenSprints(getAllSegmentSummaries().filter(segment => segment.world === world.slug))
+  const surfaces = new Map(routesInWorld(world.slug).map(route => [route.slug, route.surface]))
   return {
     world: { slug: world.slug, name: world.name },
     routes: allRouteCards().filter(card => card.world === world.slug).map((card) => {
       const surface = surfaces.get(card.slug)!
       return { ...card, surface: { gravel: surface.gravel, cobble: surface.cobble } }
     }),
-    segments: [
-      ...segments.filter(segment => segment.type === 'climb').sort((a, b) => gainOf(b) - gainOf(a) || a.name.localeCompare(b.name)),
-      ...segments.filter(segment => segment.type === 'sprint').sort((a, b) => a.name.localeCompare(b.name))
-    ]
+    segments: [...climbs, ...sprints]
   }
 }

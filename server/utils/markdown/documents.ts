@@ -22,10 +22,11 @@ import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } fr
 import type { SiteFlags } from '../../../shared/utils/siteFlags'
 import { formatDistance } from '../../../shared/utils/units'
 import { MAX_UPGRADE_STAGE } from '../../../shared/utils/upgradeStage'
+import { worldStatement } from '../../../shared/utils/worldStatement'
 import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from '../apiQuerySchemas'
 import { CONFIDENCE_NOTE, formatComboTable, formatSurface } from '../mcp/format'
 import { rankRideForQuery, type CourseToRank, type RankingFor, type RideForCourse, type RouteRanking, type SegmentRanking } from '../rankRide'
-import { worldListing } from '../worldListing'
+import { routesInWorld, worldListing } from '../worldListing'
 
 /**
  * The markdown representation of the site's pages - what a caller that sent
@@ -757,8 +758,10 @@ async function renderSegmentsDiscoveryDocument({ origin, siteUrl }: MarkdownRend
 /**
  * A World page's twin (#58): the world's routes in the homepage twin's
  * table and its climbs and sprints in the segments twin's, in the order the
- * page lists them - both read from `worldListing`, the page's own source.
- * A world with no segments has no segments section, as its page has none.
+ * page lists them - both read from `worldListing`, the page's own source,
+ * and headed by the page's own statement (`worldStatement`), so the H1 and
+ * the counts line are the page's words. A world with no segments has no
+ * segments section, as its page has none.
  */
 async function renderWorldDocument(slug: string, { origin, siteUrl }: MarkdownRenderContext): Promise<string> {
   const listing = worldListing(slug)
@@ -766,12 +769,18 @@ async function renderWorldDocument(slug: string, { origin, siteUrl }: MarkdownRe
   const { world, segments } = listing
   // The table takes the summary the homepage twin's does; the listing's
   // cards say which routes and in what order.
-  const summaries = new Map(getRoutesWithMeta().filter(route => route.world === world.slug).map(route => [route.slug, toRouteSummary(route)]))
+  const summaries = new Map(routesInWorld(world.slug).map(route => [route.slug, toRouteSummary(route)]))
   const routes = listing.routes.map(card => summaries.get(card.slug)!)
+  const statement = worldStatement({
+    name: world.name,
+    routes: routes.length,
+    climbs: segments.filter(segment => segment.type === 'climb').length,
+    sprints: segments.filter(segment => segment.type === 'sprint').length
+  })
   return [
-    `# Every Zwift route in ${world.name}`,
+    `# ${statement.heading}`,
     '',
-    `Every cycling route in Zwift's ${world.name}${segments.length ? ', then its named climbs and sprints' : ''}, each linked to its own page, which ranks every frame and wheelset in the game by the finish time it gives a rider there. `
+    `${statement.countLine}. Every cycling route in Zwift's ${world.name}${segments.length ? ', then its named climbs and sprints' : ''}, each linked to its own page, which ranks every frame and wheelset in the game by the finish time it gives a rider there. `
     + `This is the whole world at once: \`${origin}/\` lists the routes of every world, and \`${origin}/segments\` every climb and sprint.`,
     '',
     `Canonical page: <${siteUrl}/worlds/${world.slug}>`,

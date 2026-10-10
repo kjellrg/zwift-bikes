@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WorldListing } from '../../../server/utils/worldListing'
+import { worldStatement } from '#shared/utils/worldStatement'
 
 /**
  * A World page (#58; see **World page** in CONTEXT.md): every route in one
@@ -21,7 +21,7 @@ import type { WorldListing } from '../../../server/utils/worldListing'
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-const { data, error } = await useFetch<WorldListing>(() => `/api/worlds/${slug.value}`)
+const { data, error } = await useFetch(() => `/api/worlds/${slug.value}`)
 if (error.value || !data.value) throw createError({ statusCode: 404, statusMessage: 'World not found', fatal: true })
 
 const worldName = computed(() => data.value?.world.name ?? '')
@@ -30,15 +30,16 @@ const routes = computed(() => data.value?.routes ?? [])
 // sprints by name - so splitting them keeps it.
 const climbs = computed(() => (data.value?.segments ?? []).filter(segment => segment.type === 'climb'))
 const sprints = computed(() => (data.value?.segments ?? []).filter(segment => segment.type === 'sprint'))
-const countLine = computed(() => worldCountLine({ routes: routes.value.length, climbs: climbs.value.length, sprints: sprints.value.length }))
+// What the page says about itself, stated once with its twin
+// (`worldStatement`), so the H1 and counts line here and in the markdown
+// cannot drift apart.
+const statement = computed(() => worldStatement({ name: worldName.value, routes: routes.value.length, climbs: climbs.value.length, sprints: sprints.value.length }))
 
-const title = computed(() => `${worldName.value} routes, ranked by bike | ZwiftBikes`)
-const description = computed(() => `Every Zwift route in ${worldName.value} – ${countLine.value} – each ranked by the bike and wheel combo our physics model predicts fastest for your rider profile.`)
 useSeoMeta({
-  title,
-  description,
-  ogTitle: () => `Every Zwift route in ${worldName.value}`,
-  ogDescription: description
+  title: () => statement.value.title,
+  description: () => statement.value.description,
+  ogTitle: () => statement.value.heading,
+  ogDescription: () => statement.value.description
 })
 // The brand card, as the other discovery pages carry: a per-world card was
 // left out when the page was specified (#58).
@@ -77,10 +78,10 @@ useHead({
         </ol>
       </nav>
       <h1 class="mt-3 text-balance text-[clamp(2.25rem,6vw,3.75rem)] leading-none font-bold font-display tracking-[-0.01em] text-highlighted">
-        Every Zwift route in {{ worldName }}
+        {{ statement.heading }}
       </h1>
       <p class="mt-4 text-lg text-toned">
-        {{ countLine }}
+        {{ statement.countLine }}
       </p>
     </div>
 

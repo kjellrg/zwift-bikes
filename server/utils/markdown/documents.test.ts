@@ -4,12 +4,13 @@ import type { H3Event } from 'h3'
 import { createError } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RouteSimulationStallError, simulateRoute } from '../../../shared/utils/physics/simulator'
-import { getRouteBySlug, getRoutesWithMeta } from '../../../shared/utils/catalog'
+import { getRouteBySlug, getRoutesWithMeta, getWorlds } from '../../../shared/utils/catalog'
 import { getRaceBySlug, getSeasonBySlug } from '../../../shared/utils/events'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, rideRulesForFormat, type RecommendQuery, type Ride } from '../../../shared/utils/recommendQuery'
 import { rideForRoute, rideForSegment } from '../../../shared/utils/recommendRide'
 import { raceRide, raceStatement, routeStatement, segmentStatement, type RaceWithFormat, type RideStatement } from '../../../shared/utils/rideStatement'
-import { getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
+import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
+import { worldStatement } from '../../../shared/utils/worldStatement'
 import { DEFAULT_SITE_FLAGS } from '../../../shared/utils/siteFlags'
 import { worldListing } from '../worldListing'
 import { isWorkerFirstPath, markdownDocumentFor, MARKDOWN_WORKER_FIRST_RULES } from './documents'
@@ -581,6 +582,26 @@ describe('a World page\'s document', () => {
       expect(links(markdown, 'routes'), slug).toEqual(listing.routes.map(route => route.slug))
       expect(links(markdown, 'segments'), slug).toEqual(listing.segments.map(segment => segment.slug))
     }
+  })
+
+  it('links as many routes and segments as the catalog has in each world - all twelve', async () => {
+    for (const world of getWorlds()) {
+      const markdown = (await markdownDocumentFor(`/worlds/${world.slug}`)!(CONTEXT)).markdown
+      expect(links(markdown, 'routes'), world.slug).toHaveLength(getRoutesWithMeta().filter(route => route.world === world.slug).length)
+      expect(links(markdown, 'segments'), world.slug).toHaveLength(getAllSegmentSummaries().filter(segment => segment.world === world.slug).length)
+    }
+  })
+
+  it('says what its page says: the statement\'s heading and counts line, in the page\'s words', async () => {
+    const listing = worldListing('bologna')!
+    const statement = worldStatement({
+      name: listing.world.name,
+      routes: listing.routes.length,
+      climbs: listing.segments.filter(segment => segment.type === 'climb').length,
+      sprints: listing.segments.filter(segment => segment.type === 'sprint').length
+    })
+    const markdown = (await markdownDocumentFor('/worlds/bologna')!(CONTEXT)).markdown
+    expect(markdown.startsWith(`# ${statement.heading}\n\n${statement.countLine}. `)).toBe(true)
   })
 
   it('404s a world the game does not have', async () => {
