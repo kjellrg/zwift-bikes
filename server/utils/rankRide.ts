@@ -251,7 +251,7 @@ function rankingCacheInput(ride: RecommendRide, request: RankingRequest): string
  * rule the Course hero and the MCP and Twin lines read too), in the
  * response's published words.
  */
-export function routeGeometry(coverage: Pick<CourseCoverage, 'approximation'>): RouteRankingPhysics['geometry'] {
+export function routeGeometryLabel(coverage: Pick<CourseCoverage, 'approximation'>): RouteRankingPhysics['geometry'] {
   switch (coverage.approximation) {
     case 'measured': return 'measured'
     case 'named-climbs': return 'known-climbs-compatibility'
@@ -280,7 +280,7 @@ async function rankRoute(input: RankRideInput<RouteRide>, ride: RecommendRide): 
   const result = await runRecommendPipeline(input.event, input, ride)
   const { physics } = result
   const { tttNote, raceNote, draftSummary } = draftNotes(physics, 'the race')
-  const geometry = routeGeometry(ride.coverage)
+  const geometry = routeGeometryLabel(ride.coverage)
 
   // Key order is the response's byte order - unchanged from the endpoint this
   // was lifted out of.

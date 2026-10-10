@@ -9,7 +9,7 @@ import { tttPlanCoverage } from '../../app/utils/tttPlan'
 import { DEFAULT_SITE_FLAGS } from '../../shared/utils/siteFlags'
 import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from './apiQuerySchemas'
 import type { RankingOptions, RankRideInput, RouteRide } from './rankRide'
-import { rankRide, rankRideForQuery, routeGeometry } from './rankRide'
+import { rankRide, rankRideForQuery, routeGeometryLabel } from './rankRide'
 import { RECOMMEND_PAUSED_MESSAGE } from './siteFlags'
 
 /**
@@ -290,7 +290,7 @@ describe('the coverage rule, server and client', () => {
   it('gives the server\'s label and every client reading the same answer, course by course', () => {
     for (const ride of rides) {
       const coverage = courseCoverage(ride.route)
-      const label = routeGeometry(ride.coverage)
+      const label = routeGeometryLabel(ride.coverage)
       expect(ride.coverage, ride.route.slug).toEqual(coverage)
       // The client: the hero draws a profile, the evidence line keeps quiet
       // about elevation and the TTT plan analyses sectors exactly when the
@@ -309,7 +309,7 @@ describe('the coverage rule, server and client', () => {
       expect(profile === undefined || profile.length >= 2, ride.route.slug).toBe(true)
       // The old truthy test, the old `> 1` and the old `>= 2` are one answer.
       expect(Boolean(profile), ride.route.slug).toBe(ride.coverage.measuredLap)
-      expect(routeGeometry(ride.coverage), ride.route.slug).toBe(profile
+      expect(routeGeometryLabel(ride.coverage), ride.route.slug).toBe(profile
         ? 'measured'
         : ride.route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility')
     }

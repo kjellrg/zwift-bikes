@@ -25,7 +25,7 @@ import { sliceSurfaceSegments } from './surfaceGeometry'
  * `scripts/check-client-bundle.mjs`.
  */
 
-/** Memoises a value per (key, samples) on one Ride. */
+/** A Ride's drawn profiles, memoised per sample count. */
 function memoBySamples(build: (options: CourseProfileOptions) => CourseProfile | undefined) {
   const memo = new Map<number | undefined, CourseProfile | undefined>()
   return (options: CourseProfileOptions = {}) => {
