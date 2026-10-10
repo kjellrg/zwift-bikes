@@ -37,12 +37,11 @@ const STRIP_Y = BASELINE_Y + STRIP_GAP
  * meaningless wattage spike that isn't worth calling out as "the" penalty for the route. */
 const MIN_PENALTY_SEGMENT_KM = 0.2
 
-const profile = computed(() => props.profile)
-const segments = computed(() => profile.value?.segments)
-const speedSamples = computed(() => profile.value?.speedSamples)
+const segments = computed(() => props.profile?.segments)
+const speedSamples = computed(() => props.profile?.speedSamples)
 
 const totalDistanceM = computed(() => (segments.value?.at(-1)?.toKm ?? 0) * 1000)
-const soloComparison = computed(() => profile.value?.soloComparison)
+const soloComparison = computed(() => props.profile?.soloComparison)
 // Both the curve's knots and its y-axis range come from the fine-grained `speedSamples`, not the
 // coarser per-surface-segment `segments` - a real climb/descent inside a long uniform-surface stretch
 // only shows up at that finer resolution (see `RouteSurfaceSpeedProfile`'s own doc comment). The TTT
@@ -145,7 +144,7 @@ function monotoneCubicSegments(pts: { x: number, y: number }[]): CurveSegment[] 
 
 // Sourced from `profile.elevationPoints` - the resolved Ride's own geometry, the one the speed curve
 // was simulated over - so the backdrop and the curve cannot drift apart along the ride.
-const elevationPoints = computed(() => profile.value?.elevationPoints ?? [])
+const elevationPoints = computed(() => props.profile?.elevationPoints ?? [])
 
 const MIN_ELEVATION_RANGE_M = 50
 const elevationMin = computed(() => elevationPoints.value.reduce((min, p) => Math.min(min, p.elevationM), elevationPoints.value[0]?.elevationM ?? 0))
@@ -190,7 +189,7 @@ const curveSegments = computed(() =>
 /** y-position of the overall average speed - a subtle dotted reference line, more useful than the
  * previous solid line at the chart's own minimum speed (which read as an arbitrary floor the curve
  * sat on, not a meaningful value). */
-const avgSpeedY = computed(() => profile.value ? scaleYSpeed(profile.value.overallAvgSpeedKmh) : BASELINE_Y)
+const avgSpeedY = computed(() => props.profile ? scaleYSpeed(props.profile.overallAvgSpeedKmh) : BASELINE_Y)
 
 const linePath = computed(() => {
   const segs = curveSegments.value

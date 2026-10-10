@@ -127,13 +127,13 @@ describe('surfaceFamily', () => {
 })
 
 /** A route's CourseProfile, as the Course hero asks its resolved Ride for it. */
-const routeCourseProfile = (route: RouteWithMeta, laps: number) => rideForRoute(route, laps).profile()
-/** A route's Silhouette, as a listing or a share card asks for it. */
-const routeSilhouette = (route: RouteWithMeta, laps: number, samples?: number) => rideSilhouette(rideForRoute(route, laps), samples)
+const profileOfRide = (route: RouteWithMeta, laps: number) => rideForRoute(route, laps).profile()
+/** A route's Silhouette, as a listing or a share card asks its resolved Ride for it. */
+const silhouetteOfRide = (route: RouteWithMeta, laps: number, samples?: number) => rideSilhouette(rideForRoute(route, laps), samples)
 
 describe('a resolved route Ride\'s CourseProfile', () => {
   it('repeats the lap for a multi-lap ride and places every lap\'s climbs and surfaces', () => {
-    const shape = routeCourseProfile(fixtureRoute(), 2)!
+    const shape = profileOfRide(fixtureRoute(), 2)!
     expect(shape.totalDistanceM).toBe(20000)
     // The summit at 5 km of each 10 km lap, at a quarter and three quarters of the ride.
     const summits = shape.points.filter(point => point.y === 1).map(point => point.x)
@@ -146,13 +146,13 @@ describe('a resolved route Ride\'s CourseProfile', () => {
   })
 
   it('draws the laps the Ride rides, not the laps asked for', () => {
-    expect(routeCourseProfile(fixtureRoute(), 40)!.lapStarts).toHaveLength(14)
-    expect(routeCourseProfile({ ...fixtureRoute(), lap: false }, 3)!.totalDistanceM).toBe(10000)
-    expect(routeCourseProfile(fixtureRoute(), 1)!.lapStarts).toEqual([])
+    expect(profileOfRide(fixtureRoute(), 40)!.lapStarts).toHaveLength(14)
+    expect(profileOfRide({ ...fixtureRoute(), lap: false }, 3)!.totalDistanceM).toBe(10000)
+    expect(profileOfRide(fixtureRoute(), 1)!.lapStarts).toEqual([])
   })
 
   it('rides the lead-in once, ahead of the laps', () => {
-    const shape = routeCourseProfile(fixtureRoute({ leadInDistance: 2 }), 2)!
+    const shape = profileOfRide(fixtureRoute({ leadInDistance: 2 }), 2)!
     expect(shape.totalDistanceM).toBe(22000)
     expect(shape.climbs.map(band => [band.from, band.to].map(fraction => Number(fraction.toFixed(4))))).toEqual([
       [Number((4 / 22).toFixed(4)), Number((7 / 22).toFixed(4))],
@@ -161,15 +161,15 @@ describe('a resolved route Ride\'s CourseProfile', () => {
   })
 
   it('has no shape for a route with no measured profile, rather than drawing the model\'s approximation', () => {
-    expect(routeCourseProfile(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
+    expect(profileOfRide(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
   })
 
   it('marks an unmeasured lead-in as approximated, to be dashed, and a measured one or none as not', () => {
-    expect(routeCourseProfile(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBeCloseTo(2 / 22)
-    expect(routeCourseProfile(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
+    expect(profileOfRide(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBeCloseTo(2 / 22)
+    expect(profileOfRide(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
     const measured = fixtureRoute({ leadInDistance: 2 })
     measured.terrain.leadInElevationProfile = [{ distanceM: 0, elevationM: 0 }, { distanceM: 2000, elevationM: 10 }]
-    expect(routeCourseProfile(measured, 2)!).not.toHaveProperty('approximatedUntil')
+    expect(profileOfRide(measured, 2)!).not.toHaveProperty('approximatedUntil')
   })
 
   it('leaves a lead-in-only climb off a listing\'s lap-only shape, and places it on a full route\'s', () => {
@@ -186,7 +186,7 @@ describe('a resolved route Ride\'s CourseProfile', () => {
   it('draws no surface strip when the surfaces have no measured positions', () => {
     const route = fixtureRoute()
     delete (route.surface as { segments?: unknown }).segments
-    expect(routeCourseProfile(route, 1)!.surfaces).toEqual([])
+    expect(profileOfRide(route, 1)!.surfaces).toEqual([])
   })
 })
 
@@ -221,7 +221,7 @@ describe('outlineRuns', () => {
 describe('rideSilhouette', () => {
   it('is the course profile\'s outline as heights alone, resampled to a listing\'s count', () => {
     const route = fixtureRoute()
-    const shape = routeSilhouette(route, 1)!
+    const shape = silhouetteOfRide(route, 1)!
     const profile = rideForRoute(route, 1).profile({ samples: SILHOUETTE_LISTING_SAMPLES })!
     expect(SILHOUETTE_LISTING_SAMPLES).toBe(48)
     expect(shape.heights).toHaveLength(48)
@@ -232,11 +232,11 @@ describe('rideSilhouette', () => {
   })
 
   it('draws a larger picture of the same ride finer, with the same type', () => {
-    expect(routeSilhouette(fixtureRoute(), 2, 120)!.heights).toHaveLength(120)
+    expect(silhouetteOfRide(fixtureRoute(), 2, 120)!.heights).toHaveLength(120)
   })
 
   it('has no shape for a route with no measured profile', () => {
-    expect(routeSilhouette(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
+    expect(silhouetteOfRide(fixtureRoute({ profile: [] }), 1)).toBeUndefined()
   })
 
   it('carries the surfaces by family, a family\'s neighbours merged into one span', () => {
@@ -247,7 +247,7 @@ describe('rideSilhouette', () => {
       { fromKm: 4, toKm: 5, type: 'wood' },
       { fromKm: 5, toKm: 10, type: 'tarmac' }
     ] })
-    expect(routeSilhouette(route, 1)!.surfaces).toEqual([
+    expect(silhouetteOfRide(route, 1)!.surfaces).toEqual([
       { from: 0, to: 0.2, family: 'tarmac' },
       { from: 0.2, to: 0.4, family: 'dirt' },
       { from: 0.4, to: 0.5, family: 'rough' },
@@ -265,7 +265,7 @@ describe('rideSilhouette', () => {
       { fromKm: 4.01, toKm: 6, type: 'dirt' },
       { fromKm: 6, toKm: 10, type: 'tarmac' }
     ] })
-    expect(routeSilhouette(route, 1)!.surfaces).toEqual([
+    expect(silhouetteOfRide(route, 1)!.surfaces).toEqual([
       { from: 0, to: 0.401, family: 'tarmac' },
       { from: 0.401, to: 0.6, family: 'dirt' },
       { from: 0.6, to: 1, family: 'tarmac' }
@@ -273,8 +273,8 @@ describe('rideSilhouette', () => {
   })
 
   it('keeps where an unmeasured lead-in ends, to be dashed', () => {
-    expect(routeSilhouette(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBe(0.091)
-    expect(routeSilhouette(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
+    expect(silhouetteOfRide(fixtureRoute({ leadInDistance: 2 }), 2)!.approximatedUntil).toBe(0.091)
+    expect(silhouetteOfRide(fixtureRoute(), 2)!).not.toHaveProperty('approximatedUntil')
   })
 })
 

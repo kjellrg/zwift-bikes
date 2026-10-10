@@ -22,9 +22,10 @@ import { loadSharedModule } from './route-surfaces/loadShared.mjs'
 
 const { getRoutesWithMeta } = loadSharedModule('shared/utils/catalog.ts')
 
+const routes = getRoutesWithMeta()
 const errors = []
 let checked = 0
-for (const route of getRoutesWithMeta()) {
+for (const route of routes) {
   const placements = [
     ...route.terrain.climbs.map(climb => ({ ...climb, type: 'climb' })),
     ...route.terrain.sprints
@@ -45,4 +46,4 @@ if (errors.length) {
   console.error(`validate-placements: ${errors.length} placement(s) outside their route's official length`)
   process.exit(1)
 }
-console.log(`validate-placements: OK (${checked} placements on ${getRoutesWithMeta().length} routes, each within its lap or lead-in)`)
+console.log(`validate-placements: OK (${checked} placements on ${routes.length} routes, each within its lap or lead-in)`)

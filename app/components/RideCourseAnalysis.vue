@@ -22,10 +22,11 @@ import { surfaceFamily } from '#shared/utils/silhouette'
  *
  * One Ride: the Applied one, resolved (`ride`). The equipment views must
  * describe the ride and the rider their setup was ranked for, and during a
- * refresh they keep the previous results, dimmed, as the answer does; the
- * Ride-only tabs read the same Ride, so the whole section waits for a
- * refreshed ranking rather than describing a course the times on screen were
- * not computed over. It is the Applied Ranking's own course on every page,
+ * refresh they keep the previous results, dimmed, as the answer does. The
+ * course tabs (climbs and sprints, surfaces) read the same Ride, so unlike
+ * the Course hero above they are not Ride-only: the whole section follows the
+ * Applied Ranking and waits for a refreshed one rather than describing a
+ * course the times on screen were not computed over. It is the Applied Ranking's own course on every page,
  * never the selected one standing in for it: on a race the category group
  * can move the course itself (#233). The TTT plan arrives from the page
  * (`useTttPlan`), which computes it once for the Fact row's TTT line and
@@ -56,8 +57,8 @@ const isRoute = computed(() => props.kind === 'route')
 const route = computed(() => props.ride.route)
 const laps = computed(() => props.ride.laps)
 const leadInKm = computed(() => route.value.leadInDistance ?? 0)
-const hasElevation = computed(() => props.ride.coverage.measuredLap)
-const hasSurfaceLocationsOnRide = computed(() => props.ride.coverage.positionedSurfaces)
+const measuredLap = computed(() => props.ride.coverage.measuredLap)
+const positionedSurfaces = computed(() => props.ride.coverage.positionedSurfaces)
 
 const items = computed(() => [
   ...(isRoute.value ? [{ label: 'Climbs and sprints', value: 'segments' as const, slot: 'segments' as const }] : []),
@@ -104,10 +105,10 @@ const speedScope = computed(() => {
   return `${setupLabel.value} · ${props.rider.powerW} W · ${DRAFT_MODE_LABELS[props.rider.draftMode]} · ${ride}.`
 })
 const speedUnavailable = computed(() => {
-  if (hasElevation.value && hasSurfaceLocationsOnRide.value) return undefined
-  const missing = !hasElevation.value && !hasSurfaceLocationsOnRide.value
+  if (measuredLap.value && positionedSurfaces.value) return undefined
+  const missing = !measuredLap.value && !positionedSurfaces.value
     ? 'elevation and surface locations are missing'
-    : !hasElevation.value ? 'the elevation profile is missing' : 'surface locations are missing'
+    : !measuredLap.value ? 'the elevation profile is missing' : 'surface locations are missing'
   return `Speed & surface profile unavailable: ${missing}. No curve is inferred from the overall surface mix.`
 })
 
