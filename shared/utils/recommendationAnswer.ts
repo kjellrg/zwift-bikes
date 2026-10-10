@@ -54,8 +54,8 @@ export interface RecommendationAnswerInputs {
   rideName: string
   /**
    * The Ride's own equipment and drafting regulations, as one sentence ahead
-   * of the answer - "TT bikes are disabled for this points race, and WTRL
-   * turns drafting off, so the time is for riding solo." Absent on a route
+   * of the answer - "Zwift disables TT frames for points races." (see
+   * `raceFormatRules`). Absent on a route
    * or a segment, which have no rules beyond physics. It leads rather than
    * follows because a rider deciding what to start on needs to know what is
    * legal before they are told what is fastest.

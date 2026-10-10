@@ -1,3 +1,6 @@
+import { raceFormatRules } from '#shared/utils/raceRules'
+import { setupName } from '#shared/utils/recommendationAnswer'
+import type { RideStatement, RideStatementAnswer } from '../../shared/utils/rideStatement'
 import type { Ride } from '../utils/recommendRequest'
 import { breadcrumbScript, faqScript } from '../utils/rankingResults'
 import {
@@ -7,13 +10,11 @@ import {
   rankingPageLaps,
   rankingPageReportLine,
   rankingPageShareCard,
-  resolveRankingPageRide,
-  type RankingPageReportSubject,
-  type RankingPageRideName
+  resolveRankingPageRide
 } from '../utils/rankingPage'
 
-/** What a Ranking page says about itself - everything the module cannot know. */
-export interface RankingPageInputs {
+/** What a Ranking page hands its module: the Ride, the request key and the Ride statement. */
+export interface RankingPageInputs<S extends RideStatement> {
   /**
    * The Ride the page ranks, live: it moves the moment a control does. No
    * Ride is nothing to rank - a Category group racing a route the catalog
@@ -22,17 +23,17 @@ export interface RankingPageInputs {
   ride: () => Ride | undefined
   /** The recommend request's key, passed to `useRecommendRequest` unchanged - see `RecommendRequestOptions.key`. */
   key: string
-  /** The Ride's display name, for the Applied course - see `RankingPageRideName`. */
-  rideName: RankingPageRideName
-  /** The question the page's title asks: the answer section's heading and the FAQ entry's question. */
-  faqQuestion: () => string | undefined
   /**
-   * The page's own breadcrumb trail, first crumb first. Undefined until the
-   * page knows what it is about, and then the head gets no JSON-LD at all.
+   * The page's Ride statement for the live Ride (see `shared/utils/rideStatement`),
+   * given rank 1's setup for its description. Undefined until the page knows
+   * what its Ride is, and then the head gets no JSON-LD at all.
    */
-  breadcrumbs: () => readonly { name: string, item: string }[] | undefined
-  /** What the report line leads with where the URL does not say it; a route page has none. */
-  reportSubject?: RankingPageReportSubject
+  statement: (answer: RideStatementAnswer | undefined) => S | undefined
+}
+
+/** One Ride as a key: what the page stated for it is remembered under this. */
+function rideKey(ride: Ride): string {
+  return JSON.stringify(ride)
 }
 
 /**
@@ -45,21 +46,27 @@ export interface RankingPageInputs {
  * when to 404.
  *
  * It exists because the three pages used to wire the same stack by hand, so
- * one change to the Ranking results landed three times.
+ * one change to the Ranking results landed three times. What a page says
+ * about its Ride on its own comes in as one Ride statement, which this
+ * module hands back for the page's own markup and head, and whose name,
+ * question, trail and report subject it puts where they go.
  *
  * Everything that explains a time - the long-climb check, the TTT plan, the
  * answer, "Why this bike wins here", the course analysis, the report line
  * and the share card - comes from the Applied Ranking's course and the
  * Applied Ride's laps, on every page. The page passes no course: on a race
  * page the selector runs ahead of the ranking, and the course a selector has
- * just moved to cannot explain times computed over the previous one. The one
- * live reading is the TT chips above the table, which follow the rule of the
- * Ride being asked for.
+ * just moved to cannot explain times computed over the previous one. For the
+ * same reason the answer and the report line read the statement the page
+ * made for the Applied Ride, not the live one. The live readings are the
+ * statement itself, the head and the Race format rules - the Rider card's
+ * fixed levers and the TT chips above the table follow the rule of the Ride
+ * being asked for.
  *
  * Synchronous, like `useRecommendRequest`: the page awaits `ready` itself,
  * alongside its own lookup.
  */
-export function useRankingPage(inputs: RankingPageInputs) {
+export function useRankingPage<S extends RideStatement>(inputs: RankingPageInputs<S>) {
   const request = useRecommendRequest(inputs.ride, { key: inputs.key })
   const {
     appliedRanking, appliedRide, appliedInputs, appliedRestrictions,
@@ -86,10 +93,28 @@ export function useRankingPage(inputs: RankingPageInputs) {
   // section they are compared in is where "Show comparison" scrolls.
   const comparison = useComparison(() => combos.value)
 
+  // The page's statement for the live Ride, with rank 1 for its description.
+  const statementAnswer = computed<RideStatementAnswer | undefined>(() => topCombo.value
+    ? { setup: setupName(topCombo.value), category: appliedInputs.value.category }
+    : undefined)
+  const statement = computed(() => inputs.statement(statementAnswer.value))
+
+  // What the page stated for each Ride it has asked for, so the answer and
+  // the report line can name the Applied Ride in the page's words while the
+  // live one runs ahead. Only a race page's selector changes the Ride's name;
+  // a handful of Rides at most. Synchronous, so a Ride the selector passes
+  // straight through is remembered too.
+  const stated = shallowRef(new Map<string, S>())
+  watch(() => [inputs.ride(), statement.value] as const, ([ride, said]) => {
+    if (!ride || !said || stated.value.get(rideKey(ride)) === said) return
+    stated.value = new Map(stated.value).set(rideKey(ride), said)
+  }, { immediate: true, flush: 'sync' })
+  const appliedStatement = computed(() => (appliedRide.value && stated.value.get(rideKey(appliedRide.value))) ?? statement.value)
+
   // The visible answer and the FAQ structured data are one text, so what a
   // crawler reads is what a rider sees. During a refetch it keeps describing
   // the results still on screen, as the dimmed results do.
-  const answerRide = computed(() => rankingPageAnswerRide(appliedRide.value, appliedCourse.value, inputs.rideName))
+  const answerRide = computed(() => rankingPageAnswerRide(appliedRide.value, appliedCourse.value, appliedStatement.value?.rideName))
   const answer = useRecommendationAnswer({
     ranking: () => combos.value,
     fastestOverall: () => fastestOverall.value,
@@ -100,13 +125,14 @@ export function useRankingPage(inputs: RankingPageInputs) {
     restrictions: () => appliedRestrictions.value,
     rideRules: () => answerRide.value?.rideRules
   })
-  const faqQuestion = computed(() => inputs.faqQuestion())
+  // The question the answer answers, so it names the Ride the answer does.
+  const faqQuestion = computed(() => appliedStatement.value?.question)
   const faqAnswer = computed(() => answer.value?.text)
 
-  // The trail is the page's; the envelope, the keying and the escaping are
-  // `rankingResults.ts`'s.
+  // The trail is the statement's; the envelope, the keying and the escaping
+  // are `rankingResults.ts`'s.
   useHead(() => {
-    const trail = inputs.breadcrumbs()
+    const trail = statement.value?.breadcrumbs
     if (!trail) return {}
     return {
       script: [breadcrumbScript(trail), faqScript(faqQuestion.value, faqAnswer.value)]
@@ -114,11 +140,16 @@ export function useRankingPage(inputs: RankingPageInputs) {
     }
   })
 
-  const reportLine = computed(() => rankingPageReportLine(appliedRide.value, appliedInputs.value, inputs.reportSubject))
+  const reportLine = computed(() => rankingPageReportLine(appliedRide.value, appliedInputs.value, appliedStatement.value?.reportSubject))
 
   const shareCard = computed(() => rankingPageShareCard(topCombo.value, appliedCourse.value, appliedLaps.value))
 
-  const hideTtCategory = computed(() => inputs.ride()?.ttFramesAllowed === false)
+  // The Race format rules of the live Ride - what the rider may pick, so a
+  // control never offers a value the pending request will discard - with the
+  // nudge towards the format's own draft mode read against the Applied one,
+  // the draft mode the ranking on screen was computed under.
+  const rules = computed(() => raceFormatRules(inputs.ride(), appliedInputs.value.draftMode))
+  const hideTtCategory = computed(() => rules.value?.ttFramesBarred ?? false)
 
   // "Why this bike wins here", about rank 1 on the course its time was
   // computed over.
@@ -167,6 +198,7 @@ export function useRankingPage(inputs: RankingPageInputs) {
     tttPlan,
     /** The answer under the Recommendation. */
     answer,
+    /** The question the statement asks - the answer's heading and the FAQ entry's question. */
     faqQuestion,
     /** The answer's text, which the FAQ JSON-LD carries. */
     faqAnswer,
@@ -174,6 +206,10 @@ export function useRankingPage(inputs: RankingPageInputs) {
     reportLine,
     /** What the page's share card says about the Ranking - read once, at setup. */
     shareCard,
+    /** The page's Ride statement for the live Ride - its heading, Fact row, head and share card read it. */
+    statement,
+    /** The live Ride's Race format rules, with the draft nudge for the Applied draft mode; undefined when it is told no format. */
+    rules,
     /** Whether the chips above the table drop the TT category. */
     hideTtCategory,
     /** What "Why this bike wins here" renders from. */
@@ -187,4 +223,4 @@ export function useRankingPage(inputs: RankingPageInputs) {
 }
 
 /** Everything a Ranking page derives about its Ranking results - what `RankingPageBody` is handed whole. */
-export type RankingPage = ReturnType<typeof useRankingPage>
+export type RankingPage<S extends RideStatement = RideStatement> = ReturnType<typeof useRankingPage<S>>

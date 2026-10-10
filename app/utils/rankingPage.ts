@@ -2,7 +2,7 @@ import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 import type { RecommendRide } from '../../shared/types/recommendRide'
 import type { Silhouette } from '../../shared/utils/silhouette'
 import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
-import { rideRulesLine } from '#shared/utils/raceRules'
+import { raceFormatRules } from '#shared/utils/raceRules'
 import { rideForRoute, rideForSegment } from '#shared/utils/recommendRide'
 import { computeRouteTotals } from '#shared/utils/routeLaps'
 import { routeSilhouette } from '#shared/utils/silhouette'
@@ -70,15 +70,6 @@ export function rankingPageHasLongClimb(
   return resolved ? detectLongClimbBlocks(resolved.planGeometry(), rider.powerW, rider.weightKg).length > 0 : true
 }
 
-/**
- * The Ride's display name in the page's own words, for the Applied course -
- * "Watopia Hilly Route in Watopia", "the Alpe du Zwift climb in Watopia". It
- * names the course rather than describing it: the lap count is the answer's
- * scope line to state, and a name that stated it too would say it twice
- * (issue #291). The page supplies it; the module decides where it goes.
- */
-export type RankingPageRideName = (course: RouteWithMeta) => string
-
 /** The Ride's half of the answer under the Recommendation - what `useRecommendationAnswer` takes from the page's side. */
 export interface RankingPageAnswerRide {
   rideName: string
@@ -86,44 +77,45 @@ export interface RankingPageAnswerRide {
   distanceKm: number
   /** The Applied laps where the Ride has laps; absent on a segment, whose answer names its timed scope instead. */
   laps: number | undefined
-  /** The Race format rules line, when the Applied Ride was ranked under one - see `rideRulesLine`. */
+  /** The Race format rules line, when the Applied Ride was ranked under one - see `raceFormatRules`. */
   rideRules: string | undefined
 }
 
 /**
- * The Ride's half of the answer, from the Applied Ride and the Applied
- * Ranking's course, so the answer describes the ranking on screen rather than
- * the one a control is about to ask for. Absent until that course is known.
+ * The Ride's half of the answer, from the Applied Ride, the Applied
+ * Ranking's course and the name the Ride statement gave that Ride, so the
+ * answer describes the ranking on screen rather than the one a control is
+ * about to ask for. The name names the course rather than describing it: the
+ * lap count is the answer's scope line to state, and a name that stated it
+ * too would say it twice (issue #291). Absent until that course is known.
  */
 export function rankingPageAnswerRide(
   ride: Ride | undefined,
   course: RouteWithMeta | undefined,
-  rideName: RankingPageRideName
+  rideName: string | undefined
 ): RankingPageAnswerRide | undefined {
-  if (!ride || !course) return undefined
+  if (!ride || !course || rideName === undefined) return undefined
   const laps = rankingPageLaps(ride)
   return {
-    rideName: rideName(course),
+    rideName,
     distanceKm: computeRouteTotals(course, laps).distanceKm,
     laps: ride.laps,
-    rideRules: ride.raceFormat ? rideRulesLine(ride.raceFormat) : undefined
+    rideRules: raceFormatRules(ride)?.rulesLine
   }
 }
 
 /**
- * What the page's report line leads with, where the URL does not say it -
- * "Sprint segment", the Applied Category group - worked out from the Applied
- * Ride, so it names the ranking on screen rather than the selector's choice.
+ * What a report filed from the page says the ranking was ridden as - see
+ * `formatRideLine` - led by the subject the Ride statement gave the Applied
+ * Ride where the URL does not say it ("Sprint segment", the Applied Category
+ * group), so it names the ranking on screen rather than the selector's choice.
  */
-export type RankingPageReportSubject = (ride: Ride | undefined) => string | undefined
-
-/** What a report filed from the page says the ranking was ridden as - see `formatRideLine`. */
 export function rankingPageReportLine(
   ride: Ride | undefined,
   rider: Pick<AppliedRiderInputs, 'powerW' | 'draftMode' | 'tttRiders'>,
-  subject?: RankingPageReportSubject
+  subject?: string
 ): string {
-  return formatRideLine({ subject: subject?.(ride), ride, rider })
+  return formatRideLine({ subject, ride, rider })
 }
 
 /**

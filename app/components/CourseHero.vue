@@ -99,8 +99,7 @@ const stars = computed(() => shape.value
 const totalKm = computed(() => (shape.value?.totalDistanceM ?? 0) / 1000)
 const summary = computed(() => {
   if (!shape.value) return ''
-  const climbs = new Set(shape.value.climbs.map(band => band.slug)).size
-  const sprints = new Set(shape.value.sprints.map(band => band.slug)).size
+  const { climbs, sprints } = namedClimbCounts(shape.value)
   const parts = [`${formatDistance(totalKm.value)}`, `${formatElevation(shape.value.maxElevationM - shape.value.minElevationM)} between its lowest and highest points`]
   if (shape.value.approximatedUntil) parts.push('its lead-in approximated')
   if (climbs) parts.push(`${climbs} named climb${climbs === 1 ? '' : 's'}`)

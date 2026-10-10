@@ -291,6 +291,21 @@ export type EventRound = z.infer<typeof eventRoundSchema>
 export type EventSeason = z.infer<typeof eventSeasonSchema>
 
 /**
+ * Zwift's race powerups, as spelled in event listings. Here beside `Powerup`
+ * rather than in `app/utils/labels.ts`, where it used to live, so a race's
+ * markdown twin lists its PowerUps in its page's words (issue #318).
+ */
+export const POWERUP_LABELS: Record<Powerup, string> = {
+  feather: 'Feather',
+  aero: 'Aero',
+  draft: 'Draft',
+  ghost: 'Ghost',
+  anvil: 'Anvil',
+  steamroller: 'Steamroller',
+  burrito: 'Burrito'
+}
+
+/**
  * Validated once at module init. A schema violation throws here with the
  * season file and JSON path in the message - this module is imported by
  * `nuxt.config.ts`, so bad data can never survive to a built site.

@@ -122,7 +122,7 @@ test.describe('race recommendation', () => {
     expect(query.get('category'), 'a stored TT category cannot narrow a race that bars TT frames').toBeNull()
 
     await expect(rideNotes(page)).toContainText('Zwift disables TT frames for scratch races')
-    await expect(answer(page)).toContainText('TT bikes are disabled for this scratch race.')
+    await expect(answer(page)).toContainText('Zwift disables TT frames for scratch races.')
     await expect(categoryChip(page)).toHaveText('All categories')
     await expect(riderCard(page)).toContainText('Zwift disables TT frames for scratch races.')
 
@@ -154,7 +154,7 @@ test.describe('race recommendation', () => {
     await expect(answer(page)).toContainText('/ solo;')
 
     // A rule, not a nudge: stated in the notes, with nothing to switch to.
-    await expect(rideNotes(page)).toContainText('No draft in a Race of Truth, so the ranking is ridden solo')
+    await expect(rideNotes(page)).toContainText('WTRL turns the draft off for a Race of Truth, so the ranking is ridden solo')
     await expect(page.getByRole('button', { name: 'Dismiss draft mode hint' })).toHaveCount(0)
     await expect(page.getByRole('group', { name: 'Rider' })).toContainText('Solo')
     // The card shows the draft as fixed, with its reason: a live-looking
@@ -258,7 +258,7 @@ test.describe('race recommendation', () => {
     expect(query.get('excludeTT'), 'Zwift gives TT frames draft in a TTT, so they are legal').toBeNull()
 
     await expect(rideNotes(page)).toContainText('Zwift enables TT frames')
-    await expect(answer(page)).toContainText('TT bikes are allowed in this team time trial.')
+    await expect(answer(page)).toContainText('Zwift enables TT frames – and gives them draft – for team time trials.')
     await expect(rideNotes(page)).toContainText(/paceline|sector/i)
 
     await tab(page, 'TTT plan').click()
@@ -336,7 +336,7 @@ test.describe('race recommendation', () => {
   test('serves the rules and the answer to a crawler, before any script runs', async ({ page, request }) => {
     await visit(page, SPLIT_BY_COURSE)
     const visible = normalise(await answer(page).locator('p').allInnerTexts().then(lines => lines.join(' ')))
-    expect(visible).toMatch(/^TT bikes are disabled for this points race\. ZwiftBikes predicts the /)
+    expect(visible).toMatch(/^Zwift disables TT frames for points races\. ZwiftBikes predicts the /)
     // TT frames are barred here, so the answer never offers one as the quicker setup.
     expect(visible).not.toContain('Where TT bikes are allowed')
     expect(normalise((await structuredAnswer(page)) ?? '')).toBe(visible)
@@ -357,8 +357,8 @@ test.describe('race recommendation', () => {
     }, html)
     expect(served.heading).toBe('The fastest bike for Round 1 Week 3: Makuri 40')
     expect(served.title.toLowerCase()).toContain('fastest bike for')
-    expect(served.answer).toMatch(/^TT bikes are disabled for this points race\./)
-    expect(served.faq).toMatch(/^TT bikes are disabled for this points race\./)
+    expect(served.answer).toMatch(/^Zwift disables TT frames for points races\./)
+    expect(served.faq).toMatch(/^Zwift disables TT frames for points races\./)
     expect(served.canonical).toMatch(/\/events\/zrl-2026-27\/round-1-week-3$/)
     // The scoring table is in the HTML, hidden tab or not, so its links are crawlable.
     expect(served.segmentLinks.length).toBeGreaterThan(0)

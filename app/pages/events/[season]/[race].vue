@@ -1,35 +1,25 @@
 <script setup lang="ts">
-import type { Ride } from '../../../utils/recommendRequest'
-import { categoryGroupRacing } from '#shared/utils/events'
-import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
-import { climbCountFact, distanceLabel, surfaceSplit, type RideFact } from '../../../utils/rideFacts'
+import { raceRide, raceStatement } from '#shared/utils/rideStatement'
 
 /**
- * One race. Everything a route page can't know lives here: the date, the
- * lap count for the rider's category group, and the equipment rules - Zwift
- * disables TT frames for points and scratch races, so a recommendation that
- * ignored the format would put an illegal bike at the top of the list.
- *
- * The ranking itself goes through `useRankingPage`, the same module the route
- * and segment pages hand a Ride to, and `RankingPageBody` renders it the same
- * way on all three, so they can't drift in behaviour - this page's only job
- * is to say what the ride IS, and what is legal on it.
+ * One race. Everything a route page can't know - the date, the lap count for
+ * the rider's Category group, the equipment rules, where the points are -
+ * is the race's Ride statement (`raceStatement`), and the ranking goes
+ * through `useRankingPage`, the same module the route and segment pages hand
+ * a Ride to, so they can't drift in behaviour. This page's script is its
+ * selection, the draft nudge's dismissal and the wiring.
  */
 const route = useRoute()
 const seasonSlug = computed(() => route.params.season as string)
 const raceSlug = computed(() => route.params.race as string)
 
 const season = getSeasonBySlug(seasonSlug.value)
-const race = season ? getRaceBySlug(seasonSlug.value, raceSlug.value) : undefined
-if (!season || !race || !isRacePublishable(race)) {
+const found = season ? getRaceBySlug(seasonSlug.value, raceSlug.value) : undefined
+if (!season || !found || !isRacePublishable(found)) {
   throw createError({ statusCode: 404, statusMessage: 'Race not found', fatal: true })
 }
-const round = getRoundForRace(season, race)
-
-// Only `setDraftMode` (for the format hint below): the levers themselves live
-// in `RiderCard` / `RideEquipmentFilters`, and the recommend request reads the
-// rest of this state itself.
-const { setDraftMode } = useRiderProfile()
+// A race with a page has a format: the equipment rules are derived from it.
+const race = found
 
 // A/B and C/D routinely race the same route over a different number of laps,
 // which changes the distance, the climbing and therefore the ranking - so the
@@ -40,22 +30,10 @@ const categoryGroupOptions = race.categories.map((group, index) => ({
   label: `${formatCategoryGroup(group)} – ${group.laps} lap${group.laps === 1 ? '' : 's'}`,
   value: index
 }))
-const selectedGroup = computed(() => categoryGroup(race!, categoryGroupIndex.value))
-const laps = computed(() => lapsForCategoryGroup(race!, categoryGroupIndex.value))
-/**
- * Undefined when the selected group races a route the catalog doesn't have -
- * ZRL runs C/D on an unlisted "exclusive" route in week 6. The page still shows
- * that group's published figures; it just can't rank bikes for it.
- */
-const selectedRouteSlug = computed(() => selectedGroup.value?.routeSlug)
-const ttAllowed = ttBikesAllowed(race.format)
-const draftAllowed = draftingAllowed(race.format)
-const formatLabel = computed(() => RACE_FORMAT_LABELS[race!.format!])
-const formatPhrase = computed(() => raceFormatPhrase(race!.format!))
 
 /**
  * The Ride: this group's course and lap count, plus the two equipment rules
- * a race has and a route page doesn't.
+ * a race has and a route page doesn't - see `raceRide`.
  *
  * `useRecommendRequest` makes the rider's stored settings race-legal from
  * them - a rider whose stored category is `tt` is ranked across all legal
@@ -68,75 +46,42 @@ const formatPhrase = computed(() => raceFormatPhrase(race!.format!))
  * A group with no catalog route is no Ride at all, so nothing is requested
  * and nothing is ranked - the page still shows that group's published figures.
  */
-const ride = computed<Ride | undefined>(() => selectedRouteSlug.value
-  ? {
-      course: { kind: 'route', slug: selectedRouteSlug.value },
-      laps: laps.value,
-      // Non-null like every other read of the format on this page: a race with
-      // no published format has no page (`isRacePublishable`). Passing the
-      // optional straight through would give one page two readings of an absent
-      // format - "not a race, everything legal" here and "rules unknown, TT
-      // barred" in `ttAllowed` below.
-      ...rideRulesForFormat(race!.format!)
-    }
-  : undefined)
+const ride = computed(() => raceRide(race, categoryGroupIndex.value))
 // The SELECTED group's course, which follows the selector the moment it
 // moves and is absent for a group with no catalog route; the course the
 // ranking on screen was computed over is the Applied Ranking's, looked up by
 // the request under the same key once it has landed - see `useCourse`.
-// Declared before the ranking page module, whose head reads the trail below,
-// gated on it.
+// Declared before the ranking page module, whose statement is built from it.
 const { ready: courseReady, course: routeInfo } = useCourse(() => ride.value?.course)
 
-const raceHeading = computed(() => raceDisplayName(race!))
-// Named under its round ("ZRacing 2026 - August: Makuri Madness Stage 4"):
-// the round name is what riders search for, and every derived surface
-// (title, description, FAQ, OG alt) inherits it from here.
-const raceTitle = computed(() => `${raceContextLabel(season!, round)} ${raceHeading.value}`)
+/**
+ * Whether this Race has been run is decided on the day the page is rendered
+ * on and then on the rider's own clock - see `useToday`. A run race keeps its
+ * page, so a link a rider shared still lands, but the page says so above its
+ * title, in the words its markdown twin uses too (`runRaceNotice`), and
+ * points to the season's next race and to the route.
+ */
+const today = useToday()
 
 const siteConfig = useSiteConfig()
-const canonicalUrl = useCanonicalUrl()
-// Everything this page shows about its Ranking - see `useRankingPage`. What
-// stays here is what the page states itself: its header and Category group
-// selector, its Fact row and Course hero, the scoring segments, what the
-// organiser published, its share card and the decision of whether there is a
-// ranking to show at all. The module reads the Applied Ranking's course and
-// the Applied laps throughout, so on this page - the one whose Ride's own
-// identity moves - nothing explains the times on screen with the group the
-// selector has just moved to. The TT category is hidden by the Race format's
-// own rule, carried on the Ride.
+// Everything this page shows about its Ranking - see `useRankingPage` - and
+// everything it says about its Ride on its own, in its Ride statement. The
+// module reads the Applied Ranking's course and the Applied laps throughout,
+// so on this page - the one whose Ride's own identity moves - nothing
+// explains the times on screen with the group the selector has just moved
+// to.
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-race-${seasonSlug.value}-${raceSlug.value}`,
-  // The course and world only, as the route page names it: the answer's
-  // scope line states the Category group's lap count (issue #291).
-  rideName: course => `${course.name} in ${course.worldName}`,
-  faqQuestion: () => `What bike should I ride for ${raceTitle.value}?`,
-  // The deepest trail on the site: a race under its season under the events
-  // hub, named "Events" as the visible trail and the nav name it. None for a
-  // group with no catalog route, which ranks nothing to answer for.
-  breadcrumbs: () => routeInfo.value
-    ? [
-        { name: 'Home', item: siteConfig.url },
-        { name: 'Events', item: `${siteConfig.url}/events` },
-        { name: `${season!.seriesName} ${season!.label}`, item: `${siteConfig.url}/events/${season!.slug}` },
-        { name: raceHeading.value, item: canonicalUrl.value }
-      ]
-    : undefined,
-  // The Category group matched on the course and lap count the results were
-  // fetched for rather than read off the selector, which moves the moment it
-  // is clicked while the list underneath is still the old group's.
-  reportSubject: (applied) => {
-    const group = categoryGroupRacing(race!, applied?.course.slug, applied?.laps)
-    return group ? formatCategoryGroup(group) : undefined
-  }
+  // A race's description names no setup, so the statement takes no answer.
+  statement: () => raceStatement({ season, race, groupIndex: categoryGroupIndex.value, course: routeInfo.value, today: today.value, siteUrl: siteConfig.url })
 })
-const { tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
-// The two readings of the request the page still makes itself: the draft
-// hint's Applied draft mode, and the results announcement. A group with no
-// catalog route renders no body, so the page renders the data notice and the
-// announcement above its own notice there, where the body would have them.
-const { appliedInputs, resultsAnnouncement } = rankingPage.request
+const { tttPlan, rules, bikeSearch, bikeSearchDebounced } = rankingPage
+// A race always has a statement: it is the race's own, with or without a course.
+const statement = computed(() => rankingPage.statement.value!)
+// The results announcement, which a group with no catalog route renders
+// above its own notice, where the body would have it.
+const { resultsAnnouncement } = rankingPage.request
 // Fired together: the recommendation doesn't depend on the lookup resolving first.
 await Promise.all([courseReady, rankingPage.ready])
 
@@ -158,251 +103,17 @@ useSharedView(
 const { eventsVisible, eventsNotice, load: loadSiteFlags } = useSiteFlags()
 onMounted(() => loadSiteFlags())
 
-const routeTotals = computed(() => routeInfo.value ? computeRouteTotals(routeInfo.value, laps.value) : undefined)
-const climbOccurrences = computed(() => routeInfo.value ? expandClimbsForLaps(routeInfo.value, laps.value) : [])
-const sprintOccurrences = computed(() => routeInfo.value ? expandSprintsForLaps(routeInfo.value, laps.value) : [])
-
-/**
- * The organiser's published distance/elevation and this site's own totals
- * (lead-in plus laps of real route data) don't always agree - ZwiftInsider's
- * ZRacing figures run ~2 km over route data, consistent with an event-pen
- * lead-in. Both are shown when they differ rather than quietly picking one:
- * the official figure is what riders see in the event listing, and this
- * site's is what the physics below actually runs on.
- */
-const officialDiffers = computed(() => {
-  const group = selectedGroup.value
-  if (!routeTotals.value || !group) return false
-  const distanceOff = group.officialDistanceKm !== undefined
-    && Math.abs(group.officialDistanceKm - routeTotals.value.distanceKm) >= 0.15
-  const elevationOff = group.officialElevationM !== undefined
-    && Math.abs(group.officialElevationM - routeTotals.value.elevationM) >= 5
-  return distanceOff || elevationOff
-})
-
-/**
- * Every distinct course in this race, in group order.
- *
- * Deliberately built from the race data rather than from the selected group,
- * so the title and meta description are the same whichever category is
- * selected - they describe the race, not the current toggle position. Without
- * this, a split race like Round 1 Week 3 advertised only A/B's course and
- * C/D's was invisible to search entirely.
- */
-const allRouteNames = computed(() => raceRouteNames(race!))
-const routeNamesLabel = computed(() => allRouteNames.value.join(' & ') || 'Route TBC')
-/** `A/B on Makuri 40, C/D on Urumaze` - only worth saying when they differ. */
-const routeNamesByCategory = computed(() => race!.categories
-  .map(group => `${formatCategoryGroup(group)} on ${group.routeName ?? 'a route to be confirmed'}`)
-  .join(', '))
-
-/** The route name to show, whether or not the catalog knows the route. */
-const displayRouteName = computed(() => selectedGroup.value?.routeName ?? routeInfo.value?.name ?? 'Route TBC')
-
-/** True when this group races somewhere the catalog can't rank bikes for. */
-const groupHasNoRoute = computed(() => !selectedRouteSlug.value)
-
-/** The per-group course comparison table earns its place only when the groups genuinely differ in route or laps. */
-const coursesDiffer = hasSplitCourses(race)
-
-/**
- * Powerups, as curated. Absent from the data = the organiser hasn't
- * published them = this whole block renders nothing at all (no placeholder);
- * `allowed: []` = explicitly no powerups, shown as a single badge.
- */
-const powerups = race.powerups
-/**
- * The powerups in one line. Computed rather than written into the markup,
- * because a category group whose course isn't in the catalog has no ranking
- * and this is organiser data that never needed one - so it is rendered twice
- * and must read identically both times.
- */
-const powerupsLine = computed(() => {
-  if (!powerups) return undefined
-  const allowed = powerups.allowed.length ? powerups.allowed.map(powerup => POWERUP_LABELS[powerup]).join(', ') : 'none'
-  return `${allowed}${powerups.note ? ` - ${powerups.note}` : ''}`
-})
-
-/**
- * Same split as the answer's `rideRules` line: Zwift disables TT frames
- * itself for points and scratch races, while WTRL bans them by regulation in
- * a Race of Truth - where drafting being off would otherwise be the TT
- * bike's whole argument, so a rider is owed the reason rather than just the
- * verdict.
- */
-const ttAlertDescription = computed(() => {
-  if (ttAllowed) return 'Zwift enables TT frames – and gives them draft – for team time trials, so they are included in the ranking below.'
-  if (race!.format === 'rot') return 'Drafting is off in a Race of Truth, but WTRL still bans TT frames from it – so this is raced on road bikes, and they are the only thing ranked below.'
-  return `Zwift disables TT frames for ${formatLabel.value.toLowerCase()}s, so they are excluded from the ranking below. Everything listed is a bike you can actually start on.`
-})
-
-/**
- * Where the points are, for the selected group.
- *
- * ZRL usually scores the same sprint both ways - FAL by finishing order
- * through it, FTS by elapsed time across it - so the two published lists are
- * merged into one row per segment rather than printed twice.
- */
-const scoringSegments = computed(() => {
-  const group = selectedGroup.value
-  if (!group) return []
-  const rows = new Map<string, { name: string, slug?: string, fal: number, fts: number }>()
-  const add = (list: typeof group.falSegments, key: 'fal' | 'fts') => {
-    for (const segment of list ?? []) {
-      const row = rows.get(segment.name) ?? { name: segment.name, slug: segment.slug, fal: 0, fts: 0 }
-      row[key] += segment.times ?? 1
-      row.slug ??= segment.slug
-      rows.set(segment.name, row)
-    }
-  }
-  add(group.falSegments, 'fal')
-  add(group.ftsSegments, 'fts')
-  return [...rows.values()]
-})
-
-/** The scoring segments that have a page here, for the elevation profile's stars. */
-const scoringSlugs = computed(() => [...new Set(scoringSegments.value.map(segment => segment.slug).filter((slug): slug is string => Boolean(slug)))])
-
-/**
- * Where each scoring segment actually falls along the ride, from the same
- * lap-expanded occurrences the profile and the climb/sprint cards use - so a
- * "2x" in the table and two starred markers on the profile are the same two
- * passes, not two independent derivations of the lap maths.
- *
- * Empty when zwift-data ships no segment placements for the route at all
- * (Urumaze is the case in Round 1), which the table handles by dropping the
- * column rather than printing a row of blanks.
- */
-const scoringPositionsBySlug = computed(() => {
-  const bySlug = new Map<string, number[]>()
-  for (const occurrence of [...sprintOccurrences.value, ...climbOccurrences.value]) {
-    if (!scoringSlugs.value.includes(occurrence.slug)) continue
-    const positions = bySlug.get(occurrence.slug) ?? []
-    positions.push(occurrence.rideFromKm)
-    bySlug.set(occurrence.slug, positions)
-  }
-  for (const positions of bySlug.values()) positions.sort((a, b) => a - b)
-  return bySlug
-})
-
-/**
- * The table's rows, in the order the rider meets them where that is knowable -
- * a points race is ridden in course order, not in the order the organiser
- * happened to list the segments. Segments with no position sort last, keeping
- * their published order among themselves.
- */
-const scoringRows = computed(() => scoringSegments.value
-  .map(segment => ({
-    ...segment,
-    positionsKm: segment.slug ? scoringPositionsBySlug.value.get(segment.slug) ?? [] : []
-  }))
-  .sort((a, b) => (a.positionsKm[0] ?? Infinity) - (b.positionsKm[0] ?? Infinity)))
-
-const scoringSegmentsTbd = computed(() => Boolean(selectedGroup.value?.scoringSegmentsTbd))
-/**
- * A points race with nothing listed is a real, published state (three of
- * Round 1's do this) - worth saying out loud rather than rendering an empty
- * table that looks like a loading failure.
- */
-const isPointsRaceWithoutSegments = computed(() => (race!.format === 'points' || race!.format === 'rot') && !scoringSegments.value.length)
-/** Whether the Scoring tab exists at all: a scratch race scores nothing along the way. */
-const hasScoring = computed(() => scoringSegments.value.length > 0 || isPointsRaceWithoutSegments.value || scoringSegmentsTbd.value)
-
-/**
- * The race format contradicting the applied ranking's draft mode genuinely
- * reorders the fastest-bike list (a points race ranked at TTT paceline
- * speeds, or a TTT ranked solo), so it's worth a nudge - but never a silent
- * mutation: `draftMode` is a persisted preference, and the switch happens
- * only through the button's explicit `setDraftMode`. The explanation stays
- * with the applied ranking while that preference is being recomputed.
- */
-const draftHintDismissed = ref(false)
-const draftHint = computed(() => {
-  // Nothing to nudge towards when the race has no draft at all: the ranking is
-  // already forced solo, and the banner that says so replaces this entirely.
-  if (!draftAllowed) return undefined
-  if (draftHintDismissed.value) return undefined
-  const appliedDraftMode = appliedInputs.value.draftMode
-  if (race!.format === 'ttt' && appliedDraftMode !== 'ttt') {
-    return {
-      text: 'This is a team time trial, but the ranking below is computed for ' + (appliedDraftMode === 'race' ? 'a mass-start bunch' : 'a solo rider') + '. TTT draft mode ranks bikes at your team\'s paceline speeds instead – and it can genuinely reorder the list.',
-      action: 'Use TTT draft mode',
-      mode: 'ttt' as const
-    }
-  }
-  // A points or scratch race IS a mass start, so race draft mode is the honest
-  // default here - both for a rider who left TTT on and for one still on solo,
-  // whose predicted time is then minutes off what a bunch actually does.
-  if (race!.format !== 'ttt' && appliedDraftMode !== 'race') {
-    return {
-      text: appliedDraftMode === 'ttt'
-        ? `The ranking uses TTT draft mode, but this is a ${formatPhrase.value} - the ranking below assumes paceline speeds this race won't be ridden at. Race draft mode models the mass-start bunch this actually is.`
-        : `This is a ${formatPhrase.value}, but the ranking below is computed for a lone rider with no draft at all. Race draft mode adds the draft a typical mid-pack racer measurably gets, calibrated on thirteen real race fields.`,
-      action: 'Use race draft mode',
-      mode: 'race' as const
-    }
-  }
-  return undefined
-})
-
-/**
- * Whether this Race has been run, on the day the page is rendered on and then
- * on the rider's own clock - see `useToday`. A run race keeps its page, so a
- * link a rider shared still lands, but the page says so above its title and
- * points to the season's next race and to the route, and the site stops
- * promoting it.
- */
-const today = useToday()
-const hasRun = computed(() => hasBeenRun(race!, today.value))
-/**
- * What it says above its title once it has been run, in the words its
- * markdown twin uses too (`runRaceNotice`): the next race moves with the day,
- * so the notice is read off the same `today`.
- */
-const runNotice = computed(() => runRaceNotice(season!, race!, today.value))
-
-// The Fact row follows the group selector, like the hero: both describe the
-// race the rider has picked a group for.
-const facts = computed<RideFact[]>(() => {
-  const group = selectedGroup.value
-  const route = routeInfo.value
-  const totals = routeTotals.value
-  const distanceKm = totals?.distanceKm ?? group?.officialDistanceKm
-  const elevationM = totals?.elevationM ?? group?.officialElevationM
-  const climbs = route ? climbCountFact(new Set(route.terrain.climbs.map(climb => climb.slug)).size, new Set(route.terrain.sprints.map(sprint => sprint.slug)).size) : undefined
-  return [
-    ...(distanceKm !== undefined ? [{ value: formatDistance(distanceKm), label: distanceLabel({ leadInKm: totals?.leadInDistanceKm ?? 0 }) }] : []),
-    ...(elevationM !== undefined ? [{ value: formatElevation(elevationM), label: 'of climbing' }] : []),
-    { value: String(laps.value), label: laps.value === 1 ? 'lap' : 'laps' },
-    ...(route ? [{ value: `${route.terrain.climbRatio.toFixed(1)} m/km`, label: 'climb ratio' }] : []),
-    ...(climbs ? [climbs] : [])
-  ]
-})
-const surface = computed(() => surfaceSplit(routeInfo.value?.surface.composition))
-const raceDate = computed(() => race!.endDate ? formatRaceDateRange(race!.date, race!.endDate) : formatRaceDate(race!.date))
-
-/** The rules the Rider card shows as fixed, in its words. */
-const ttBarredReason = computed(() => ttAllowed
-  ? undefined
-  : race!.format === 'rot' ? 'WTRL bans TT frames from a Race of Truth.' : `Zwift disables TT frames for ${formatPhrase.value}s.`)
-const draftLockedReason = computed(() => draftAllowed ? undefined : 'WTRL turns the draft off for a Race of Truth.')
-const fixedLaps = computed(() => ({
-  label: `${laps.value} lap${laps.value === 1 ? '' : 's'}`,
-  reason: selectedGroup.value && categoryGroupOptions.length > 1 ? `Set by the ${formatCategoryGroup(selectedGroup.value)} race group` : 'Set by the race'
-}))
+/** The draft nudge, until the rider dismisses it for the visit. */
+const draftNudgeDismissed = ref(false)
 
 useSeoMeta({
-  title: () => `Fastest bike for ${raceTitle.value}: ${routeNamesLabel.value} (${formatLabel.value}) | ZwiftBikes`,
-  description: () => hasSplitCourses(race!)
-    ? `${raceTitle.value}: ${formatLabel.value} on ${formatRaceDate(race!.date)} – ${routeNamesByCategory.value}. Lap counts per category, TT bike rules, and the best legal bike and wheel combo for each course.`
-    : `${raceTitle.value}: ${formatLabel.value} on ${routeNamesLabel.value}, ${formatRaceDate(race!.date)}. Lap counts per category, TT bike rules, and the best legal bike and wheel combo.`,
-  ogTitle: () => `Fastest bike for ${raceHeading.value} – ${routeNamesLabel.value}`,
-  ogDescription: () => hasSplitCourses(race!)
-    ? `The fastest legal bike and wheel combo for ${raceTitle.value} – ${routeNamesByCategory.value}.`
-    : `The fastest legal bike and wheel combo for ${raceTitle.value} on ${routeNamesLabel.value}.`
+  title: () => statement.value.title,
+  description: () => statement.value.description,
+  ogTitle: () => statement.value.ogTitle,
+  ogDescription: () => statement.value.ogDescription
 })
 
-if (hasRun.value) {
+if (statement.value.hasRun) {
   // Decided on the server's day, so the rule is in the served HTML and the
   // X-Robots-Tag header, which is where a crawler reads it: the module owns
   // the one robots tag and does not change it after load. A race
@@ -417,33 +128,20 @@ if (hasRun.value) {
 // Issue #59: a generated card replaces the old hotlinked world minimap.
 // Snapshotted once at setup - the build-time prerender pass (zeroRuntime
 // never re-renders) - so the combo is the DEFAULT rider profile's, matching
-// what the prerendered page shows. Only races whose categories ride
-// different ROUTES skip the combo line (one combo would be wrong for most
-// readers) - deliberately narrower than `hasSplitCourses`, which also
-// splits on lap count: same route with more laps is the same terrain mix,
-// so the fastest combo holds.
-const ogRouteCount = new Set(race!.categories.map(group => group.routeSlug ?? group.routeName ?? '')).size
-// The first Category group's - the one selected at setup - rank 1, and its
-// course as its Silhouette, for its lap count with the lead-in once. See
-// `RankingPageShareCard`.
-const { frameName, wheelName, silhouette } = rankingPage.shareCard.value
-// A card is only generated for a page that is prerendered (`zeroRuntime`), and
-// a run race's page is not, so a card defined here would be an og:image URL
-// whose image was never built. It gets none of its own and shares with the
-// site's own card (`app.vue`), as the pages that set nothing better do; its
-// title and description are still the race's.
-if (!hasRun.value) {
+// what the prerendered page shows: the first Category group's rank 1, and
+// its course as its Silhouette, for its lap count with the lead-in once. See
+// `RankingPageShareCard`. A run race has no card of its own (its page is not
+// prerendered, so the image would never be built) and shares the site's
+// (`app.vue`); its title and description are still the race's.
+const shareCard = statement.value.shareCard
+if (shareCard) {
+  const { frameName, wheelName, silhouette } = rankingPage.shareCard.value
   defineOgImage('EventCard', {
-    series: raceContextLabel(season!, round),
-    title: raceHeading.value,
-    course: `${routeNamesLabel.value} · ${formatLabel.value}`,
-    date: formatRaceDate(race!.date),
-    frameName: ogRouteCount > 1 ? undefined : frameName,
-    wheelName: ogRouteCount > 1 ? undefined : wheelName,
+    ...shareCard.props,
+    frameName: shareCard.namesSetup ? frameName : undefined,
+    wheelName: shareCard.namesSetup ? wheelName : undefined,
     profile: silhouette
-  }, {
-    alt: `${raceTitle.value} on ${routeNamesLabel.value}: date, format and the fastest legal bike and wheel setup`
-  })
+  }, { alt: shareCard.alt })
 }
 </script>
 
@@ -460,38 +158,33 @@ if (!hasRun.value) {
          anything else. Served in the HTML when the race was run before the
          page was rendered, and drawn after load when it has been run since. -->
     <section
-      v-if="hasRun"
+      v-if="statement.runNotice"
       aria-label="This race has been run"
       class="mt-5 sm:mt-8"
     >
-      <SiteNotice :title="runNotice.title">
+      <SiteNotice :title="statement.runNotice.title">
         <p>
-          {{ runNotice.ranOn }}
+          {{ statement.runNotice.ranOn }}
         </p>
         <p>
-          {{ runNotice.next.lead }}
+          {{ statement.runNotice.next.lead }}
           <NuxtLink
-            :to="runNotice.next.to"
+            :to="statement.runNotice.next.to"
             class="font-medium text-highlighted underline decoration-rule-strong"
-          >{{ runNotice.next.label }}</NuxtLink>
+          >{{ statement.runNotice.next.label }}</NuxtLink>
         </p>
-        <p v-if="runNotice.route">
-          {{ runNotice.route.lead }}
+        <p v-if="statement.runNotice.route">
+          {{ statement.runNotice.route.lead }}
           <NuxtLink
-            :to="runNotice.route.to"
+            :to="statement.runNotice.route.to"
             class="font-medium text-highlighted underline decoration-rule-strong"
-          >{{ runNotice.route.label }}</NuxtLink>
+          >{{ statement.runNotice.route.label }}</NuxtLink>
         </p>
       </SiteNotice>
     </section>
     <RideHeading
-      :crumbs="[
-        { label: 'Events', to: '/events' },
-        { label: `${season!.seriesName} ${season!.label}`, to: `/events/${season!.slug}` },
-        { label: formatLabel },
-        { label: raceDate }
-      ]"
-      :name="`${raceHeading}: ${displayRouteName}`"
+      :crumbs="statement.heading.crumbs"
+      :name="statement.heading.name"
     >
       <!-- The Category group is the race's one selection, in the header so
            choosing a group redraws the Fact row and the course before the
@@ -518,17 +211,20 @@ if (!hasRun.value) {
     </RideHeading>
 
     <RideFactRow
-      :facts="facts"
-      :surface="surface"
+      :facts="statement.facts"
+      :surface="statement.surface"
     >
-      <li>{{ ttAlertDescription }}</li>
+      <li v-if="statement.coverageNote">
+        {{ statement.coverageNote }}
+      </li>
+      <li>{{ statement.rules.alert }}</li>
       <!-- A rule, not a nudge: the ranking is computed solo whatever the
            rider's saved draft mode says, so this states what happened. -->
-      <li v-if="!draftAllowed">
-        No draft in a Race of Truth, so the ranking is ridden solo; your saved draft setting still applies everywhere else.
+      <li v-if="statement.rules.soloNote">
+        {{ statement.rules.soloNote }}
       </li>
-      <li v-if="officialDiffers">
-        {{ season!.organizer }} publishes this race as {{ [selectedGroup?.officialDistanceKm ? formatDistance(selectedGroup.officialDistanceKm) : undefined, selectedGroup?.officialElevationM !== undefined ? formatElevation(selectedGroup.officialElevationM) : undefined].filter(Boolean).join(' / ') }}; the figures above are this site's own totals from the route's lead-in and lap data, which is what the physics runs on.
+      <li v-if="statement.officialFiguresNote">
+        {{ statement.officialFiguresNote }}
       </li>
       <TttFactLine
         v-if="tttPlan"
@@ -537,14 +233,14 @@ if (!hasRun.value) {
     </RideFactRow>
 
     <CourseHero
-      v-if="routeInfo"
+      v-if="routeInfo && ride"
       :route="routeInfo"
-      :laps="laps"
-      :name="displayRouteName"
-      :scoring-slugs="scoringSlugs"
+      :laps="ride.laps ?? 1"
+      :name="statement.routeName"
+      :scoring-slugs="statement.scoring.starredSlugs"
     />
 
-    <template v-if="groupHasNoRoute">
+    <template v-if="!ride">
       <RecommendDataNotice class="mt-6" />
       <p
         class="sr-only"
@@ -555,17 +251,17 @@ if (!hasRun.value) {
       </p>
       <SiteNotice
         class="mt-8"
-        :title="`${displayRouteName} isn't in the public route catalog`"
+        :title="`${statement.routeName} isn't in the public route catalog`"
       >
         <p>
-          {{ season!.organizer }} runs {{ formatCategoryGroup(selectedGroup ?? { cats: [] }) }} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against – and a ranking computed from a guess would be worse than none. The published figures above are {{ season!.organizer }}'s own.<template v-if="categoryGroupOptions.length > 1">
+          {{ season.organizer }} runs {{ statement.groupLabel }} on an event-exclusive route we have no data for, so there is no distance, elevation or surface to simulate against – and a ranking computed from a guess would be worse than none. The published figures above are {{ season.organizer }}'s own.<template v-if="categoryGroupOptions.length > 1">
             Pick another race group above to see recommendations for the routes we do have.
           </template>
         </p>
       </SiteNotice>
       <!-- Everything the organiser published that needs no catalog route. -->
       <section
-        v-if="hasScoring"
+        v-if="statement.scoring.shown"
         class="mt-10"
         aria-labelledby="race-scoring-heading"
       >
@@ -576,11 +272,11 @@ if (!hasRun.value) {
           Where the points are
         </h2>
         <RaceScoringSegments
-          :rows="scoringRows"
-          :tbd="scoringSegmentsTbd"
-          :organizer="season!.organizer"
-          :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
-          :format="race!.format!"
+          :rows="statement.scoring.rows"
+          :tbd="statement.scoring.tbd"
+          :organizer="season.organizer"
+          :group-label="statement.groupLabel"
+          :rules="statement.rules"
         />
       </section>
     </template>
@@ -588,30 +284,11 @@ if (!hasRun.value) {
     <template v-else>
       <RankingPageBody :page="rankingPage">
         <template #page-block>
-          <SiteNotice
-            v-if="draftHint"
-            class="mt-6"
-          >
-            <p>{{ draftHint.text }}</p>
-            <template #actions>
-              <UButton
-                size="xs"
-                color="neutral"
-                variant="outline"
-                @click="setDraftMode(draftHint.mode)"
-              >
-                {{ draftHint.action }}
-              </UButton>
-              <UButton
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-x"
-                aria-label="Dismiss draft mode hint"
-                @click="draftHintDismissed = true"
-              />
-            </template>
-          </SiteNotice>
+          <RaceFormatDraftNudge
+            v-if="rules?.draftNudge && !draftNudgeDismissed"
+            :nudge="rules.draftNudge"
+            @dismiss="draftNudgeDismissed = true"
+          />
         </template>
 
         <template #rider="card">
@@ -619,16 +296,16 @@ if (!hasRun.value) {
             :rider="card.rider"
             :refreshing="card.refreshing"
             :has-long-climb="card.hasLongClimb"
-            :draft-locked="draftLockedReason"
-            :tt-barred="ttBarredReason"
-            :fixed-laps="fixedLaps"
+            :draft-locked="card.draftLocked"
+            :tt-barred="card.ttBarred"
+            :fixed-laps="statement.fixedLaps"
             :applied-laps="card.appliedLaps"
           />
         </template>
 
         <template #report-link="{ reportLine }">
           <ReportDataLink
-            :item="`${raceTitle}${routeInfo ? ` (${routeInfo.name})` : ''}`"
+            :item="statement.reportItem"
             :ride="reportLine"
           />
         </template>
@@ -636,15 +313,15 @@ if (!hasRun.value) {
         <!-- Only when there is something to score: a scratch race scores
              nothing along the way, and the tab exists exactly when this does. -->
         <template
-          v-if="hasScoring"
+          v-if="statement.scoring.shown"
           #scoring
         >
           <RaceScoringSegments
-            :rows="scoringRows"
-            :tbd="scoringSegmentsTbd"
-            :organizer="season!.organizer"
-            :group-label="formatCategoryGroup(selectedGroup ?? { cats: [] })"
-            :format="race!.format!"
+            :rows="statement.scoring.rows"
+            :tbd="statement.scoring.tbd"
+            :organizer="season.organizer"
+            :group-label="statement.groupLabel"
+            :rules="statement.rules"
           />
         </template>
       </RankingPageBody>
@@ -660,7 +337,7 @@ if (!hasRun.value) {
         >Fastest bike for {{ routeInfo.name }}</NuxtLink>.
         <!-- The route page knows nothing of this race, so it ranks the TT
              frames this race bars. Better said than silently contradicted. -->
-        <template v-if="!ttAllowed">
+        <template v-if="statement.rules.ttFramesBarred">
           It ranks every bike in the game, TT frames included – this race's rule is the race's, not the route's.
         </template>
       </p>
@@ -670,7 +347,7 @@ if (!hasRun.value) {
          out, where its rules live - after the answer rather than in the
          Fact row, which shares a phone's first screen with the time. -->
     <section
-      v-if="race!.note || powerupsLine || coursesDiffer || race!.sourceUrl || season!.organizerUrl"
+      v-if="race.note || statement.powerupsLine || statement.coursesDiffer || race.sourceUrl || season.organizerUrl"
       class="mt-16"
       aria-labelledby="race-note-heading"
     >
@@ -678,29 +355,29 @@ if (!hasRun.value) {
         id="race-note-heading"
         class="text-2xl font-semibold font-heading text-highlighted"
       >
-        {{ race!.note ? 'How this race tends to play out' : 'About this race' }}
+        {{ race.note ? 'How this race tends to play out' : 'About this race' }}
       </h2>
       <p
-        v-if="race!.note"
+        v-if="race.note"
         class="mt-3 max-w-[72ch] text-toned"
       >
-        {{ race!.note }}
+        {{ race.note }}
       </p>
       <!-- Curated fact only: absent powerup data renders no line at all. -->
       <p
-        v-if="powerupsLine"
+        v-if="statement.powerupsLine"
         class="mt-3 text-toned"
       >
-        PowerUps: {{ powerupsLine }}.
+        {{ statement.powerupsLine }}
       </p>
       <!-- Each Category group's course, readable at a glance without moving the selector. -->
       <div
-        v-if="coursesDiffer"
+        v-if="statement.coursesDiffer"
         class="mt-4 overflow-x-auto"
       >
         <table class="w-full border-collapse text-sm">
           <caption class="sr-only">
-            Course, laps and published figures for each category group in this race
+            {{ statement.groupsCaption }}
           </caption>
           <thead>
             <tr class="border-b border-accented text-left text-xs text-muted">
@@ -738,46 +415,46 @@ if (!hasRun.value) {
           </thead>
           <tbody>
             <tr
-              v-for="group in race!.categories"
-              :key="formatCategoryGroup(group)"
+              v-for="group in statement.groups"
+              :key="group.label"
               class="border-b border-default"
             >
               <td class="px-2 py-2 whitespace-nowrap font-medium text-highlighted">
-                {{ formatCategoryGroup(group) }}
+                {{ group.label }}
               </td>
               <td class="px-2 py-2">
-                {{ group.routeName ?? 'TBC' }}
+                {{ group.routeName }}
               </td>
               <td class="px-2 py-2 text-right">
                 {{ group.laps }}
               </td>
               <td class="px-2 py-2 text-right whitespace-nowrap">
-                {{ group.officialDistanceKm ? formatDistance(group.officialDistanceKm) : '-' }}
+                {{ group.distance }}
               </td>
               <td class="px-2 py-2 text-right whitespace-nowrap">
-                {{ group.officialElevationM !== undefined ? formatElevation(group.officialElevationM) : '-' }}
+                {{ group.elevation }}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
       <p
-        v-if="race!.sourceUrl || season!.organizerUrl"
+        v-if="race.sourceUrl || season.organizerUrl"
         class="mt-3 text-sm text-muted"
       >
         <a
-          :href="race!.sourceUrl ?? season!.organizerUrl"
+          :href="race.sourceUrl ?? season.organizerUrl"
           target="_blank"
           rel="noopener"
           class="text-toned underline decoration-rule-strong hover:text-highlighted"
-        >Official event info</a> – signup, full rules and results live with {{ season!.organizer }}; we rank the bikes.
+        >Official event info</a> – signup, full rules and results live with {{ season.organizer }}; we rank the bikes.
       </p>
     </section>
 
     <EventsDisclaimer
       class="mt-10"
-      :organizer="season!.organizer"
-      :organizer-url="season!.organizerUrl"
+      :organizer="season.organizer"
+      :organizer-url="season.organizerUrl"
     />
   </UContainer>
 </template>

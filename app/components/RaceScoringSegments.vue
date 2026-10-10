@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { RaceFormat } from '#shared/utils/events'
-import { draftingAllowed, ttBikesAllowed } from '#shared/utils/events'
+import type { RaceFormatRules } from '../../shared/utils/raceRules'
+import type { ScoringRow } from '../../shared/utils/rideStatement'
 
 /**
  * Where a race's points are scored, in the order they are ridden. Three
@@ -19,33 +19,23 @@ const props = defineProps<{
   /**
    * The scoring segments in ride order, already merged across the organiser's
    * FAL and FTS lists and positioned along the ride where the route data says
-   * so - see `scoringRows` on the race page, which owns the lap maths.
+   * so - see `scoringRows` in the race statement, which owns the lap maths.
    */
-  rows: { name: string, slug?: string, fal: number, fts: number, positionsKm: number[] }[]
+  rows: ScoringRow[]
   /** Whether the organiser has yet to publish this group's segments - a different thing from listing none. */
   tbd: boolean
   /** Who publishes them, named in all three states: none of this is ours. */
   organizer: string
   /** The group these rows belong to, for the table's caption. */
   groupLabel: string
-  /** This race's format, which travels out on every segment link as `?rules=` so the ranking there is ridden under these rules (#224). */
-  format: RaceFormat
+  /**
+   * This race's format rules. The format travels out on every segment link as
+   * `?rules=` so the ranking there is ridden under these rules (#224), and the
+   * note under the table says so where the reader is deciding whether to
+   * follow one - `segmentLinkNote`.
+   */
+  rules: RaceFormatRules
 }>()
-
-/**
- * What following one of these links gets you, said where the reader is
- * deciding whether to follow it. Before #224 this paragraph had to admit the
- * opposite - that a segment page knew nothing of the race and could not be
- * told - and warn the rider to check a bike's legality themselves.
- */
-const linkedRulesNote = computed(() => {
-  const tail = ttBikesAllowed(props.format)
-    ? ''
-    : draftingAllowed(props.format)
-      ? ', with TT frames left out of it'
-      : ', with TT frames left out of it and no draft'
-  return `The link carries this race's format, so that ranking is ridden as a ${raceFormatPhrase(props.format)} too${tail}.`
-})
 
 /** Only when the route publishes where its segments sit; otherwise the column would be a row of blanks. */
 const hasPositions = computed(() => props.rows.some(row => row.positionsKm.length))
@@ -124,7 +114,7 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
                      the link doesn't decay when this race retires (#224). -->
                 <NuxtLink
                   v-if="segment.slug"
-                  :to="`/segments/${segment.slug}?rules=${format}`"
+                  :to="`/segments/${segment.slug}?rules=${rules.format}`"
                   class="font-semibold text-highlighted hover:underline"
                 >Fastest bike for {{ segment.name }}</NuxtLink>
                 <template v-else>
@@ -161,7 +151,7 @@ const hasUnlinked = computed(() => props.rows.some(row => !row.slug))
       </div>
       <p class="text-xs text-muted">
         Tap a segment for the fastest bikes over that sprint alone – the fastest bike for a sprint
-        isn't always the fastest over a whole race. {{ linkedRulesNote }}
+        isn't always the fastest over a whole race. {{ rules.segmentLinkNote }}
       </p>
       <p
         v-if="hasUnlinked"

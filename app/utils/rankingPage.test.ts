@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getRouteBySlug } from '#shared/utils/catalog'
-import { categoryGroupRacing, formatCategoryGroup, getRaceBySlug, type EventRace } from '#shared/utils/events'
+import { getRaceBySlug, type EventRace } from '#shared/utils/events'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import type { ComboScore } from '../../shared/types/catalog'
 import { rankingPageAnalysisKind, rankingPageAnswerRide, rankingPageHasLongClimb, rankingPageLaps, rankingPageReportLine, rankingPageShareCard, resolveRankingPageRide } from './rankingPage'
@@ -29,26 +29,25 @@ describe('rankingPageHasLongClimb', () => {
 
 describe('rankingPageAnswerRide', () => {
   const hilly = getRouteBySlug('hilly-route')!
-  const name = (course: { name: string, worldName: string }) => `${course.name} in ${course.worldName}`
-
   it('names the Applied course, and times the Applied laps with the lead-in once', () => {
-    const answer = rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 3 }, hilly, name)
+    const answer = rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 3 }, hilly, 'Watopia Hilly Route in Watopia')
     expect(answer).toEqual({ rideName: 'Watopia Hilly Route in Watopia', distanceKm: expect.closeTo(0.502 + 3 * 9.193, 6), laps: 3, rideRules: undefined })
   })
 
   it('states no lap count for a segment, and times the segment\'s own length', () => {
     const segment = { ...flat, slug: 'a-segment', distance: 1.4, leadInDistance: undefined, lap: false }
-    const answer = rankingPageAnswerRide({ course: { kind: 'segment', slug: 'a-segment' }, power: 'sprint' }, segment, name)
+    const answer = rankingPageAnswerRide({ course: { kind: 'segment', slug: 'a-segment' }, power: 'sprint' }, segment, `${flat.name} in ${flat.worldName}`)
     expect(answer).toEqual({ rideName: `${flat.name} in ${flat.worldName}`, distanceKm: 1.4, laps: undefined, rideRules: undefined })
   })
 
   it('leads with the Race format rules line of the Applied Ride', () => {
-    const answer = rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 1, raceFormat: 'rot', ttFramesAllowed: false, draftingAllowed: false }, hilly, name)
-    expect(answer?.rideRules).toMatch(/^WTRL bans TT bikes from its Race of Truth/)
+    const answer = rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 1, raceFormat: 'rot', ttFramesAllowed: false, draftingAllowed: false }, hilly, 'Watopia Hilly Route in Watopia')
+    expect(answer?.rideRules).toMatch(/^WTRL bans TT frames from a Race of Truth\./)
   })
 
-  it('says nothing until the Applied course is known', () => {
-    expect(rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 1 }, undefined, name)).toBeUndefined()
+  it('says nothing until the Applied course and its name are known', () => {
+    expect(rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 1 }, undefined, 'Watopia Hilly Route in Watopia')).toBeUndefined()
+    expect(rankingPageAnswerRide({ course: { kind: 'route', slug: 'hilly-route' }, laps: 1 }, hilly, undefined)).toBeUndefined()
   })
 })
 
@@ -59,9 +58,8 @@ describe('rankingPageReportLine', () => {
     expect(rankingPageReportLine({ course: { kind: 'route', slug: 'hilly-route' }, laps: 3 }, rider)).toBe('3 laps, 250 W, Solo')
   })
 
-  it('leads with the page\'s subject, worked out from the Applied Ride', () => {
-    const subject = (ride: { power?: string } | undefined) => ride?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
-    expect(rankingPageReportLine({ course: { kind: 'segment', slug: 'a-sprint' }, power: 'sprint' }, { ...rider, powerW: 800 }, subject))
+  it('leads with the subject the Ride statement gave the Applied Ride', () => {
+    expect(rankingPageReportLine({ course: { kind: 'segment', slug: 'a-sprint' }, power: 'sprint' }, { ...rider, powerW: 800 }, 'Sprint segment'))
       .toBe('Sprint segment, 800 W sprint power, Solo')
   })
 })
@@ -117,9 +115,6 @@ describe('a segment\'s Ranking page', () => {
   const acropolis = segmentCourse('acropolis-sprint')
   const climb: Ride = { course: { kind: 'segment', slug: 'alpe-du-zwift' }, power: 'race' }
   const sprint: Ride = { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }
-  // The segment page's own words: the segment and its type, since a segment Ride has no laps to state.
-  const segmentName = (type: string) => (course: { name: string, worldName: string }) => `the ${course.name} ${type} in ${course.worldName}`
-  const segmentSubject = (ride: Ride | undefined) => ride?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
 
   it('is ridden once', () => {
     expect(rankingPageLaps(climb)).toBe(1)
@@ -127,13 +122,13 @@ describe('a segment\'s Ranking page', () => {
   })
 
   it('answers for one pass of the segment, timed over the segment\'s own length, with no lap count', () => {
-    expect(rankingPageAnswerRide(climb, alpe, segmentName('climb'))).toEqual({
+    expect(rankingPageAnswerRide(climb, alpe, 'the Alpe du Zwift climb in Watopia')).toEqual({
       rideName: 'the Alpe du Zwift climb in Watopia',
       distanceKm: expect.closeTo(12.228, 6),
       laps: undefined,
       rideRules: undefined
     })
-    expect(rankingPageAnswerRide(sprint, fuego, segmentName('sprint'))).toMatchObject({
+    expect(rankingPageAnswerRide(sprint, fuego, 'the Fuego Flats sprint in Watopia')).toMatchObject({
       rideName: 'the Fuego Flats sprint in Watopia',
       distanceKm: expect.closeTo(0.498, 6),
       laps: undefined
@@ -141,14 +136,8 @@ describe('a segment\'s Ranking page', () => {
   })
 
   it('leads the answer with the Race format rules line when a link supplied a format', () => {
-    const answer = rankingPageAnswerRide({ ...sprint, ...rideRulesForFormat('rot') }, fuego, segmentName('sprint'))
-    expect(answer?.rideRules).toMatch(/^WTRL bans TT bikes from its Race of Truth/)
-  })
-
-  it('leads the report line with the kind of segment the Applied Ride was', () => {
-    const rider = { powerW: 800, draftMode: 'solo' as const, tttRiders: 4 }
-    expect(rankingPageReportLine(sprint, rider, segmentSubject)).toBe('Sprint segment, 800 W sprint power, Solo')
-    expect(rankingPageReportLine(climb, { ...rider, powerW: 250 }, segmentSubject)).toBe('Climbing segment, 250 W, Solo')
+    const answer = rankingPageAnswerRide({ ...sprint, ...rideRulesForFormat('rot') }, fuego, 'the Fuego Flats sprint in Watopia')
+    expect(answer?.rideRules).toMatch(/^WTRL bans TT frames from a Race of Truth\./)
   })
 
   it('analyses a climb with its speed chart and a sprint without', () => {
@@ -184,19 +173,11 @@ describe('a race\'s Ranking page', () => {
   const rot = getRaceBySlug('zrl-2026-27', 'round-1-week-1')!
   const innsbruckring = getRouteBySlug('innsbruckring')!
   const makuri40 = getRouteBySlug('makuri-40')!
-  const urumaze = getRouteBySlug('urumaze')!
   const groupRide = (race: EventRace, index: number): Ride => ({
     course: { kind: 'route', slug: race.categories[index]!.routeSlug! },
     laps: race.categories[index]!.laps,
     ...rideRulesForFormat(race.format!)
   })
-  // The race page's own words: the course and world, the lap count left to
-  // the answer's scope line (issue #291).
-  const raceName = (course: { name: string, worldName: string }) => `${course.name} in ${course.worldName}`
-  const raceSubject = (race: EventRace) => (ride: Ride | undefined) => {
-    const group = categoryGroupRacing(race, ride?.course.slug, ride?.laps)
-    return group ? formatCategoryGroup(group) : undefined
-  }
 
   it('rides the Applied Category group\'s laps', () => {
     expect(rankingPageLaps(groupRide(byLaps, 0))).toBe(4)
@@ -204,23 +185,20 @@ describe('a race\'s Ranking page', () => {
   })
 
   it('answers for the Applied course over the Applied laps, timed with the lead-in once, under the Race format\'s rules', () => {
-    expect(rankingPageAnswerRide(groupRide(byLaps, 1), innsbruckring, raceName)).toEqual({
+    expect(rankingPageAnswerRide(groupRide(byLaps, 1), innsbruckring, 'Innsbruckring in Innsbruck')).toEqual({
       rideName: 'Innsbruckring in Innsbruck',
       distanceKm: expect.closeTo(0.222 + 3 * 8.799, 6),
       laps: 3,
-      rideRules: 'TT bikes are disabled for this scratch race.'
+      rideRules: 'Zwift disables TT frames for scratch races.'
     })
   })
 
-  it('names the course the Applied Ranking was computed over, whichever group the selector has moved to', () => {
-    // The selector is on C/D (Urumaze); the ranking on screen is still A/B's.
-    const applied = groupRide(byRoute, 0)
-    expect(rankingPageAnswerRide(applied, makuri40, raceName)).toMatchObject({
+  it('times the course the Applied Ranking was computed over, under the format\'s rules', () => {
+    expect(rankingPageAnswerRide(groupRide(byRoute, 0), makuri40, 'Makuri 40 in Makuri Islands')).toMatchObject({
       rideName: 'Makuri 40 in Makuri Islands',
       distanceKm: expect.closeTo(0.137 + 40.115, 6),
-      rideRules: 'TT bikes are disabled for this points race.'
+      rideRules: 'Zwift disables TT frames for points races.'
     })
-    expect(rankingPageAnswerRide(groupRide(byRoute, 1), urumaze, raceName)?.rideName).toBe('Urumaze in Makuri Islands')
   })
 
   it('bars TT frames from the Ride under a format that bars them, and ranks a TTT with them', () => {
@@ -231,15 +209,13 @@ describe('a race\'s Ranking page', () => {
   })
 
   it('leads the Race of Truth\'s answer with its rules line', () => {
-    expect(rankingPageAnswerRide(groupRide(rot, 0), getRouteBySlug('montmartre-mixer')!, raceName)?.rideRules)
-      .toBe('WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time is for riding solo.')
+    expect(rankingPageAnswerRide(groupRide(rot, 0), getRouteBySlug('montmartre-mixer')!, 'Montmartre Mixer in Paris')?.rideRules)
+      .toBe('WTRL bans TT frames from a Race of Truth. WTRL turns the draft off for a Race of Truth, so the time is for riding solo.')
   })
 
-  it('leads the report line with the Applied Category group, matched on the Applied course and laps', () => {
+  it('leads the report line with the Applied Category group', () => {
     const rider = { powerW: 250, draftMode: 'race' as const, tttRiders: 4 }
-    expect(rankingPageReportLine(groupRide(byLaps, 1), rider, raceSubject(byLaps))).toBe('C/D, ridden as a scratch race, 3 laps, 250 W, Race draft, TT frames barred')
-    expect(rankingPageReportLine(groupRide(byLaps, 0), rider, raceSubject(byLaps))).toBe('A/B, ridden as a scratch race, 4 laps, 250 W, Race draft, TT frames barred')
-    expect(rankingPageReportLine(groupRide(byRoute, 1), rider, raceSubject(byRoute))).toBe('C/D, ridden as a points race, 1 lap, 250 W, Race draft, TT frames barred')
+    expect(rankingPageReportLine(groupRide(byLaps, 1), rider, 'C/D')).toBe('C/D, ridden as a scratch race, 3 laps, 250 W, Race draft, TT frames barred')
   })
 
   it('draws the Applied group\'s course on the share card, for its laps', () => {

@@ -3,31 +3,25 @@ import { createError } from 'h3'
 import type { BikeCategory, ComboScore, RouteSummary } from '../../../shared/types/catalog'
 import { getRouteBySlug, getRoutesWithMeta, toRouteSummary } from '../../../shared/utils/catalog'
 import {
-  categoryGroup,
-  draftingAllowed,
-  formatCategoryGroup,
   getRaceBySlug,
   getRoundForRace,
   getSeasonBySlug,
-  hasBeenRun,
   isRacePublishable,
-  RACE_FORMAT_LABELS,
-  lapsForCategoryGroup,
-  raceContextLabel,
-  raceDisplayName,
-  ttBikesAllowed
+  raceContextLabel
 } from '../../../shared/utils/events'
 import { BIKE_CATEGORY_WORDS } from '../../../shared/utils/bikeCategories'
-import { rideRulesLine } from '../../../shared/utils/raceRules'
-import { runRaceNotice, type NoticeLink, type RunRaceNotice } from '../../../shared/utils/runRaceNotice'
+import { raceFormatRules } from '../../../shared/utils/raceRules'
+import type { NoticeLink, RunRaceNotice } from '../../../shared/utils/runRaceNotice'
 import { buildRecommendationAnswer } from '../../../shared/utils/recommendationAnswer'
-import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, riderInputsForRide, rideRulesForFormat, type AppliedRiderInputs, type Ride } from '../../../shared/utils/recommendQuery'
+import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, riderInputsForRide, type AppliedRiderInputs, type Ride } from '../../../shared/utils/recommendQuery'
+import { raceRide, raceStatement, routeStatement, segmentStatement, type RaceStatement, type RideStatement } from '../../../shared/utils/rideStatement'
 import { computeRouteTotals, maxLapsForRoute } from '../../../shared/utils/routeLaps'
 import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
 import type { SiteFlags } from '../../../shared/utils/siteFlags'
+import { formatDistance } from '../../../shared/utils/units'
 import { MAX_UPGRADE_STAGE } from '../../../shared/utils/upgradeStage'
 import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from '../apiQuerySchemas'
-import { CONFIDENCE_NOTE, formatComboTable, formatRaceFormatAssumption, formatSurface } from '../mcp/format'
+import { CONFIDENCE_NOTE, formatComboTable, formatSurface } from '../mcp/format'
 import { rankRideForQuery, type CourseToRank, type RankingFor, type RideForCourse, type RouteRanking, type SegmentRanking } from '../rankRide'
 
 /**
@@ -42,7 +36,10 @@ import { rankRideForQuery, type CourseToRank, type RankingFor, type RideForCours
  * own Ride and ranks it for the rider the prerendered HTML is rendered for,
  * through the query the page itself sends - see `rankAsThePage`. What a
  * rider reads and what an agent reads are the same ranking, from the same
- * cache entry.
+ * cache entry. And what the page says about its Ride on its own - its name,
+ * question, Fact row and notes, a race's own facts - comes from the page's
+ * own Ride statement (`shared/utils/rideStatement`), so the twin has no
+ * words of its own for any of it (issue #318).
  *
  * **It is written for a model deciding what to say next.** The table, the
  * confidence column and the "measured vs estimated" note are the MCP
@@ -212,7 +209,7 @@ function answerLine(
     fastestOverall: ranking.fastestOverall,
     distanceKm: course.distanceKm,
     rideName: course.rideName,
-    rideRules: ride.raceFormat ? rideRulesLine(ride.raceFormat) : undefined,
+    rideRules: raceFormatRules(ride)?.rulesLine,
     rider: riderInputsForRide(restrictions, ride),
     laps: ride.laps,
     verifiedOnly: restrictions.verifiedOnly,
@@ -346,6 +343,20 @@ function rankingAssumptions(rider: AppliedRiderInputs, extra: string[]): string[
   ]
 }
 
+/**
+ * The Fact row as the page sets it under its heading: a line a cell, the
+ * surface cell, then the notes beneath it - each in the statement's words.
+ */
+function factRowLines(statement: RideStatement, notes: (string | undefined)[]): string[] {
+  const { surface } = statement
+  return [
+    ...statement.facts.map(fact => `- ${fact.value} ${fact.label}`),
+    ...(surface ? [surface.allTarmac ? '- All tarmac' : `- Surface: ${surface.key.map(entry => entry.text).join(', ')}`] : []),
+    '',
+    ...facts(notes).flatMap(note => [note, ''])
+  ]
+}
+
 /** `- **Distance**: 12.4 km` and friends, dropping the ones with nothing to say. */
 function facts(entries: (string | undefined)[]): string[] {
   return entries.filter((entry): entry is string => Boolean(entry))
@@ -400,7 +411,7 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
   const ride: Ride = { course: { kind: 'route', slug: route.slug }, laps: 1 }
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
   const totals = computeRouteTotals(route, 1)
-  const question = `What's the fastest bike for ${route.name}?`
+  const statement = routeStatement({ route, laps: 1, siteUrl })
 
   // A ranking is the point of the page but not a precondition for the
   // document: the kill switch can pause recommendations and a rider who
@@ -412,10 +423,9 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
 
   const unavailable = rankingUnavailable(result)
   const lines = [
-    ...rankingHeader(question, (ranking && answerLine(ranking, ride, { rideName: `${route.name} in ${route.worldName}`, distanceKm: totals.distanceKm })) ?? unavailable, canonical),
+    ...rankingHeader(statement.question, (ranking && answerLine(ranking, ride, { rideName: statement.rideName, distanceKm: totals.distanceKm })) ?? unavailable, canonical),
     '',
-    `${route.name} is a ${route.terrain.category} route in ${route.worldName}: ${totals.distanceKm.toFixed(1)} km and ${Math.round(totals.elevationM)} m of climbing for one lap, lead-in included.`,
-    ''
+    ...factRowLines(statement, [statement.coverageNote])
   ]
 
   lines.push(...rankingSection(ranking, unavailable, rider, ['- One lap, including the lead-in once.'], origin))
@@ -429,7 +439,7 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
       `- **One lap**: ${route.distance.toFixed(1)} km, ${Math.round(route.elevation)} m`,
       route.leadInDistance ? `- **Lead-in** (ridden once): ${route.leadInDistance.toFixed(1)} km, ${Math.round(route.leadInElevation ?? 0)} m` : undefined,
       `- **Lappable**: ${route.lap ? `yes, up to ${maxLapsForRoute(route)} laps on this site` : 'no - point to point, ridden once'}`,
-      `- **Terrain**: ${route.terrain.category}, ${Math.round(route.terrain.climbRatio)} m of climbing per km`,
+      `- **Terrain**: ${route.terrain.category}`,
       `- **Surface**: ${formatSurface(route.surface)}`,
       `- **Event only**: ${route.eventOnly ? 'yes - it can only be ridden in an event' : 'no - it can be free-ridden as well as raced'}`,
       // Which of the three geometry sources the physics model got, said the
@@ -461,7 +471,7 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
   const segment = getSegmentSummary(slug)
   if (!segment) throw createError({ statusCode: 404, statusMessage: `Segment "${slug}" not found` })
   // The synthetic segment-as-route is where a climb's surface mix lives.
-  const surface = routeWithMetaForSegment(segment).surface
+  const course = routeWithMetaForSegment(segment)
   const canonical = `${siteUrl}/segments/${segment.slug}`
   // The page's Ride (`app/pages/segments/[slug].vue`), with no Race format -
   // a clean link has no `?rules=`. A sprint is ridden at the rider's sprint
@@ -469,20 +479,21 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
   // quotes a different W figure from a climb's.
   const ride: Ride = { course: { kind: 'segment', slug: segment.slug }, power: segment.type === 'sprint' ? 'sprint' : 'race' }
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
-  const question = `What's the fastest bike for ${segment.name}?`
+  const statement = segmentStatement({ segment, course, ride, siteUrl })
 
   const result = await rankAsThePage({ kind: 'segment', segment }, ride, context)
   const ranking = 'ranking' in result ? result.ranking : undefined
 
-  const elevationM = Math.round(segment.measuredElevationM ?? segment.elevationM)
-  const gradePercent = (segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)
-
   const unavailable = rankingUnavailable(result)
   const lines = [
-    ...rankingHeader(question, (ranking && answerLine(ranking, ride, { rideName: `the ${segment.name} ${segment.type} in ${segment.worldName}`, distanceKm: segment.lengthKm })) ?? unavailable, canonical),
+    ...rankingHeader(statement.question, (ranking && answerLine(ranking, ride, { rideName: statement.rideName, distanceKm: segment.lengthKm })) ?? unavailable, canonical),
     '',
-    `${segment.name} is a ${segment.type} in ${segment.worldName}: ${segment.lengthKm.toFixed(1)} km at ${gradePercent}% average grade, ${elevationM} m of elevation.`,
-    ''
+    ...factRowLines(statement, [
+      statement.timingNote,
+      // The host routes, placed or not, each linked on the request's origin.
+      statement.hostRoutes.length ? `Also on ${statement.hostRoutes.map(host => `[${host.name}](${origin}${host.to})`).join(', ')}.` : undefined,
+      statement.placementNote
+    ])
   ]
 
   lines.push(...rankingSection(ranking, unavailable, rider, [
@@ -497,28 +508,10 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
       `- **Slug**: \`${segment.slug}\` (the id the API takes)`,
       `- **Type**: ${segment.type}${segment.climbType ? `, climb category ${segment.climbType}` : ''}`,
       `- **World**: ${segment.worldName}`,
-      `- **Length**: ${segment.lengthKm.toFixed(1)} km`,
-      `- **Elevation**: ${elevationM} m at ${gradePercent}% average`,
-      `- **Surface**: ${formatSurface(surface)}`,
-      // `membership` means no host route publishes where along itself the
-      // segment sits, so its length and grade come from the segment's own
-      // record - the page captions the ranking the same way rather than
-      // implying a placement it does not have.
-      segment.placement === 'membership'
-        ? '- **Placement**: no route publishes where this segment sits along it, so its length and grade come from the segment\'s own record rather than from a measured slice of a route.'
-        : undefined
+      `- **Surface**: ${formatSurface(course.surface)}`
     ]),
     ''
   )
-
-  if (segment.hostRoutes.length > 0) {
-    lines.push(
-      '### Routes this segment appears on',
-      '',
-      ...segment.hostRoutes.map(host => `- [${host.name}](${origin}/routes/${host.slug})`),
-      ''
-    )
-  }
 
   lines.push(...physicsSection(ranking))
 
@@ -539,6 +532,30 @@ function runRaceNoticeLines(notice: RunRaceNotice, origin: string): string[] {
     '>',
     link(notice.next),
     ...(notice.route ? ['>', link(notice.route)] : []),
+    ''
+  ]
+}
+
+/**
+ * Where the points are for the ranked group, as the page's scoring table
+ * lists them: one row a segment in ride order, each scored pass counted,
+ * and where along the ride each pass falls when the route data says.
+ */
+function scoringLines(statement: RaceStatement, origin: string): string[] {
+  const { rows } = statement.scoring
+  if (!rows.length) return []
+  const positioned = rows.some(row => row.positionsKm.length)
+  const count = (times: number) => (times ? `${times}x` : '-')
+  return [
+    '### Where the points are',
+    '',
+    `| Segment | FAL | FTS |${positioned ? ' Comes at |' : ''}`,
+    `| --- | --- | --- |${positioned ? ' --- |' : ''}`,
+    ...rows.map(row =>
+      `| ${row.slug ? `[${row.name}](${origin}/segments/${row.slug}?rules=${statement.rules.format})` : row.name} | ${count(row.fal)} | ${count(row.fts)} |`
+      + (positioned ? ` ${row.positionsKm.length ? row.positionsKm.map(km => formatDistance(km)).join(', ') : '-'} |` : '')),
+    '',
+    statement.rules.segmentLinkNote,
     ''
   ]
 }
@@ -568,57 +585,36 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
   }
 
   const round = getRoundForRace(season, race)
-  const title = `${raceContextLabel(season, round)} ${raceDisplayName(race)}`
   const canonical = `${siteUrl}/events/${season.slug}/${race.slug}`
-  // The page's own question, not the route pages' - a rider reaching a race
-  // is asking what they may start on as much as what is quickest.
-  const question = `What bike should I ride for ${title}?`
-
-  const group = categoryGroup(race)
-  const laps = lapsForCategoryGroup(race)
-  const courseSlug = group?.routeSlug
-  // A group whose course the catalog does not have (ZRL runs C/D on an
-  // unlisted "exclusive" route in week 6) can still be described, just not
-  // ranked - the page makes the same distinction.
-  const course = courseSlug ? getRouteBySlug(courseSlug) : undefined
-  // The page's Ride (`app/pages/events/[season]/[race].vue`): the group's
-  // course and laps, and every rule the Race format fixes - the TT-frame bar
-  // AND the draft. `buildRecommendQuery` makes the default rider legal for
-  // them exactly as it does for the page's own request, so a format with no
-  // draft is ranked solo whatever the default draft mode is.
-  const ride: Ride | undefined = course
-    ? { course: { kind: 'route', slug: course.slug }, laps, ...rideRulesForFormat(race.format) }
-    : undefined
+  // The page's Ride (`app/pages/events/[season]/[race].vue`): the first
+  // group's course and laps, and every rule the Race format fixes - the
+  // TT-frame bar AND the draft. `buildRecommendQuery` makes the default rider
+  // legal for them exactly as it does for the page's own request, so a format
+  // with no draft is ranked solo whatever the default draft mode is. A group
+  // whose course the catalog does not have (ZRL runs C/D on an unlisted
+  // "exclusive" route in week 6) can still be described, just not ranked.
+  const ride = raceRide(race, 0)
+  const course = ride ? getRouteBySlug(ride.course.slug) : undefined
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
+  // The page's own statement for its first group, on the day it is read.
+  const statement = raceStatement({ season, race, groupIndex: 0, course, today, siteUrl })
 
   const result = course && ride ? await rankAsThePage({ kind: 'route', route: course }, ride, context) : undefined
   const ranking = result && 'ranking' in result ? result.ranking : undefined
 
-  const totals = course ? computeRouteTotals(course, laps) : undefined
-  // The twin's own account of what the group rides, laps and all - not a Ride
-  // name, which names the course only (see the answer below).
-  const courseWithLaps = course ? `${laps} lap${laps === 1 ? '' : 's'} of ${course.name}` : (group?.routeName ?? 'this race')
+  const totals = course && ride ? computeRouteTotals(course, ride.laps ?? 1) : undefined
   const unavailable = result
     ? rankingUnavailable(result)
     : '_This group races a route the catalog does not carry, so no ranking can be computed for it._'
 
   const lines = [
-    // The answer names the course and world only, as the page's does: its
-    // scope line states the lap count, and a Ride name stating it too would
-    // say it twice (issue #291). The prose below is the twin's own account
-    // of the race, and keeps it.
-    ...rankingHeader(question, (ranking && course && ride && answerLine(ranking, ride, { rideName: `${course.name} in ${course.worldName}`, distanceKm: totals?.distanceKm })) ?? unavailable, canonical),
+    ...rankingHeader(statement.question, (ranking && ride && answerLine(ranking, ride, { rideName: statement.rideName, distanceKm: totals?.distanceKm })) ?? unavailable, canonical),
     '',
-    `${title} is a ${RACE_FORMAT_LABELS[race.format].toLowerCase()} on ${race.date}${course ? `, over ${courseWithLaps} in ${course.worldName}` : ''}.`,
-    ''
+    ...factRowLines(statement, [statement.coverageNote, statement.rules.alert, statement.rules.soloNote, statement.officialFiguresNote])
   ]
 
   lines.push(...rankingSection(ranking, unavailable, rider, [
-    `- ${formatCategoryGroup(group ?? { cats: [], label: 'the first group' })}: ${laps} lap${laps === 1 ? '' : 's'}${totals ? `, ${totals.distanceKm.toFixed(1)} km and ${Math.round(totals.elevationM)} m` : ''}.`,
-    // The format's consequence spelled out, from the same wording the MCP
-    // tools give a model - an override a reader cannot see is one they will
-    // confidently misreport (issue #225).
-    formatRaceFormatAssumption(race.format, undefined)
+    `- ${statement.groupLabel}, ${statement.fixedLaps.label}.`
   ], origin))
 
   lines.push(
@@ -626,38 +622,39 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
     '',
     ...facts([
       `- **Series**: ${raceContextLabel(season, round)}`,
-      `- **Date**: ${race.date}${race.endDate && race.endDate !== race.date ? ` to ${race.endDate}` : ''}`,
-      `- **Format**: ${RACE_FORMAT_LABELS[race.format]}`,
-      `- **TT frames**: ${ttBikesAllowed(race.format) ? 'allowed - Zwift enables them, with draft, for a team time trial' : 'barred - none are ranked above'}`,
-      `- **Drafting**: ${draftingAllowed(race.format) ? 'yes' : 'no - ridden solo'}`
+      `- **Date**: ${statement.dateLabel}`,
+      `- **Format**: ${statement.rules.label}`
     ]),
     '',
     '### Category groups',
     '',
-    '| Group | Laps | Course |',
-    '| --- | --- | --- |',
-    ...race.categories.map((entry, index) =>
-      `| ${formatCategoryGroup(entry)}${index === 0 ? ' (ranked above)' : ''} | ${entry.laps} | ${entry.routeSlug ? `[${entry.routeName ?? entry.routeSlug}](${origin}/routes/${entry.routeSlug})` : (entry.routeName ?? 'to be confirmed')} |`),
+    `${statement.groupsCaption}:`,
+    '',
+    '| Group | Course | Laps | Distance | Elevation |',
+    '| --- | --- | --- | --- | --- |',
+    ...statement.groups.map((entry, index) =>
+      `| ${entry.label}${index === 0 ? ' (ranked above)' : ''} | ${entry.routeSlug ? `[${entry.routeName}](${origin}/routes/${entry.routeSlug})` : entry.routeName} | ${entry.laps} | ${entry.distance} | ${entry.elevation} |`),
     ''
   )
 
-  if (race.categories.length > 1) {
+  if (statement.coursesDiffer) {
     lines.push(
-      `The ranking above is for ${formatCategoryGroup(race.categories[0]!)}. `
+      `The ranking above is for ${statement.groupLabel}. `
       + 'Another group racing a different course or lap count gets a different answer - rank it from the route it rides, or with the API below.',
       ''
     )
   }
+
+  lines.push(...scoringLines(statement, origin), ...facts([statement.powerupsLine]).flatMap(line => [line, '']))
 
   lines.push(...physicsSection(ranking))
 
   // A race run by the day this is rendered for is what its page is on that
   // day: the notice above the title, and noindex. Everything from the title
   // down is the live twin's, since the page's ranking still holds.
-  const hasRun = hasBeenRun(race, today)
   return {
-    markdown: [...(hasRun ? runRaceNoticeLines(runRaceNotice(season, race, today), origin) : []), ...lines, ...nextSteps(origin), ''].join('\n'),
-    noindex: hasRun
+    markdown: [...(statement.runNotice ? runRaceNoticeLines(statement.runNotice, origin) : []), ...lines, ...nextSteps(origin), ''].join('\n'),
+    noindex: statement.hasRun
   }
 }
 

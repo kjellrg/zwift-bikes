@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RideFact, SurfaceSplit } from '../utils/rideFacts'
+import type { RideFact, SurfaceSplit } from '../../shared/utils/rideFacts'
 
 /**
  * The spec row (see **Fact row** in `CONTEXT.md`): the numbers a rider
