@@ -1,4 +1,4 @@
-import type { RouteWithMeta } from '../../shared/types/catalog'
+import type { RecommendRide } from '../../shared/types/recommendRide'
 import type { RacePlanItem } from '../../shared/utils/physics/racePlan'
 import { MIN_SURFACE_SECTOR_M } from '#shared/utils/physics/racePlan'
 import { formatDistance } from './labels'
@@ -6,7 +6,8 @@ import { formatDistance } from './labels'
 /**
  * What the TTT plan could not analyse on a Ride, disclosed beside its
  * sectors. `buildRacePlan` itself runs on whatever geometry it is given, and
- * `geometryForRouteLaps` fills every gap in the measured data with a
+ * the Ride's geometry (`RecommendRide.planGeometry`) fills every gap in the
+ * measured data with a
  * synthetic shape - a straight lead-in at the official average grade, the
  * surface mix spread along made-up positions - so a sector the model
  * "found" in a gap is an artefact of the fill, not the road. The rule here
@@ -27,19 +28,21 @@ export interface TttPlanCoverage {
   caveats: string[]
 }
 
-export function tttPlanCoverage(route: RouteWithMeta): TttPlanCoverage {
-  if ((route.terrain.elevationProfile?.length ?? 0) < 2) {
+/** The plan's coverage, read off the resolved Ride's own coverage (`courseCoverage`) - the one measured rule. */
+export function tttPlanCoverage(ride: Pick<RecommendRide, 'coverage' | 'totals'>): TttPlanCoverage {
+  const { coverage } = ride
+  if (!coverage.measuredLap) {
     return { withheld: 'TTT sector analysis unavailable: elevation locations are missing.', lapSurfaces: false, caveats: [] }
   }
-  const lapSurfaces = (route.surface.segments?.length ?? 0) > 0
+  const lapSurfaces = coverage.positionedSurfaces
   const caveats: string[] = []
   if (!lapSurfaces) caveats.push('Surface locations unavailable; only climbs can be flagged.')
 
   // A lead-in shorter than a sector cannot hide one, whatever it is modelled from.
-  const leadInKm = route.leadInDistance ?? 0
+  const leadInKm = ride.totals.leadInDistanceKm
   const leadInMeasured = {
-    climbs: (route.terrain.leadInElevationProfile?.length ?? 0) >= 2,
-    surfaces: (route.surface.leadInSegments?.length ?? 0) > 0
+    climbs: coverage.measuredLeadIn,
+    surfaces: coverage.positionedLeadInSurfaces
   }
   const leadIn = leadInKm * 1000 >= MIN_SURFACE_SECTOR_M && !(leadInMeasured.climbs && leadInMeasured.surfaces)
     ? { km: leadInKm, ...leadInMeasured }

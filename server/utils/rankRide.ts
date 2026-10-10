@@ -3,6 +3,7 @@ import type { BikeCategory, ComboScore, RouteSummary, RouteWithMeta, SegmentSumm
 import type { RecommendRide } from '../../shared/types/recommendRide'
 import type { ClimbTrade, WheelChoice } from '../../shared/types/rideNotes'
 import { toRouteSummary } from '../../shared/utils/catalog'
+import type { CourseCoverage } from '../../shared/utils/courseCoverage'
 import type { Draft } from '../../shared/utils/physics'
 import { draftOf } from '../../shared/utils/physics'
 import { RouteSimulationStallError } from '../../shared/utils/physics/simulator'
@@ -244,11 +245,34 @@ function rankingCacheInput(ride: RecommendRide, request: RankingRequest): string
   return JSON.stringify(canonical({ laps: ride.laps, excludeTT: ride.excludeTT, rider: request.rider, options: request.options }))
 }
 
-/** How faithfully a route's terrain is mapped, which the route's prose describes. */
-function routeGeometry(route: RouteWithMeta): RouteRankingPhysics['geometry'] {
-  return route.terrain.elevationProfile
-    ? 'measured'
-    : route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility'
+/**
+ * How faithfully a route's terrain is mapped, which the route's prose
+ * describes: the resolved Ride's coverage (`courseCoverage`, the one measured
+ * rule the Course hero and the MCP and Twin lines read too), in the
+ * response's published words.
+ */
+export function routeGeometry(coverage: Pick<CourseCoverage, 'approximation'>): RouteRankingPhysics['geometry'] {
+  switch (coverage.approximation) {
+    case 'measured': return 'measured'
+    case 'named-climbs': return 'known-climbs-compatibility'
+    case 'aggregate': return 'aggregate-compatibility'
+  }
+}
+
+/** The route physics block's summary and note, by the same coverage as its `geometry`. */
+const ROUTE_GEOMETRY_PROSE: Record<RouteRankingPhysics['geometry'], { summary: string, note: string }> = {
+  'measured': {
+    summary: 'Every time below is simulated for your weight, height and power over this route’s real, measured elevation data.',
+    note: 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s elevation profile is real, measured GPS data (not synthesized), so grade changes are modeled at their actual position along the route.'
+  },
+  'known-climbs-compatibility': {
+    summary: 'Every time below is simulated for your weight, height and power, using real data for this route’s named climbs and an estimate for the rest.',
+    note: 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s named climb(s) use real length/gradient data, with the remaining unmapped distance still synthesized from aggregate elevation.'
+  },
+  'aggregate-compatibility': {
+    summary: 'Every time below is estimated for your weight, height and power - no elevation data is mapped for this route, so its terrain is approximated.',
+    note: 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.'
+  }
 }
 
 async function rankRoute(input: RankRideInput<RouteRide>, ride: RecommendRide): Promise<RouteRanking> {
@@ -256,6 +280,7 @@ async function rankRoute(input: RankRideInput<RouteRide>, ride: RecommendRide): 
   const result = await runRecommendPipeline(input.event, input, ride)
   const { physics } = result
   const { tttNote, raceNote, draftSummary } = draftNotes(physics, 'the race')
+  const geometry = routeGeometry(ride.coverage)
 
   // Key order is the response's byte order - unchanged from the endpoint this
   // was lifted out of.
@@ -269,18 +294,10 @@ async function rankRoute(input: RankRideInput<RouteRide>, ride: RecommendRide): 
       mode: physics.mode,
       ttt: physics.ttt,
       race: physics.race,
-      geometry: routeGeometry(route),
+      geometry,
       rider: physics.rider,
-      summary: (route.terrain.elevationProfile
-        ? 'Every time below is simulated for your weight, height and power over this route’s real, measured elevation data.'
-        : route.terrain.climbs.length > 0
-          ? 'Every time below is simulated for your weight, height and power, using real data for this route’s named climbs and an estimate for the rest.'
-          : 'Every time below is estimated for your weight, height and power - no elevation data is mapped for this route, so its terrain is approximated.') + draftSummary,
-      note: (route.terrain.elevationProfile
-        ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s elevation profile is real, measured GPS data (not synthesized), so grade changes are modeled at their actual position along the route.'
-        : route.terrain.climbs.length > 0
-          ? 'Dynamic physics is active. Rider height affects aerodynamic drag; this route’s named climb(s) use real length/gradient data, with the remaining unmapped distance still synthesized from aggregate elevation.'
-          : 'Dynamic physics is active. Rider height affects aerodynamic drag; route geometry is currently synthesized from aggregate distance/elevation - no named climbs are mapped for this route.') + tttNote + raceNote
+      summary: ROUTE_GEOMETRY_PROSE[geometry].summary + draftSummary,
+      note: ROUTE_GEOMETRY_PROSE[geometry].note + tttNote + raceNote
     },
     pagination: result.pagination
   }

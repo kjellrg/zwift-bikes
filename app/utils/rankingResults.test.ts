@@ -1,41 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { activeFiltersLabel, otherPaintsLine, breadcrumbScript, comboPhysicsDelta, faqScript, formatSignedDelta, hasElevationProfile, hasSurfaceLocations, isDynamicPhysics, rankingEvidence } from './rankingResults'
+import { activeFiltersLabel, otherPaintsLine, breadcrumbScript, comboPhysicsDelta, faqScript, formatSignedDelta, isDynamicPhysics, rankingEvidence } from './rankingResults'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
 
-const course = (terrain: unknown, surface: unknown) => ({ terrain, surface } as RouteWithMeta)
+const course = (terrain: object, surface: unknown) => ({ terrain: { climbs: [], sprints: [], ...terrain }, surface } as unknown as RouteWithMeta)
 
-/** A fully mapped course: both coverage predicates true, and cobbles to be slowed by. */
+/** A fully mapped course: measured and positioned (`courseCoverage`), and cobbles to be slowed by. */
 const MAPPED = course(
   { elevationProfile: [{ distanceKm: 0, elevationM: 0 }, { distanceKm: 3, elevationM: 60 }] },
   { confidence: 'measured', segments: [{ fromKm: 0, toKm: 1, surface: 'cobble' }], gravel: 0, cobble: 0.2 }
 )
 
 const comboCosting = (surfaceTimePenaltySec: number) => ({ surfaceTimePenaltySec } as ComboScore)
-
-/**
- * How much of the course the ranking actually had to work with - the two
- * facts `limitedCourseDataNote` is phrased from, and the difference between a
- * simulated time and an approximated one.
- */
-describe('course coverage', () => {
-  it('reads a single elevation point as no profile at all', () => {
-    // One point is a start with no shape after it: nothing the dynamic
-    // physics can put a grade change at a position on.
-    expect(hasElevationProfile(course({ elevationProfile: [{ distanceKm: 0, elevationM: 12 }] }, {}))).toBe(false)
-    expect(hasElevationProfile(course({ elevationProfile: [{ distanceKm: 0, elevationM: 12 }, { distanceKm: 1, elevationM: 40 }] }, {}))).toBe(true)
-  })
-
-  it('has no coverage of either kind without a course', () => {
-    expect(hasElevationProfile(undefined)).toBe(false)
-    expect(hasSurfaceLocations(undefined)).toBe(false)
-  })
-
-  it('reads a measured surface mix with no positioned stretches as no locations', () => {
-    // A measured mix says how much cobble there is, never where it is.
-    expect(hasSurfaceLocations(course({}, { confidence: 'measured', segments: [] }))).toBe(false)
-    expect(hasSurfaceLocations(course({}, { confidence: 'measured', segments: [{ fromKm: 0, toKm: 1, surface: 'cobble' }] }))).toBe(true)
-  })
-})
 
 /**
  * The lines under the recommended time that say what the number rests on -
@@ -73,7 +48,7 @@ describe('rankingEvidence', () => {
   it('names whichever half of the course data is missing', () => {
     const surface = { confidence: 'measured', segments: [{ fromKm: 0, toKm: 1, surface: 'cobble' }], gravel: 0, cobble: 0.2 }
     const elevation = { elevationProfile: [{ distanceKm: 0, elevationM: 0 }, { distanceKm: 3, elevationM: 60 }] }
-    const note = (terrain: unknown, surfaceEstimate: unknown) =>
+    const note = (terrain: object, surfaceEstimate: unknown) =>
       rankingEvidence({ course: course(terrain, surfaceEstimate), combo: undefined, physics: undefined }).limitedDataNote
 
     expect(note({}, surface)).toBe('Limited route data: elevation profile unavailable.')

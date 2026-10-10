@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RouteWithMeta, SegmentSummary } from '../../shared/types/catalog'
-import { getRouteBySlug } from '../../shared/utils/catalog'
-import { getSegmentSummary } from '../../shared/utils/routeSegments'
+import { getRouteBySlug, getRoutesWithMeta } from '../../shared/utils/catalog'
+import { courseCoverage } from '../../shared/utils/courseCoverage'
+import { rideForRoute, rideForSegment } from '../../shared/utils/recommendRide'
+import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } from '../../shared/utils/routeSegments'
+import { limitedCourseDataNote } from '../../app/utils/rideCoverage'
+import { tttPlanCoverage } from '../../app/utils/tttPlan'
 import { DEFAULT_SITE_FLAGS } from '../../shared/utils/siteFlags'
 import { recommendRouteQuerySchema, recommendSegmentQuerySchema } from './apiQuerySchemas'
 import type { RankingOptions, RankRideInput, RouteRide } from './rankRide'
-import { rankRide, rankRideForQuery } from './rankRide'
+import { rankRide, rankRideForQuery, routeGeometry } from './rankRide'
 import { RECOMMEND_PAUSED_MESSAGE } from './siteFlags'
 
 /**
@@ -267,5 +271,47 @@ describe('rankRide with the edge cache', () => {
     await rankRideForQuery({ kind: 'segment', segment: sprint }, query, { killSwitches: KILL_SWITCHES_OFF })
     await rankRide(routeInput({ rider: undefined }))
     expect(store.size).toBe(2)
+  })
+})
+
+/**
+ * "Is this course measured?" has one answer on both sides of the request
+ * (issue #319): the ranking's `geometry` label and its prose on the server,
+ * the Course hero, the evidence line and the TTT plan's coverage in the
+ * browser, all read `courseCoverage` through the resolved Ride. Held here
+ * for every route and segment the catalog has.
+ */
+describe('the coverage rule, server and client', () => {
+  const rides = [
+    ...getRoutesWithMeta().map(route => rideForRoute(route, 1)),
+    ...getAllSegmentSummaries().map(segment => rideForSegment(routeWithMetaForSegment(segment)))
+  ]
+
+  it('gives the server\'s label and every client reading the same answer, course by course', () => {
+    for (const ride of rides) {
+      const coverage = courseCoverage(ride.route)
+      const label = routeGeometry(ride.coverage)
+      expect(ride.coverage, ride.route.slug).toEqual(coverage)
+      // The client: the hero draws a profile, the evidence line keeps quiet
+      // about elevation and the TTT plan analyses sectors exactly when the
+      // server says the course is measured.
+      const measured = label === 'measured'
+      expect(ride.profile() !== undefined, ride.route.slug).toBe(measured)
+      expect(limitedCourseDataNote(coverage)?.includes('elevation') ?? false, ride.route.slug).toBe(!measured)
+      expect(tttPlanCoverage(ride).withheld === undefined, ride.route.slug).toBe(measured)
+      expect(label === 'known-climbs-compatibility', ride.route.slug).toBe(coverage.approximation === 'named-climbs')
+    }
+  })
+
+  it('agrees with the three tests it replaced, because no course in the catalog has a one-point profile', () => {
+    for (const ride of rides) {
+      const profile = ride.route.terrain.elevationProfile
+      expect(profile === undefined || profile.length >= 2, ride.route.slug).toBe(true)
+      // The old truthy test, the old `> 1` and the old `>= 2` are one answer.
+      expect(Boolean(profile), ride.route.slug).toBe(ride.coverage.measuredLap)
+      expect(routeGeometry(ride.coverage), ride.route.slug).toBe(profile
+        ? 'measured'
+        : ride.route.terrain.climbs.length > 0 ? 'known-climbs-compatibility' : 'aggregate-compatibility')
+    }
   })
 })

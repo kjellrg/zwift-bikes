@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import { createError } from 'h3'
 import type { BikeCategory, ComboScore, RouteSummary } from '../../../shared/types/catalog'
 import { getRouteBySlug, getRoutesWithMeta, toRouteSummary } from '../../../shared/utils/catalog'
+import { courseCoverage, type CourseApproximation } from '../../../shared/utils/courseCoverage'
 import {
   getRaceBySlug,
   getRoundForRace,
@@ -299,6 +300,13 @@ function draftWords(rider: AppliedRiderInputs): string {
  * sentence says each. Hand cycles are not named in the list, which has never
  * named them.
  */
+/** A route twin's "Elevation data" line, by the coverage rule's approximation. */
+const ELEVATION_DATA: Record<CourseApproximation, string> = {
+  'measured': 'real measured GPS profile',
+  'named-climbs': 'named climbs plus a synthesized remainder',
+  'aggregate': 'synthesized from aggregate distance and elevation'
+}
+
 const CATEGORY_LINE_ORDER: readonly BikeCategory[] = ['standard', 'tt', 'gravel', 'funbike']
 const FRAME_KIND_WORDS: Record<BikeCategory, string> = { ...BIKE_CATEGORY_WORDS, funbike: 'fun' }
 
@@ -442,9 +450,9 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
       `- **Terrain**: ${route.terrain.category}`,
       `- **Surface**: ${formatSurface(route.surface)}`,
       `- **Event only**: ${route.eventOnly ? 'yes - it can only be ridden in an event' : 'no - it can be free-ridden as well as raced'}`,
-      // Which of the three geometry sources the physics model got, said the
-      // same way `get_route` says it to an MCP client.
-      `- **Elevation data**: ${route.terrain.elevationProfile ? 'real measured GPS profile' : route.terrain.climbs.length > 0 ? 'named climbs plus a synthesized remainder' : 'synthesized from aggregate distance and elevation'}`
+      // Which of the three geometry sources the physics model got, by the
+      // coverage rule `get_route` and the ranking's note read too.
+      `- **Elevation data**: ${ELEVATION_DATA[courseCoverage(route).approximation]}`
     ]),
     ''
   )

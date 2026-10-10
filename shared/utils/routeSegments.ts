@@ -4,6 +4,7 @@ import type { RouteSegmentPlacement, RouteWithMeta, SegmentSummary, SurfaceSegme
 import type { PhysicsSurface } from '../types/physics'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
 import { isSupplementHost } from '../data/segmentHostSupplement'
+import { courseCoverage } from './courseCoverage'
 import { sliceElevationProfile } from './elevationGeometry'
 import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
@@ -182,11 +183,12 @@ function pickHostRoute(summary: SegmentSummary): RouteWithMeta | undefined {
     const route = routes.find(r => r.slug === host.slug)
     if (!route) continue
     const placement = findPlacement(summary, route)
+    const coverage = courseCoverage(route)
     const tier = !placement
       ? 0
-      : !(placement.perLap && route.surface.segments)
+      : !(placement.perLap && coverage.positionedSurfaces)
           ? 1
-          : (route.terrain.elevationProfile?.length ?? 0) > 1 ? 3 : 2
+          : coverage.measuredLap ? 3 : 2
     if (tier > bestTier) {
       best = route
       bestTier = tier

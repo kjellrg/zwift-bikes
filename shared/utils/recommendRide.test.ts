@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { getFrames, getRouteBySlug, getRoutesWithMeta } from './catalog'
 import type { RecommendRide } from '../types/recommendRide'
-import { courseCoverage } from './courseCoverage'
 import { firstLapOfRide, rideForRoute, rideForSegment } from './recommendRide'
-import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } from './routeSegments'
+import { getSegmentSummary, routeWithMetaForSegment } from './routeSegments'
 import { resolveDraft, simulateRoute } from './physics'
 import { geometryForRouteLaps } from './physics/routeGeometry'
 import { maxLapsForRoute } from './routeLaps'
@@ -268,17 +267,6 @@ describe('one geometry per Ride', () => {
       const laps = maxLapsForRoute(route)
       const { lapStartsM: _, ...oneLap } = geometryForRouteLaps(route, 1)
       expect(firstLapOfRide(geometryForRouteLaps(route, laps)), `${route.slug} x${laps}`).toEqual(oneLap)
-    }
-  })
-
-  it('reads the coverage rule, on every route and segment in the catalog', () => {
-    const rides = [
-      ...getRoutesWithMeta().map(route => rideForRoute(route, 1)),
-      ...getAllSegmentSummaries().map(segment => rideForSegment(routeWithMetaForSegment(segment)))
-    ]
-    for (const ride of rides) {
-      expect(ride.coverage, ride.route.slug).toEqual(courseCoverage(ride.route))
-      expect(ride.profile() !== undefined, ride.route.slug).toBe(ride.coverage.measuredLap)
     }
   })
 })

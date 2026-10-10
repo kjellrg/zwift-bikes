@@ -1,28 +1,9 @@
 import type { ComboScore, EquipmentPhysicsDelta, RouteWithMeta } from '../../shared/types/catalog'
 import { BIKE_CATEGORY_LABELS } from '#shared/utils/bikeCategories'
+import { courseCoverage } from '#shared/utils/courseCoverage'
 import { formatRaceTimeSaving, formatSurfaceTimePenalty, formatTttTimeSaving } from './labels'
 import type { RiderInputs } from './recommendRequest'
 import { limitedCourseDataNote } from './rideCoverage'
-
-/**
- * Whether the course carries a real elevation shape, rather than a start
- * point and an aggregate climb total. Two points is the threshold, not one:
- * a single sample has no grade after it, so the dynamic physics has nothing
- * to place a gradient change along.
- */
-export function hasElevationProfile(course: RouteWithMeta | undefined): boolean {
-  return (course?.terrain.elevationProfile?.length ?? 0) > 1
-}
-
-/**
- * Whether the course knows WHERE its surfaces are, rather than only how much
- * of each there is. A measured mix whose trace lost its positions rides on
- * one blended value, exactly like a curated estimate - see
- * `surfaceCoverageLine`, which draws the same distinction in rider words.
- */
-export function hasSurfaceLocations(course: RouteWithMeta | undefined): boolean {
-  return (course?.surface.segments?.length ?? 0) > 0
-}
 
 /**
  * The physics block of a recommend response, as the evidence lines read it.
@@ -88,12 +69,9 @@ export function rankingEvidence(ranking: {
   return {
     notes: facts.map(fact => fact.text),
     facts,
-    limitedDataNote: course
-      ? limitedCourseDataNote({
-          hasElevationProfile: hasElevationProfile(course),
-          hasSurfaceLocations: hasSurfaceLocations(course)
-        })
-      : undefined
+    // The coverage rule the Applied Ride reads (`RecommendRide.coverage`),
+    // asked of the Applied course it was resolved from.
+    limitedDataNote: course ? limitedCourseDataNote(courseCoverage(course)) : undefined
   }
 }
 

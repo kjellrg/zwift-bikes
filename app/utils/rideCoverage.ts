@@ -1,3 +1,4 @@
+import type { CourseCoverage } from '../../shared/utils/courseCoverage'
 import { surfaceCoverageLine } from '#shared/utils/rideFacts'
 
 // `surfaceCoverageLine` now lives in `shared/utils/rideFacts.ts`, with the
@@ -9,10 +10,10 @@ export { surfaceCoverageLine }
  * missing. Undefined when nothing is - the common case, so the line only
  * appears where it changes how much to trust the number.
  */
-export function limitedCourseDataNote(coverage: { hasElevationProfile: boolean, hasSurfaceLocations: boolean }): string | undefined {
-  if (coverage.hasElevationProfile && coverage.hasSurfaceLocations) return undefined
-  const missing = !coverage.hasElevationProfile && !coverage.hasSurfaceLocations
+export function limitedCourseDataNote(coverage: Pick<CourseCoverage, 'measuredLap' | 'positionedSurfaces'>): string | undefined {
+  if (coverage.measuredLap && coverage.positionedSurfaces) return undefined
+  const missing = !coverage.measuredLap && !coverage.positionedSurfaces
     ? 'elevation and surface locations unavailable'
-    : !coverage.hasElevationProfile ? 'elevation profile unavailable' : 'surface locations unavailable'
+    : !coverage.measuredLap ? 'elevation profile unavailable' : 'surface locations unavailable'
   return `Limited route data: ${missing}.`
 }

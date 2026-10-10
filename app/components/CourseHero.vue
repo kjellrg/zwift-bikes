@@ -13,8 +13,9 @@ import { outlineRuns, type OutlinePoint } from '#shared/utils/silhouette'
  * from the very geometry the finish time is simulated over, for the lap
  * count the rider has chosen with the lead-in once - a segment's own stretch
  * of road on a segment page. Ride-only: it never waits for a Ranking, and a
- * route with no measured profile gets a line saying its terrain is
- * approximated instead of a drawing of the model's own guess. A lead-in with
+ * route with no measured profile gets a line saying what its terrain is
+ * approximated from - its named climbs, or its distance and total climbing
+ * alone - instead of a drawing of the model's own guess. A lead-in with
  * no measured profile is drawn - it is ridden - but dashed, with a line
  * saying why, and its readout names it approximated instead of reading a
  * grade off the model's straight line.
@@ -33,6 +34,15 @@ const props = defineProps<{
 }>()
 
 const shape = computed(() => props.ride.profile())
+
+/**
+ * What an unmeasured course is drawn from instead, in the words the
+ * ranking's own physics note uses for the same coverage (`courseCoverage`),
+ * so the two can never contradict each other.
+ */
+const unmeasuredLine = computed(() => props.ride.coverage.approximation === 'named-climbs'
+  ? 'No measured elevation profile for this ride, so its terrain is approximated from its named climbs, with the rest from its distance and total climbing.'
+  : 'No measured elevation profile for this ride, so its terrain is approximated from its distance and total climbing.')
 
 const VIEW_WIDTH = 1000
 const VIEW_HEIGHT = 240
@@ -308,6 +318,6 @@ function leave(event: PointerEvent) {
     id="course-hero-unavailable"
     class="mt-5 text-sm text-muted"
   >
-    No measured elevation profile for this ride, so its terrain is approximated from its distance and total climbing.
+    {{ unmeasuredLine }}
   </p>
 </template>
