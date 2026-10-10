@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
+import type { ComboScore } from '../../shared/types/catalog'
+import type { RecommendRide } from '../../shared/types/recommendRide'
 import type { CourseAnalysisTab } from '../composables/useCourseAnalysisTab'
 import type { TttPlan } from '../composables/useTttPlan'
 import type { AppliedRiderInputs } from '../utils/recommendRequest'
@@ -7,7 +8,7 @@ import { MIN_ROUTE_KM } from '#shared/utils/physics/racePlan'
 import { draftOf } from '#shared/utils/physics/draft'
 import { computeRouteSurfaceSpeedProfile } from '#shared/utils/physics/routeSurfaceSpeedProfile'
 import { surfaceFamily } from '#shared/utils/silhouette'
-import { courseNote, hasElevationProfile, hasSurfaceLocations } from '../utils/rankingResults'
+import { hasElevationProfile, hasSurfaceLocations } from '../utils/rankingResults'
 
 /**
  * "The course": the tabs beside "Why this bike wins", under the answer. The
@@ -21,29 +22,22 @@ import { courseNote, hasElevationProfile, hasSurfaceLocations } from '../utils/r
  * links exist before any interaction and a hidden panel is merely hidden.
  * Which tab shows is page memory (`useCourseAnalysisTab`), never the URL.
  *
- * Two Rides on purpose, not one. The Ride-only tabs follow the selector
- * (`route`, `laps`), like the Fact row and the hero: they describe the ride
- * the rider has chosen. The equipment views follow the APPLIED results
- * (`resultsRoute`, `resultsLaps`, `combo`, `rider`): a plan priced for a
- * setup must describe the ride and the rider that setup was ranked for, and
- * during a refresh they keep the previous results, dimmed, as the answer
- * does. `resultsRoute` is the Applied Ranking's own course on every page,
+ * One Ride: the Applied one, resolved (`ride`). The equipment views must
+ * describe the ride and the rider their setup was ranked for, and during a
+ * refresh they keep the previous results, dimmed, as the answer does; the
+ * Ride-only tabs read the same Ride, so the whole section waits for a
+ * refreshed ranking rather than describing a course the times on screen were
+ * not computed over. It is the Applied Ranking's own course on every page,
  * never the selected one standing in for it: on a race the category group
  * can move the course itself (#233). The TTT plan arrives from the page
  * (`useTttPlan`), which computes it once for the Fact row's TTT line and
  * this tab, so the two cannot disagree.
  */
 const props = defineProps<{
-  /** The route the rider has selected, or the synthetic segment-as-route the segment page ranks against. The Ride-only tabs describe this one. */
-  route: RouteWithMeta
-  /** The applied course - `appliedRanking.course` - which the equipment tabs describe. Absent until the ranking's own lookup has answered. */
-  resultsRoute: RouteWithMeta | undefined
+  /** The Applied Ride, resolved - `resolveRankingPageRide` over the Applied Ranking's course. Every tab describes this one. */
+  ride: RecommendRide
   /** What the page ranks: a route gets the Segments tab; a sprint has no speed chart (a standing-start simulation says nothing about a flying sprint). */
   kind: 'route' | 'climb' | 'sprint'
-  /** The picker's lap count, which the Ride-only tabs follow. 1 on a segment. */
-  laps: number
-  /** The lap count the applied results were computed for - `appliedRide.laps` - which the equipment tabs follow. */
-  resultsLaps: number
   /** The applied top combo; absent with zero matches. */
   combo?: ComboScore
   /** The rider the applied results were computed for - `useRecommendRequest().appliedInputs`. */
@@ -61,12 +55,11 @@ const props = defineProps<{
 const { selected } = useCourseAnalysisTab()
 
 const isRoute = computed(() => props.kind === 'route')
-const leadInKm = computed(() => props.route.leadInDistance ?? 0)
-
-// The applied course, for the two views that describe a ranked setup on it.
-const equipmentLeadInKm = computed(() => props.resultsRoute?.leadInDistance ?? 0)
-const equipmentHasElevation = computed(() => hasElevationProfile(props.resultsRoute))
-const equipmentHasSurfaceLocations = computed(() => hasSurfaceLocations(props.resultsRoute))
+const route = computed(() => props.ride.route)
+const laps = computed(() => props.ride.laps)
+const leadInKm = computed(() => route.value.leadInDistance ?? 0)
+const hasElevation = computed(() => hasElevationProfile(route.value))
+const hasSurfaceLocationsOnRide = computed(() => hasSurfaceLocations(route.value))
 
 const items = computed(() => [
   ...(isRoute.value ? [{ label: 'Climbs and sprints', value: 'segments' as const, slot: 'segments' as const }] : []),
@@ -90,56 +83,52 @@ const shown = computed<CourseAnalysisTab>({
 
 const lapsLabel = (count: number) => `${count} lap${count === 1 ? '' : 's'}`
 
-const segments = computed(() => isRoute.value ? courseSegmentsInRideOrder(props.route, props.laps) : [])
+const segments = computed(() => isRoute.value ? courseSegmentsInRideOrder(route.value, laps.value) : [])
 
 const segmentsScope = computed(() => leadInKm.value > 0
-  ? `${lapsLabel(props.laps)}; kilometre positions include the lead-in, ridden once.`
-  : `${lapsLabel(props.laps)}; kilometre positions are from the ride start.`)
+  ? `${lapsLabel(laps.value)}; kilometre positions include the lead-in, ridden once.`
+  : `${lapsLabel(laps.value)}; kilometre positions are from the ride start.`)
 
 const setupLabel = computed(() => props.combo
   ? `${props.combo.frame.name} / ${props.combo.wheelset?.name ?? 'fixed disc wheels'}`
   : undefined)
-const equipmentCourseNote = computed(() => courseNote(props.route, props.resultsRoute))
 
 // Always one lap - see `computeRouteSurfaceSpeedProfile` - while the finish
 // estimate above is for every selected lap, so the scope says both.
 const speedScope = computed(() => {
   const ride = !isRoute.value
     ? 'route-style simulation from a standing start, not the timed estimate'
-    : props.resultsRoute?.lap
-      ? `one lap${equipmentLeadInKm.value > 0 ? ' plus the lead-in' : ''}; the finish estimate covers ${lapsLabel(props.resultsLaps)}`
+    : route.value.lap
+      ? `one lap${leadInKm.value > 0 ? ' plus the lead-in' : ''}; the finish estimate covers ${lapsLabel(laps.value)}`
       : 'the whole ride'
-  return `${setupLabel.value}${equipmentCourseNote.value} · ${props.rider.powerW} W · ${DRAFT_MODE_LABELS[props.rider.draftMode]} · ${ride}.`
+  return `${setupLabel.value} · ${props.rider.powerW} W · ${DRAFT_MODE_LABELS[props.rider.draftMode]} · ${ride}.`
 })
 const speedUnavailable = computed(() => {
-  if (!props.resultsRoute) return 'Course data for the ranked setup is not available yet.'
-  if (equipmentHasElevation.value && equipmentHasSurfaceLocations.value) return undefined
-  const missing = !equipmentHasElevation.value && !equipmentHasSurfaceLocations.value
+  if (hasElevation.value && hasSurfaceLocationsOnRide.value) return undefined
+  const missing = !hasElevation.value && !hasSurfaceLocationsOnRide.value
     ? 'elevation and surface locations are missing'
-    : !equipmentHasElevation.value ? 'the elevation profile is missing' : 'surface locations are missing'
+    : !hasElevation.value ? 'the elevation profile is missing' : 'surface locations are missing'
   return `Speed & surface profile unavailable: ${missing}. No curve is inferred from the overall surface mix.`
 })
 
 const surfaceScope = computed(() =>
-  `${surfaceCoverageLine(props.route.surface)}; the shares describe ${isRoute.value ? 'one lap' : 'the timed segment'}.`)
+  `${surfaceCoverageLine(route.value.surface)}; the shares describe ${isRoute.value ? 'one lap' : 'the timed segment'}.`)
 
 /**
  * What each surface costs the fastest setup, in watts: the length-weighted
  * average of the speed profile's "extra power to hold this stretch's pace on
  * its real surface, against tarmac at the same pace". Equipment-dependent,
- * so from the APPLIED course and rank 1, and only when that course is the
- * one the table describes; worked out the first time the tab is shown,
- * client-side, because it is the same simulation the speed chart runs.
+ * so for rank 1 on the Applied Ride; worked out the first time the tab is
+ * shown, client-side, because it is the same simulation the speed chart runs.
  */
 const extraWatts = shallowRef<Partial<Record<string, number>>>()
 function computeExtraWatts() {
-  const route = props.resultsRoute
   const combo = props.combo
-  if (!route || !combo || route.slug !== props.route.slug) {
+  if (!combo) {
     extraWatts.value = undefined
     return
   }
-  const profile = computeRouteSurfaceSpeedProfile(route, combo.frame, combo.wheelset, props.rider.weightKg, props.rider.heightCm, props.rider.powerW,
+  const profile = computeRouteSurfaceSpeedProfile(route.value, combo.frame, combo.wheelset, props.rider.weightKg, props.rider.heightCm, props.rider.powerW,
     draftOf({ draftMode: props.rider.draftMode, tttRiders: props.rider.tttRiders, tttClimbWkg: props.rider.tttClimbWkg }))
   if (!profile) {
     extraWatts.value = undefined
@@ -155,16 +144,16 @@ function computeExtraWatts() {
   extraWatts.value = Object.fromEntries(Object.entries(totals).map(([surface, total]) => [surface, total.km > 0 ? Math.round(total.watts / total.km) : 0]))
 }
 onMounted(() => {
-  watch([() => shown.value === 'surface', () => props.route.slug, () => props.combo, () => props.resultsRoute, () => props.rider], ([surfaceShown]) => {
+  watch([() => shown.value === 'surface', () => props.ride, () => props.combo, () => props.rider], ([surfaceShown]) => {
     if (surfaceShown) computeExtraWatts()
   }, { immediate: true })
 })
 
 /** The surface table's rows: each surface's share and distance on one lap (or the segment), largest first. */
 const surfaceRows = computed(() => {
-  const composition = props.route.surface.composition
+  const composition = route.value.surface.composition
   if (!composition) return []
-  const lengthKm = props.route.distance
+  const lengthKm = route.value.distance
   return (Object.entries(composition) as [keyof typeof composition, number | undefined][])
     .filter((entry): entry is [keyof typeof composition, number] => (entry[1] ?? 0) > 0)
     .sort((a, b) => b[1] - a[1])
@@ -180,10 +169,10 @@ const surfaceRows = computed(() => {
 const planScope = computed(() => {
   if (!props.plan) return undefined
   const ride = isRoute.value
-    ? `${lapsLabel(props.resultsLaps)}${equipmentLeadInKm.value > 0 ? ', lead-in included once' : ''}; distances are from the ride start`
+    ? `${lapsLabel(laps.value)}${leadInKm.value > 0 ? ', lead-in included once' : ''}; distances are from the ride start`
     : 'from the start of the timed segment; warm-up excluded'
   const team = `${props.plan.riders}-rider paceline${props.plan.climbWkg ? `, team climb pace ${props.plan.climbWkg.toFixed(1)} W/kg` : ''}`
-  return `${setupLabel.value}${equipmentCourseNote.value} · ${props.rider.powerW} W · ${team} · ${ride}.`
+  return `${setupLabel.value} · ${props.rider.powerW} W · ${team} · ${ride}.`
 })
 </script>
 
@@ -365,10 +354,7 @@ const planScope = computed(() => {
               Speed by surface needs a ranked setup to simulate; it returns with the first match.
             </template>
           </p>
-          <!-- The course is there whenever `speedUnavailable` is not; the
-               condition only tells the type checker what the line above already
-               said. -->
-          <template v-else-if="resultsRoute">
+          <template v-else>
             <p
               v-if="refreshing"
               class="flex items-center gap-1.5 text-sm text-muted"
@@ -386,7 +372,7 @@ const planScope = computed(() => {
                 {{ speedScope }} The line is this setup's simulated pace at every grade and surface change, over a faint elevation backdrop; the strip beneath marks the surface behind each dip.
               </p>
               <RouteSurfaceSpeedProfile
-                :route="resultsRoute"
+                :route="route"
                 :frame="combo.frame"
                 :wheelset="combo.wheelset"
                 :weight-kg="rider.weightKg"
@@ -395,7 +381,6 @@ const planScope = computed(() => {
                 :draft-mode="rider.draftMode"
                 :ttt-riders="rider.tttRiders"
                 :ttt-climb-wkg="rider.tttClimbWkg"
-                flat
                 :active="shown === 'speed'"
               />
             </div>

@@ -52,7 +52,8 @@ export function resolveRankingPageRide(ride: Ride | undefined, course: RouteWith
 }
 
 /**
- * Whether the Ride has a long climb for the Applied rider - whether the Rider
+ * Whether the resolved Applied Ride (`resolveRankingPageRide`) has a long
+ * climb for the Applied rider - whether the Rider
  * card's team climb pace lever is worth showing (its `hasLongClimb`). Keyed
  * on the power the ride was ridden at, never on the team climb pace itself:
  * the climb pace must not decide its own slider's visibility, or the control
@@ -62,12 +63,10 @@ export function resolveRankingPageRide(ride: Ride | undefined, course: RouteWith
  * guess.
  */
 export function rankingPageHasLongClimb(
-  ride: Ride | undefined,
-  course: RouteWithMeta | undefined,
+  ride: RecommendRide | undefined,
   rider: Pick<AppliedRiderInputs, 'powerW' | 'weightKg'>
 ): boolean {
-  const resolved = resolveRankingPageRide(ride, course)
-  return resolved ? detectLongClimbBlocks(resolved.planGeometry(), rider.powerW, rider.weightKg).length > 0 : true
+  return ride ? detectLongClimbBlocks(ride.planGeometry(), rider.powerW, rider.weightKg).length > 0 : true
 }
 
 /** The Ride's half of the answer under the Recommendation - what `useRecommendationAnswer` takes from the page's side. */

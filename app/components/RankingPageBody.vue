@@ -106,11 +106,8 @@ const { picked: comparedCombos, clear: clearComparison, remove: removeFromCompar
     />
     <RideCourseAnalysis
       v-if="courseAnalysis"
-      :route="courseAnalysis.route"
-      :results-route="courseAnalysis.resultsRoute"
+      :ride="courseAnalysis.ride"
       :kind="courseAnalysis.kind"
-      :laps="courseAnalysis.laps"
-      :results-laps="courseAnalysis.resultsLaps"
       :combo="courseAnalysis.combo"
       :rider="courseAnalysis.rider"
       :refreshing="courseAnalysis.refreshing"

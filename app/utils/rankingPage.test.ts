@@ -14,16 +14,16 @@ const rider = { weightKg: 75, powerW: 225 }
 
 describe('rankingPageHasLongClimb', () => {
   it('finds the long climb on a route that has one, for the Applied rider', () => {
-    expect(rankingPageHasLongClimb({ course: { kind: 'route', slug: alpe.slug }, laps: 1 }, alpe, rider)).toBe(true)
+    expect(rankingPageHasLongClimb(resolveRankingPageRide({ course: { kind: 'route', slug: alpe.slug }, laps: 1 }, alpe), rider)).toBe(true)
   })
 
   it('finds none on a flat route', () => {
-    expect(rankingPageHasLongClimb({ course: { kind: 'route', slug: flat.slug }, laps: 1 }, flat, rider)).toBe(false)
+    expect(rankingPageHasLongClimb(resolveRankingPageRide({ course: { kind: 'route', slug: flat.slug }, laps: 1 }, flat), rider)).toBe(false)
   })
 
   it('keeps the lever while the Applied course is not known yet', () => {
-    expect(rankingPageHasLongClimb({ course: { kind: 'route', slug: 'somewhere' }, laps: 1 }, undefined, rider)).toBe(true)
-    expect(rankingPageHasLongClimb(undefined, undefined, rider)).toBe(true)
+    expect(rankingPageHasLongClimb(resolveRankingPageRide({ course: { kind: 'route', slug: 'somewhere' }, laps: 1 }, undefined), rider)).toBe(true)
+    expect(rankingPageHasLongClimb(undefined, rider)).toBe(true)
   })
 })
 
@@ -146,8 +146,8 @@ describe('a segment\'s Ranking page', () => {
   })
 
   it('finds the long climb on the segment itself, at the power it was ridden at', () => {
-    expect(rankingPageHasLongClimb(climb, alpe, rider)).toBe(true)
-    expect(rankingPageHasLongClimb(sprint, fuego, { weightKg: 75, powerW: 800 })).toBe(false)
+    expect(rankingPageHasLongClimb(resolveRankingPageRide(climb, alpe), rider)).toBe(true)
+    expect(rankingPageHasLongClimb(resolveRankingPageRide(sprint, fuego), { weightKg: 75, powerW: 800 })).toBe(false)
   })
 
   it('carries a Silhouette on the share card only when the segment has a measured profile', () => {

@@ -15,15 +15,9 @@ const props = defineProps<{
   tttRiders?: number
   tttClimbWkg?: number
   /**
-   * Kept for its callers: the chart is always drawn alone now, for the tab
-   * panel that names and scopes it (`RideCourseAnalysis`) - the card it
-   * once had outside the tabs has no page left to live on.
-   */
-  flat?: boolean
-  /**
-   * In `flat` mode, whether the panel holding the chart is the one on
-   * screen. A hidden tab panel stays mounted, so this - not mounting - is
-   * what first triggers the simulation, the way expanding the card does.
+   * Whether the tab panel holding the chart is the one on screen. A hidden
+   * tab panel stays mounted, so this - not mounting - is what first triggers
+   * the simulation.
    */
   active?: boolean
 }>()
@@ -89,7 +83,7 @@ async function handleOpenChange(open: boolean) {
 // Client-only on purpose: the tab state a server render sees never selects this panel, and a
 // simulation in the server render would put the whole curve into every route's HTML.
 onMounted(() => {
-  watch(() => props.flat && props.active, (active) => {
+  watch(() => props.active, (active) => {
     if (active) void handleOpenChange(true)
   }, { immediate: true })
 })
@@ -320,11 +314,7 @@ const summaryText = computed(() => {
       />
     </div>
     <template v-else-if="profile">
-      <!-- The header badge's number, for the header-less mode. -->
-      <p
-        v-if="flat"
-        class="mb-2 text-sm text-muted"
-      >
+      <p class="mb-2 text-sm text-muted">
         <span class="font-medium text-highlighted">{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h</span> average over the whole simulated ride
       </p>
       <svg
