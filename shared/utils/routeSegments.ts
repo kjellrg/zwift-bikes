@@ -58,13 +58,13 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
   // array is enough to know *that* a segment is on it, just not where. Every
   // such host is listed, placed or not (#273): next to a segment's placed
   // hosts it is only named, never timed against (`pickHostRoute` prefers a
-  // placed host). A segment no route places at all - 39 real sprint/climb
-  // segments, Makuri 40's five scoring sprints among them - is still listed,
-  // its length/grade from the segment's own record; the same
-  // sprint-vs-climb asymmetry as above applies (sprints without gradient
-  // data stay flat, climbs without any elevation signal are skipped,
-  // matching `routeClimbs.ts`). The one segment with no host at all
-  // (`prime`) is skipped by the empty-`hostRoutes` guard.
+  // placed host). A segment no route places at all - the held ones, and
+  // those with no Strava track anywhere - is still listed, its length/grade
+  // from the segment's own record; the same sprint-vs-climb asymmetry as
+  // above applies (sprints without gradient data stay flat, climbs without
+  // any elevation signal are skipped, matching `routeClimbs.ts`). A segment
+  // with no host at all is skipped by the empty-`hostRoutes` guard (none
+  // since #274 gave `prime` Downtown Dolphin).
   for (const segment of segments) {
     if (segment.type !== 'sprint' && segment.type !== 'climb') continue
 

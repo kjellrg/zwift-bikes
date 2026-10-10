@@ -225,11 +225,14 @@ describe('every Host route is listed on its segment (#273)', () => {
   })
 
   it('lists the supplement\'s hosts after the package\'s, so a new host never changes the fallback', () => {
-    // Pavé Sprint has no placement anywhere; its stand-in host is the first.
-    expect(hostSlugs('pave-sprint')!.slice(-2).sort()).toEqual(['knights-of-the-roundabout', 'sacre-bleu'])
+    // Forward Breakaway Brae is held, so it has no placement anywhere; its
+    // stand-in host is the first listed, and the supplement's Outer Scotland
+    // comes after the package's four.
+    expect(hostSlugs('breakaway-brae')).toHaveLength(5)
+    expect(hostSlugs('breakaway-brae')!.at(-1)).toBe('outer-scotland')
   })
 
-  it('lists all 9 hosts the supplement adds from the game dictionary', () => {
+  it('lists every host the supplement adds, from the game dictionary and from the tracks', () => {
     for (const { segment, route } of SUPPLEMENT_SEGMENT_HOSTS) expect(hostSlugs(segment), segment).toContain(route)
   })
 
