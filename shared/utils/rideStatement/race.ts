@@ -18,8 +18,8 @@ import { formatRaceDate, formatRaceDateRange } from '../raceDates'
 import { raceFormatRules, type RaceFormatRules } from '../raceRules'
 import { rideRulesForFormat, type Ride } from '../recommendQuery'
 import { climbCountFact, distanceLabel, namedClimbCounts, surfaceCoverageNote, surfaceSplit, type RideFact } from '../rideFacts'
+import { rideForRoute } from '../recommendRide'
 import { computeRouteTotals } from '../routeLaps'
-import { expandClimbsForLaps, expandSprintsForLaps } from '../routeOccurrences'
 import { runRaceNotice, type RunRaceNotice } from '../runRaceNotice'
 import { formatDistance, formatElevation } from '../units'
 import type { RideStatementBase } from './types'
@@ -176,7 +176,10 @@ export function scoringRows(group: RaceCategoryGroup | undefined, course: RouteW
 
   const positions = new Map<string, number[]>()
   if (course) {
-    for (const occurrence of [...expandSprintsForLaps(course, group.laps), ...expandClimbsForLaps(course, group.laps)]) {
+    // The resolved Ride's passes, so a starred position is where the Course
+    // hero draws the band and the ranking cuts the Climb time.
+    const ride = rideForRoute(course, group.laps)
+    for (const occurrence of [...ride.sprints, ...ride.climbs]) {
       positions.set(occurrence.slug, [...positions.get(occurrence.slug) ?? [], occurrence.rideFromKm])
     }
   }

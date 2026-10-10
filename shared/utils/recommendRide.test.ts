@@ -23,6 +23,20 @@ describe('rideForRoute', () => {
     expect(rideForRoute(route, Number.POSITIVE_INFINITY).laps).toBe(1)
   })
 
+  it('rides, draws and counts the one clamped lap count: geometry, passes, lap starts and totals', () => {
+    // The builders take the Ride's lap count as given; the lap rule is the Ride's alone.
+    const route = getRouteBySlug('lutscher')!
+    for (const [requested, laps] of [[2.8, 3], [0, 1], [-2, 1], [100, maxLapsForRoute(route)]] as const) {
+      const ride = rideForRoute(route, requested)
+      expect(ride.laps).toBe(laps)
+      expect(ride.planGeometry().totalDistanceM).toBeCloseTo(((route.leadInDistance ?? 0) + route.distance * laps) * 1000, 6)
+      // The Innsbruck KOM once in the lead-in, then once a lap.
+      expect(ride.climbs.filter(climb => climb.slug === 'innsbruck-kom')).toHaveLength(laps + 1)
+      expect(ride.profile()!.lapStarts).toHaveLength(laps - 1)
+      expect(ride.totals).toMatchObject({ laps, distanceKm: (route.leadInDistance ?? 0) + route.distance * laps })
+    }
+  })
+
   it('rides the route\'s laps geometry, lead-in once, for every route and every lap count it allows', () => {
     // What the TTT plan was built from before it read the Ride (issue #284):
     // route and race pages' plans stay as they were only while this holds.

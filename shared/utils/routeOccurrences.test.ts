@@ -59,11 +59,6 @@ describe('expandClimbsForLaps / expandSprintsForLaps', () => {
       ['finish-climb', 21, 22, 2]
     ])
   })
-
-  it('treats a fractional or sub-1 lap count as whole laps, never zero', () => {
-    expect(expandSprintsForLaps(route, 2.9)).toHaveLength(2)
-    expect(expandSprintsForLaps(route, 0)).toHaveLength(1)
-  })
 })
 
 describe('routeOccurrences.ts stays a leaf module', () => {

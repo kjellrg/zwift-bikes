@@ -216,8 +216,15 @@ export interface RouteLapsGeometry extends RouteGeometry {
   lapStartsM: number[]
 }
 
+/**
+ * A route's geometry over `laps` laps, the lead-in once. `laps` is the
+ * resolved Ride's lap count, already clamped (`rideForRoute`, through
+ * `clampLaps`): the builder takes it as given rather than applying a lap
+ * rule of its own, so the one rule lives on the Ride. Called from
+ * `recommendRide.ts` alone.
+ */
 export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteLapsGeometry {
-  const lapCount = Math.max(1, Math.floor(laps))
+  const lapCount = laps
   const leadInDistanceM = (route.leadInDistance ?? 0) * 1000
   const leadInElevationM = route.leadInElevation ?? 0
   const lapDistanceM = route.distance * 1000
@@ -305,7 +312,8 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteL
  * segment's own average grade (the same per-block approximation
  * `appendKnownClimbsSegment` already makes for a climb within a whole
  * route). Both carry the segment's real position-tagged surface data. Used
- * by `rideForSegment` for both legacy pacing plans and dynamic timing.
+ * by `rideForSegment` for both legacy pacing plans and dynamic timing, and
+ * called from `recommendRide.ts` alone.
  */
 export function geometryForSegment(slug: string, lengthKm: number, elevationM: number, surfaceSegments: RouteSurfaceSegment[], measuredProfile?: RouteElevationPoint[]): RouteGeometry {
   const totalDistanceM = lengthKm * 1000

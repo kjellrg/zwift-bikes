@@ -52,7 +52,7 @@ export function expandOccurrencesForLaps<T extends { fromKm: number, toKm: numbe
   laps: number
 ): (T & SegmentOccurrence)[] {
   const leadInKm = route.leadInDistance ?? 0
-  const lapCount = Math.max(1, Math.floor(laps))
+  const lapCount = laps
   const finishKm = leadInKm + lapCount * route.distance
 
   const occurrences: (T & SegmentOccurrence)[] = []
