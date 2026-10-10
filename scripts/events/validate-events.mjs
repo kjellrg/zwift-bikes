@@ -28,21 +28,18 @@
 //     with different tags, or two series with the same one - the events hub
 //     tags every race row with it, so a tag has to say which series a row
 //     belongs to
-//   - published distance more than 5% off this site's own totals, UNLESS the
-//     group's `curatorNote` documents the divergence (ZwiftInsider's ZRacing
-//     figures include an event-pen lead-in and legitimately run ~2 km over
-//     route + lead-in; an unexplained divergence is still treated as a
-//     mistyped route or lap count)
 //
 // Warnings (exit 0):
 //   - a race slug that deviates from its series' naming convention
 //     (`round-{r}-week-{w}` for ZRL, `{month}-stage-{w}` for ZRacing) - demoted from
 //     the old hard error since each series names races its own way
-//   - published elevation more than 10% off this site's own totals (a known,
-//     real divergence: across ZRL 2025/26 R4 one race's published elevation
-//     ran ~86 m high while distances agreed to ~3%; both figures are shown on
-//     the race page for exactly this reason)
-//   - a documented >5% distance divergence (see above)
+//   - published figures that differ from this site's own totals by the race
+//     page's own rule (`officialFiguresDiffer` in the race statement: 0.15 km
+//     or 5 m), where the page prints both - a mistyped route or lap count
+//     looks exactly like this, and so does a real divergence (ZwiftInsider's
+//     ZRacing figures include an event-pen lead-in; ZRL has published an
+//     elevation ~86 m high while the distances agreed), which the group's
+//     `curatorNote` documents
 //   - a race with a route but no format or lap counts (stays unpublished)
 //   - missing tactical note / sourceUrl on a publishable race
 //   - with `--notes` only: a tactical note whose claim about climbing versus
@@ -70,10 +67,8 @@ try {
 const { getAllSeasons, isRacePublishable, raceEndDate } = events
 const { getAllSegmentSummaries } = loadSharedModule('shared/utils/routeSegments.ts')
 const { computeRouteTotals } = loadSharedModule('shared/utils/routeLaps.ts')
+const { officialFiguresDiffer } = loadSharedModule('shared/utils/rideStatement/race.ts')
 const { eventLeadIn } = loadSharedModule('shared/data/routeEventLeadIns.ts')
-
-const DISTANCE_TOLERANCE = 0.05
-const ELEVATION_TOLERANCE = 0.10
 
 // ZRacing rounds are calendar months, so a bare `stage-{w}` collides the
 // moment a season covers a second one: August 2026's stage 1 and September's
@@ -223,26 +218,22 @@ for (const season of getAllSeasons()) {
           errors.push(`${where}: ${cats} is set to ${group.laps} laps of "${route.slug}", but the recommend API caps this route at ${totals.laps} lap(s) `
             + `(total ride would exceed MAX_TOTAL_DISTANCE_KM - see shared/utils/routeLaps.ts)`)
         }
-        if (group.officialDistanceKm !== undefined) {
-          const diff = Math.abs(group.officialDistanceKm - totals.distanceKm) / group.officialDistanceKm
-          if (diff > DISTANCE_TOLERANCE) {
-            const message = `${where}: ${cats} published distance ${group.officialDistanceKm} km is ${(diff * 100).toFixed(1)}% off our ${totals.distanceKm.toFixed(1)} km `
-              + `(${totals.laps} lap(s) of "${route.slug}") - check the route and lap count`
-            // An unexplained divergence looks exactly like a wrong slug or
-            // lap count; one the curator has documented (event-pen lead-in)
-            // is a known fact of the listing, not a data error.
-            if (group.curatorNote) warnings.push(`${message} (curatorNote present - documented divergence)`)
-            else errors.push(message)
-          }
-        }
-        if (group.officialElevationM !== undefined && group.officialElevationM > 0) {
-          const diff = Math.abs(group.officialElevationM - totals.elevationM) / group.officialElevationM
-          if (diff > ELEVATION_TOLERANCE) {
-            warnings.push(
-              `${where}: ${cats} published elevation ${group.officialElevationM} m is ${(diff * 100).toFixed(1)}% off our ${Math.round(totals.elevationM)} m `
-              + '- expected for some routes, but worth confirming the lap count'
-            )
-          }
+        // The race page's own rule (`officialFiguresDiffer` in the race
+        // statement): where the organiser's figures and ours differ by 0.15 km
+        // or 5 m, the page prints both. Worth a look, because a mistyped
+        // route or lap count looks exactly like this; a divergence the
+        // curator has documented (an event-pen lead-in) is a known fact of
+        // the listing.
+        if (officialFiguresDiffer(group, totals)) {
+          const published = [
+            group.officialDistanceKm !== undefined ? `${group.officialDistanceKm} km` : undefined,
+            group.officialElevationM !== undefined ? `${group.officialElevationM} m` : undefined
+          ].filter(Boolean).join(' / ')
+          warnings.push(
+            `${where}: ${cats} published ${published} differs from our ${totals.distanceKm.toFixed(1)} km / ${Math.round(totals.elevationM)} m `
+            + `(${totals.laps} lap(s) of "${route.slug}") - the race page shows both; check the route and lap count`
+            + (group.curatorNote ? ' (curatorNote present - documented divergence)' : '')
+          )
         }
       }
 
