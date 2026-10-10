@@ -53,6 +53,9 @@ const ride = computed(() => raceRide(race, categoryGroupIndex.value))
 // the request under the same key once it has landed - see `useCourse`.
 // Declared before the ranking page module, whose statement is built from it.
 const { ready: courseReady, course: routeInfo } = useCourse(() => ride.value?.course)
+// The selected group's Ride resolved against its course: the Course hero
+// draws it and the Ride statement's Fact row and scoring rows read it.
+const liveRide = useResolvedRide(() => ride.value, () => routeInfo.value)
 
 /**
  * Whether this Race has been run is decided on the day the page is rendered
@@ -74,11 +77,9 @@ const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-race-${seasonSlug.value}-${raceSlug.value}`,
   // A race's description names no setup, so the statement takes no answer.
-  statement: () => raceStatement({ season, race, groupIndex: categoryGroupIndex.value, course: routeInfo.value, today: today.value, siteUrl: siteConfig.url })
+  statement: () => raceStatement({ season, race, groupIndex: categoryGroupIndex.value, resolvedRide: liveRide.value, today: today.value, siteUrl: siteConfig.url })
 })
 const { tttPlan, rules, bikeSearch, bikeSearchDebounced } = rankingPage
-// The live Ride resolved, for the Course hero: the selected group's course and laps.
-const liveRide = useResolvedRide(() => ride.value, () => routeInfo.value)
 // A race always has a statement: it is the race's own, with or without a course.
 const statement = computed(() => rankingPage.statement.value!)
 // The results announcement, which a group with no catalog route renders

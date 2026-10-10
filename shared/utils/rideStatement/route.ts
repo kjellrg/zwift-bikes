@@ -1,4 +1,4 @@
-import type { RouteWithMeta } from '../../types/catalog'
+import type { RecommendRide } from '../../types/recommendRide'
 import { TERRAIN_LABELS } from '../courseLabels'
 import { rideDescription } from '../rideDescription'
 import { climbCountFact, distanceLabel, namedClimbCounts, surfaceCoverageNote, surfaceSplit } from '../rideFacts'
@@ -7,9 +7,12 @@ import { formatDistance, formatElevation } from '../units'
 import type { RideStatementAnswer, RideStatementBase } from './types'
 
 export interface RouteStatementInputs {
-  route: RouteWithMeta
-  /** The lap count the rider has picked - what the Fact row describes. */
-  laps: number
+  /**
+   * The live Ride, resolved (`rideForRoute` over the lap count the rider has
+   * picked) - the very object the Course hero draws, so the Fact row's laps
+   * and totals and the hero's profile cannot disagree.
+   */
+  ride: RecommendRide
   /** The public site URL the trail is built on. */
   siteUrl: string
   answer?: RideStatementAnswer
@@ -27,12 +30,12 @@ export interface RouteStatement extends RideStatementBase {
  * A route page's Ride statement. The head, the share card and the twin quote
  * one lap with the lead-in once - the lap count a clean link ranks, and so
  * the one the prerendered page and its card are for; the Fact row follows the
- * lap count picked, like the Course hero.
+ * resolved Ride's laps and totals, like the Course hero.
  */
-export function routeStatement({ route, laps, siteUrl, answer }: RouteStatementInputs): RouteStatement {
+export function routeStatement({ ride, siteUrl, answer }: RouteStatementInputs): RouteStatement {
+  const { route, laps, totals } = ride
   const { name, worldName: world } = route
   const oneLap = computeRouteTotals(route, 1)
-  const totals = computeRouteTotals(route, laps)
   const climbs = climbCountFact(namedClimbCounts(route.terrain))
   return {
     kind: 'route',

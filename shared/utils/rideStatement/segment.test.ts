@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { RACE_FORMATS, getRaceBySlug, getSeasonBySlug } from '../events'
 import { rideRulesForFormat, type Ride } from '../recommendQuery'
+import { rideForSegment } from '../recommendRide'
 import { getSegmentSummary, routeWithMetaForSegment } from '../routeSegments'
 import { raceStatement } from './race'
 import { segmentStatement } from './segment'
@@ -10,7 +11,7 @@ const alpe = getSegmentSummary('alpe-du-zwift')!
 const fuego = getSegmentSummary('fuego-flats')!
 const climbRide: Ride = { course: { kind: 'segment', slug: 'alpe-du-zwift' }, power: 'race' }
 const sprintRide: Ride = { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }
-const statementFor = (segment = alpe, ride = climbRide) => segmentStatement({ segment, course: routeWithMetaForSegment(segment), ride, siteUrl: SITE })
+const statementFor = (segment = alpe, ride = climbRide) => segmentStatement({ segment, resolvedRide: rideForSegment(routeWithMetaForSegment(segment)), ride, siteUrl: SITE })
 
 describe('segmentStatement', () => {
   it('names the segment by its kind, in the question as in the title', () => {
@@ -61,7 +62,7 @@ describe('segmentStatement', () => {
     expect(statement.hostRoutes.map(host => host.name)).toContain('Road to Sky')
     expect(statement.hostRoutes.find(host => host.name === 'Road to Sky')).toEqual({ name: 'Road to Sky', to: '/routes/road-to-sky' })
     expect(statement.placementNote).toBeUndefined()
-    expect(segmentStatement({ segment: { ...alpe, placement: 'membership' }, course: routeWithMetaForSegment(alpe), ride: climbRide, siteUrl: SITE }).placementNote)
+    expect(segmentStatement({ segment: { ...alpe, placement: 'membership' }, resolvedRide: rideForSegment(routeWithMetaForSegment(alpe)), ride: climbRide, siteUrl: SITE }).placementNote)
       .toBe('The exact position of this segment along its host routes isn\'t in our route data, so length and grade come from the segment\'s own record, and the surface estimate is borrowed from the host route\'s overall mix.')
   })
 
@@ -82,7 +83,7 @@ describe('segmentStatement', () => {
     const race = getRaceBySlug('zrl-2026-27', 'round-1-week-3')!
     for (const format of RACE_FORMATS) {
       const segment = statementFor(alpe, { ...climbRide, ...rideRulesForFormat(format) })
-      const raced = raceStatement({ season, race: { ...race, format }, groupIndex: 0, course: undefined, today: '2026-09-01', siteUrl: SITE })
+      const raced = raceStatement({ season, race: { ...race, format }, groupIndex: 0, resolvedRide: undefined, today: '2026-09-01', siteUrl: SITE })
       expect(segment.rules, format).toEqual(raced.rules)
       expect(segment.rules?.format).toBe(format)
     }

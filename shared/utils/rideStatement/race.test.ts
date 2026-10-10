@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { RouteWithMeta } from '../../types/catalog'
 import { getRouteBySlug } from '../catalog'
 import { getRaceBySlug, getSeasonBySlug, type EventRace } from '../events'
+import { rideForRoute } from '../recommendRide'
 import { officialFiguresDiffer, raceRide, raceStatement, scoringRows, type RaceWithFormat } from './race'
 
 const SITE = 'https://zwiftbikes.com'
@@ -14,12 +15,14 @@ const makuri40 = getRouteBySlug('makuri-40')!
 const urumaze = getRouteBySlug('urumaze')!
 const hilly = getRouteBySlug('hilly-route')!
 /** The group's own course, the way the page looks it up, unless a test passes another - `null` for none. */
+/** A course resolved as the page resolves the selected group's Ride. */
+const resolved = (course: RouteWithMeta | undefined, laps: number) => course && rideForRoute(course, laps)
 const statementFor = (raceData: RaceWithFormat, groupIndex = 0, course?: RouteWithMeta | null, today = BEFORE) =>
   raceStatement({
     season: zrl,
     race: raceData,
     groupIndex,
-    course: course === undefined ? getRouteBySlug(raceData.categories[groupIndex]!.routeSlug ?? '') : course ?? undefined,
+    resolvedRide: resolved(course === undefined ? getRouteBySlug(raceData.categories[groupIndex]!.routeSlug ?? '') : course ?? undefined, raceData.categories[groupIndex]!.laps),
     today,
     siteUrl: SITE
   })
@@ -140,7 +143,7 @@ describe('scoringRows', () => {
   } satisfies EventRace['categories'][number]
 
   it('merges the FAL and FTS lists into one row a segment, counting each pass', () => {
-    expect(scoringRows(group, hilly).map(({ name, fal, fts }) => [name, fal, fts])).toEqual([
+    expect(scoringRows(group, rideForRoute(hilly, group.laps)).map(({ name, fal, fts }) => [name, fal, fts])).toEqual([
       ['KOM', 0, 1],
       ['Sprint Banner', 2, 2],
       ['Unmapped Sprint', 1, 0],
@@ -149,7 +152,7 @@ describe('scoringRows', () => {
   })
 
   it('puts each row where it falls along the ride, in the order the rider meets it', () => {
-    const rows = scoringRows(group, hilly)
+    const rows = scoringRows(group, rideForRoute(hilly, group.laps))
     expect(rows[0]!.positionsKm.map(km => km.toFixed(1))).toEqual(['1.4', '10.6'])
     expect(rows[1]!.positionsKm.map(km => km.toFixed(1))).toEqual(['6.7', '15.9'])
     expect(rows[2]!.positionsKm).toEqual([])

@@ -84,6 +84,10 @@ const ride = computed<Ride>(() => ({
   ...rideRulesForFormat(raceFormat.value)
 }))
 
+// The live Ride resolved: the segment on its own geometry, which the Course
+// hero draws and the Ride statement's Fact row describes.
+const liveRide = useResolvedRide(() => ride.value, () => segmentRoute.value)
+
 const siteConfig = useSiteConfig()
 // Everything this page shows about its Ranking - see `useRankingPage` - and
 // everything it says about its Ride on its own, in its Ride statement (see
@@ -97,11 +101,9 @@ const siteConfig = useSiteConfig()
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-segment-${slug.value}`,
-  statement: answer => segmentData.value && segmentStatement({ segment: segmentData.value, course: segmentRoute.value, ride: ride.value, siteUrl: siteConfig.url, answer })
+  statement: answer => segmentData.value && segmentStatement({ segment: segmentData.value, resolvedRide: liveRide.value, ride: ride.value, siteUrl: siteConfig.url, answer })
 })
 const { statement, rules, tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
-// The live Ride resolved, for the Course hero: the segment on its own geometry.
-const liveRide = useResolvedRide(() => ride.value, () => segmentRoute.value)
 await rankingPage.ready
 
 // `?rules=points&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No

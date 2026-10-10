@@ -1,4 +1,5 @@
-import type { RouteWithMeta, SegmentSummary } from '../../types/catalog'
+import type { SegmentSummary } from '../../types/catalog'
+import type { RecommendRide } from '../../types/recommendRide'
 import { raceFormatRules } from '../raceRules'
 import type { Ride } from '../recommendQuery'
 import { rideDescription } from '../rideDescription'
@@ -9,10 +10,11 @@ import type { RideStatementAnswer, RideStatementBase } from './types'
 export interface SegmentStatementInputs {
   segment: SegmentSummary
   /**
-   * The segment-as-route it is ranked on (`routeWithMetaForSegment`), which
-   * carries its surface mix; the Fact row waits for it.
+   * The live Ride resolved (`rideForSegment` over the segment-as-route it is
+   * ranked on), the one the Course hero draws: its course carries the
+   * surface mix, and the Fact row waits for it.
    */
-  course: RouteWithMeta | undefined
+  resolvedRide: RecommendRide | undefined
   /** The live Ride: sprint power or not, and the Race format it is told, if any. */
   ride: Ride
   siteUrl: string
@@ -36,7 +38,8 @@ export interface SegmentStatement extends RideStatementBase {
  * pair where there is one (see `SegmentSummary`), so the snippet, the Fact
  * row, the share card and the chart all describe the same road.
  */
-export function segmentStatement({ segment, course, ride, siteUrl, answer }: SegmentStatementInputs): SegmentStatement {
+export function segmentStatement({ segment, resolvedRide, ride, siteUrl, answer }: SegmentStatementInputs): SegmentStatement {
+  const course = resolvedRide?.route
   const { name, type, worldName: world } = segment
   const elevationM = segment.measuredElevationM ?? segment.elevationM
   const gradePercent = segment.measuredAvgGradePercent ?? segment.avgGradePercent

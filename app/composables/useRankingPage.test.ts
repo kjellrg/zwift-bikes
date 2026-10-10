@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { computed, effectScope, ref, shallowRef, watch, type Ref } from 'vue'
 import { getFrames, getRouteBySlug } from '#shared/utils/catalog'
 import { getRaceBySlug, getSeasonBySlug } from '#shared/utils/events'
+import { rideForRoute, rideForSegment } from '#shared/utils/recommendRide'
 import { raceStatement, routeStatement, segmentStatement, type RaceWithFormat, type RideStatement } from '#shared/utils/rideStatement'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import { getWheelsets } from '#shared/utils/wheelsets'
@@ -81,7 +82,7 @@ function setup(pageInputs: PageInputs = () => ({})) {
     key: 'recommend-route-hilly-route',
     // The route page's: its course is looked up, so the statement follows
     // the live Ride's lap count.
-    statement: answer => routeStatement({ route: hilly, laps: liveRide.value?.laps ?? 1, siteUrl: SITE, answer }),
+    statement: answer => routeStatement({ ride: rideForRoute(hilly, liveRide.value?.laps), siteUrl: SITE, answer }),
     ...pageInputs(liveRide)
   }))!
   return { page, request, useRecommendRequest, liveRide, appliedRide, appliedCourse, appliedInputs, combos, head: () => head() }
@@ -123,7 +124,7 @@ describe('useRankingPage', () => {
   it('sets the statement\'s trail and question in the head, and nothing before the page has a statement', () => {
     const known = ref(false)
     const { page, head } = setup(live => ({
-      statement: answer => known.value ? routeStatement({ route: hilly, laps: live.value?.laps ?? 1, siteUrl: SITE, answer }) : undefined
+      statement: answer => known.value ? routeStatement({ ride: rideForRoute(hilly, live.value?.laps), siteUrl: SITE, answer }) : undefined
     }))
     expect(head()).toEqual({})
     known.value = true
@@ -218,7 +219,7 @@ describe('useRankingPage', () => {
         key: 'recommend-segment-fuego-flats',
         statement: (answer) => {
           const segment = live.value?.course.kind === 'segment' ? getSegmentSummary(live.value.course.slug) : undefined
-          return segment && segmentStatement({ segment, course: routeWithMetaForSegment(segment), ride: live.value!, siteUrl: SITE, answer })
+          return segment && segmentStatement({ segment, resolvedRide: rideForSegment(routeWithMetaForSegment(segment)), ride: live.value!, siteUrl: SITE, answer })
         }
       }))
       page.liveRide.value = ride
@@ -299,7 +300,8 @@ describe('useRankingPage', () => {
         statement: () => {
           const groupIndex = Math.max(0, race.categories.findIndex(group => group.routeSlug === live.value?.course.slug))
           const course = live.value && getRouteBySlug(live.value.course.slug)
-          return raceStatement({ season, race, groupIndex, course, today: '2026-09-01', siteUrl: SITE })
+          const resolvedRide = course ? rideForRoute(course, live.value?.laps) : undefined
+          return raceStatement({ season, race, groupIndex, resolvedRide, today: '2026-09-01', siteUrl: SITE })
         }
       }))
       page.liveRide.value = groupRide(0)
