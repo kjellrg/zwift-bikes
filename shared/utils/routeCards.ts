@@ -1,5 +1,6 @@
 import type { RouteSummary, TerrainCategory } from '../types/catalog'
-import { routeSilhouette, type Silhouette } from './silhouette'
+import { rideForListedRoute } from './recommendRide'
+import { rideSilhouette, type Silhouette } from './silhouette'
 
 /**
  * A route as a listing draws it: its identity, the numbers a rider picks a
@@ -45,6 +46,6 @@ export function toRouteCard(route: RouteSummary): RouteCardData {
     eventOnly: route.eventOnly,
     gravel: route.surface.gravel > 0,
     cobble: route.surface.cobble > 0,
-    shape: routeSilhouette(route, 1)
+    shape: rideSilhouette(rideForListedRoute(route))
   }
 }

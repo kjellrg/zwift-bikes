@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { getRoutesWithMeta } from './catalog'
+import { getRouteBySlug, getRoutesWithMeta } from './catalog'
 import { getAllSegmentSummaries } from './routeSegments'
+import { placementsInOfficialKm } from './routeTerrain'
 
 /**
  * Structural sweep over the entire assembled route catalog - every route
@@ -142,13 +143,13 @@ describe('every route in the assembled catalog', () => {
     expect(routes.filter(r => r.terrain.sprints.length > 0).length).toBeGreaterThan(100)
   })
 
-  it('keeps per-lap climbs within the lap (the placement-frame decision holds)', () => {
-    // A perLap climb's positions are lap-relative, so its end can't sit
-    // meaningfully past the lap distance - that was exactly the symptom of
-    // reading ride-relative positions with the wrong frame (issue #126).
-    const bad = routes.filter(r => r.terrain.climbs.some(climb =>
-      climb.perLap && climb.toKm > r.distance + Math.max(0.3, r.distance * 0.05)
-    )).map(r => r.slug)
+  it('keeps every placement within its route\'s official length: a lap one in the lap, a lead-in one in the lead-in', () => {
+    // A perLap placement is lap-relative and in official km (issue #319), so
+    // its end can't sit past the lap distance - reading ride-relative
+    // positions with the wrong frame (issue #126) would put it there.
+    const bad = routes.flatMap(r => [...r.terrain.climbs, ...r.terrain.sprints]
+      .filter(placement => placement.fromKm < 0 || placement.toKm > (placement.perLap ? r.distance : (r.leadInDistance ?? 0)))
+      .map(placement => `${r.slug}/${placement.slug}`))
     expect(bad).toEqual([])
   })
 
@@ -205,5 +206,39 @@ describe('every segment summary', () => {
     expect(bad).toEqual([])
     const slugs = summaries.map(s => s.slug)
     expect(new Set(slugs).size).toBe(slugs.length)
+  })
+})
+
+/**
+ * Placements enter the domain model in official km, at the same door the
+ * measured profile and surfaces do (issue #319), so no reader carries a
+ * trace factor to apply.
+ */
+describe('placementsInOfficialKm', () => {
+  const kom = { name: 'Innsbruck KOM', slug: 'innsbruck-kom', fromKm: 29.709, toKm: 37.137, lengthKm: 7.428, elevationM: 445.68, avgGradePercent: 6, perLap: true }
+
+  it('puts a measured-trace placement in official km, so a climb that ends at the line ends on it', () => {
+    // Innsbruck KOM After Party's shape: the KOM's placement ends past the
+    // official 36.971 km lap, because zwift-data measured it on a trace 0.5% longer.
+    const [placed] = placementsInOfficialKm([kom], 0.9951040161064142, 36.971)
+    expect(placed!.fromKm).toBeCloseTo(29.5635, 3)
+    expect(placed!.toKm).toBeCloseTo(36.9552, 3)
+    // Its own measurements are the segment's, not positions, and stay.
+    expect(placed).toMatchObject({ lengthKm: 7.428, elevationM: 445.68, avgGradePercent: 6 })
+  })
+
+  it('clamps what still overhangs the lap to it, drops what starts past it, and leaves lead-in placements alone', () => {
+    const leadIn = { ...kom, slug: 'pen', fromKm: 0.5, toKm: 12, perLap: false }
+    const beyond = { ...kom, slug: 'beyond', fromKm: 10.2, toKm: 10.5 }
+    const overhang = { ...kom, slug: 'overhang', fromKm: 9, toKm: 10.4 }
+    expect(placementsInOfficialKm([leadIn, overhang, beyond], 1, 10)).toEqual([leadIn, { ...overhang, toKm: 10 }])
+  })
+
+  it('is how the catalog carries Innsbruck KOM After Party\'s KOM', () => {
+    const route = getRouteBySlug('innsbruck-kom-after-party')!
+    const placed = route.terrain.climbs.find(climb => climb.slug === 'innsbruck-kom')!
+    expect(placed.fromKm).toBeCloseTo(29.5635, 3)
+    expect(placed.toKm).toBeCloseTo(36.9552, 3)
+    expect(route.surface).not.toHaveProperty('traceScale')
   })
 })

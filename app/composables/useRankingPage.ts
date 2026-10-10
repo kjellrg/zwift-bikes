@@ -76,14 +76,20 @@ export function useRankingPage<S extends RideStatement>(inputs: RankingPageInput
   const appliedCourse = computed(() => appliedRanking.value.course)
   const appliedLaps = computed(() => rankingPageLaps(appliedRide.value))
 
-  const hasLongClimb = computed(() => rankingPageHasLongClimb(appliedRide.value, appliedCourse.value, appliedInputs.value))
+  // The Applied Ride resolved as the server times it - a segment on its own
+  // geometry, a route over its laps - once per Applied Ride and course, so the
+  // long-climb check, the TTT plan and the course analysis read one geometry
+  // and one memoised speed profile. A rider change re-prices them; it never
+  // re-resolves the Ride.
+  const appliedResolvedRide = computed(() => resolveRankingPageRide(appliedRide.value, appliedCourse.value))
 
-  // One plan for the Fact row's TTT line and the TTT plan tab, built on the
-  // Applied Ride resolved as the server times it - a segment on its own
-  // geometry, a route over its laps - so its sectors are where the times
-  // beside them were simulated. Undefined outside TTT drafting.
+  const hasLongClimb = computed(() => rankingPageHasLongClimb(appliedResolvedRide.value, appliedInputs.value))
+
+  // One plan for the Fact row's TTT line and the TTT plan tab, on the Applied
+  // Ride, so its sectors are where the times beside them were simulated.
+  // Undefined outside TTT drafting.
   const tttPlan = useTttPlan({
-    ride: () => resolveRankingPageRide(appliedRide.value, appliedCourse.value),
+    ride: () => appliedResolvedRide.value,
     combo: () => topCombo.value,
     rider: () => appliedInputs.value,
     loading: () => isFirstLoad.value
@@ -142,7 +148,7 @@ export function useRankingPage<S extends RideStatement>(inputs: RankingPageInput
 
   const reportLine = computed(() => rankingPageReportLine(appliedRide.value, appliedInputs.value, appliedStatement.value?.reportSubject))
 
-  const shareCard = computed(() => rankingPageShareCard(topCombo.value, appliedCourse.value, appliedLaps.value))
+  const shareCard = computed(() => rankingPageShareCard(topCombo.value, appliedResolvedRide.value))
 
   // The Race format rules of the live Ride - what the rider may pick, so a
   // control never offers a value the pending request will discard - with the
@@ -164,17 +170,14 @@ export function useRankingPage<S extends RideStatement>(inputs: RankingPageInput
   }))
 
   // The course analysis, Ride-only tabs and equipment tabs alike, for the
-  // Applied course and laps - so it waits for a refreshed ranking rather than
-  // drawing a course the times on screen were not computed over.
+  // Applied Ride - so it waits for a refreshed ranking rather than drawing a
+  // course the times on screen were not computed over.
   const courseAnalysis = computed(() => {
-    const course = appliedCourse.value
-    if (!course) return undefined
+    const ride = appliedResolvedRide.value
+    if (!ride) return undefined
     return {
-      route: course,
-      resultsRoute: course,
+      ride,
       kind: rankingPageAnalysisKind(appliedRide.value),
-      laps: appliedLaps.value,
-      resultsLaps: appliedLaps.value,
       combo: topCombo.value,
       rider: appliedInputs.value,
       refreshing: isRefreshing.value,

@@ -1,5 +1,5 @@
 import type { Route } from 'zwift-data'
-import type { SurfaceComposition, SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights } from '../types/catalog'
+import type { RouteClimb, SurfaceComposition, SurfaceEstimate, TerrainCategory, TerrainProfile, TerrainWeights } from '../types/catalog'
 import { getWorldSurfaceZones } from '../data/zwiftmapSurfaceZones'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
@@ -93,18 +93,15 @@ export function estimateSurface(route: Route): SurfaceEstimate {
     const composition = normalizeSurfaceComposition(measured.composition)
     // Trace km -> official km, here and nowhere else: this and `computeTerrain`
     // below are the only two doors the generated trace data comes through, so
-    // rescaling both at the door is what keeps a route's surfaces and its
-    // elevation shape in one coordinate system (issue #171). The percentages
-    // are computed before/independently of the scale and never move with it.
-    const traceScale = measuredTraceScale(measured.segments?.[measured.segments.length - 1]?.toKm, route.distance)
+    // rescaling at the door is what keeps a route's surfaces, its elevation
+    // shape and its climb and sprint placements in one coordinate system
+    // (issues #171, #319). The percentages are computed before/independently
+    // of the scale and never move with it.
     return {
       ...coarsenSurfaceComposition(composition),
       composition,
       segments: rescaleSurfaceSegments(measured.segments, route.distance),
       leadInSegments: rescaleSurfaceSegments(measured.leadInSegments, route.leadInDistance),
-      // Kept so a trace-relative position can still be read against the
-      // rescaled arrays - see the field's doc comment.
-      ...(traceScale === 1 ? {} : { traceScale }),
       confidence: 'measured'
     }
   }
@@ -136,6 +133,40 @@ function terrainCategory(climbRatio: number): TerrainCategory {
 // half of the "flat" category threshold (see `terrainCategory` above).
 const CLIMB_DEADZONE_M_PER_KM = 3
 
+/**
+ * A route's climb or sprint placements in official km, the coordinates every
+ * reader rides in (issue #319). zwift-data's `segmentsOnRoute` positions -
+ * and the track-matched ones merged in beside them - are measured along the
+ * route's community trace, not against its published distance: on 36 of the
+ * 37 routes where the two can be told apart the last placement lands on the
+ * trace's length. A lap placement is multiplied by the factor the lap's
+ * measured surfaces are (`measuredTraceScale` over the generated segments,
+ * as `estimateSurface` rescales them), so it meets the measured arrays where
+ * the road does: unscaled, Innsbruck KOM After Party's KOM ended 166 m past
+ * the finish. Both ends move by the same factor, so a placement selects
+ * exactly the stretch of measured road it selected before the rescale.
+ *
+ * What a scaled placement still overhangs its lap by - under a metre on two
+ * routes (Volcano KOM on Bambino Fondo, 0.50 m; Petit KOM on Petite Douleur,
+ * 0.30 m) - is clamped to the lap, and one starting past it would be dropped
+ * (none does), so every placement lies within its route's official length
+ * and `scripts/validate-placements.mjs` can hold the catalog to that.
+ *
+ * Lead-in placements (`perLap: false`) are left as they are: they are
+ * measured on the lead-in, which the lap's factor does not describe.
+ * `lengthKm`, `elevationM` and the grade are the segment's own measurements,
+ * not positions, and do not move either - a segment's ranked length is its
+ * placement's `lengthKm` (`getAllSegmentSummaries`).
+ */
+export function placementsInOfficialKm<T extends Pick<RouteClimb, 'fromKm' | 'toKm' | 'perLap'>>(placements: T[], scale: number, lapKm: number): T[] {
+  return placements.flatMap((placement) => {
+    if (!placement.perLap) return [placement]
+    const fromKm = placement.fromKm * scale
+    if (fromKm >= lapKm) return []
+    return [{ ...placement, fromKm, toKm: Math.min(placement.toKm * scale, lapKm) }]
+  })
+}
+
 export function computeTerrain(route: Route): TerrainProfile {
   const climbRatio = route.distance > 0 ? route.elevation / route.distance : 0
   const category = terrainCategory(climbRatio)
@@ -151,12 +182,14 @@ export function computeTerrain(route: Route): TerrainProfile {
   }
 
   const measured = getGeneratedRouteSurface(route.slug)
+  // The factor `estimateSurface` rescales the lap's surfaces by.
+  const lapScale = measuredTraceScale(measured?.segments?.[measured.segments.length - 1]?.toKm, route.distance)
   return {
     climbRatio,
     category,
     weights,
-    climbs: getRouteClimbs(route),
-    sprints: getRouteSprints(route),
+    climbs: placementsInOfficialKm(getRouteClimbs(route), lapScale, route.distance),
+    sprints: placementsInOfficialKm(getRouteSprints(route), lapScale, route.distance),
     // Rescaled onto the official distance for the same reason the surface
     // segments are, with the same factor - see `estimateSurface` and #171.
     elevationProfile: rescaleElevationProfile(measured?.elevationProfile, route.distance),

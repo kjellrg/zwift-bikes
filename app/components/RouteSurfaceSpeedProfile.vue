@@ -1,31 +1,18 @@
 <script setup lang="ts">
-import type { ClassifiedBikeFrame, RouteWithMeta, Wheelset } from '../../shared/types/catalog'
-import type { DraftMode } from '../../shared/utils/physics/draft'
-import { draftOf, TTT_DEFAULT_RIDERS } from '#shared/utils/physics/draft'
-import { computeRouteSurfaceSpeedProfile } from '#shared/utils/physics/routeSurfaceSpeedProfile'
+import type { RouteSurfaceSpeedProfile } from '../../shared/utils/physics/routeSurfaceSpeedProfile'
 
+/**
+ * The speed chart: a renderer of one setup's speed profile on the Ride,
+ * handed to it whole. It runs no simulation of its own - the course analysis
+ * asks the Applied Ride for the profile once, the first time a rider opens a
+ * tab that reads it, and the Surfaces tab's extra watts come off the same
+ * profile, so one render costs one simulation.
+ */
 const props = defineProps<{
-  route: RouteWithMeta
-  frame: ClassifiedBikeFrame
-  wheelset?: Wheelset
-  weightKg: number
-  heightCm: number
-  powerW: number
-  draftMode?: DraftMode
-  tttRiders?: number
-  tttClimbWkg?: number
-  /**
-   * Kept for its callers: the chart is always drawn alone now, for the tab
-   * panel that names and scopes it (`RideCourseAnalysis`) - the card it
-   * once had outside the tabs has no page left to live on.
-   */
-  flat?: boolean
-  /**
-   * In `flat` mode, whether the panel holding the chart is the one on
-   * screen. A hidden tab panel stays mounted, so this - not mounting - is
-   * what first triggers the simulation, the way expanding the card does.
-   */
-  active?: boolean
+  /** The profile to draw; absent until it has been asked for. */
+  profile?: RouteSurfaceSpeedProfile
+  /** Whether the profile is being worked out - a spinner stands in for the chart meanwhile. */
+  computing?: boolean
 }>()
 
 const VIEW_WIDTH = 800
@@ -50,54 +37,11 @@ const STRIP_Y = BASELINE_Y + STRIP_GAP
  * meaningless wattage spike that isn't worth calling out as "the" penalty for the route. */
 const MIN_PENALTY_SEGMENT_KM = 0.2
 
-// Cheap, prop-only check - mirrors `computeRouteSurfaceSpeedProfile`'s own early-return guards, so
-// the card's visibility can be decided without running the (expensive) simulation below.
-const hasSurfaceData = computed(() =>
-  (props.route.terrain.elevationProfile?.length ?? 0) >= 2
-  && (props.route.surface.segments?.length ?? 0) > 0
-)
-
-// The simulation only runs once the panel has been expanded (or, in `flat` mode, its tab selected)
-// at least once - it's the same `simulateRoute` the server already ran for `topCombo` to get its
-// finish time, so running it again eagerly (e.g. purely to populate the collapsed header's avg-speed
-// badge) would duplicate that work on every page load even for users who never open this panel.
-const hasOpened = ref(false)
-const isComputing = ref(false)
-
-// Always computed for one lap - see `computeRouteSurfaceSpeedProfile`'s own doc comment. The card title
-// gets a "(per lap)" qualifier below for lap-based routes so this scope stays clear to the reader; in
-// `flat` mode the tab panel's own scope line says it instead.
-const profile = computed(() => hasOpened.value
-  ? computeRouteSurfaceSpeedProfile(
-      props.route,
-      props.frame,
-      props.wheelset,
-      props.weightKg,
-      props.heightCm,
-      props.powerW,
-      draftOf({ draftMode: props.draftMode ?? 'solo', tttRiders: props.tttRiders ?? TTT_DEFAULT_RIDERS, tttClimbWkg: props.tttClimbWkg })
-    )
-  : undefined)
-
-async function handleOpenChange(open: boolean) {
-  if (!open || hasOpened.value) return
-  isComputing.value = true
-  await nextTick() // let the spinner paint before the synchronous simulation blocks the main thread
-  hasOpened.value = true
-  isComputing.value = false
-}
-// Client-only on purpose: the tab state a server render sees never selects this panel, and a
-// simulation in the server render would put the whole curve into every route's HTML.
-onMounted(() => {
-  watch(() => props.flat && props.active, (active) => {
-    if (active) void handleOpenChange(true)
-  }, { immediate: true })
-})
-const segments = computed(() => profile.value?.segments)
-const speedSamples = computed(() => profile.value?.speedSamples)
+const segments = computed(() => props.profile?.segments)
+const speedSamples = computed(() => props.profile?.speedSamples)
 
 const totalDistanceM = computed(() => (segments.value?.at(-1)?.toKm ?? 0) * 1000)
-const soloComparison = computed(() => profile.value?.soloComparison)
+const soloComparison = computed(() => props.profile?.soloComparison)
 // Both the curve's knots and its y-axis range come from the fine-grained `speedSamples`, not the
 // coarser per-surface-segment `segments` - a real climb/descent inside a long uniform-surface stretch
 // only shows up at that finer resolution (see `RouteSurfaceSpeedProfile`'s own doc comment). The TTT
@@ -198,12 +142,9 @@ function monotoneCubicSegments(pts: { x: number, y: number }[]): CurveSegment[] 
   })
 }
 
-// Sourced from `profile.elevationPoints` (the same simulated geometry the speed curve is built from),
-// NOT `route.terrain.elevationProfile` directly - the raw profile's real GPS trace doesn't always cover
-// the official lead-in + lap distance exactly, and `computeRouteSurfaceSpeedProfile` already rescales
-// to correct for that. Using the raw, unscaled profile here would let this backdrop gradually drift out
-// of alignment with the (correctly rescaled) speed curve over the course of the route.
-const elevationPoints = computed(() => profile.value?.elevationPoints ?? [])
+// Sourced from `profile.elevationPoints` - the resolved Ride's own geometry, the one the speed curve
+// was simulated over - so the backdrop and the curve cannot drift apart along the ride.
+const elevationPoints = computed(() => props.profile?.elevationPoints ?? [])
 
 const MIN_ELEVATION_RANGE_M = 50
 const elevationMin = computed(() => elevationPoints.value.reduce((min, p) => Math.min(min, p.elevationM), elevationPoints.value[0]?.elevationM ?? 0))
@@ -248,7 +189,7 @@ const curveSegments = computed(() =>
 /** y-position of the overall average speed - a subtle dotted reference line, more useful than the
  * previous solid line at the chart's own minimum speed (which read as an arbitrary floor the curve
  * sat on, not a meaningful value). */
-const avgSpeedY = computed(() => profile.value ? scaleYSpeed(profile.value.overallAvgSpeedKmh) : BASELINE_Y)
+const avgSpeedY = computed(() => props.profile ? scaleYSpeed(props.profile.overallAvgSpeedKmh) : BASELINE_Y)
 
 const linePath = computed(() => {
   const segs = curveSegments.value
@@ -309,9 +250,9 @@ const summaryText = computed(() => {
 </script>
 
 <template>
-  <div v-if="hasSurfaceData">
+  <div>
     <div
-      v-if="isComputing"
+      v-if="computing"
       class="flex justify-center py-10"
     >
       <UIcon
@@ -320,11 +261,7 @@ const summaryText = computed(() => {
       />
     </div>
     <template v-else-if="profile">
-      <!-- The header badge's number, for the header-less mode. -->
-      <p
-        v-if="flat"
-        class="mb-2 text-sm text-muted"
-      >
+      <p class="mb-2 text-sm text-muted">
         <span class="font-medium text-highlighted">{{ profile.overallAvgSpeedKmh.toFixed(1) }} km/h</span> average over the whole simulated ride
       </p>
       <svg

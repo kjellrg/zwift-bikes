@@ -188,21 +188,6 @@ export interface SurfaceEstimate {
   /** The lead-in's own measured surface stretches (km relative to the RIDE start), present only for the few routes whose source trace covered the lead-in - see `routeSurfaces.ts`. */
   leadInSegments?: SurfaceSegment[]
   /**
-   * The factor `segments` and `TerrainProfile.elevationProfile` were
-   * multiplied by to put them in official kilometres (`traceScale.ts`), or
-   * absent when nothing was rescaled.
-   *
-   * Anything holding a position in the SOURCE trace's kilometres has to be
-   * multiplied by this before it can be compared against those arrays.
-   * zwift-data's `segmentsOnRoute` placements are such positions: measured
-   * against the route's real geometry rather than its published distance,
-   * they match the community trace's length and not the official one on 36
-   * of the 37 routes where the two can be told apart. `routeSegments.ts` is
-   * the only consumer that slices measured data at a placement, and it is
-   * where this is applied.
-   */
-  traceScale?: number
-  /**
    * - `measured`: computed from the route's real GPS trace intersected against zwiftmap's world
    *   surface polygons - see `shared/data/routeSurfaces.ts` and `scripts/route-surfaces/`.
    * - `curated`: a best-guess percentage for a specific route, based on public route descriptions.
@@ -232,10 +217,16 @@ export interface TerrainWeights {
 export interface RouteClimb {
   name: string
   slug: string
-  /** Start position along the route, in km (one lap - repeats per lap on multi-lap routes). */
+  /**
+   * Start position along the route, in OFFICIAL km (one lap - repeats per lap
+   * on multi-lap routes): a lap placement arrives rescaled from the trace's
+   * km and clamped to the lap (`placementsInOfficialKm`, issue #319), so it
+   * meets the measured profile and surfaces where the road does.
+   */
   fromKm: number
-  /** End position along the route, in km. */
+  /** End position along the route, in official km; never past the lap's official length. */
   toKm: number
+  /** The climb's own measured length - a property of the segment, not a position, so it is not rescaled with the ends. */
   lengthKm: number
   elevationM: number
   avgGradePercent: number
@@ -313,6 +304,7 @@ export interface RouteSegmentPlacement {
   name: string
   slug: string
   type: 'climb' | 'sprint'
+  /** In official km, like `RouteClimb.fromKm`. */
   fromKm: number
   toKm: number
   lengthKm: number

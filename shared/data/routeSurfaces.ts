@@ -32,7 +32,9 @@ import generated from './routeSurfaces.generated.json'
  * which is not quite the official route distance. `estimateSurface` and
  * `computeTerrain` rescale both position-tagged arrays onto the official
  * distance as they read this (see `shared/utils/traceScale.ts`, issue #171),
- * so nothing outside `routeTerrain.ts` should read these fields directly.
+ * and the route's climb and sprint placements with the same factor (issue
+ * #319), so nothing outside `routeTerrain.ts` should read these fields
+ * directly.
  */
 interface GeneratedRouteSurface {
   composition: SurfaceComposition

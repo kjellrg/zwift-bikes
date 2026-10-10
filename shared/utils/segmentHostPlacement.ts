@@ -44,7 +44,8 @@ function roundKm(value: number): number {
  * Whether a route is ride-relative for placing on: its placements or its
  * track run from the ride start rather than the lap start. Generated
  * placements are lap-relative - the frame `zwift-data` uses on almost every
- * route, so `traceScale` applies to them unchanged - and a route whose own
+ * route, so they reach official km at ingest exactly as its own do
+ * (`placementsInOfficialKm`) - and a route whose own
  * placements are ride-relative would end up with two frames mixed in one
  * `segmentsOnRoute`. Wider than `placementsAreRideRelative`, which answers
  * only for a route that has placements: a route with none whose recorded

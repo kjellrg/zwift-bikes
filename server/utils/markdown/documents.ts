@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import { createError } from 'h3'
 import type { BikeCategory, ComboScore, RouteSummary } from '../../../shared/types/catalog'
 import { getRouteBySlug, getRoutesWithMeta, toRouteSummary } from '../../../shared/utils/catalog'
+import { courseCoverage, type CourseApproximation } from '../../../shared/utils/courseCoverage'
 import {
   getRaceBySlug,
   getRoundForRace,
@@ -11,11 +12,12 @@ import {
 } from '../../../shared/utils/events'
 import { BIKE_CATEGORY_WORDS } from '../../../shared/utils/bikeCategories'
 import { raceFormatRules } from '../../../shared/utils/raceRules'
+import { rideForRoute, rideForSegment } from '../../../shared/utils/recommendRide'
 import type { NoticeLink, RunRaceNotice } from '../../../shared/utils/runRaceNotice'
 import { buildRecommendationAnswer } from '../../../shared/utils/recommendationAnswer'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, riderInputsForRide, type AppliedRiderInputs, type Ride } from '../../../shared/utils/recommendQuery'
 import { raceRide, raceStatement, routeStatement, segmentStatement, type RaceStatement, type RideStatement } from '../../../shared/utils/rideStatement'
-import { computeRouteTotals, maxLapsForRoute } from '../../../shared/utils/routeLaps'
+import { maxLapsForRoute } from '../../../shared/utils/routeLaps'
 import { getAllSegmentSummaries, getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
 import type { SiteFlags } from '../../../shared/utils/siteFlags'
 import { formatDistance } from '../../../shared/utils/units'
@@ -299,6 +301,13 @@ function draftWords(rider: AppliedRiderInputs): string {
  * sentence says each. Hand cycles are not named in the list, which has never
  * named them.
  */
+/** A route twin's "Elevation data" line, by the coverage rule's approximation. */
+const ELEVATION_DATA: Record<CourseApproximation, string> = {
+  'measured': 'real measured GPS profile',
+  'named-climbs': 'named climbs plus a synthesized remainder',
+  'aggregate': 'synthesized from aggregate distance and elevation'
+}
+
 const CATEGORY_LINE_ORDER: readonly BikeCategory[] = ['standard', 'tt', 'gravel', 'funbike']
 const FRAME_KIND_WORDS: Record<BikeCategory, string> = { ...BIKE_CATEGORY_WORDS, funbike: 'fun' }
 
@@ -404,14 +413,15 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
   if (!route) throw createError({ statusCode: 404, statusMessage: `Route "${slug}" not found` })
   const canonical = `${siteUrl}/routes/${route.slug}`
   // The page's Ride (`app/pages/routes/[slug].vue`): one lap is what its lap
-  // picker starts on and therefore what its prerendered ranking is for.
-  // `computeRouteTotals` adds the lead-in, which is ridden once and is the
-  // difference between the route's published distance and the distance
-  // actually raced.
+  // picker starts on and therefore what its prerendered ranking is for -
+  // resolved once, as the page resolves it for its hero and its statement.
+  // Its totals add the lead-in, which is ridden once and is the difference
+  // between the route's published distance and the distance actually raced.
   const ride: Ride = { course: { kind: 'route', slug: route.slug }, laps: 1 }
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
-  const totals = computeRouteTotals(route, 1)
-  const statement = routeStatement({ route, laps: 1, siteUrl })
+  const resolvedRide = rideForRoute(route, 1)
+  const totals = resolvedRide.totals
+  const statement = routeStatement({ ride: resolvedRide, siteUrl })
 
   // A ranking is the point of the page but not a precondition for the
   // document: the kill switch can pause recommendations and a rider who
@@ -442,9 +452,9 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
       `- **Terrain**: ${route.terrain.category}`,
       `- **Surface**: ${formatSurface(route.surface)}`,
       `- **Event only**: ${route.eventOnly ? 'yes - it can only be ridden in an event' : 'no - it can be free-ridden as well as raced'}`,
-      // Which of the three geometry sources the physics model got, said the
-      // same way `get_route` says it to an MCP client.
-      `- **Elevation data**: ${route.terrain.elevationProfile ? 'real measured GPS profile' : route.terrain.climbs.length > 0 ? 'named climbs plus a synthesized remainder' : 'synthesized from aggregate distance and elevation'}`
+      // Which of the three geometry sources the physics model got, by the
+      // coverage rule `get_route` and the ranking's note read too.
+      `- **Elevation data**: ${ELEVATION_DATA[courseCoverage(route).approximation]}`
     ]),
     ''
   )
@@ -479,7 +489,7 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
   // quotes a different W figure from a climb's.
   const ride: Ride = { course: { kind: 'segment', slug: segment.slug }, power: segment.type === 'sprint' ? 'sprint' : 'race' }
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
-  const statement = segmentStatement({ segment, course, ride, siteUrl })
+  const statement = segmentStatement({ segment, resolvedRide: rideForSegment(course), ride, siteUrl })
 
   const result = await rankAsThePage({ kind: 'segment', segment }, ride, context)
   const ranking = 'ranking' in result ? result.ranking : undefined
@@ -595,14 +605,16 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
   // "exclusive" route in week 6) can still be described, just not ranked.
   const ride = raceRide(race, 0)
   const course = ride ? getRouteBySlug(ride.course.slug) : undefined
+  // Resolved once, for the statement and the totals alike, as the page does.
+  const resolvedRide = course && ride ? rideForRoute(course, ride.laps, ride.ttFramesAllowed === false) : undefined
   const rider = riderInputsForRide(DEFAULT_RIDER_INPUTS, ride)
   // The page's own statement for its first group, on the day it is read.
-  const statement = raceStatement({ season, race, groupIndex: 0, course, today, siteUrl })
+  const statement = raceStatement({ season, race, groupIndex: 0, resolvedRide, today, siteUrl })
 
   const result = course && ride ? await rankAsThePage({ kind: 'route', route: course }, ride, context) : undefined
   const ranking = result && 'ranking' in result ? result.ranking : undefined
 
-  const totals = course && ride ? computeRouteTotals(course, ride.laps ?? 1) : undefined
+  const totals = resolvedRide?.totals
   const unavailable = result
     ? rankingUnavailable(result)
     : '_This group races a route the catalog does not carry, so no ranking can be computed for it._'

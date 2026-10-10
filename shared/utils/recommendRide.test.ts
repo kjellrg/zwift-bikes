@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { getFrames, getRouteBySlug, getRoutesWithMeta } from './catalog'
-import { rideForRoute, rideForSegment } from './recommendRide'
+import type { RecommendRide } from '../types/recommendRide'
+import { firstLapOfRide, rideForRoute, rideForSegment } from './recommendRide'
 import { getSegmentSummary, routeWithMetaForSegment } from './routeSegments'
-import { geometryForRouteLaps, resolveDraft, simulateRoute } from './physics'
+import { resolveDraft, simulateRoute } from './physics'
+import { geometryForRouteLaps } from './physics/routeGeometry'
 import { maxLapsForRoute } from './routeLaps'
 import { getWheelsets } from './wheelsets'
 
@@ -19,6 +21,20 @@ describe('rideForRoute', () => {
     expect(rideForRoute({ ...route, distance: 60, leadInDistance: 30 }, 15).laps).toBe(2)
     expect(rideForRoute(route, Number.NaN).laps).toBe(1)
     expect(rideForRoute(route, Number.POSITIVE_INFINITY).laps).toBe(1)
+  })
+
+  it('rides, draws and counts the one clamped lap count: geometry, passes, lap starts and totals', () => {
+    // The builders take the Ride's lap count as given; the lap rule is the Ride's alone.
+    const route = getRouteBySlug('lutscher')!
+    for (const [requested, laps] of [[2.8, 3], [0, 1], [-2, 1], [100, maxLapsForRoute(route)]] as const) {
+      const ride = rideForRoute(route, requested)
+      expect(ride.laps).toBe(laps)
+      expect(ride.planGeometry().totalDistanceM).toBeCloseTo(((route.leadInDistance ?? 0) + route.distance * laps) * 1000, 6)
+      // The Innsbruck KOM once in the lead-in, then once a lap.
+      expect(ride.climbs.filter(climb => climb.slug === 'innsbruck-kom')).toHaveLength(laps + 1)
+      expect(ride.profile()!.lapStarts).toHaveLength(laps - 1)
+      expect(ride.totals).toMatchObject({ laps, distanceKm: (route.leadInDistance ?? 0) + route.distance * laps })
+    }
   })
 
   it('rides the route\'s laps geometry, lead-in once, for every route and every lap count it allows', () => {
@@ -161,5 +177,110 @@ describe('rideForSegment', () => {
     expect(ride.planGeometry()).toBe(geometry)
     expect(ride.prepare(simulateRoute, { weightKg: 75, heightCm: 175, powerW: 225 }).timeCombo).toBeTypeOf('function')
     expect(ride.planGeometry()).toBe(geometry)
+  })
+})
+
+/**
+ * The resolved Ride is the one way in to a course's geometry (issue #319):
+ * the Course hero draws `planGeometry`'s own points, and the speed chart
+ * rides that geometry under the draft the ranking resolves on it.
+ */
+describe('one geometry per Ride', () => {
+  const rider = { weightKg: 75, heightCm: 175, powerW: 225 }
+  const setup = {
+    frame: getFrames().find(frame => frame.name === 'Zwift Carbon')!,
+    wheelset: getWheelsets().find(wheelset => wheelset.name === 'Zwift 32mm Carbon')!
+  }
+  const ttt = { mode: 'ttt' as const, riders: 6, climbWkg: 3.5 }
+
+  function recording() {
+    const calls: { options: Parameters<typeof simulateRoute>[0], result: ReturnType<typeof simulateRoute> }[] = []
+    const simulate: typeof simulateRoute = (options) => {
+      const result = simulateRoute(options)
+      calls.push({ options, result })
+      return result
+    }
+    return { calls, simulate }
+  }
+
+  /** The hero's points as the geometry they were drawn from. */
+  const drawn = (ride: RecommendRide) => ride.profile()!.points.map(({ distanceM, elevationM }) => ({ distanceM, elevationM }))
+
+  describe('on a route, two laps with a lead-in', () => {
+    // Lutscher: a 10.8 km lead-in carrying the Innsbruck KOM, then the KOM once a lap.
+    const ride = rideForRoute(getRouteBySlug('lutscher')!, 2)
+
+    it('draws the Course hero from the Ride\'s planGeometry points, its bands from the Ride\'s passes and its lap starts from the geometry', () => {
+      const geometry = geometryForRouteLaps(ride.route, 2)
+      expect(drawn(ride)).toEqual(ride.planGeometry().points)
+      expect(ride.profile()!.climbs.map(band => band.slug)).toEqual(ride.climbs.map(climb => climb.slug))
+      expect(ride.profile()!.sprints).toHaveLength(ride.sprints.length)
+      expect(ride.profile()!.lapStarts).toEqual([geometry.lapStartsM[1]! / geometry.totalDistanceM])
+      // Memoised: one profile per Ride and sample count.
+      expect(ride.profile()).toBe(ride.profile())
+    })
+
+    it('charts one pass of the lap with the lead-in, cut out of planGeometry, under the ranking\'s draft', () => {
+      const { calls, simulate } = recording()
+      const profile = ride.speedProfile(setup, rider, ttt, simulate)
+      expect(profile).toBeDefined()
+      // The draft and its TTT plan are resolved on the whole Ride, as the ranking resolves them.
+      const ranking = resolveDraft(ttt, ride.planGeometry(), rider)
+      expect(ranking.plan).toBeDefined()
+      const [chart, solo] = calls
+      expect(calls).toHaveLength(2)
+      expect(chart!.options.powerSegmentsW).toEqual(ranking.plan!.powerSegmentsW)
+      expect(chart!.options.powerScaleAtSpeed!(10)).toBe(ranking.powerScaleAtSpeed!(10))
+      expect(solo!.options.powerSegmentsW).toEqual(ranking.solo.plan!.powerSegmentsW)
+      // The lead-in and the first lap, every point the ranking rides there.
+      const lapEndM = geometryForRouteLaps(ride.route, 2).lapStartsM[1]!
+      expect(chart!.options.geometry.totalDistanceM).toBe(lapEndM)
+      expect(chart!.options.geometry.points).toEqual(ride.planGeometry().points.filter(point => point.distanceM <= lapEndM + 1e-6))
+      expect(chart!.options.initialSpeedMps).toBeUndefined()
+      // Memoised per setup, rider and draft: asking again simulates nothing.
+      expect(ride.speedProfile(setup, rider, ttt, simulate)).toBe(profile)
+      expect(calls).toHaveLength(2)
+      expect(ride.speedProfile(setup, { ...rider, powerW: 250 }, ttt, simulate)).not.toBe(profile)
+    })
+  })
+
+  describe('on a segment', () => {
+    const ride = rideForSegment(routeWithMetaForSegment(getSegmentSummary('alpe-du-zwift')!))
+
+    it('draws the Course hero from the segment\'s own planGeometry points, with nothing named on it', () => {
+      expect(drawn(ride)).toEqual(ride.planGeometry().points)
+      expect(ride.profile()).toMatchObject({ climbs: [], sprints: [], lapStarts: [] })
+      expect(ride.profile()).not.toHaveProperty('approximatedUntil')
+    })
+
+    it('charts the timed estimate: the segment\'s own geometry entered off the warm-up, under the ranking\'s draft', () => {
+      const { calls, simulate } = recording()
+      expect(ride.speedProfile(setup, rider, ttt, simulate)).toBeDefined()
+      const ranking = resolveDraft(ttt, ride.planGeometry(), rider)
+      const [warmup, soloWarmup, chart, solo] = calls
+      expect(calls).toHaveLength(4)
+      expect(chart!.options.geometry).toBe(ride.planGeometry())
+      expect(chart!.options.initialSpeedMps).toBe(warmup!.result.finalSpeedMps)
+      expect(chart!.options.powerSegmentsW).toEqual(ranking.plan!.powerSegmentsW)
+      expect(chart!.options.powerScaleAtSpeed!(10)).toBe(ranking.powerScaleAtSpeed!(10))
+      // The solo line enters off a solo warm-up.
+      expect(soloWarmup!.options.powerScaleAtSpeed).toBeUndefined()
+      expect(solo!.options.initialSpeedMps).toBe(soloWarmup!.result.finalSpeedMps)
+
+      // The very time the ranking gives this setup.
+      const timed = recording()
+      const timing = ride.prepare(timed.simulate, rider).timeCombo!({ ...setup, draft: ranking })
+      expect(timed.calls[0]!.options).toMatchObject({ geometry: warmup!.options.geometry, steadyStateToleranceMps2: warmup!.options.steadyStateToleranceMps2 })
+      expect(timed.calls[1]!.options.initialSpeedMps).toBe(chart!.options.initialSpeedMps)
+      expect(chart!.result.elapsedSec).toBeCloseTo(timing.finishSec, 6)
+    })
+  })
+
+  it('cuts the first pass out of the Ride\'s geometry exactly where a one-lap Ride ends, on every route', () => {
+    for (const route of getRoutesWithMeta()) {
+      const laps = maxLapsForRoute(route)
+      const { lapStartsM: _, ...oneLap } = geometryForRouteLaps(route, 1)
+      expect(firstLapOfRide(geometryForRouteLaps(route, laps)), `${route.slug} x${laps}`).toEqual(oneLap)
+    }
   })
 })

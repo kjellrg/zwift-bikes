@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "npm run validate && nuxt build && node scripts/check-client-bundle.mjs",
-    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:upgrade-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas",
+    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:placements && npm run validate:upgrade-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas",
     "validate:upgrade-data": "node scripts/upgrade-levels/verify-upgrade-data.mjs",
     "validate:equipment-physics": "node scripts/equipment-physics/compute-equipment-physics.mjs --check",
     "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",
@@ -14,6 +14,7 @@
     "parity:recommend": "node scripts/recommend-parity/compare.mjs",
     "validate:events": "node scripts/events/validate-events.mjs",
     "validate:speed-data": "node scripts/validate-speed-data.mjs",
+    "validate:placements": "node scripts/validate-placements.mjs",
     "validate:race-draft": "node scripts/race-draft/validate-race-draft.mjs && node scripts/race-draft/test-parse-zwiftpower-paste.mjs",
     "flags:pull": "node scripts/site-flags/site-flags.mjs pull",
     "flags:push": "node scripts/site-flags/site-flags.mjs push",

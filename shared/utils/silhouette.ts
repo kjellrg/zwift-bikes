@@ -1,7 +1,5 @@
-import type { RouteWithMeta } from '../types/catalog'
 import type { PhysicsSurface, RouteGeometryPoint, RouteSurfaceSegment } from '../types/physics'
-import { geometryForRouteLaps } from './physics/routeGeometry'
-import { expandClimbsForLaps, expandSprintsForLaps } from './routeOccurrences'
+import type { RecommendRide } from '../types/recommendRide'
 
 /**
  * The one geometry every drawing of a Ride's profile is made from, in two
@@ -14,6 +12,9 @@ import { expandClimbsForLaps, expandSprintsForLaps } from './routeOccurrences'
  *   draws - Discovery cards, related rides, a season's race rows - and the
  *   share cards: heights alone at even distances, the surfaces by family,
  *   and nothing a pointer could read off.
+ *
+ * Both are drawn from the resolved Ride (`RecommendRide.profile`, built on
+ * its `planGeometry`); this module only shapes what it is handed.
  *
  * Both are in a unit box: `x` runs 0..1 along the ride, `y` 0..1 from its
  * lowest point to its highest. A renderer scales the box to its own size and
@@ -85,6 +86,8 @@ export interface CourseProfile {
   totalDistanceM: number
   minElevationM: number
   maxElevationM: number
+  /** Where each lap after the first starts, as fractions, in ride order; empty on one lap. */
+  lapStarts: number[]
   /**
    * Where the drawing stops being the model's approximation, as a fraction:
    * an unmeasured lead-in runs from 0 to here, and a renderer dashes it
@@ -110,6 +113,8 @@ export interface CourseProfileInput {
   sprints?: readonly CourseProfileOccurrence[]
   /** Where an approximated opening stretch ends, in metres from the start - see `CourseProfile.approximatedUntil`. */
   approximatedUntilM?: number
+  /** Where each lap after the first starts, in metres from the start - see `CourseProfile.lapStarts`. */
+  lapStartsM?: readonly number[]
 }
 
 export interface CourseProfileOptions {
@@ -184,6 +189,7 @@ export function courseProfile(input: CourseProfileInput, options: CourseProfileO
     totalDistanceM,
     minElevationM,
     maxElevationM,
+    lapStarts: totalDistanceM > 0 ? (input.lapStartsM ?? []).map(startM => clampFraction(startM / totalDistanceM)) : [],
     // Spread rather than set to `undefined`: the key rides in page payloads.
     ...(input.approximatedUntilM && totalDistanceM > 0 ? { approximatedUntil: clampFraction(input.approximatedUntilM / totalDistanceM) } : {})
   }
@@ -225,53 +231,6 @@ export function outlineRuns(points: readonly OutlinePoint[], approximatedUntil: 
     .filter(run => run.points.length > 1)
 }
 
-/**
- * What a profile is drawn from: a whole route, or the listing's summary of
- * one (`RouteSummary`), which carries the terrain and surfaces but not the
- * lead-in - a card's Silhouette is then the lap alone, which is what a
- * listing describes.
- */
-export type CourseProfileRoute = Pick<RouteWithMeta, 'slug' | 'distance' | 'elevation' | 'terrain' | 'surface'>
-  & Partial<Pick<RouteWithMeta, 'leadInDistance' | 'leadInElevation'>>
-
-/**
- * A route's (or a segment-as-route's) CourseProfile for `laps` laps, the
- * lead-in once: the very geometry the simulator rides (`geometryForRouteLaps`)
- * with its climbs and sprints expanded per lap by the same functions the
- * course tabs use, so the picture, the markers and the finish time describe
- * one ride.
- *
- * Undefined when the lap has no measured profile: the geometry builder
- * would otherwise hand back the model's own approximation, and a profile
- * drawn from that would be a shape nobody has ridden. A lead-in is often
- * unmeasured on a route whose lap is; it is ridden, so it is drawn, from the
- * builder's approximation (a straight line, or its known climbs), and
- * `approximatedUntil` marks it so every renderer dashes it. The surface
- * strip is drawn only where the lap's surfaces were measured, never from a
- * mix laid out in share order; an unmeasured lead-in takes the builder's
- * surfaces with its shape.
- *
- * A listing's summary has no lead-in, so its Silhouette is the lap alone,
- * and a climb or sprint ridden only in the lead-in has no place on it.
- */
-export function routeCourseProfile(route: CourseProfileRoute, laps = 1, options: CourseProfileOptions = {}): CourseProfile | undefined {
-  if ((route.terrain.elevationProfile?.length ?? 0) < 2) return undefined
-  // Every field the geometry builder reads is on a `CourseProfileRoute`; the
-  // lead-in ones it treats as absent when they are.
-  const full = route as RouteWithMeta
-  const geometry = geometryForRouteLaps(full, laps)
-  const leadInM = (route.leadInDistance ?? 0) * 1000
-  const onDrawnRide = (occurrence: { perLap: boolean }) => occurrence.perLap || leadInM > 0
-  const leadInMeasured = (route.terrain.leadInElevationProfile?.length ?? 0) > 1
-  return courseProfile({
-    points: geometry.points,
-    surfaceSegments: route.surface.segments?.length ? geometry.surfaceSegments : undefined,
-    climbs: expandClimbsForLaps(full, laps).filter(onDrawnRide),
-    sprints: expandSprintsForLaps(full, laps).filter(onDrawnRide),
-    approximatedUntilM: leadInM > 0 && !leadInMeasured ? leadInM : undefined
-  }, options)
-}
-
 /** Where a Silhouette's surfaces run, by family - all a small drawing colours by. */
 export interface SilhouetteSurface extends CourseProfileSpan {
   family: SurfaceFamily
@@ -297,7 +256,7 @@ export interface Silhouette {
 /**
  * Heights per listed Silhouette: homepage cards, related routes and season
  * rows. A larger drawing of the same Ride (a share card, the homepage's
- * example) asks `routeSilhouette` for more.
+ * example) asks `rideSilhouette` for more.
  */
 export const SILHOUETTE_LISTING_SAMPLES = 48
 
@@ -333,13 +292,14 @@ function silhouetteSurfaces(spans: readonly CourseProfileSurfaceSpan[]): Silhoue
 }
 
 /**
- * A route's Silhouette for `laps` laps, the lead-in once: the CourseProfile
- * (`routeCourseProfile`) resampled at `samples` even distances and cut down
- * to heights, family spans and the approximated stretch. Undefined when the
- * lap has no measured profile, like the CourseProfile.
+ * A resolved Ride's Silhouette: its CourseProfile (`RecommendRide.profile`)
+ * resampled at `samples` even distances and cut down to heights, family
+ * spans and the approximated stretch. Undefined when the lap has no measured
+ * profile, like the CourseProfile. A listing resolves its summary with
+ * `rideForListedRoute`.
  */
-export function routeSilhouette(route: CourseProfileRoute, laps = 1, samples = SILHOUETTE_LISTING_SAMPLES): Silhouette | undefined {
-  const profile = routeCourseProfile(route, laps, { samples })
+export function rideSilhouette(ride: Pick<RecommendRide, 'profile'>, samples = SILHOUETTE_LISTING_SAMPLES): Silhouette | undefined {
+  const profile = ride.profile({ samples })
   return profile ? profileSilhouette(profile) : undefined
 }
 

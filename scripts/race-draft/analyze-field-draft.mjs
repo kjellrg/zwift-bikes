@@ -55,7 +55,9 @@ const { getRouteBySlug } = loadSharedModule('shared/utils/catalog.ts')
 const { getWheelsets } = loadSharedModule('shared/utils/wheelsets.ts')
 const { classifyBikeFrame } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
 const { simulateRoute } = loadSharedModule('shared/utils/physics/simulator.ts')
-const { geometryForRouteLaps, prependWarmup } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+const { prependWarmup } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+// The resolved Ride is the one way in to a route's geometry (issue #319).
+const { rideForRoute } = loadSharedModule('shared/utils/recommendRide.ts')
 const { draftSavingsSpeedScale } = loadSharedModule('shared/utils/physics/draft.ts')
 const { bikeFrames } = await import('zwift-data')
 
@@ -95,7 +97,7 @@ function buildEquipment(scenario) {
 function buildGeometry(race) {
   const route = getRouteBySlug(race.routeSlug)
   if (!route) throw new Error(`Unknown route: ${race.routeSlug}`)
-  let geometry = geometryForRouteLaps(route, race.laps)
+  let geometry = rideForRoute(route, race.laps).planGeometry()
   const extraM = (race.eventDistanceKm ?? 0) * 1000 - geometry.totalDistanceM
   if (extraM > 0) geometry = prependWarmup(geometry, extraM)
   if (forceTarmac) geometry = { ...geometry, surfaceSegments: geometry.surfaceSegments.map(s => ({ ...s, surface: 'tarmac' })) }

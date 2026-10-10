@@ -58,7 +58,9 @@ nothing in `app/`, `server/`, or the Nuxt build runs these scripts.
    exactly the official route distance. Positions in this file stay in the
    trace's kilometres; `shared/utils/traceScale.ts` stretches both the surface
    segments and the elevation profile onto the official distance, with one
-   shared factor, as the app loads them. The generator reports every route
+   shared factor, as the app loads them, and `computeTerrain` puts the
+   route's climb and sprint placements in official km with the same factor
+   (issue #319). The generator reports every route
    over 3% on any run (four are, as of 2026-09, up to 8.3%). Rescaling makes
    such a trace usable, but a segment cut at the right places is still better:
    re-point the entry's `stravaSegmentId` and refetch with `--only`.

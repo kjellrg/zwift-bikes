@@ -17,6 +17,10 @@ const ride = computed<Ride>(() => ({ course: { kind: 'route', slug: slug.value }
 // ranking page module, whose statement is built from it.
 const { ready: courseReady, course: routeData, error: routeError } = useCourse(() => ride.value.course)
 
+// The live Ride resolved: the laps the picker shows. The Course hero draws
+// it and the Ride statement's Fact row counts it, so the two cannot disagree.
+const liveRide = useResolvedRide(() => ride.value, () => routeData.value)
+
 const siteConfig = useSiteConfig()
 // Everything this page shows about its Ranking - see `useRankingPage` - and
 // everything it says about its Ride on its own, in its Ride statement (see
@@ -25,7 +29,7 @@ const siteConfig = useSiteConfig()
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-route-${slug.value}`,
-  statement: answer => routeData.value && routeStatement({ route: routeData.value, laps: laps.value, siteUrl: siteConfig.url, answer })
+  statement: answer => liveRide.value && routeStatement({ ride: liveRide.value, siteUrl: siteConfig.url, answer })
 })
 const { statement, tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
 
@@ -129,8 +133,8 @@ onMounted(() => {
     </RideFactRow>
 
     <CourseHero
-      :route="routeData"
-      :laps="laps"
+      v-if="liveRide"
+      :ride="liveRide"
       :name="routeData.name"
     />
 

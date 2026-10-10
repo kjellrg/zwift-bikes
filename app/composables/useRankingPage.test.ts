@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { computed, effectScope, ref, shallowRef, watch, type Ref } from 'vue'
 import { getFrames, getRouteBySlug } from '#shared/utils/catalog'
 import { getRaceBySlug, getSeasonBySlug } from '#shared/utils/events'
+import { rideForRoute, rideForSegment } from '#shared/utils/recommendRide'
 import { raceStatement, routeStatement, segmentStatement, type RaceWithFormat, type RideStatement } from '#shared/utils/rideStatement'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import { getWheelsets } from '#shared/utils/wheelsets'
@@ -81,7 +82,7 @@ function setup(pageInputs: PageInputs = () => ({})) {
     key: 'recommend-route-hilly-route',
     // The route page's: its course is looked up, so the statement follows
     // the live Ride's lap count.
-    statement: answer => routeStatement({ route: hilly, laps: liveRide.value?.laps ?? 1, siteUrl: SITE, answer }),
+    statement: answer => routeStatement({ ride: rideForRoute(hilly, liveRide.value?.laps), siteUrl: SITE, answer }),
     ...pageInputs(liveRide)
   }))!
   return { page, request, useRecommendRequest, liveRide, appliedRide, appliedCourse, appliedInputs, combos, head: () => head() }
@@ -123,7 +124,7 @@ describe('useRankingPage', () => {
   it('sets the statement\'s trail and question in the head, and nothing before the page has a statement', () => {
     const known = ref(false)
     const { page, head } = setup(live => ({
-      statement: answer => known.value ? routeStatement({ route: hilly, laps: live.value?.laps ?? 1, siteUrl: SITE, answer }) : undefined
+      statement: answer => known.value ? routeStatement({ ride: rideForRoute(hilly, live.value?.laps), siteUrl: SITE, answer }) : undefined
     }))
     expect(head()).toEqual({})
     known.value = true
@@ -171,11 +172,24 @@ describe('useRankingPage', () => {
     const { page, liveRide } = setup()
     liveRide.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 3, ...rideRulesForFormat('points') }
     expect(page.appliedLaps.value).toBe(1)
-    expect(page.courseAnalysis.value).toMatchObject({ route: hilly, resultsRoute: hilly, kind: 'route', laps: 1, resultsLaps: 1 })
+    expect(page.courseAnalysis.value).toMatchObject({ kind: 'route' })
+    expect(page.courseAnalysis.value?.ride).toMatchObject({ route: hilly, laps: 1 })
     expect(page.why.value).toMatchObject({ course: hilly, combo: rank1, rideName: 'Watopia Hilly Route', physicsMode: 'dynamic', draftMode: 'solo' })
     expect(page.reportLine.value).toBe('1 lap, 225 W, Solo')
     // The one live reading: the TT chips follow the rule of the Ride being asked for.
     expect(page.hideTtCategory.value).toBe(true)
+  })
+
+  it('resolves the Applied Ride once, for the course analysis and the TTT plan alike, until the Applied Ride or course moves', () => {
+    const { page, appliedRide, appliedInputs } = setup()
+    const resolved = page.courseAnalysis.value?.ride
+    expect(resolved).toBeDefined()
+    // A rider change re-prices the equipment views, never re-resolves the Ride.
+    appliedInputs.value = { ...appliedInputs.value, powerW: 300, draftMode: 'race' }
+    expect(page.courseAnalysis.value?.ride).toBe(resolved)
+    appliedRide.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 2 }
+    expect(page.courseAnalysis.value?.ride).not.toBe(resolved)
+    expect(page.courseAnalysis.value?.ride.laps).toBe(2)
   })
 
   it('has no course analysis until the Applied course is known', () => {
@@ -205,7 +219,7 @@ describe('useRankingPage', () => {
         key: 'recommend-segment-fuego-flats',
         statement: (answer) => {
           const segment = live.value?.course.kind === 'segment' ? getSegmentSummary(live.value.course.slug) : undefined
-          return segment && segmentStatement({ segment, course: routeWithMetaForSegment(segment), ride: live.value!, siteUrl: SITE, answer })
+          return segment && segmentStatement({ segment, resolvedRide: rideForSegment(routeWithMetaForSegment(segment)), ride: live.value!, siteUrl: SITE, answer })
         }
       }))
       page.liveRide.value = ride
@@ -220,7 +234,8 @@ describe('useRankingPage', () => {
       expect(page.appliedLaps.value).toBe(1)
       expect(page.answer.value?.text).toMatch(/^ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for the Fuego Flats sprint in Watopia: /)
       expect(page.answer.value?.text).not.toMatch(/\blaps?\b/)
-      expect(page.courseAnalysis.value).toMatchObject({ route: fuego, resultsRoute: fuego, kind: 'sprint', laps: 1, resultsLaps: 1 })
+      expect(page.courseAnalysis.value).toMatchObject({ kind: 'sprint' })
+      expect(page.courseAnalysis.value?.ride).toMatchObject({ route: fuego, laps: 1, timingMeta: { segment: 'fuego-flats' } })
       expect(page.why.value.rideName).toBe('Fuego Flats')
       expect(page.reportLine.value).toBe('Sprint segment, 800 W sprint power, Solo')
     })
@@ -285,7 +300,8 @@ describe('useRankingPage', () => {
         statement: () => {
           const groupIndex = Math.max(0, race.categories.findIndex(group => group.routeSlug === live.value?.course.slug))
           const course = live.value && getRouteBySlug(live.value.course.slug)
-          return raceStatement({ season, race, groupIndex, course, today: '2026-09-01', siteUrl: SITE })
+          const resolvedRide = course ? rideForRoute(course, live.value?.laps) : undefined
+          return raceStatement({ season, race, groupIndex, resolvedRide, today: '2026-09-01', siteUrl: SITE })
         }
       }))
       page.liveRide.value = groupRide(0)
@@ -303,7 +319,7 @@ describe('useRankingPage', () => {
       // The Category group's lap count, once, in the scope line.
       expect(page.answer.value?.text.match(/\b1 lap\b/g)).toEqual(['1 lap'])
       expect(page.answer.value?.text).toContain('1 lap, including any lead-in once')
-      expect(page.courseAnalysis.value).toMatchObject({ route: makuri40, resultsRoute: makuri40, kind: 'route', laps: 1 })
+      expect(page.courseAnalysis.value).toMatchObject({ kind: 'route', ride: { route: makuri40, laps: 1 } })
       expect(page.reportLine.value).toBe('A/B, ridden as a points race, 1 lap, 225 W, Solo, TT frames barred')
       expect(page.hideTtCategory.value).toBe(true)
     })

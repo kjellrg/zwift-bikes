@@ -185,13 +185,14 @@ describe('a segment is sliced in its host\'s coordinates and delivered in its ow
   it('reads the summit of a summit-finish segment on the most drifting host in the catalog', () => {
     // valley-to-mountaintop's trace is 8.3% shorter than its official
     // distance, the largest disagreement anywhere. Its climb finishes at the
-    // route's end, so an unscaled placement would slice a stretch ending 400 m
-    // before the summit and lose the steepest part of the climb.
+    // route's end, so a placement left in trace km would slice a stretch
+    // ending 400 m before the summit and lose the steepest part of the climb.
+    // It arrives in official km (issue #319), ending on the summit.
     const host = getRoutesWithMeta().find(route => route.slug === 'valley-to-mountaintop')!
-    expect(host.surface.traceScale).toBeCloseTo(1.0909, 3)
     const climb = host.terrain.climbs.at(-1)
     expect(climb).toBeDefined()
-    expect(climb!.toKm * host.surface.traceScale!).toBeCloseTo(host.distance, 1)
+    expect(climb!.toKm).toBeCloseTo(host.distance, 1)
+    expect(climb!.toKm).toBeLessThanOrEqual(host.distance)
   })
 })
 

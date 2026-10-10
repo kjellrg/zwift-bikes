@@ -5,7 +5,7 @@ import { detectLongClimbBlocks } from '#shared/utils/physics/draft'
 import { raceFormatRules } from '#shared/utils/raceRules'
 import { rideForRoute, rideForSegment } from '#shared/utils/recommendRide'
 import { computeRouteTotals } from '#shared/utils/routeLaps'
-import { routeSilhouette } from '#shared/utils/silhouette'
+import { rideSilhouette } from '#shared/utils/silhouette'
 import { OG_SILHOUETTE_SAMPLES } from './ogProfile'
 import type { AppliedRiderInputs, Ride } from './recommendRequest'
 import { formatRideLine } from './report'
@@ -52,7 +52,8 @@ export function resolveRankingPageRide(ride: Ride | undefined, course: RouteWith
 }
 
 /**
- * Whether the Ride has a long climb for the Applied rider - whether the Rider
+ * Whether the resolved Applied Ride (`resolveRankingPageRide`) has a long
+ * climb for the Applied rider - whether the Rider
  * card's team climb pace lever is worth showing (its `hasLongClimb`). Keyed
  * on the power the ride was ridden at, never on the team climb pace itself:
  * the climb pace must not decide its own slider's visibility, or the control
@@ -62,12 +63,10 @@ export function resolveRankingPageRide(ride: Ride | undefined, course: RouteWith
  * guess.
  */
 export function rankingPageHasLongClimb(
-  ride: Ride | undefined,
-  course: RouteWithMeta | undefined,
+  ride: RecommendRide | undefined,
   rider: Pick<AppliedRiderInputs, 'powerW' | 'weightKg'>
 ): boolean {
-  const resolved = resolveRankingPageRide(ride, course)
-  return resolved ? detectLongClimbBlocks(resolved.planGeometry(), rider.powerW, rider.weightKg).length > 0 : true
+  return ride ? detectLongClimbBlocks(ride.planGeometry(), rider.powerW, rider.weightKg).length > 0 : true
 }
 
 /** The Ride's half of the answer under the Recommendation - what `useRecommendationAnswer` takes from the page's side. */
@@ -120,7 +119,8 @@ export function rankingPageReportLine(
 
 /**
  * What a ranking page's share card says about the Ranking: rank 1's frame and
- * wheels, and the Applied course's Silhouette for the Applied laps. Everything
+ * wheels, and the Applied Ride's Silhouette - its laps, or a segment's own
+ * stretch of road. Everything
  * else on the card - its template, its text, its alt text, and whether there
  * is a card at all - is the page's own.
  *
@@ -134,10 +134,10 @@ export interface RankingPageShareCard {
   silhouette: Silhouette | undefined
 }
 
-export function rankingPageShareCard(combo: Pick<ComboScore, 'frame' | 'wheelset'> | undefined, course: RouteWithMeta | undefined, laps: number): RankingPageShareCard {
+export function rankingPageShareCard(combo: Pick<ComboScore, 'frame' | 'wheelset'> | undefined, ride: RecommendRide | undefined): RankingPageShareCard {
   return {
     frameName: combo?.frame.name,
     wheelName: combo?.wheelset?.name,
-    silhouette: course ? routeSilhouette(course, laps, OG_SILHOUETTE_SAMPLES) : undefined
+    silhouette: ride ? rideSilhouette(ride, OG_SILHOUETTE_SAMPLES) : undefined
   }
 }

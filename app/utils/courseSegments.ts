@@ -1,5 +1,5 @@
-import type { RouteClimb, RouteWithMeta } from '../../shared/types/catalog'
-import { expandClimbsForLaps, expandSprintsForLaps } from '#shared/utils/routeOccurrences'
+import type { RouteClimb } from '../../shared/types/catalog'
+import type { RecommendRide } from '../../shared/types/recommendRide'
 
 /**
  * One row of the Segments tab: a mapped climb or sprint occurrence, in the
@@ -24,14 +24,14 @@ export interface CourseSegment {
 }
 
 /**
- * The route's mapped climbs and sprints as one list in ride order, for the
- * selected lap count - what a rider meets first comes first, whichever kind
- * it is, rather than every climb and then every sprint. Lap expansion is the
- * pages' existing `expandClimbsForLaps` / `expandSprintsForLaps`, so a row's
- * position is the same kilometre the elevation chart's marker sits on.
+ * The Ride's mapped climbs and sprints as one list in ride order, for its
+ * lap count - what a rider meets first comes first, whichever kind it is,
+ * rather than every climb and then every sprint. The passes are the resolved
+ * Ride's own (`RecommendRide.climbs` / `sprints`), so a row's position is the
+ * same kilometre the Course hero's band sits on and its Climb time is cut at.
  */
-export function courseSegmentsInRideOrder(route: RouteWithMeta, laps: number): CourseSegment[] {
-  const climbs = expandClimbsForLaps(route, laps).map((climb): CourseSegment => ({
+export function courseSegmentsInRideOrder(ride: Pick<RecommendRide, 'climbs' | 'sprints'>): CourseSegment[] {
+  const climbs = ride.climbs.map((climb): CourseSegment => ({
     kind: 'climb',
     slug: climb.slug,
     name: climb.name,
@@ -44,7 +44,7 @@ export function courseSegmentsInRideOrder(route: RouteWithMeta, laps: number): C
     elevationM: climb.elevationM,
     avgGradePercent: climb.avgGradePercent
   }))
-  const sprints = expandSprintsForLaps(route, laps).map((sprint): CourseSegment => ({
+  const sprints = ride.sprints.map((sprint): CourseSegment => ({
     kind: 'sprint',
     slug: sprint.slug,
     name: sprint.name,

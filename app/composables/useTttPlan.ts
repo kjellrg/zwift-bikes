@@ -49,7 +49,7 @@ export function useTttPlan(inputs: {
     const ride = inputs.ride()
     const rider = inputs.rider()
     if (!ride || rider.draftMode !== 'ttt') return undefined
-    const coverage = tttPlanCoverage(ride.route)
+    const coverage = tttPlanCoverage(ride)
     const combo = inputs.combo()
     // Pure closed-form (no simulation - see `buildRacePlan`), cheap enough to compute eagerly.
     const sectors = combo && !coverage.withheld

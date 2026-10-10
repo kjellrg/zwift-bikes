@@ -1,5 +1,6 @@
 import type { RouteClimb, RouteElevationPoint, RouteWithMeta } from '../../types/catalog'
 import type { PhysicsSurface, RouteGeometry, RouteGeometryPoint, RouteSurfaceSegment } from '../../types/physics'
+import { isMeasuredProfile } from '../courseCoverage'
 import { sliceSurfaceSegments, surfaceSegmentsFromComposition, unmeasuredLeadInSurface } from '../surfaceGeometry'
 
 /**
@@ -204,8 +205,26 @@ function dominantSurface(composition: RouteWithMeta['surface']['composition']): 
   return (top?.[0] as PhysicsSurface | undefined) ?? 'tarmac'
 }
 
-export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteGeometry {
-  const lapCount = Math.max(1, Math.floor(laps))
+/** A route's geometry over its laps, with where each lap starts in it. */
+export interface RouteLapsGeometry extends RouteGeometry {
+  /**
+   * Where each lap starts, in metres from the ride start - the first after
+   * the lead-in, one per lap - exactly as the builder chained them, so the
+   * resolved Ride can cut a lap out of its own geometry without re-deriving
+   * the boundary from the official distances.
+   */
+  lapStartsM: number[]
+}
+
+/**
+ * A route's geometry over `laps` laps, the lead-in once. `laps` is the
+ * resolved Ride's lap count, already clamped (`rideForRoute`, through
+ * `clampLaps`): the builder takes it as given rather than applying a lap
+ * rule of its own, so the one rule lives on the Ride. Called from
+ * `recommendRide.ts` alone.
+ */
+export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteLapsGeometry {
+  const lapCount = laps
   const leadInDistanceM = (route.leadInDistance ?? 0) * 1000
   const leadInElevationM = route.leadInElevation ?? 0
   const lapDistanceM = route.distance * 1000
@@ -227,6 +246,7 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
   const lapClimbs = route.terrain.climbs.filter(c => c.perLap)
   const points: RouteGeometryPoint[] = []
   const surfaceSegments: RouteSurfaceSegment[] = []
+  const lapStartsM: number[] = []
   let distanceM = 0
   let elevationM = 0
 
@@ -251,7 +271,7 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
       : unmeasuredLeadInSurface(route.surface)
         ? [{ fromM: distanceM, toM: distanceM + leadInDistanceM, surface: leadInFallbackSurface }]
         : surfaceSegmentsFromComposition(route.surface.composition, fallbackSurface, leadInDistanceM, distanceM)))
-    const result = measuredLeadIn && measuredLeadIn.length > 1
+    const result = measuredLeadIn && isMeasuredProfile(measuredLeadIn)
       ? appendMeasuredLap(points, distanceM, elevationM, leadInDistanceM, measuredLeadIn)
       : leadInClimbs.length > 0
         ? appendKnownClimbsSegment(points, distanceM, elevationM, leadInDistanceM, leadInElevationM, leadInClimbs)
@@ -261,8 +281,9 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
   }
 
   for (let lap = 0; lap < lapCount; lap++) {
+    lapStartsM.push(distanceM)
     surfaceSegments.push(...lapSurfaceSegments(route, distanceM, lapDistanceM, fallbackSurface))
-    const result = measuredLap && measuredLap.length > 1
+    const result = measuredLap && isMeasuredProfile(measuredLap)
       ? appendMeasuredLap(points, distanceM, elevationM, lapDistanceM, measuredLap)
       : lapClimbs.length > 0
         ? appendKnownClimbsSegment(points, distanceM, elevationM, lapDistanceM, lapElevationM, lapClimbs)
@@ -275,7 +296,8 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
     routeSlug: route.slug,
     points,
     surfaceSegments,
-    totalDistanceM: distanceM
+    totalDistanceM: distanceM,
+    lapStartsM
   }
 }
 
@@ -290,11 +312,12 @@ export function geometryForRouteLaps(route: RouteWithMeta, laps: number): RouteG
  * segment's own average grade (the same per-block approximation
  * `appendKnownClimbsSegment` already makes for a climb within a whole
  * route). Both carry the segment's real position-tagged surface data. Used
- * by `rideForSegment` for both legacy pacing plans and dynamic timing.
+ * by `rideForSegment` for both legacy pacing plans and dynamic timing, and
+ * called from `recommendRide.ts` alone.
  */
 export function geometryForSegment(slug: string, lengthKm: number, elevationM: number, surfaceSegments: RouteSurfaceSegment[], measuredProfile?: RouteElevationPoint[]): RouteGeometry {
   const totalDistanceM = lengthKm * 1000
-  if (measuredProfile && measuredProfile.length > 1) {
+  if (measuredProfile && isMeasuredProfile(measuredProfile)) {
     const points: RouteGeometryPoint[] = [{ distanceM: 0, elevationM: 0 }]
     appendMeasuredLap(points, 0, 0, totalDistanceM, measuredProfile)
     return { routeSlug: slug, points, surfaceSegments, totalDistanceM }

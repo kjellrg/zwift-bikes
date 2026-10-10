@@ -7,6 +7,7 @@ import { RouteSimulationStallError, simulateRoute } from '../../../shared/utils/
 import { getRouteBySlug } from '../../../shared/utils/catalog'
 import { getRaceBySlug, getSeasonBySlug } from '../../../shared/utils/events'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, rideRulesForFormat, type RecommendQuery, type Ride } from '../../../shared/utils/recommendQuery'
+import { rideForRoute, rideForSegment } from '../../../shared/utils/recommendRide'
 import { raceRide, raceStatement, routeStatement, segmentStatement, type RaceWithFormat, type RideStatement } from '../../../shared/utils/rideStatement'
 import { getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
 import { DEFAULT_SITE_FLAGS } from '../../../shared/utils/siteFlags'
@@ -379,7 +380,7 @@ describe('a twin says everything its page\'s Ride statement says', () => {
   }
 
   it('on a route page', async () => {
-    const statement = routeStatement({ route: getRouteBySlug('hilly-route')!, laps: 1, siteUrl: SITE })
+    const statement = routeStatement({ ride: rideForRoute(getRouteBySlug('hilly-route')!, 1), siteUrl: SITE })
     const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
     expectTwinSays(markdown, [...pageStrings(statement), statement.coverageNote])
   })
@@ -389,7 +390,7 @@ describe('a twin says everything its page\'s Ride statement says', () => {
     // the segment page has.
     const segment = getSegmentSummary('pave-sprint')!
     const ride: Ride = { course: { kind: 'segment', slug: 'pave-sprint' }, power: 'sprint' }
-    const statement = segmentStatement({ segment, course: routeWithMetaForSegment(segment), ride, siteUrl: SITE })
+    const statement = segmentStatement({ segment, resolvedRide: rideForSegment(routeWithMetaForSegment(segment)), ride, siteUrl: SITE })
     const markdown = (await markdownDocumentFor('/segments/pave-sprint')!(CONTEXT)).markdown
     expect(statement.question).toBe('What\'s the fastest bike for the Pavé Sprint sprint?')
     expectTwinSays(markdown, [
@@ -424,7 +425,7 @@ describe('a twin says everything its page\'s Ride statement says', () => {
     function statementFor(seasonSlug: string, raceSlug: string, today = CONTEXT.today) {
       const race = getRaceBySlug(seasonSlug, raceSlug) as RaceWithFormat
       const ride = raceRide(race, 0)!
-      return raceStatement({ season: getSeasonBySlug(seasonSlug)!, race, groupIndex: 0, course: getRouteBySlug(ride.course.slug), today, siteUrl: SITE })
+      return raceStatement({ season: getSeasonBySlug(seasonSlug)!, race, groupIndex: 0, resolvedRide: rideForRoute(getRouteBySlug(ride.course.slug)!, ride.laps), today, siteUrl: SITE })
     }
 
     it('a Race of Truth, with its scoring passes along the ride', async () => {

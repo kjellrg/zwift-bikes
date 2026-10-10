@@ -72,7 +72,9 @@ const { getRouteBySlug } = loadSharedModule('shared/utils/catalog.ts')
 const { getWheelsets } = loadSharedModule('shared/utils/wheelsets.ts')
 const { classifyBikeFrame } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
 const { simulateRoute } = loadSharedModule('shared/utils/physics/simulator.ts')
-const { geometryForRouteLaps, prependWarmup } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+const { prependWarmup } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+// The resolved Ride is the one way in to a route's geometry (issue #319).
+const { rideForRoute } = loadSharedModule('shared/utils/recommendRide.ts')
 const { racePowerScaleAtSpeed, RACE_DRAFT_SAVING } = loadSharedModule('shared/utils/physics/draft.ts')
 const { bikeFrames } = await import('zwift-data')
 
@@ -133,7 +135,7 @@ for (const [raceSlug, race] of Object.entries(dataset.races)) {
   // `assertDatasetRoutesResolve` above has already established that every
   // race resolves, so this cannot be a skip.
   const route = getRouteBySlug(race.routeSlug)
-  let geometry = geometryForRouteLaps(route, race.laps)
+  let geometry = rideForRoute(route, race.laps).planGeometry()
   // Same distance reconciliation as the analyzer: when the published event
   // distance is longer than route + lead-in, the difference is ridden as flat
   // tarmac ahead of the route.

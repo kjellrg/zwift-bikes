@@ -1,4 +1,4 @@
-import type { RouteWithMeta } from '../../types/catalog'
+import type { RecommendRide } from '../../types/recommendRide'
 import {
   categoryGroup,
   formatCategoryGroup,
@@ -18,8 +18,6 @@ import { formatRaceDate, formatRaceDateRange } from '../raceDates'
 import { raceFormatRules, type RaceFormatRules } from '../raceRules'
 import { rideRulesForFormat, type Ride } from '../recommendQuery'
 import { climbCountFact, distanceLabel, namedClimbCounts, surfaceCoverageNote, surfaceSplit, type RideFact } from '../rideFacts'
-import { computeRouteTotals } from '../routeLaps'
-import { expandClimbsForLaps, expandSprintsForLaps } from '../routeOccurrences'
 import { runRaceNotice, type RunRaceNotice } from '../runRaceNotice'
 import { formatDistance, formatElevation } from '../units'
 import type { RideStatementBase } from './types'
@@ -33,11 +31,12 @@ export interface RaceStatementInputs {
   /** The Category group selected - the page's own selection. */
   groupIndex: number
   /**
-   * The selected group's course, once looked up; absent for a group racing a
-   * route the catalog does not have. A course that is not the group's (a
-   * lookup still answering for the group selected before) is no course.
+   * The selected group's Ride resolved against its course, once looked up -
+   * the one the Course hero draws; absent for a group racing a route the
+   * catalog does not have. A Ride on a course that is not the group's (a
+   * lookup still answering for the group selected before) is no Ride.
    */
-  course: RouteWithMeta | undefined
+  resolvedRide: RecommendRide | undefined
   /** The day the page is rendered or read on, as `hasBeenRun` takes it. */
   today: string
   siteUrl: string
@@ -160,7 +159,7 @@ export function officialFiguresDiffer(
  * order, not in the order the organiser listed the segments; a segment with
  * no position sorts last, keeping its published order among them.
  */
-export function scoringRows(group: RaceCategoryGroup | undefined, course: RouteWithMeta | undefined): ScoringRow[] {
+export function scoringRows(group: RaceCategoryGroup | undefined, ride: Pick<RecommendRide, 'climbs' | 'sprints'> | undefined): ScoringRow[] {
   if (!group) return []
   const rows = new Map<string, Omit<ScoringRow, 'positionsKm'>>()
   const add = (list: RaceCategoryGroup['falSegments'], key: 'fal' | 'fts') => {
@@ -175,8 +174,10 @@ export function scoringRows(group: RaceCategoryGroup | undefined, course: RouteW
   add(group.ftsSegments, 'fts')
 
   const positions = new Map<string, number[]>()
-  if (course) {
-    for (const occurrence of [...expandSprintsForLaps(course, group.laps), ...expandClimbsForLaps(course, group.laps)]) {
+  if (ride) {
+    // The resolved Ride's passes, so a starred position is where the Course
+    // hero draws the band and the ranking cuts the Climb time.
+    for (const occurrence of [...ride.sprints, ...ride.climbs]) {
       positions.set(occurrence.slug, [...positions.get(occurrence.slug) ?? [], occurrence.rideFromKm])
     }
   }
@@ -193,9 +194,10 @@ export function scoringRows(group: RaceCategoryGroup | undefined, course: RouteW
  * read the same whichever group is selected - a split race would otherwise
  * advertise only A/B's course.
  */
-export function raceStatement({ season, race, groupIndex, course: lookedUp, today, siteUrl }: RaceStatementInputs): RaceStatement {
+export function raceStatement({ season, race, groupIndex, resolvedRide, today, siteUrl }: RaceStatementInputs): RaceStatement {
   const group = categoryGroup(race, groupIndex)
-  const course = lookedUp && group?.routeSlug === lookedUp.slug ? lookedUp : undefined
+  const ride = resolvedRide && group?.routeSlug === resolvedRide.route.slug ? resolvedRide : undefined
+  const course = ride?.route
   const laps = group?.laps ?? 1
   const rules = raceFormatRules(rideRulesForFormat(race.format))!
   const round = getRoundForRace(season, race)
@@ -214,7 +216,7 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
   const dateLabel = race.endDate ? formatRaceDateRange(race.date, race.endDate) : raceDate
   const hasRun = hasBeenRun(race, today)
 
-  const totals = course ? computeRouteTotals(course, laps) : undefined
+  const totals = ride?.totals
   const distanceKm = totals?.distanceKm ?? group?.officialDistanceKm
   const elevationM = totals?.elevationM ?? group?.officialElevationM
   const climbs = course ? climbCountFact(namedClimbCounts(course.terrain)) : undefined
@@ -238,7 +240,7 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
     ? `${season.organizer} publishes this race as ${published}; the figures above are this site's own totals from the route's lead-in and lap data, which is what the physics runs on.`
     : undefined
 
-  const rows = scoringRows(group, course)
+  const rows = scoringRows(group, ride)
   const tbd = Boolean(group?.scoringSegmentsTbd)
   // A points race with nothing listed is a real, published state, worth
   // saying out loud rather than an empty table that looks like a failure.

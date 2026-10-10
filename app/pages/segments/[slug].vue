@@ -84,6 +84,10 @@ const ride = computed<Ride>(() => ({
   ...rideRulesForFormat(raceFormat.value)
 }))
 
+// The live Ride resolved: the segment on its own geometry, which the Course
+// hero draws and the Ride statement's Fact row describes.
+const liveRide = useResolvedRide(() => ride.value, () => segmentRoute.value)
+
 const siteConfig = useSiteConfig()
 // Everything this page shows about its Ranking - see `useRankingPage` - and
 // everything it says about its Ride on its own, in its Ride statement (see
@@ -92,12 +96,12 @@ const siteConfig = useSiteConfig()
 // share card. A segment Ride has no lap count, so the module rides it once,
 // times the answer over the segment's own length and leaves the lap count
 // out of the answer. Its course analysis has no climbs tab; the speed chart
-// and TTT plan simulate the segment route-style, from a standing start, and
-// their scope lines say so.
+// and TTT plan ride the segment's own geometry, the chart entered at speed
+// off the warm-up as the timed estimate is.
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-segment-${slug.value}`,
-  statement: answer => segmentData.value && segmentStatement({ segment: segmentData.value, course: segmentRoute.value, ride: ride.value, siteUrl: siteConfig.url, answer })
+  statement: answer => segmentData.value && segmentStatement({ segment: segmentData.value, resolvedRide: liveRide.value, ride: ride.value, siteUrl: siteConfig.url, answer })
 })
 const { statement, rules, tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
 await rankingPage.ready
@@ -197,8 +201,8 @@ watch(raceFormat, () => {
     </div>
 
     <CourseHero
-      :route="segmentRoute"
-      :laps="1"
+      v-if="liveRide"
+      :ride="liveRide"
       :name="segmentData.name"
     />
 

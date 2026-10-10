@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta, SegmentSummary, Wheelset } from '../../../shared/types/catalog'
 import { getRouteBySlug, getRoutesWithMeta } from '../../../shared/utils/catalog'
+import { courseCoverage, type CourseApproximation } from '../../../shared/utils/courseCoverage'
 import type { RaceFormat } from '../../../shared/utils/events'
 import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '../../../shared/utils/events'
 import { clampTttClimbWkg, clampTttRiders } from '../../../shared/utils/physics'
@@ -34,6 +35,13 @@ interface ToolDefinition {
   description: string
   inputSchema: Record<string, unknown>
   handler: (args: Record<string, unknown>, context: RpcContext) => Promise<ToolResult> | ToolResult
+}
+
+/** `get_route`'s "Elevation data" line, by the coverage rule's approximation. */
+const ELEVATION_DATA: Record<CourseApproximation, string> = {
+  'measured': 'real measured GPS profile',
+  'named-climbs': 'named climbs plus synthesized remainder',
+  'aggregate': 'synthesized from aggregate distance/elevation'
 }
 
 function text(body: string): ToolResult {
@@ -436,8 +444,9 @@ const TOOLS: ToolDefinition[] = [
         `- Surface: ${formatSurface(route.surface)}`,
         `- Event only: ${route.eventOnly ? 'yes' : 'no'}`,
         // Which of the three geometry sources the physics model will get - the
-        // same distinction `recommend_for_route` reports back in its header.
-        `- Elevation data: ${route.terrain.elevationProfile ? 'real measured GPS profile' : route.terrain.climbs.length > 0 ? 'named climbs plus synthesized remainder' : 'synthesized from aggregate distance/elevation'}`
+        // same coverage rule (`courseCoverage`) `recommend_for_route` reports
+        // back in its header.
+        `- Elevation data: ${ELEVATION_DATA[courseCoverage(route).approximation]}`
       ].filter(Boolean)
 
       if (route.terrain.climbs.length > 0) {

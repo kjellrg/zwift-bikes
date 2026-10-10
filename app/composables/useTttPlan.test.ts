@@ -97,7 +97,7 @@ describe('useTttPlan', () => {
         frame: combo.frame,
         wheelset: combo.wheelset
       })
-      return coveredSectors(sectors, tttPlanCoverage(route))
+      return coveredSectors(sectors, tttPlanCoverage(rideForRoute(route, laps)))
     }
 
     // A climb in the lead-in and on every lap, a long climb after a rough

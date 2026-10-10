@@ -10,8 +10,8 @@ import generated from './segmentPlacements.generated.json'
  *
  * Each is in the shape and the frame of a `zwift-data` `segmentsOnRoute`
  * entry - km along the route's own recorded track from the lap start - so
- * `getRoutesWithMeta` merges them in as they are and `traceScale` applies to
- * them unchanged. Only pairs `zwift-data` has not placed itself are here. The
+ * `getRoutesWithMeta` merges them in as they are and `computeTerrain` puts
+ * them in official km with the package's own (`placementsInOfficialKm`). Only pairs `zwift-data` has not placed itself are here. The
  * file's `unplaced` list (every host that could not be placed, and why) is
  * the generator's report and is not read at runtime.
  */
