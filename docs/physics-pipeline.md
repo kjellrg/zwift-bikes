@@ -184,7 +184,7 @@ positions defers here): all measured per-route data is **lap-relative and in
 official kilometres**. `route.surface.segments` and
 `route.terrain.elevationProfile` cover exactly one lap, starting at the lap's
 own start and ending exactly on the official lap distance; climb/sprint
-placements with `perLap: true` are lap-relative too. The lead-in is separate data: the few
+placements with `perLap: true` are lap-relative too, and inside the lap. The lead-in is separate data: the few
 routes whose GPS trace covered it carry `leadInSegments` /
 `leadInElevationProfile` (relative to the ride start), and ride-relative
 placement positions exist only on the routes `placementsAreRideRelative`
@@ -201,15 +201,26 @@ distance by more than 1% the two described different roads, and on the 163
 routes with a short trace the ride ended on a stretch carrying no surface
 segment at all).
 
-**Placements are the exception**, and the one thing that still speaks in trace
-kilometres: zwift-data's `segmentsOnRoute` positions are measured along the
-route's real geometry rather than against its published distance, and on 36 of
-the 37 routes where the two can be told apart the last placement lands on the
-community trace's length, not the official one. `SurfaceEstimate.traceScale`
-carries the factor so `routeSegments.ts` can put a placement into the measured
-arrays' coordinates before slicing them; that is the only place a placement
-meets measured data, and a segment's own sliced arrays are then rescaled onto
-the segment's own length, so they obey the same rule a route's do.
+**Placements arrive in official kilometres too**, at the same door (issue
+#319). zwift-data's `segmentsOnRoute` positions - and the track-matched ones
+`segmentPlacements.ts` adds beside them - are measured along the route's real
+geometry rather than against its published distance, and on 36 of the 37
+routes where the two can be told apart the last placement lands on the
+community trace's length, not the official one. `computeTerrain` multiplies
+every lap placement by the factor the lap's measured surfaces are rescaled by
+(`placementsInOfficialKm`), so a placement meets the measured arrays where the
+road does; both ends move by one factor, so it selects the same stretch it
+did in trace km. What still overhangs the lap after that (under a metre, on
+two routes) is clamped to it, and `scripts/validate-placements.mjs` proves in
+`npm run validate` that every placement lies within its lap or lead-in.
+Lead-in placements (`perLap: false`) are not rescaled: they are measured on
+the lead-in, which the lap's factor does not describe. A placement's
+`lengthKm` and grade are the segment's own measurements, not positions, and
+do not move. No reader carries a trace factor any more: the simulator's
+known-climb geometry, the lap expansion behind the Course hero's bands and
+the Climb times, and the segment slices in `routeSegments.ts` (whose own
+sliced arrays are then rescaled onto the segment's own length, so they obey
+the same rule a route's do) all read the placements as they are.
 
 A route without `leadInSegments` rides its lead-in on tarmac (every start pen
 is paved) rather than the lap's own surface mix, unless the lap is a single
