@@ -96,7 +96,7 @@ export default defineNuxtConfig({
     '/api/bikes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/segments': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/wheelsets': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
-    // The one glob: every season lives under its own slug and is as static
+    // A glob: every season lives under its own slug and is as static
     // as the catalog. Without a rule this endpoint had NO Cache-Control at
     // all (the security-headers middleware skips /api/**), leaving it to
     // browser heuristics - the same hazard class as the SSR-HTML incident
@@ -104,6 +104,10 @@ export default defineNuxtConfig({
     // site-flags gate's 503 (events can be switched off at runtime) is not
     // masked by a cached 200 for minutes.
     '/api/events/**': { headers: { 'cache-control': 'public, max-age=60, stale-while-revalidate=3600' } },
+    // A world's listing is the catalog cut by world, so it is cached like
+    // the catalog. A glob because each world lives under its own slug, and
+    // every slug is one of the game's twelve, all as static as the catalog.
+    '/api/worlds/**': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     // Route pages whose slug zwift-data has changed since they went live:
     // the old URL redirects permanently to the new one. The table and its
     // reasons are in `shared/data/routeSlugRedirects.ts`.
