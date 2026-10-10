@@ -1,6 +1,7 @@
-import type { BikeStyle, ScoreConfidence, SurfaceEstimate, TerrainCategory, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
-import type { Powerup } from '../../shared/utils/events'
-import { RACE_FORMAT_LABELS, raceFormatPhrase } from '#shared/utils/events'
+import type { BikeStyle, ScoreConfidence, SurfaceEstimate, WheelCategory, ZwiftSurfaceType } from '../../shared/types/catalog'
+import { SURFACE_TYPE_LABELS, TERRAIN_LABELS } from '#shared/utils/courseLabels'
+import { POWERUP_LABELS, RACE_FORMAT_LABELS, raceFormatPhrase } from '#shared/utils/events'
+import { formatDistance, formatElevation, formatGrade, formatPercent } from '#shared/utils/units'
 import type { DraftMode } from '../../shared/utils/physics/draft'
 import { DRAFT_MODES } from '#shared/utils/physics/draft'
 import { formatDuration, formatDurationGap } from '#shared/utils/duration'
@@ -36,25 +37,14 @@ export const WHEEL_CATEGORY_LABELS: Record<WheelCategory, string> = {
   disc: 'Disc / TT'
 }
 
-export const TERRAIN_LABELS: Record<TerrainCategory, string> = {
-  flat: 'Flat',
-  rolling: 'Rolling',
-  hilly: 'Hilly',
-  mountainous: 'Mountainous'
-}
-
-/** Strava-style climb categories, steepest/hardest (HC) to gentlest (4). Not every mapped climb has one. */
-export const SURFACE_TYPE_LABELS: Record<ZwiftSurfaceType, string> = {
-  tarmac: 'Tarmac',
-  brick: 'Brick',
-  wood: 'Wood',
-  cobbles: 'Cobbles',
-  snow: 'Snow',
-  dirt: 'Dirt',
-  grass: 'Grass',
-  sand: 'Sand',
-  gravel: 'Gravel'
-}
+// `TERRAIN_LABELS` and `SURFACE_TYPE_LABELS` now live in
+// `shared/utils/courseLabels.ts`, and the four number formatters below in
+// `shared/utils/units.ts`, because the Ride statement words a Fact row with
+// them and its markdown twin is rendered on the server, which cannot import
+// from `app/` (issue #318). Re-exported here because this module is where
+// every page already reaches for a label.
+export { SURFACE_TYPE_LABELS, TERRAIN_LABELS }
+export { formatDistance, formatElevation, formatGrade, formatPercent }
 
 /**
  * A surface's colour, by family (see `surfaceFamily`): tarmac in the strong
@@ -93,23 +83,6 @@ export const SURFACE_TYPE_FILL_COLORS = Object.fromEntries(
  */
 export function isBotTested(combo: { frame: { confidence: ScoreConfidence }, wheelset?: { confidence: ScoreConfidence } }): boolean {
   return combo.frame.confidence === 'measured' && (!combo.wheelset || combo.wheelset.confidence === 'measured')
-}
-
-export function formatGrade(percent: number): string {
-  return `${percent.toFixed(1)}%`
-}
-
-/** Formats a percentage to at most 1 decimal place, e.g. `28.3%` (not `28.349543535634534%`). */
-export function formatPercent(percent: number): string {
-  return `${percent.toFixed(1)}%`
-}
-
-export function formatDistance(km: number): string {
-  return `${km.toFixed(1)} km`
-}
-
-export function formatElevation(m: number): string {
-  return `${Math.round(m)} m`
 }
 
 // `formatDuration` now lives in `shared/utils/duration.ts` so the MCP tools
@@ -220,13 +193,7 @@ export const UPGRADE_STAGE_OPTIONS = [0, 1, 2, 3, 4, 5].map(level => ({
   value: level
 }))
 
-/** Zwift's race powerups, as spelled in event listings. */
-export const POWERUP_LABELS: Record<Powerup, string> = {
-  feather: 'Feather',
-  aero: 'Aero',
-  draft: 'Draft',
-  ghost: 'Ghost',
-  anvil: 'Anvil',
-  steamroller: 'Steamroller',
-  burrito: 'Burrito'
-}
+// `POWERUP_LABELS` now lives in `shared/utils/events.ts`, beside the
+// `Powerup` it names, so a race's markdown twin can list its PowerUps in the
+// page's words (issue #318). Re-exported for the same reason as the rest.
+export { POWERUP_LABELS }

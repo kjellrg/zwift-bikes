@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { RaceFormat } from '#shared/utils/events'
 import type { Ride, RideCourse } from '../../utils/recommendRequest'
-import { draftingAllowed, RACE_FORMATS, ttBikesAllowed } from '#shared/utils/events'
+import { RACE_FORMATS } from '#shared/utils/events'
+import { segmentStatement } from '../../../shared/utils/rideStatement'
 import { rideRulesForFormat } from '../../utils/recommendRequest'
-import { surfaceSplit, type RideFact } from '../../utils/rideFacts'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -66,12 +66,6 @@ const rideRulesSelection = computed({
   get: () => raceFormat.value ?? RIDE_RULES_NONE,
   set: value => raceFormat.value = value === RIDE_RULES_NONE ? undefined : value
 })
-// LIVE, not applied: these two decide what the rider may PICK, and a control
-// offering a value the pending request will discard is the bug they exist to
-// prevent. What the results on screen were ranked under is `appliedRide`.
-const ttAllowed = computed(() => !raceFormat.value || ttBikesAllowed(raceFormat.value))
-const draftAllowed = computed(() => !raceFormat.value || draftingAllowed(raceFormat.value))
-
 /**
  * No lap count: a segment is ridden exactly once and its endpoint has no lap
  * parameter. With no fatigue model, which lap of a host route a `perLap`
@@ -91,32 +85,21 @@ const ride = computed<Ride>(() => ({
 }))
 
 const siteConfig = useSiteConfig()
-const canonicalUrl = useCanonicalUrl()
-// Everything this page shows about its Ranking - see `useRankingPage`. What
-// stays here is what the page states itself: its header, its Race format
-// control, its Fact row and Course hero, and its share card. A segment Ride
-// has no lap count, so the module rides it once, times the answer over the
-// segment's own length and leaves the lap count out of the answer. Its course
-// analysis has no climbs tab; the speed chart and TTT plan simulate the
-// segment route-style, from a standing start, and their scope lines say so.
+// Everything this page shows about its Ranking - see `useRankingPage` - and
+// everything it says about its Ride on its own, in its Ride statement (see
+// `segmentStatement`), Race format rules and draft nudge included. What
+// stays here is the page's selection - its Race format - its markup and its
+// share card. A segment Ride has no lap count, so the module rides it once,
+// times the answer over the segment's own length and leaves the lap count
+// out of the answer. Its course analysis has no climbs tab; the speed chart
+// and TTT plan simulate the segment route-style, from a standing start, and
+// their scope lines say so.
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-segment-${slug.value}`,
-  rideName: course => segmentData.value ? `the ${course.name} ${segmentData.value.type} in ${course.worldName}` : course.name,
-  faqQuestion: () => segmentData.value ? `What's the fastest bike for the ${segmentData.value.name} ${segmentData.value.type}?` : undefined,
-  // A segment sits under the segments hub.
-  breadcrumbs: () => segmentData.value
-    ? [
-        { name: 'Home', item: siteConfig.url },
-        { name: 'Segments', item: `${siteConfig.url}/segments` },
-        { name: segmentData.value.name, item: canonicalUrl.value }
-      ]
-    : undefined,
-  // Off the Applied Ride rather than `isSprint`, so the power and the word
-  // for it can never disagree.
-  reportSubject: applied => applied?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
+  statement: answer => segmentData.value && segmentStatement({ segment: segmentData.value, course: segmentRoute.value, ride: ride.value, siteUrl: siteConfig.url, answer })
 })
-const { tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
+const { statement, rules, tttPlan, bikeSearch, bikeSearchDebounced } = rankingPage
 await rankingPage.ready
 
 // `?rules=points&bike=tarmac&category=tt&draft=ttt` - see `useSharedView`. No
@@ -124,34 +107,11 @@ await rankingPage.ready
 // page's one selection, and "not a race" is the clean URL its link keeps.
 useSharedView({ bikeSearch, bikeSearchDebounced }, { key: 'rules', value: raceFormat, values: RACE_FORMATS })
 
-// Stat-rich for SERP snippets: "12.2 km at 8.5%" is what long-tail queries
-// ("alpe du zwift gradient") actually contain, and numbers lift click-through
-// over boilerplate. The climbing clause is skipped for near-flat segments
-// (most sprints) where "0 m of climbing" would be noise.
-// Display stats prefer the measured-profile pair when present (see
-// `SegmentSummary`) so the snippet, stat cards, OG card and the chart all
-// describe the same road.
-const displayElevationM = computed(() => segmentData.value ? segmentData.value.measuredElevationM ?? segmentData.value.elevationM : 0)
-const displayGradePercent = computed(() => segmentData.value ? segmentData.value.measuredAvgGradePercent ?? segmentData.value.avgGradePercent : 0)
-
-const metaDescription = computed(() => {
-  if (!segmentData.value) return undefined
-  const s = segmentData.value
-  const stats = `${formatDistance(s.lengthKm)}${displayGradePercent.value ? ` at ${formatGrade(displayGradePercent.value)}` : ', flat'}${displayElevationM.value >= 10 ? `, ${formatElevation(displayElevationM.value)} of climbing` : ''}`
-  return rideDescription({
-    ride: `the ${s.name} ${s.type}`,
-    world: s.worldName,
-    stats,
-    setup: rankingPage.request.topCombo.value ? setupName(rankingPage.request.topCombo.value) : undefined,
-    category: rankingPage.request.appliedInputs.value.category
-  })
-})
-
 useSeoMeta({
-  title: () => segmentData.value ? `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type} | ZwiftBikes` : 'ZwiftBikes',
-  description: metaDescription,
-  ogTitle: () => segmentData.value ? `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type}` : undefined,
-  ogDescription: metaDescription
+  title: () => statement.value?.title ?? 'ZwiftBikes',
+  description: () => statement.value?.description,
+  ogTitle: () => statement.value?.ogTitle,
+  ogDescription: () => statement.value?.ogDescription
   // No ogImage/twitterImage here: `defineOgImage` below emits og:image (with
   // width/height/alt) and the twitter:image set itself, same as the route page.
 })
@@ -163,81 +123,52 @@ useSeoMeta({
 // same ranking the prerendered page itself shows. See `RankingPageShareCard`,
 // whose Silhouette is the measured slice or nothing, like the page's own
 // chart - never the 2-point synthetic ramp.
-if (segmentData.value) {
-  const climbType = segmentData.value.climbType
-  const kind = segmentData.value.type === 'sprint'
-    ? 'sprint'
-    : climbType ? `${climbType === 'HC' ? 'HC' : `category ${climbType}`} climb` : 'climb'
+if (statement.value) {
+  const { props: card, alt } = statement.value.shareCard
   const { frameName, wheelName, silhouette } = rankingPage.shareCard.value
-  defineOgImage('SegmentCard', {
-    title: segmentData.value.name,
-    kind,
-    world: segmentData.value.worldName,
-    length: formatDistance(segmentData.value.lengthKm),
-    elevation: formatElevation(displayElevationM.value),
-    grade: displayGradePercent.value ? formatGrade(displayGradePercent.value) : 'Flat',
-    frameName,
-    wheelName,
-    profile: silhouette
-  }, {
-    alt: `Fastest bike for the ${segmentData.value.name} ${segmentData.value.type} in ${segmentData.value.worldName}: segment profile and the fastest bike and wheel setup`
-  })
+  defineOgImage('SegmentCard', { ...card, frameName, wheelName, profile: silhouette }, { alt })
 }
 
-/** The segment in the breadcrumb's words: "Climb, category 2", "Sprint". */
-const segmentKind = computed(() => {
-  const data = segmentData.value
-  if (!data) return ''
-  if (data.type === 'sprint') return 'Sprint'
-  return data.climbType ? `Climb, ${data.climbType === 'HC' ? 'HC' : `category ${data.climbType}`}` : 'Climb'
+/**
+ * The draft nudge, until the rider dismisses it - for the visit, as on a race
+ * page, or until they pick another format, whose nudge is news again.
+ */
+const draftNudgeDismissed = ref(false)
+watch(raceFormat, () => {
+  draftNudgeDismissed.value = false
 })
-const facts = computed<RideFact[]>(() => segmentData.value && segmentRoute.value
-  ? [
-      { value: formatDistance(segmentData.value.lengthKm), label: 'long' },
-      { value: formatElevation(displayElevationM.value), label: 'of climbing' },
-      { value: displayGradePercent.value ? formatGrade(displayGradePercent.value) : 'Flat', label: 'average grade' }
-    ]
-  : [])
-const surface = computed(() => segmentRoute.value ? surfaceSplit(segmentRoute.value.surface.composition) : undefined)
-/** Why a lever the Rider card would otherwise offer is fixed here - the format's own rules, in the card's words. */
-const ttBarredReason = computed(() => ttAllowed.value || !raceFormat.value ? undefined : `TT frames are barred when this is ridden as a ${raceFormatPhrase(raceFormat.value)}.`)
-const draftLockedReason = computed(() => draftAllowed.value ? undefined : 'There is no draft in a Race of Truth.')
 </script>
 
 <template>
   <UContainer
-    v-if="segmentData && segmentRoute"
+    v-if="segmentData && segmentRoute && statement"
     class="pb-8"
   >
     <RideHeading
-      :crumbs="[
-        { label: 'All segments', to: '/segments' },
-        { label: segmentData.worldName },
-        { label: segmentKind }
-      ]"
-      :name="segmentData.name"
+      :crumbs="statement.heading.crumbs"
+      :name="statement.heading.name"
     />
 
     <RideFactRow
-      :facts="facts"
-      :surface="surface"
+      :facts="statement.facts"
+      :surface="statement.surface"
     >
-      <li>Timed from the segment's start and ridden once; the flying-start warm-up is not counted.</li>
+      <li>{{ statement.timingNote }}</li>
       <!-- The host routes: how a rider moves on from one stretch to a whole ride. -->
-      <li v-if="segmentData.hostRoutes.length">
+      <li v-if="statement.hostRoutes.length">
         Also on
         <template
-          v-for="(host, index) in segmentData.hostRoutes"
-          :key="host.slug"
+          v-for="(host, index) in statement.hostRoutes"
+          :key="host.to"
         >
           <NuxtLink
-            :to="`/routes/${host.slug}`"
+            :to="host.to"
             class="text-toned underline decoration-rule-strong hover:text-highlighted"
-          >{{ host.name }}</NuxtLink><span v-if="index < segmentData.hostRoutes.length - 1">, </span>
+          >{{ host.name }}</NuxtLink><span v-if="index < statement.hostRoutes.length - 1">, </span>
         </template>.
       </li>
-      <li v-if="segmentData.placement === 'membership'">
-        The exact position of this segment along its host routes isn't in our route data, so length and grade come from the segment's own record, and the surface estimate is borrowed from the host route's overall mix.
+      <li v-if="statement.placementNote">
+        {{ statement.placementNote }}
       </li>
       <TttFactLine
         v-if="tttPlan"
@@ -272,21 +203,31 @@ const draftLockedReason = computed(() => draftAllowed.value ? undefined : 'There
     />
 
     <RankingPageBody :page="rankingPage">
+      <!-- A segment told a format "is ranked as that race is raced", so it
+           nudges towards the format's draft mode as a race page does. -->
+      <template #page-block>
+        <RaceFormatDraftNudge
+          v-if="rules?.draftNudge && !draftNudgeDismissed"
+          :nudge="rules.draftNudge"
+          @dismiss="draftNudgeDismissed = true"
+        />
+      </template>
+
       <template #rider="card">
         <RiderCard
           :rider="card.rider"
           :refreshing="card.refreshing"
           :has-long-climb="card.hasLongClimb"
           :sprint-power="isSprint"
-          :draft-locked="draftLockedReason"
-          :tt-barred="ttBarredReason"
+          :draft-locked="card.draftLocked"
+          :tt-barred="card.ttBarred"
           :fixed-laps="{ label: 'Once', reason: 'A segment is timed once, from its start' }"
         />
       </template>
 
       <template #report-link="{ reportLine }">
         <ReportDataLink
-          :item="segmentData?.name"
+          :item="statement.reportItem"
           :ride="reportLine"
         />
       </template>

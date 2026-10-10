@@ -1,4 +1,4 @@
-import type { BikeCategory } from '../../shared/types/catalog'
+import type { BikeCategory } from '../types/catalog'
 
 export interface RideDescriptionInputs {
   /** "Tempus Fugit", or "the Alpe du Zwift climb" on a segment page. */

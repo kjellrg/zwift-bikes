@@ -238,8 +238,8 @@ test.describe('segment recommendation', () => {
     // segment schema had no parameter for before #224.
     expect(data.combos.length).toBeGreaterThan(0)
     expect(data.combos.map(combo => combo.frame.name).filter(name => ttFrames.includes(name))).toEqual([])
-    // The wording is `rideRulesLine`'s, shared with the race page.
-    await expect(answer(page)).toContainText('TT bikes are disabled for this points race.')
+    // The wording is `raceFormatRules`'s, shared with the race page.
+    await expect(answer(page)).toContainText('Zwift disables TT frames for points races.')
     await expect(categoryChip(page)).toHaveText('All categories')
     // The selection rides in the link, like a route page's lap count.
     expect(new URL(page.url()).searchParams.get('rules')).toBe('points')
@@ -252,12 +252,12 @@ test.describe('segment recommendation', () => {
     await page.getByRole('combobox', { name: 'Bike category' }).click()
     await expect(page.getByRole('option', { name: 'Time Trial' })).toHaveCount(0)
     await page.keyboard.press('Escape')
-    await expect(riderCard(page)).toContainText('TT frames are barred when this is ridden as a points race.')
+    await expect(riderCard(page)).toContainText('Zwift disables TT frames for points races.')
 
     // Back to no race: the bar and the rules line go with it, and so does the key.
     const { query: cleared } = await pickRules(page, 'Not a race')
     expect(cleared.has('excludeTT')).toBe(false)
-    await expect(answer(page)).not.toContainText('TT bikes are disabled')
+    await expect(answer(page)).not.toContainText('Zwift disables TT frames')
     expect(new URL(page.url()).searchParams.has('rules')).toBe(false)
 
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zwift-bikes:preferences') ?? '{}').bikeCategory))
@@ -276,11 +276,28 @@ test.describe('segment recommendation', () => {
     expect(query.has('draftMode'), 'a Race of Truth is ridden solo whatever the rider stored').toBe(false)
 
     await expect(rulesPicker(page)).toContainText('Race of Truth')
-    await expect(answer(page)).toContainText('WTRL bans TT bikes from its Race of Truth')
+    await expect(answer(page)).toContainText('WTRL bans TT frames from a Race of Truth')
     await expect(page.getByRole('group', { name: 'Rider' })).toContainText('Solo')
     // Page-local, like a lap count: nothing about it is stored.
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zwift-bikes:rider-profile') ?? '{}').draftMode)).toBe('race')
     expect(await page.evaluate(() => localStorage.getItem('zwift-bikes:preferences'))).toBeNull()
+  })
+
+  test('nudges towards the draft mode its race format is raced in, in the race page\'s words', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the desktop journey covers the rules control')
+    // A scoring sprint opened from a points race is ranked as that race is
+    // raced, so a solo ranking gets the race page's nudge towards the bunch.
+    await visit(page, `${SPRINT}?rules=points`)
+    const nudge = page.getByText('This is a points race, but the ranking below is computed for a lone rider with no draft at all.')
+    await expect(nudge).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Use race draft mode' })).toBeVisible()
+    await page.getByRole('button', { name: 'Dismiss draft mode hint' }).click()
+    await expect(nudge).toHaveCount(0)
+
+    // A team time trial points at the paceline instead.
+    await pickRules(page, 'Team time trial')
+    await expect(page.getByText('This is a team time trial, but the ranking below is computed for a solo rider.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Use TTT draft mode' })).toBeVisible()
   })
 
   test('drops a race format nobody could have selected, rather than guessing at one', async ({ page, isMobile }) => {
@@ -290,7 +307,7 @@ test.describe('segment recommendation', () => {
     await expect(rulesPicker(page)).toContainText('Not a race')
     // No rules sentence leads the answer. The answer may still say where TT
     // bikes are allowed, which is the left-out clause a route page carries too.
-    await expect(answer(page)).not.toContainText(/TT bikes are (disabled|allowed in)|bans TT bikes/)
+    await expect(answer(page)).not.toContainText(/Zwift (disables|enables) TT frames|bans TT frames/)
   })
 
   test('tells a bike a format bars that it is illegal, not slow', async ({ page, isMobile }) => {

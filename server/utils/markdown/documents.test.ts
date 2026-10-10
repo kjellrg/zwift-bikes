@@ -4,7 +4,11 @@ import type { H3Event } from 'h3'
 import { createError } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RouteSimulationStallError, simulateRoute } from '../../../shared/utils/physics/simulator'
+import { getRouteBySlug } from '../../../shared/utils/catalog'
+import { getRaceBySlug, getSeasonBySlug } from '../../../shared/utils/events'
 import { buildRecommendQuery, DEFAULT_RIDER_INPUTS, rideRulesForFormat, type RecommendQuery, type Ride } from '../../../shared/utils/recommendQuery'
+import { raceRide, raceStatement, routeStatement, segmentStatement, type RaceWithFormat, type RideStatement } from '../../../shared/utils/rideStatement'
+import { getSegmentSummary, routeWithMetaForSegment } from '../../../shared/utils/routeSegments'
 import { DEFAULT_SITE_FLAGS } from '../../../shared/utils/siteFlags'
 import { isWorkerFirstPath, markdownDocumentFor, MARKDOWN_WORKER_FIRST_RULES } from './documents'
 
@@ -118,8 +122,8 @@ describe('the route document', () => {
 
   it('quotes the ride actually raced, lead-in included', async () => {
     const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
-    // 9.2 km + a 0.5 km lead-in, 109 m + 1 m.
-    expect(markdown).toContain('9.7 km and 110 m of climbing for one lap')
+    // 9.2 km + a 0.5 km lead-in, 109 m + 1 m: the page's Fact row for one lap.
+    expect(markdown).toContain('- 9.7 km with the 0.5 km lead-in\n- 110 m of climbing\n')
     expect(markdown).toContain('**Lead-in** (ridden once): 0.5 km, 1 m')
   })
 
@@ -281,15 +285,15 @@ describe('the segment document', () => {
 
   it('links the routes the segment is ridden on', async () => {
     const markdown = (await markdownDocumentFor('/segments/titans-grove-kom')!(PAUSED)).markdown
-    expect(markdown).toMatch(/- \[.+\]\(https:\/\/zwift-bikes-pr-1\.workers\.dev\/routes\/[a-z0-9-]+\)/)
+    expect(markdown).toMatch(/Also on \[.+\]\(https:\/\/zwift-bikes-pr-1\.workers\.dev\/routes\/[a-z0-9-]+\)/)
   })
 
   it('links every host route, placed or not - the dictionary\'s and the ones zwift-data never placed (#273)', async () => {
     const pave = (await markdownDocumentFor('/segments/pave-sprint')!(PAUSED)).markdown
-    expect(pave).toContain('- [Sacre Bleu](https://zwift-bikes-pr-1.workers.dev/routes/sacre-bleu)')
-    expect(pave).toContain('- [Knights of the Roundabout](https://zwift-bikes-pr-1.workers.dev/routes/knights-of-the-roundabout)')
+    expect(pave).toContain('[Sacre Bleu](https://zwift-bikes-pr-1.workers.dev/routes/sacre-bleu)')
+    expect(pave).toContain('[Knights of the Roundabout](https://zwift-bikes-pr-1.workers.dev/routes/knights-of-the-roundabout)')
     const titans = (await markdownDocumentFor('/segments/titans-grove-kom')!(PAUSED)).markdown
-    expect(titans).toContain('- [Canopies and Coastlines](https://zwift-bikes-pr-1.workers.dev/routes/canopies-and-coastlines)')
+    expect(titans).toContain('[Canopies and Coastlines](https://zwift-bikes-pr-1.workers.dev/routes/canopies-and-coastlines)')
   })
 
   it('404s a segment the catalog does not have', async () => {
@@ -307,10 +311,13 @@ describe('the race document', () => {
   it('bars TT frames where the format does, and says so', async () => {
     const markdown = (await markdownDocumentFor(ROT)!(CONTEXT)).markdown
 
-    expect(markdown).toContain('**TT frames**: barred')
-    expect(markdown).toContain('**Drafting**: no - ridden solo')
+    // The page's own notes under its Fact row, in the one wording.
+    expect(markdown).toContain('\nWTRL bans TT frames from a Race of Truth, so this is raced on road bikes, and they are the only thing ranked below.\n')
+    expect(markdown).toContain('\nWTRL turns the draft off for a Race of Truth, so the ranking is ridden solo; your saved draft setting still applies everywhere else.\n')
     // The page's own rules line leads the answer here too.
-    expect(markdown).toMatch(/WTRL bans TT bikes from its Race of Truth, and WTRL turns drafting off, so the time is for riding solo\. ZwiftBikes predicts the .+ is the best bike and wheels for /)
+    expect(markdown).toMatch(/WTRL bans TT frames from a Race of Truth\. WTRL turns the draft off for a Race of Truth, so the time is for riding solo\. ZwiftBikes predicts the .+ is the best bike and wheels for /)
+    // MCP's own header is written for a model; a twin says what its page says.
+    expect(markdown).not.toContain('- Race format:')
   })
 
   it('ranks the first category group and names the others', async () => {
@@ -326,7 +333,7 @@ describe('the race document', () => {
     expect(markdown).toContain('Another group racing a different course or lap count gets a different answer')
   })
 
-  it('states the ranked group\'s lap count once in the answer, as the page does, and again in its own account of the race', async () => {
+  it('states the ranked group\'s lap count once in the answer, as the page does, and again in its Fact row', async () => {
     // A/B: 4 laps of Innsbruckring.
     const markdown = (await markdownDocumentFor('/events/zrl-2026-27/round-1-week-2')!(CONTEXT)).markdown
     const answer = markdown.split('\n\nCanonical page:')[0]!.split('\n\n').slice(1).join('\n\n')
@@ -334,12 +341,111 @@ describe('the race document', () => {
     expect(answer).toMatch(/is the best bike and wheels for Innsbruckring in Innsbruck: /)
     expect(answer).toContain('4 laps, including any lead-in once')
     expect(answer.match(/4 laps/g)).toHaveLength(1)
-    // The twin's own prose is the page's statement, not the answer, and keeps it.
-    expect(markdown).toContain(', over 4 laps of Innsbruckring in Innsbruck.')
+    // The Fact row is the page's statement, not the answer, and keeps it.
+    expect(markdown).toContain('\n- 4 laps\n')
   })
 
   it('404s a race the organiser has not published', async () => {
     await expect(markdownDocumentFor('/events/zrl-2026-27/not-a-race')!(CONTEXT)).rejects.toMatchObject({ statusCode: 404 })
+  })
+})
+
+/**
+ * A twin is the page (see **Twin** in CONTEXT.md), and what a page says about
+ * its Ride on its own is its Ride statement (issue #318). So for each kind of
+ * Ranking page, the statement the page would build for its default Ride is
+ * built here independently of the twin, and every string in it the page
+ * prints must be in the twin: the ride name, the question, every Fact row
+ * cell and note, and each of a race's own facts.
+ */
+describe('a twin says everything its page\'s Ride statement says', () => {
+  const SITE = CONTEXT.siteUrl
+  const ORIGIN = CONTEXT.origin
+
+  /** The strings every kind of page prints from its statement. */
+  function pageStrings(statement: RideStatement): string[] {
+    return [
+      `# ${statement.question}`,
+      statement.rideName,
+      ...statement.facts.map(fact => `${fact.value} ${fact.label}`),
+      ...(statement.surface?.allTarmac ? ['All tarmac'] : statement.surface?.key.map(entry => entry.text) ?? [])
+    ]
+  }
+
+  function expectTwinSays(markdown: string, strings: (string | undefined)[]) {
+    const said = strings.filter((text): text is string => Boolean(text))
+    expect(said.length).toBeGreaterThan(4)
+    for (const text of said) expect(markdown, text).toContain(text)
+  }
+
+  it('on a route page', async () => {
+    const statement = routeStatement({ route: getRouteBySlug('hilly-route')!, laps: 1, siteUrl: SITE })
+    const markdown = (await markdownDocumentFor(ROUTE_PAGE)!(CONTEXT)).markdown
+    expectTwinSays(markdown, [...pageStrings(statement), statement.coverageNote])
+  })
+
+  it('on a segment page, whose question names the segment by its kind', async () => {
+    // A membership sprint with host routes the dictionary added: every note
+    // the segment page has.
+    const segment = getSegmentSummary('pave-sprint')!
+    const ride: Ride = { course: { kind: 'segment', slug: 'pave-sprint' }, power: 'sprint' }
+    const statement = segmentStatement({ segment, course: routeWithMetaForSegment(segment), ride, siteUrl: SITE })
+    const markdown = (await markdownDocumentFor('/segments/pave-sprint')!(CONTEXT)).markdown
+    expect(statement.question).toBe('What\'s the fastest bike for the Pavé Sprint sprint?')
+    expectTwinSays(markdown, [
+      ...pageStrings(statement),
+      statement.timingNote,
+      statement.placementNote,
+      ...statement.hostRoutes.map(host => `[${host.name}](${ORIGIN}${host.to})`)
+    ])
+  })
+
+  describe('on a race page', () => {
+    const season = getSeasonBySlug('zrl-2026-27')!
+
+    function raceStrings(statement: ReturnType<typeof raceStatement>): (string | undefined)[] {
+      return [
+        ...pageStrings(statement),
+        statement.coverageNote,
+        statement.rules.alert,
+        statement.rules.soloNote,
+        statement.officialFiguresNote,
+        statement.powerupsLine,
+        statement.runNotice?.title,
+        ...(statement.scoring.rows.length ? [statement.rules.segmentLinkNote] : []),
+        ...statement.scoring.rows.map(row => `${row.name}](${ORIGIN}/segments/${row.slug}?rules=${statement.rules.format}) | ${row.fal || '-'}${row.fal ? 'x' : ''} | ${row.fts || '-'}${row.fts ? 'x' : ''} |`),
+        ...statement.scoring.rows.flatMap(row => row.positionsKm.map(km => `${km.toFixed(1)} km`))
+      ]
+    }
+
+    function statementFor(seasonSlug: string, raceSlug: string, today = CONTEXT.today) {
+      const race = getRaceBySlug(seasonSlug, raceSlug) as RaceWithFormat
+      const ride = raceRide(race, 0)!
+      return raceStatement({ season: getSeasonBySlug(seasonSlug)!, race, groupIndex: 0, course: getRouteBySlug(ride.course.slug), today, siteUrl: SITE })
+    }
+
+    it('a Race of Truth, with its scoring passes along the ride', async () => {
+      const statement = statementFor(season.slug, 'round-1-week-1')
+      expect(statement.scoring.rows.some(row => row.positionsKm.length > 1)).toBe(true)
+      const markdown = (await markdownDocumentFor('/events/zrl-2026-27/round-1-week-1')!(CONTEXT)).markdown
+      expectTwinSays(markdown, raceStrings(statement))
+    })
+
+    it('a points race whose groups ride different courses', async () => {
+      const statement = statementFor(season.slug, 'round-1-week-3')
+      expect(statement.coursesDiffer).toBe(true)
+      const markdown = (await markdownDocumentFor('/events/zrl-2026-27/round-1-week-3')!(CONTEXT)).markdown
+      expectTwinSays(markdown, [...raceStrings(statement), `The ranking above is for ${statement.groupLabel}.`])
+    })
+
+    it('a race the organiser publishes other figures for, run by the day it is read', async () => {
+      // August's stage 4 closed on Sun 6 Sep.
+      const statement = statementFor('zracing-2026', 'stage-4', '2026-09-07')
+      expect(statement.officialFiguresNote).toBeDefined()
+      expect(statement.hasRun).toBe(true)
+      const markdown = (await markdownDocumentFor('/events/zracing-2026/stage-4')!({ ...CONTEXT, today: '2026-09-07' })).markdown
+      expectTwinSays(markdown, raceStrings(statement))
+    })
   })
 })
 

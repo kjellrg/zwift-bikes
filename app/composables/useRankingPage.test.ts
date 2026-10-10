@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { computed, effectScope, ref, watch } from 'vue'
+import { computed, effectScope, ref, shallowRef, watch, type Ref } from 'vue'
 import { getFrames, getRouteBySlug } from '#shared/utils/catalog'
-import { categoryGroupRacing, formatCategoryGroup, getRaceBySlug } from '#shared/utils/events'
+import { getRaceBySlug, getSeasonBySlug } from '#shared/utils/events'
+import { raceStatement, routeStatement, segmentStatement, type RaceWithFormat, type RideStatement } from '#shared/utils/rideStatement'
 import { getSegmentSummary, routeWithMetaForSegment } from '#shared/utils/routeSegments'
 import { getWheelsets } from '#shared/utils/wheelsets'
 import type { ComboScore, RouteWithMeta } from '../../shared/types/catalog'
@@ -30,7 +31,12 @@ const restrictions = {
  * the real composables it wraps. The request itself is tested in
  * `useRecommendRequest.test.ts`.
  */
-function setup(overrides: Partial<RankingPageInputs> = {}) {
+const SITE = 'https://example.test'
+
+/** A page's own inputs, which may read the live Ride the test moves. */
+type PageInputs = (liveRide: Ref<Ride | undefined>) => Partial<RankingPageInputs<RideStatement>>
+
+function setup(pageInputs: PageInputs = () => ({})) {
   const liveRide = ref<Ride | undefined>({ course: { kind: 'route', slug: 'hilly-route' }, laps: 1 })
   const appliedRide = ref<Ride | undefined>({ course: { kind: 'route', slug: 'hilly-route' }, laps: 1 })
   const appliedCourse = ref<RouteWithMeta | undefined>(hilly)
@@ -59,6 +65,7 @@ function setup(overrides: Partial<RankingPageInputs> = {}) {
   let head: () => { script?: StructuredDataScript[] } = () => ({})
   vi.stubGlobal('computed', computed)
   vi.stubGlobal('ref', ref)
+  vi.stubGlobal('shallowRef', shallowRef)
   vi.stubGlobal('watch', watch)
   vi.stubGlobal('useRecommendRequest', useRecommendRequest)
   vi.stubGlobal('useTttPlan', useTttPlan)
@@ -72,10 +79,10 @@ function setup(overrides: Partial<RankingPageInputs> = {}) {
   const page = scope.run(() => useRankingPage({
     ride: () => liveRide.value,
     key: 'recommend-route-hilly-route',
-    rideName: course => `${course.name} in ${course.worldName}`,
-    faqQuestion: () => 'What\'s the fastest bike for Watopia Hilly Route?',
-    breadcrumbs: () => [{ name: 'Home', item: 'https://example.test' }, { name: 'Watopia Hilly Route', item: 'https://example.test/routes/hilly-route' }],
-    ...overrides
+    // The route page's: its course is looked up, so the statement follows
+    // the live Ride's lap count.
+    statement: answer => routeStatement({ route: hilly, laps: liveRide.value?.laps ?? 1, siteUrl: SITE, answer }),
+    ...pageInputs(liveRide)
   }))!
   return { page, request, useRecommendRequest, liveRide, appliedRide, appliedCourse, appliedInputs, combos, head: () => head() }
 }
@@ -108,16 +115,35 @@ describe('useRankingPage', () => {
     expect(page.faqAnswer.value).toBe(page.answer.value?.text)
   })
 
-  it('sets the breadcrumb and FAQ JSON-LD in the head, and nothing before the page knows its trail', () => {
-    const trail = ref<{ name: string, item: string }[] | undefined>(undefined)
-    const { page, head } = setup({ breadcrumbs: () => trail.value })
+  it('takes nothing from the page but the Ride, the key and the statement', () => {
+    const inputs: Required<RankingPageInputs<RideStatement>> = { ride: () => undefined, key: 'k', statement: () => undefined }
+    expect(Object.keys(inputs).sort()).toEqual(['key', 'ride', 'statement'])
+  })
+
+  it('sets the statement\'s trail and question in the head, and nothing before the page has a statement', () => {
+    const known = ref(false)
+    const { page, head } = setup(live => ({
+      statement: answer => known.value ? routeStatement({ route: hilly, laps: live.value?.laps ?? 1, siteUrl: SITE, answer }) : undefined
+    }))
     expect(head()).toEqual({})
-    trail.value = [{ name: 'Home', item: 'https://example.test' }]
+    known.value = true
     const [breadcrumbs, faq] = head().script!
-    expect(JSON.parse(breadcrumbs!.innerHTML).itemListElement).toEqual([{ '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://example.test' }])
+    expect(JSON.parse(breadcrumbs!.innerHTML).itemListElement).toEqual([
+      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE },
+      { '@type': 'ListItem', 'position': 2, 'name': 'Watopia Hilly Route', 'item': `${SITE}/routes/hilly-route` }
+    ])
     const question = JSON.parse(faq!.innerHTML).mainEntity[0]
     expect(question.name).toBe('What\'s the fastest bike for Watopia Hilly Route?')
     expect(question.acceptedAnswer.text).toBe(page.answer.value?.text)
+    expect(page.faqQuestion.value).toBe(question.name)
+  })
+
+  it('hands the page its statement, its description naming rank 1 in the category ranked', () => {
+    const { page, combos, appliedInputs } = setup()
+    appliedInputs.value = { ...appliedInputs.value, category: 'standard' }
+    expect(page.statement.value?.description).toBe('The best bike and wheels for Watopia Hilly Route: ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99/Disc, fastest on road bikes.')
+    combos.value = []
+    expect(page.statement.value?.description).toMatch(/ranked by predicted finish time for your weight and power\.$/)
   })
 
   it('has a TTT plan only under TTT drafting', () => {
@@ -143,7 +169,7 @@ describe('useRankingPage', () => {
 
   it('explains the times with the Applied Ride while the live one runs ahead', () => {
     const { page, liveRide } = setup()
-    liveRide.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 3, ttFramesAllowed: false }
+    liveRide.value = { course: { kind: 'route', slug: 'hilly-route' }, laps: 3, ...rideRulesForFormat('points') }
     expect(page.appliedLaps.value).toBe(1)
     expect(page.courseAnalysis.value).toMatchObject({ route: hilly, resultsRoute: hilly, kind: 'route', laps: 1, resultsLaps: 1 })
     expect(page.why.value).toMatchObject({ course: hilly, combo: rank1, rideName: 'Watopia Hilly Route', physicsMode: 'dynamic', draftMode: 'solo' })
@@ -168,24 +194,20 @@ describe('useRankingPage', () => {
     expect(page.shareCard.value).toMatchObject({ frameName: undefined, wheelName: undefined })
   })
 
-  it('leads the report line with the page\'s subject for the Applied Ride', () => {
-    const { page } = setup({ reportSubject: ride => ride?.laps === 1 ? 'A/B' : undefined })
-    expect(page.reportLine.value).toBe('A/B, 1 lap, 225 W, Solo')
-  })
-
   describe('on a segment page', () => {
     const fuego = routeWithMetaForSegment(getSegmentSummary('fuego-flats')!)
     const sprint: Ride = { course: { kind: 'segment', slug: 'fuego-flats' }, power: 'sprint' }
 
-    // The segment page's own inputs: its words for the segment, and the
-    // report line says which kind of segment the Applied Ride was.
+    // The segment page's own inputs: its statement, which says which kind of
+    // segment the Ride is and the Race format it was told, if any.
     function segmentSetup(ride: Ride) {
-      const page = setup({
+      const page = setup(live => ({
         key: 'recommend-segment-fuego-flats',
-        rideName: course => `the ${course.name} sprint in ${course.worldName}`,
-        faqQuestion: () => 'What\'s the fastest bike for the Fuego Flats sprint?',
-        reportSubject: applied => applied?.power === 'sprint' ? 'Sprint segment' : 'Climbing segment'
-      })
+        statement: (answer) => {
+          const segment = live.value?.course.kind === 'segment' ? getSegmentSummary(live.value.course.slug) : undefined
+          return segment && segmentStatement({ segment, course: routeWithMetaForSegment(segment), ride: live.value!, siteUrl: SITE, answer })
+        }
+      }))
       page.liveRide.value = ride
       page.appliedRide.value = ride
       page.appliedCourse.value = fuego
@@ -205,8 +227,18 @@ describe('useRankingPage', () => {
 
     it('states the Race format\'s rules and hides the TT category when a link barred TT frames', () => {
       const { page } = segmentSetup({ ...sprint, ...rideRulesForFormat('rot') })
-      expect(page.answer.value?.summary).toMatch(/^WTRL bans TT bikes from its Race of Truth.* ZwiftBikes predicts /)
+      expect(page.answer.value?.summary).toMatch(/^WTRL bans TT frames from a Race of Truth\. WTRL turns the draft off for a Race of Truth, so the time is for riding solo\. ZwiftBikes predicts /)
       expect(page.hideTtCategory.value).toBe(true)
+      // The Rider card's fixed levers, in the race page's words.
+      expect(page.rules.value).toMatchObject({ ttBarredReason: 'WTRL bans TT frames from a Race of Truth.', draftLockedReason: 'WTRL turns the draft off for a Race of Truth.', draftNudge: undefined })
+    })
+
+    it('nudges a segment told a mass-start format towards race draft mode, as the race page does', () => {
+      const { page, appliedInputs } = segmentSetup({ ...sprint, ...rideRulesForFormat('points') })
+      expect(page.rules.value?.draftNudge).toMatchObject({ mode: 'race', text: expect.stringMatching(/^This is a points race, but the ranking below is computed for a lone rider/) })
+      appliedInputs.value = { ...appliedInputs.value, draftMode: 'race' }
+      expect(page.rules.value?.draftNudge).toBeUndefined()
+      expect(segmentSetup(sprint).page.rules.value).toBeUndefined()
     })
 
     it('plans a TTT on the segment\'s own geometry, the one its times are simulated over', () => {
@@ -233,7 +265,8 @@ describe('useRankingPage', () => {
   })
   describe('on a race page', () => {
     // A/B race Makuri 40, C/D Urumaze - a points race, which bars TT frames.
-    const race = getRaceBySlug('zrl-2026-27', 'round-1-week-3')!
+    const race = getRaceBySlug('zrl-2026-27', 'round-1-week-3') as RaceWithFormat
+    const season = getSeasonBySlug('zrl-2026-27')!
     const makuri40 = getRouteBySlug('makuri-40')!
     const urumaze = getRouteBySlug('urumaze')!
     const groupRide = (index: number, format = race.format!): Ride => ({
@@ -242,19 +275,19 @@ describe('useRankingPage', () => {
       ...rideRulesForFormat(format)
     })
 
-    // The race page's own inputs: a name for the course alone, the lap count
-    // left to the scope line, and a report line naming the Category group the
-    // Applied Ride was ranked for.
+    // The race page's own inputs: its statement for the group selected, whose
+    // name for the course and whose Category group the module keeps for the
+    // Applied Ride while the selector runs ahead.
     function raceSetup() {
-      const page = setup({
+      const page = setup(live => ({
         key: 'recommend-race-zrl-2026-27-round-1-week-3',
-        rideName: course => `${course.name} in ${course.worldName}`,
-        faqQuestion: () => 'What bike should I ride for ZRL 2026/27 Round 1 Week 3?',
-        reportSubject: (applied) => {
-          const group = categoryGroupRacing(race, applied?.course.slug, applied?.laps)
-          return group ? formatCategoryGroup(group) : undefined
+        // The group the live Ride races, as the page's selector would have it.
+        statement: (answer) => {
+          const groupIndex = Math.max(0, race.categories.findIndex(group => group.routeSlug === live.value?.course.slug))
+          const course = live.value && getRouteBySlug(live.value.course.slug)
+          return raceStatement({ season, race, groupIndex, course, today: '2026-09-01', siteUrl: SITE, answer })
         }
-      })
+      }))
       page.liveRide.value = groupRide(0)
       page.appliedRide.value = groupRide(0)
       page.appliedCourse.value = makuri40
@@ -264,7 +297,7 @@ describe('useRankingPage', () => {
     it('explains the ranking with the Applied Category group while the selector runs ahead to another', () => {
       const { page, liveRide } = raceSetup()
       liveRide.value = groupRide(1)
-      expect(page.answer.value?.text).toMatch(/^TT bikes are disabled for this points race\. ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for Makuri 40 in Makuri Islands: /)
+      expect(page.answer.value?.text).toMatch(/^Zwift disables TT frames for points races\. ZwiftBikes predicts the Specialized Tarmac SL9 with Shimano C99\/Disc is the best bike and wheels for Makuri 40 in Makuri Islands: /)
       // 40.252 km - the lap and the lead-in once - in 25:00.
       expect(page.answer.value?.text).toContain('finishing in 25:00 (~96.6 km/h)')
       // The Category group's lap count, once, in the scope line.

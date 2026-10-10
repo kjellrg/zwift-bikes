@@ -1,6 +1,14 @@
-import type { SurfaceComposition, ZwiftSurfaceType } from '../../shared/types/catalog'
-import { surfaceFamily, type SurfaceFamily } from '#shared/utils/silhouette'
-import { formatPercent, SURFACE_TYPE_LABELS } from './labels'
+import type { SurfaceComposition, SurfaceEstimate, ZwiftSurfaceType } from '../types/catalog'
+import { SURFACE_TYPE_LABELS } from './courseLabels'
+import { surfaceFamily, type SurfaceFamily } from './silhouette'
+import { formatPercent } from './units'
+
+/**
+ * The Fact row's parts (see **Fact row** in `CONTEXT.md`): its cells, its
+ * surface split and the coverage note beneath it. In `shared/` with the Ride
+ * statement that builds a Fact row from them, which the markdown twins read
+ * on the server (issue #318).
+ */
 
 /** One cell of the spec row: the value above its small label. `family` marks a surface share, which `surfaceShareFacts` still builds for the split. */
 export interface RideFact {
@@ -35,8 +43,19 @@ export function surfaceShareFacts(composition: SurfaceComposition | undefined): 
   })
 }
 
+/**
+ * How many different named climbs and sprints a course has, however many
+ * times it passes each - from a route's terrain or a drawn course's bands.
+ */
+export function namedClimbCounts(course: { climbs: readonly { slug: string }[], sprints: readonly { slug: string }[] }): { climbs: number, sprints: number } {
+  return {
+    climbs: new Set(course.climbs.map(climb => climb.slug)).size,
+    sprints: new Set(course.sprints.map(sprint => sprint.slug)).size
+  }
+}
+
 /** "2 named climbs, 1 sprint" as a fact, or nothing when the ride has neither. */
-export function climbCountFact(climbs: number, sprints: number): RideFact | undefined {
+export function climbCountFact({ climbs, sprints }: { climbs: number, sprints: number }): RideFact | undefined {
   if (!climbs && !sprints) return undefined
   if (!climbs) return { value: String(sprints), label: sprints === 1 ? 'sprint' : 'sprints' }
   const label = `named climb${climbs === 1 ? '' : 's'}${sprints ? `, ${sprints} sprint${sprints === 1 ? '' : 's'}` : ''}`
@@ -86,4 +105,28 @@ export function surfaceSplit(composition: SurfaceComposition | undefined): Surfa
     ],
     allTarmac: false
   }
+}
+
+/**
+ * How much the model actually knows about where the surfaces are - the
+ * `confidence` ladder on `SurfaceEstimate`, in rider words. "Mapped" needs
+ * positioned stretches, not just a measured mix: the dynamic physics and the
+ * speed chart use the positions, and a measured route whose trace lost them
+ * rides on one blended value like a curated one does.
+ */
+export function surfaceCoverageLine(surface: SurfaceEstimate): string {
+  const mapped = (surface.segments?.length ?? 0) > 0
+  if (surface.confidence === 'measured') return mapped ? 'Mapped surfaces' : 'Measured surface mix; locations unavailable'
+  if (surface.confidence === 'curated') return 'Curated surface estimate; locations unavailable'
+  if (surface.confidence === 'unverified') return 'Surface unverified; road assumed by model'
+  return 'Surface unmapped; road assumed by model'
+}
+
+/**
+ * The Fact row's coverage note: the coverage line as a sentence, or nothing
+ * when the surfaces are mapped - the common case, which needs no caveat.
+ */
+export function surfaceCoverageNote(surface: SurfaceEstimate): string | undefined {
+  const line = surfaceCoverageLine(surface)
+  return line === 'Mapped surfaces' ? undefined : `${line}.`
 }

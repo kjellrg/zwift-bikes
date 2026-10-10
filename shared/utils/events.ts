@@ -283,6 +283,21 @@ export const eventSeasonSchema = z.strictObject({
 export type RaceFormat = z.infer<typeof raceFormatSchema>
 export type RaceCategory = z.infer<typeof raceCategorySchema>
 export type Powerup = z.infer<typeof powerupSchema>
+
+/**
+ * Zwift's race powerups, as spelled in event listings. Here beside `Powerup`
+ * rather than in `app/utils/labels.ts`, where it used to live, so a race's
+ * markdown twin lists its PowerUps in its page's words (issue #318).
+ */
+export const POWERUP_LABELS: Record<Powerup, string> = {
+  feather: 'Feather',
+  aero: 'Aero',
+  draft: 'Draft',
+  ghost: 'Ghost',
+  anvil: 'Anvil',
+  steamroller: 'Steamroller',
+  burrito: 'Burrito'
+}
 export type RaceScoringSegment = z.infer<typeof raceScoringSegmentSchema>
 export type RaceCategoryGroup = z.infer<typeof raceCategoryGroupSchema>
 export type RacePowerups = z.infer<typeof racePowerupsSchema>

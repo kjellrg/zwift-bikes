@@ -13,9 +13,10 @@ import type { RankingPage } from '../composables/useRankingPage'
  *
  * - `#rider` - the page's own Rider card, given the Applied values every
  *   page's card shows (`rider`, `refreshing`, `hasLongClimb`, `appliedLaps`)
- *   so the page adds only what is its own;
+ *   and the levers the Race format fixes, with the reason (`ttBarred`,
+ *   `draftLocked`), so the page adds only what is its own;
  * - `#report-link` - the page's report link, given the report line;
- * - `#page-block` - a block above the answer band (a race's draft hint);
+ * - `#page-block` - a block above the answer band (the Race format's draft nudge);
  * - `#scoring` - the course analysis's Scoring tab, whose presence adds it;
  * - `#related` - what the page links on to, between the comparison and the
  *   physics note.
@@ -36,7 +37,7 @@ const props = defineProps<{
 // auto-unwrap there, and setup-returned ones do. Safe because a page creates
 // exactly one `useRankingPage`, whose object identity never changes.
 const {
-  request, comparison, answer, faqQuestion, hideTtCategory,
+  request, comparison, answer, faqQuestion, hideTtCategory, rules,
   why, courseAnalysis, hasLongClimb, appliedLaps, reportLine
 } = props.page
 const { resultsAnnouncement, appliedInputs, isRefreshing, physics, fastestTimeSec } = request
@@ -77,6 +78,8 @@ const { picked: comparedCombos, clear: clearComparison, remove: removeFromCompar
         :refreshing="isRefreshing"
         :has-long-climb="hasLongClimb"
         :applied-laps="appliedLaps"
+        :tt-barred="rules?.ttBarredReason"
+        :draft-locked="rules?.draftLockedReason"
       />
     </template>
 
