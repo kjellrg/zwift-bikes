@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SurfaceEstimate } from '../../shared/types/catalog'
-import { formatGapText, formatSurfaceTimePenalty } from './labels'
+import { formatGapText, formatSurfaceTimePenalty, routeSurfaceWords } from './labels'
 
 const rough: SurfaceEstimate = { road: 60, gravel: 40, cobble: 0, confidence: 'measured' }
 
@@ -31,5 +31,14 @@ describe('formatGapText', () => {
     expect(formatGapText(83)).toBe('+1:23')
     expect(formatGapText(0)).toBe('fastest')
     expect(formatGapText(0, 'Fastest in results')).toBe('Fastest in results')
+  })
+})
+
+describe('routeSurfaceWords', () => {
+  it('says what a World page row says about a route\'s surface, in the homepage filter\'s words', () => {
+    expect(routeSurfaceWords({ gravel: false, cobble: false })).toBe('Road')
+    expect(routeSurfaceWords({ gravel: true, cobble: false })).toBe('Includes gravel')
+    expect(routeSurfaceWords({ gravel: false, cobble: true })).toBe('Includes cobbles')
+    expect(routeSurfaceWords({ gravel: true, cobble: true })).toBe('Includes gravel and cobbles')
   })
 })

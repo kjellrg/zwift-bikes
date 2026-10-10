@@ -197,3 +197,17 @@ export const UPGRADE_STAGE_OPTIONS = [0, 1, 2, 3, 4, 5].map(level => ({
 // `Powerup` it names, so a race's markdown twin can list its PowerUps in the
 // page's words (issue #318). Re-exported for the same reason as the rest.
 export { POWERUP_LABELS }
+
+/**
+ * A route's surface as a World page row says it (#58), from the card's two
+ * surface families: "Includes gravel" and "Includes cobbles" are the
+ * homepage's surface filter's own words, so a rider who filtered by them
+ * reads the same thing here. "Road" rather than "Tarmac" for neither,
+ * because the road family takes in brick and wood as well.
+ */
+export function routeSurfaceWords({ gravel, cobble }: { gravel: boolean, cobble: boolean }): string {
+  if (gravel && cobble) return 'Includes gravel and cobbles'
+  if (gravel) return 'Includes gravel'
+  if (cobble) return 'Includes cobbles'
+  return 'Road'
+}

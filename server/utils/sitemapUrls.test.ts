@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { routes } from 'zwift-data'
-import { getRoutesWithMeta } from '../../shared/utils/catalog'
+import { getRoutesWithMeta, getWorlds } from '../../shared/utils/catalog'
 import { sitemapUrls } from './sitemapUrls'
 
 /**
@@ -54,6 +54,12 @@ describe('the sitemap on a given day', () => {
     const runningOnly = routes.filter(r => !r.sports.includes('cycling')).map(r => `/routes/${r.slug}`)
     expect(runningOnly).toContain('/routes/lutece-express-run')
     expect(routeLocs.filter(loc => runningOnly.includes(loc))).toEqual([])
+  })
+
+  it('lists a World page for every world in the game, whatever the day (#58)', () => {
+    const worldLocs = locs('2026-10-10').filter(loc => loc.startsWith('/worlds/'))
+    expect(worldLocs).toEqual(getWorlds().map(world => `/worlds/${world.slug}`))
+    expect(worldLocs).toContain('/worlds/bologna')
   })
 
   it('dates a race by its curated entry, not by the day it is built', () => {

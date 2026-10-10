@@ -1,5 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { getRoutesWithMeta } from './shared/utils/catalog'
+import { getRoutesWithMeta, getWorlds } from './shared/utils/catalog'
 import { routeSlugRedirectRules } from './shared/data/routeSlugRedirects'
 import { getIndexedRaces, getIndexedSeasons, isoDay } from './shared/utils/events'
 import { getAllSegmentSummaries } from './shared/utils/routeSegments'
@@ -148,6 +148,10 @@ export default defineNuxtConfig({
       // season follows the same rule through `getIndexedSeasons()`: once
       // every one of its rounds has been run its page leaves this list, and
       // the server renders it, noindex, on the real day.
+      //
+      // A World page per world (#58), from `getWorlds()` as the sitemap
+      // lists them: they exist to put every route page a link or two from
+      // the homepage, which only counts if the links are in static HTML.
       routes: [
         '/robots.txt',
         '/about',
@@ -156,6 +160,7 @@ export default defineNuxtConfig({
         '/segments',
         ...getIndexedSeasons(isoDay(new Date())).map(season => `/events/${season.slug}`),
         ...getIndexedRaces(isoDay(new Date())).map(race => race.path),
+        ...getWorlds().map(world => `/worlds/${world.slug}`),
         ...getRoutesWithMeta().map(route => `/routes/${route.slug}`),
         ...getAllSegmentSummaries().map(segment => `/segments/${segment.slug}`)
       ]
@@ -200,7 +205,7 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
-    // Every page that defines a card (routes, segments, events, home, about)
+    // Every page that defines a card (routes, segments, worlds, events, home, about)
     // is in the prerender list above, so the cards render at build time and
     // ship as static assets - nothing (no Wasm renderer, no font loading)
     // lands in the Worker bundle. That coupling is load-bearing: a page with
