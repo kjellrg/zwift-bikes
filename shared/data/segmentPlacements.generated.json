@@ -1,10 +1,228 @@
 {
   "placements": {
+    "electric-break": [
+      {
+        "segment": "castle-park-sprint",
+        "from": 12.554,
+        "to": 12.763
+      }
+    ],
+    "glasgow-crit-six": [
+      {
+        "segment": "the-clyde-kicker",
+        "from": 1.089,
+        "to": 1.388
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 2.814,
+        "to": 3.013
+      },
+      {
+        "segment": "the-clyde-kicker",
+        "from": 4.101,
+        "to": 4.401
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 5.826,
+        "to": 6.026
+      },
+      {
+        "segment": "the-clyde-kicker",
+        "from": 7.114,
+        "to": 7.413
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 8.839,
+        "to": 9.039
+      },
+      {
+        "segment": "the-clyde-kicker",
+        "from": 10.126,
+        "to": 10.426
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 11.851,
+        "to": 12.051
+      },
+      {
+        "segment": "the-clyde-kicker",
+        "from": 13.139,
+        "to": 13.438
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 14.864,
+        "to": 15.064
+      },
+      {
+        "segment": "the-clyde-kicker",
+        "from": 16.151,
+        "to": 16.451
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 17.876,
+        "to": 18.076
+      }
+    ],
+    "sacre-bleu": [
+      {
+        "segment": "pave-sprint",
+        "from": 45.414,
+        "to": 45.752
+      }
+    ],
+    "scotland-smash": [
+      {
+        "segment": "the-clyde-kicker",
+        "from": 1.088,
+        "to": 1.388
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 2.812,
+        "to": 3.013
+      },
+      {
+        "segment": "the-clyde-kicker",
+        "from": 13.098,
+        "to": 13.398
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 14.822,
+        "to": 15.022
+      }
+    ],
+    "makuri-madness": [
+      {
+        "segment": "tidepool-sprint",
+        "from": 11.472,
+        "to": 11.792
+      },
+      {
+        "segment": "boardwalk-sprint",
+        "from": 14.745,
+        "to": 14.983
+      }
+    ],
+    "island-outskirts": [
+      {
+        "segment": "shisa-sprint",
+        "from": 3.556,
+        "to": 3.845
+      },
+      {
+        "segment": "tidepool-sprint",
+        "from": 8.668,
+        "to": 8.985
+      }
+    ],
     "gran-fondo": [
       {
         "segment": "epic-kom",
         "from": 87.809,
         "to": 97.214
+      }
+    ],
+    "twilight-crit": [
+      {
+        "segment": "castle-park-sprint",
+        "from": 3.675,
+        "to": 3.884
+      }
+    ],
+    "braek-fast-crits-and-grits": [
+      {
+        "segment": "the-clyde-kicker",
+        "from": 2.632,
+        "to": 2.931
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 4.356,
+        "to": 4.556
+      }
+    ],
+    "fine-and-sandy": [
+      {
+        "segment": "boardwalk-sprint",
+        "from": 3.059,
+        "to": 3.296
+      },
+      {
+        "segment": "tidepool-sprint",
+        "from": 6.385,
+        "to": 6.702
+      }
+    ],
+    "country-to-coastal": [
+      {
+        "segment": "village-sprint-rev",
+        "from": 1.493,
+        "to": 1.64
+      },
+      {
+        "segment": "country-sprint-rev",
+        "from": 7.197,
+        "to": 7.346
+      },
+      {
+        "segment": "shisa-sprint",
+        "from": 20.265,
+        "to": 20.554
+      },
+      {
+        "segment": "tidepool-sprint",
+        "from": 25.379,
+        "to": 25.697
+      }
+    ],
+    "roule-ma-poule": [
+      {
+        "segment": "pave-sprint",
+        "from": 7.717,
+        "to": 8.054
+      }
+    ],
+    "makuri-40": [
+      {
+        "segment": "village-sprint-rev",
+        "from": 1.493,
+        "to": 1.64
+      },
+      {
+        "segment": "country-sprint-rev",
+        "from": 7.197,
+        "to": 7.345
+      },
+      {
+        "segment": "castle-park-sprint",
+        "from": 17.907,
+        "to": 18.114
+      },
+      {
+        "segment": "shisa-sprint-rev",
+        "from": 27.261,
+        "to": 27.527
+      }
+    ],
+    "peaky-pave": [
+      {
+        "segment": "pave-sprint-rev",
+        "from": 22.271,
+        "to": 22.615
+      }
+    ],
+    "downtown-dolphin": [
+      {
+        "segment": "prime",
+        "from": 0.878,
+        "to": 1.079
       }
     ],
     "richmond-rollercoaster": [
@@ -14,11 +232,141 @@
         "to": 0.754
       }
     ],
+    "douce-france": [
+      {
+        "segment": "ballon-sprint",
+        "from": 6.742,
+        "to": 6.953
+      },
+      {
+        "segment": "pave-sprint",
+        "from": 12.808,
+        "to": 13.147
+      }
+    ],
+    "neokyo-crit-course": [
+      {
+        "segment": "castle-park-sprint-rev",
+        "from": 2.323,
+        "to": 2.539
+      }
+    ],
+    "neon-after-party": [
+      {
+        "segment": "castle-park-sprint-rev",
+        "from": 8.871,
+        "to": 9.088
+      }
+    ],
+    "neokyo-all-nighter": [
+      {
+        "segment": "castle-park-sprint",
+        "from": 9.477,
+        "to": 9.685
+      }
+    ],
+    "gentil-8": [
+      {
+        "segment": "ballon-sprint",
+        "from": 4.076,
+        "to": 4.287
+      }
+    ],
+    "bridges-and-boardwalks": [
+      {
+        "segment": "shisa-sprint-rev",
+        "from": 2.871,
+        "to": 3.137
+      },
+      {
+        "segment": "boardwalk-sprint",
+        "from": 6.145,
+        "to": 6.382
+      }
+    ],
+    "rgv": [
+      {
+        "segment": "pave-sprint-rev",
+        "from": 10.704,
+        "to": 11.046
+      }
+    ],
+    "hell-of-the-north": [
+      {
+        "segment": "ballon-sprint",
+        "from": 15.742,
+        "to": 15.952
+      }
+    ],
     "tempus-fugit": [
       {
         "segment": "fuego-flats",
         "from": 16.764,
         "to": 17.258
+      }
+    ],
+    "france-classic-fondo": [
+      {
+        "segment": "pave-sprint-rev",
+        "from": 10.706,
+        "to": 11.049
+      },
+      {
+        "segment": "pave-sprint-rev",
+        "from": 34.804,
+        "to": 35.147
+      },
+      {
+        "segment": "ballon-sprint",
+        "from": 53.077,
+        "to": 53.289
+      },
+      {
+        "segment": "ballon-sprint",
+        "from": 66.964,
+        "to": 67.176
+      },
+      {
+        "segment": "pave-sprint",
+        "from": 73.032,
+        "to": 73.368
+      },
+      {
+        "segment": "ballon-sprint",
+        "from": 91.068,
+        "to": 91.279
+      },
+      {
+        "segment": "pave-sprint",
+        "from": 97.135,
+        "to": 97.473
+      },
+      {
+        "segment": "pave-sprint-rev",
+        "from": 133.829,
+        "to": 134.171
+      }
+    ],
+    "island-hopper": [
+      {
+        "segment": "boardwalk-sprint",
+        "from": 1.529,
+        "to": 1.766
+      },
+      {
+        "segment": "tidepool-sprint",
+        "from": 5.027,
+        "to": 5.345
+      },
+      {
+        "segment": "shisa-sprint",
+        "from": 10.323,
+        "to": 10.61
+      },
+      {
+        "segment": "tidepool-sprint",
+        "from": 15.263,
+        "to": 15.581
       }
     ],
     "london-the-prl-full": [
@@ -28,6 +376,37 @@
         "to": 172.093
       }
     ],
+    "tire-bouchon": [
+      {
+        "segment": "pave-sprint-rev",
+        "from": 21.36,
+        "to": 21.703
+      },
+      {
+        "segment": "ballon-sprint",
+        "from": 39.599,
+        "to": 39.809
+      },
+      {
+        "segment": "pave-sprint",
+        "from": 45.664,
+        "to": 46.001
+      }
+    ],
+    "yumezi-grit": [
+      {
+        "segment": "village-sprint-rev",
+        "from": 7.339,
+        "to": 7.488
+      }
+    ],
+    "two-village-loop": [
+      {
+        "segment": "village-sprint-rev",
+        "from": 9.847,
+        "to": 9.993
+      }
+    ],
     "london-classique": [
       {
         "segment": "london-sprint-rev",
@@ -35,11 +414,45 @@
         "to": 5.436
       }
     ],
+    "outer-scotland": [
+      {
+        "segment": "the-clyde-kicker",
+        "from": 9.223,
+        "to": 9.523
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 10.949,
+        "to": 11.148
+      }
+    ],
     "kaze-kicker": [
       {
         "segment": "tidepool-sprint-rev",
         "from": 1.337,
         "to": 1.644
+      },
+      {
+        "segment": "boardwalk-sprint",
+        "from": 16.621,
+        "to": 16.858
+      }
+    ],
+    "petit-boucle": [
+      {
+        "segment": "pave-sprint-rev",
+        "from": 10.703,
+        "to": 11.045
+      },
+      {
+        "segment": "pave-sprint",
+        "from": 34.994,
+        "to": 35.332
+      },
+      {
+        "segment": "ballon-sprint",
+        "from": 53.008,
+        "to": 53.219
       }
     ],
     "mech-isle-mayhem": [
@@ -54,6 +467,68 @@
         "to": 10.265
       }
     ],
+    "makuri-pretzel": [
+      {
+        "segment": "shisa-sprint",
+        "from": 27.128,
+        "to": 27.415
+      },
+      {
+        "segment": "shisa-sprint-rev",
+        "from": 48.995,
+        "to": 49.261
+      },
+      {
+        "segment": "country-sprint-rev",
+        "from": 68.354,
+        "to": 68.502
+      }
+    ],
+    "sleepless-city": [
+      {
+        "segment": "castle-park-sprint-rev",
+        "from": 2.617,
+        "to": 2.832
+      }
+    ],
+    "glasgow-crit-circuit-run": [
+      {
+        "segment": "the-clyde-kicker",
+        "from": 1.105,
+        "to": 1.407
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 2.838,
+        "to": 3.029
+      }
+    ],
+    "sprinters-playground": [
+      {
+        "segment": "castle-park-sprint-rev",
+        "from": 2.931,
+        "to": 3.147
+      }
+    ],
+    "neon-flats": [
+      {
+        "segment": "castle-park-sprint",
+        "from": 7.305,
+        "to": 7.514
+      },
+      {
+        "segment": "castle-park-sprint",
+        "from": 11.187,
+        "to": 11.395
+      }
+    ],
+    "neon-shore-loop": [
+      {
+        "segment": "boardwalk-sprint",
+        "from": 25.311,
+        "to": 25.548
+      }
+    ],
     "bambino-fondo": [
       {
         "segment": "volcano-kom",
@@ -61,11 +536,97 @@
         "to": 52.097
       }
     ],
+    "tropic-rush": [
+      {
+        "segment": "shisa-sprint",
+        "from": 21.302,
+        "to": 21.589
+      },
+      {
+        "segment": "castle-park-sprint",
+        "from": 30.994,
+        "to": 31.203
+      }
+    ],
+    "the-muckle-yin": [
+      {
+        "segment": "the-clyde-kicker",
+        "from": 21.474,
+        "to": 21.774
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 23.199,
+        "to": 23.399
+      }
+    ],
+    "castle-to-castle": [
+      {
+        "segment": "castle-park-sprint",
+        "from": 19.046,
+        "to": 19.253
+      }
+    ],
+    "glasgow-crit-circuit": [
+      {
+        "segment": "the-clyde-kicker",
+        "from": 1.088,
+        "to": 1.388
+      },
+      {
+        "segment": "champions-sprint",
+        "from": 2.814,
+        "to": 3.013
+      }
+    ],
+    "casse-pattes": [
+      {
+        "segment": "pave-sprint-rev",
+        "from": 10.706,
+        "to": 11.049
+      }
+    ],
+    "knights-of-the-roundabout": [
+      {
+        "segment": "ballon-sprint",
+        "from": 2.77,
+        "to": 2.981
+      },
+      {
+        "segment": "pave-sprint",
+        "from": 8.839,
+        "to": 9.176
+      },
+      {
+        "segment": "ballon-sprint",
+        "from": 32.804,
+        "to": 33.015
+      }
+    ],
+    "urumaze": [
+      {
+        "segment": "shisa-sprint-rev",
+        "from": 18.274,
+        "to": 18.539
+      }
+    ],
     "petite-douleur": [
+      {
+        "segment": "ballon-sprint",
+        "from": 9.831,
+        "to": 10.042
+      },
       {
         "segment": "petit-kom",
         "from": 11.188,
         "to": 13.86
+      }
+    ],
+    "turf-n-surf": [
+      {
+        "segment": "shisa-sprint",
+        "from": 16.276,
+        "to": 16.563
       }
     ]
   },
@@ -83,46 +644,10 @@
       "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
     },
     {
-      "route": "electric-break",
-      "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "glasgow-crit-six",
-      "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "glasgow-crit-six",
-      "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "hilly-route-rev",
       "segment": "watopia-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "sacre-bleu",
-      "segment": "pave-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "scotland-smash",
-      "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "scotland-smash",
-      "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "scotland-smash",
@@ -155,28 +680,10 @@
       "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
     },
     {
-      "route": "makuri-madness",
-      "segment": "tidepool-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "makuri-madness",
-      "segment": "boardwalk-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "island-outskirts",
       "segment": "shisa-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "island-outskirts",
-      "segment": "tidepool-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (4.112 km) only riding the other way (turned 173° from the segment, limit 90°)"
     },
     {
       "route": "sugar-cookie",
@@ -239,40 +746,10 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "twilight-crit",
-      "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "braek-fast-crits-and-grits",
-      "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "braek-fast-crits-and-grits",
-      "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "braek-fast-crits-and-grits",
       "segment": "breakaway-brae-rev",
       "reason": "held",
       "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
-    },
-    {
-      "route": "fine-and-sandy",
-      "segment": "boardwalk-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "fine-and-sandy",
-      "segment": "tidepool-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "gotham-grind",
@@ -290,7 +767,7 @@
       "route": "countryside-tour",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "figure-8-reverse",
@@ -300,27 +777,9 @@
     },
     {
       "route": "country-to-coastal",
-      "segment": "village-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "country-to-coastal",
-      "segment": "country-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "country-to-coastal",
       "segment": "shisa-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "country-to-coastal",
-      "segment": "tidepool-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (20.821 km) only riding the other way (turned 170° from the segment, limit 90°)"
     },
     {
       "route": "flat-irons",
@@ -404,25 +863,7 @@
       "route": "what-yumezi-were-lost",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
-    },
-    {
-      "route": "roule-ma-poule",
-      "segment": "pave-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "makuri-40",
-      "segment": "village-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "makuri-40",
-      "segment": "country-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "makuri-40",
@@ -432,15 +873,9 @@
     },
     {
       "route": "makuri-40",
-      "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "makuri-40",
       "segment": "shisa-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (27.812 km) only riding the other way (turned 180° from the segment, limit 90°)"
     },
     {
       "route": "electric-loop",
@@ -455,34 +890,16 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "peaky-pave",
-      "segment": "pave-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "downtown-dolphin",
       "segment": "prime-rev",
       "reason": "no-segment-track",
-      "detail": "Strava segment 38170270 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
       "route": "watts-of-the-wild",
       "segment": "watopia-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "douce-france",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "douce-france",
-      "segment": "pave-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "richmond-uci-rev",
@@ -533,12 +950,6 @@
       "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
     },
     {
-      "route": "neokyo-crit-course",
-      "segment": "castle-park-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "power-punches",
       "segment": "watopia-sprint-rev",
       "reason": "no-segment-track",
@@ -565,14 +976,14 @@
     {
       "route": "mech-isle-loop",
       "segment": "village-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "start-off-track",
+      "detail": "start is 5185 m from the route track (limit 25 m)"
     },
     {
       "route": "mech-isle-loop",
       "segment": "country-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "start-off-track",
+      "detail": "start is 5117 m from the route track (limit 25 m)"
     },
     {
       "route": "mech-isle-loop",
@@ -583,14 +994,14 @@
     {
       "route": "mech-isle-loop",
       "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "start-off-track",
+      "detail": "start is 2718 m from the route track (limit 25 m)"
     },
     {
       "route": "mech-isle-loop",
       "segment": "shisa-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "start-off-track",
+      "detail": "start is 1236 m from the route track (limit 25 m)"
     },
     {
       "route": "neon-after-party",
@@ -605,12 +1016,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "neon-after-party",
-      "segment": "castle-park-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "loch-loop-run",
       "segment": "breakaway-brae-rev",
       "reason": "held",
@@ -619,8 +1024,8 @@
     {
       "route": "la-reine",
       "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "ride-relative-route",
+      "detail": "the route's placements and track run from the ride start, and a generated placement is lap-relative"
     },
     {
       "route": "temple-trek-run",
@@ -633,12 +1038,6 @@
       "segment": "acropolis-sprint",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "neokyo-all-nighter",
-      "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "neokyo-all-nighter",
@@ -681,12 +1080,6 @@
       "segment": "new-york-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "gentil-8",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "thats-amore-rev",
@@ -756,21 +1149,9 @@
     },
     {
       "route": "bridges-and-boardwalks",
-      "segment": "boardwalk-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "bridges-and-boardwalks",
       "segment": "shisa-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "rgv",
-      "segment": "pave-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (3.422 km) only riding the other way (turned 178° from the segment, limit 90°)"
     },
     {
       "route": "rgv",
@@ -783,12 +1164,6 @@
       "segment": "yorkshire-sprint",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "hell-of-the-north",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "park-perimeter-loop",
@@ -834,45 +1209,15 @@
     },
     {
       "route": "france-classic-fondo",
-      "segment": "pave-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "france-classic-fondo",
-      "segment": "pave-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "france-classic-fondo",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "france-classic-fondo",
       "segment": "marina-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
       "route": "island-hopper",
-      "segment": "boardwalk-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "island-hopper",
-      "segment": "tidepool-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "island-hopper",
       "segment": "shisa-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (10.877 km) only riding the other way (turned 173° from the segment, limit 90°)"
     },
     {
       "route": "oh-hill-no-run",
@@ -889,8 +1234,8 @@
     {
       "route": "dun-dash",
       "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (4.715 km) only riding the other way (turned 156° from the segment, limit 90°)"
     },
     {
       "route": "dun-dash",
@@ -965,24 +1310,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "tire-bouchon",
-      "segment": "pave-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "tire-bouchon",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "tire-bouchon",
-      "segment": "pave-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "laguardia-loop",
       "segment": "new-york-kom",
       "reason": "start-off-track",
@@ -1005,12 +1332,6 @@
       "segment": "watopia-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "yumezi-grit",
-      "segment": "village-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "coast-crusher",
@@ -1118,13 +1439,13 @@
       "route": "two-village-loop",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "two-village-loop",
       "segment": "village-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168903 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (10.134 km) only riding the other way (turned 173° from the segment, limit 90°)"
     },
     {
       "route": "jarvis-seaside-sprint",
@@ -1146,45 +1467,9 @@
     },
     {
       "route": "outer-scotland",
-      "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "outer-scotland",
-      "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "outer-scotland",
       "segment": "breakaway-brae",
       "reason": "held",
       "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
-    },
-    {
-      "route": "kaze-kicker",
-      "segment": "boardwalk-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "petit-boucle",
-      "segment": "pave-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "petit-boucle",
-      "segment": "pave-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "petit-boucle",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "petit-boucle",
@@ -1208,13 +1493,13 @@
       "route": "chasing-the-sun",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "bell-lap",
       "segment": "prime-rev",
       "reason": "no-segment-track",
-      "detail": "Strava segment 38170270 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
       "route": "red-zone-repeats",
@@ -1248,33 +1533,15 @@
     },
     {
       "route": "makuri-pretzel",
-      "segment": "country-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "makuri-pretzel",
-      "segment": "shisa-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "makuri-pretzel",
       "segment": "alley-sprint",
       "reason": "held",
       "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
     },
     {
       "route": "makuri-pretzel",
-      "segment": "shisa-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "makuri-pretzel",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "makuri-pretzel",
@@ -1346,13 +1613,7 @@
       "route": "flatland-loop",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
-    },
-    {
-      "route": "sleepless-city",
-      "segment": "castle-park-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "two-bridges-loop",
@@ -1381,8 +1642,8 @@
     {
       "route": "shisa-shakedown",
       "segment": "castle-park-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "ride-relative-route",
+      "detail": "the route's placements and track run from the ride start, and a generated placement is lap-relative"
     },
     {
       "route": "shisa-shakedown",
@@ -1393,32 +1654,14 @@
     {
       "route": "shisa-shakedown",
       "segment": "shisa-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "glasgow-crit-circuit-run",
-      "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "glasgow-crit-circuit-run",
-      "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "ride-relative-route",
+      "detail": "the route's placements and track run from the ride start, and a generated placement is lap-relative"
     },
     {
       "route": "sprinters-playground",
       "segment": "tower-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "sprinters-playground",
-      "segment": "castle-park-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "sprinters-playground",
@@ -1430,7 +1673,7 @@
       "route": "sukis-playground",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "three-village-loop",
@@ -1442,7 +1685,7 @@
       "route": "three-village-loop",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "figure-8",
@@ -1455,12 +1698,6 @@
       "segment": "alley-sprint",
       "reason": "held",
       "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
-    },
-    {
-      "route": "neon-flats",
-      "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "seaside-sprint-run",
@@ -1489,8 +1726,8 @@
     {
       "route": "the-epiloch",
       "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "start-off-track",
+      "detail": "start is 282 m from the route track (limit 25 m)"
     },
     {
       "route": "the-epiloch",
@@ -1529,12 +1766,6 @@
       "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
     },
     {
-      "route": "neon-shore-loop",
-      "segment": "boardwalk-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "tropic-rush",
       "segment": "alley-sprint-rev",
       "reason": "held",
@@ -1543,14 +1774,8 @@
     {
       "route": "tropic-rush",
       "segment": "shisa-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "tropic-rush",
-      "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (21.857 km) only riding the other way (turned 171° from the segment, limit 90°)"
     },
     {
       "route": "tropic-rush",
@@ -1575,18 +1800,6 @@
       "segment": "breakaway-brae-rev",
       "reason": "held",
       "detail": "zwift-data's two Breakaway Brae Strava ids look swapped (the forward id's stream is 622 m, the reverse id's 405 m; the dictionary says forward is 450 m and reverse 600 m), so neither track can say which name a route rides"
-    },
-    {
-      "route": "the-muckle-yin",
-      "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "the-muckle-yin",
-      "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "laguardia-after-party",
@@ -1628,31 +1841,13 @@
       "route": "chain-chomper",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "castle-to-castle",
       "segment": "alley-sprint",
       "reason": "held",
       "detail": "zwift-data's two Alley Sprint Strava ids are swapped against ZwiftInsider's (forward 30412903, reverse 30412916, the 380 m one), so neither track can say which name a route rides"
-    },
-    {
-      "route": "castle-to-castle",
-      "segment": "castle-park-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "glasgow-crit-circuit",
-      "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "glasgow-crit-circuit",
-      "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "laguardia-loop-reverse",
@@ -1670,7 +1865,7 @@
       "route": "wandering-flats",
       "segment": "country-sprint",
       "reason": "no-strava-segment",
-      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava's minimum segment length, as ZwiftInsider's page for it also says (checked 2026-10-10) - so no track to place it by"
     },
     {
       "route": "wandering-flats",
@@ -1686,27 +1881,9 @@
     },
     {
       "route": "casse-pattes",
-      "segment": "pave-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "casse-pattes",
       "segment": "marina-sprint-rev",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
-    },
-    {
-      "route": "knights-of-the-roundabout",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
-      "route": "knights-of-the-roundabout",
-      "segment": "pave-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "jurassic-coast",
@@ -1739,12 +1916,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "urumaze",
-      "segment": "shisa-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "radio-rendezvous",
       "segment": "stoneway-sprint-rev",
       "reason": "no-segment-track",
@@ -1775,12 +1946,6 @@
       "detail": "the segment has no Strava id in zwift-data, so no track"
     },
     {
-      "route": "petite-douleur",
-      "segment": "ballon-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
-    },
-    {
       "route": "coast-to-coast",
       "segment": "sasquatch-sprint",
       "reason": "no-segment-track",
@@ -1789,14 +1954,14 @@
     {
       "route": "scotland-after-party",
       "segment": "champions-sprint",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (3.191 km) only riding the other way (turned 179° from the segment, limit 90°)"
     },
     {
       "route": "scotland-after-party",
       "segment": "the-clyde-kicker",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (7.897 km) only riding the other way (turned 155° from the segment, limit 90°)"
     },
     {
       "route": "turf-n-surf",
@@ -1807,8 +1972,8 @@
     {
       "route": "turf-n-surf",
       "segment": "shisa-sprint-rev",
-      "reason": "no-segment-track",
-      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
+      "reason": "direction",
+      "detail": "the route passes the start (16.830 km) only riding the other way (turned 172° from the segment, limit 90°)"
     },
     {
       "route": "mayan-mash",

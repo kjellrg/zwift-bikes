@@ -7,8 +7,10 @@
 // generator and CI read the tracks from it and never need a token; this
 // script is the only thing that talks to Strava, and only when a human runs it.
 //
-// After each id it prints the fetched length against the record's and the
-// length check's verdict (shared/utils/segmentSupplementStreams.ts). A track
+// After each id it prints the fetched length against the length expected of
+// it - the record's, or the entry's measured length where the game's label is
+// known wrong - and the length check's verdict
+// (shared/utils/segmentSupplementStreams.ts). A track
 // that fails is stored anyway: the generator rejects it reproducibly, and a
 // human decides whether the id belongs to the other direction (Downtown
 // Dolphin's Prime - see the supplement's header) or is wrong.
@@ -40,7 +42,7 @@ import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 import { roundStravaStreams } from './roundStreams.mjs'
 
 const { SUPPLEMENT_SEGMENT_STRAVA_IDS, supplementIdsThePackageShips } = loadSharedModule('shared/data/segmentStravaIdSupplement.ts')
-const { supplementTrackLengthMismatch } = loadSharedModule('shared/utils/segmentSupplementStreams.ts')
+const { expectedSupplementLengthM, supplementTrackLengthMismatch } = loadSharedModule('shared/utils/segmentSupplementStreams.ts')
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const outPath = path.join(repoRoot, 'shared/data/segmentStreams.supplement.json')
@@ -104,18 +106,19 @@ for (const id of onlyIds) {
   }
 }
 
-const recordKm = new Map(segments.map(segment => [segment.slug, segment.distance]))
 const today = new Date().toISOString().slice(0, 10)
 const results = { ...existing }
 let done = 0
-for (const { segment, stravaSegmentId } of toFetch) {
+for (const entry of toFetch) {
+  const { segment, stravaSegmentId } = entry
   process.stdout.write(`[${++done}/${toFetch.length}] ${segment} (Strava ${stravaSegmentId})... `)
   try {
     const track = roundStravaStreams(await fetchStreams(stravaSegmentId))
     results[stravaSegmentId] = { ...track, fetchedAt: today }
     const fetchedM = Math.round(track.distance.at(-1) - track.distance[0])
-    const mismatch = supplementTrackLengthMismatch(track, recordKm.get(segment))
-    console.log(`${fetchedM} m against the record's ${Math.round(recordKm.get(segment) * 1000)} m - ${mismatch ? `LENGTH CHECK FAILS (${mismatch}); stored, but the generator will not place it` : 'length check passes'}${track.altitude.length ? '' : ', no altitude stream'}`)
+    const expectedM = expectedSupplementLengthM(entry)
+    const mismatch = supplementTrackLengthMismatch(track, expectedM)
+    console.log(`${fetchedM} m against the ${Math.round(expectedM)} m expected${entry.measuredLengthM ? ' (the entry\'s measured length, not the game\'s label)' : ''} - ${mismatch ? `LENGTH CHECK FAILS (${mismatch}); stored, but the generator will not place it` : 'length check passes'}${track.altitude.length ? '' : ', no altitude stream'}`)
   } catch (err) {
     console.log(`FAILED: ${err.message}`)
   }

@@ -45,18 +45,28 @@ export interface ResolvedSupplementTracks {
 const recordDistanceKm = new Map(segments.map(segment => [segment.slug, segment.distance]))
 
 /**
- * Why a fetched track's length does not fit the record's distance (the track's
- * span, last `distance` less the first, as the matcher measures it), or
- * `undefined` if it is within `MAX_LENGTH_ERROR`. A record with no distance
- * cannot be checked against, so it never fits.
+ * The length a supplement entry's track should measure: the record's
+ * distance (the game's label), or the entry's `measuredLengthM` where the
+ * label is known to be wrong.
  */
-export function supplementTrackLengthMismatch(track: Track, recordKm: number | undefined): string | undefined {
+export function expectedSupplementLengthM(entry: { segment: string, measuredLengthM?: number }): number | undefined {
+  if (entry.measuredLengthM) return entry.measuredLengthM
+  const km = recordDistanceKm.get(entry.segment)
+  return km === undefined ? undefined : km * 1000
+}
+
+/**
+ * Why a fetched track's length does not fit the length expected of it (the
+ * track's span, last `distance` less the first, as the matcher measures it),
+ * or `undefined` if it is within `MAX_LENGTH_ERROR`. No expected length means
+ * nothing to check against, so it never fits.
+ */
+export function supplementTrackLengthMismatch(track: Track, expectedM: number | undefined): string | undefined {
   const trackM = (track.distance.at(-1) ?? 0) - (track.distance[0] ?? 0)
-  if (!recordKm || recordKm <= 0) return `track is ${Math.round(trackM)} m; the record has no distance to check it against`
-  const recordM = recordKm * 1000
-  const error = Math.abs(trackM - recordM) / recordM
+  if (!expectedM || expectedM <= 0) return `track is ${Math.round(trackM)} m; there is no length to check it against`
+  const error = Math.abs(trackM - expectedM) / expectedM
   if (error <= MAX_LENGTH_ERROR) return undefined
-  return `track is ${Math.round(trackM)} m; the record says ${Math.round(recordM)} m (${Math.round(error * 100)} % off)`
+  return `track is ${Math.round(trackM)} m against the ${Math.round(expectedM)} m expected (${Math.round(error * 100)} % off)`
 }
 
 /**
@@ -72,14 +82,15 @@ export function resolveSupplementTracks(
   packageSegmentTracks: Readonly<Record<string, Track | undefined>> = {}
 ): ResolvedSupplementTracks {
   const resolved: ResolvedSupplementTracks = { tracks: {}, rejected: {}, unfetched: {} }
-  for (const { segment, stravaSegmentId } of SUPPLEMENT_SEGMENT_STRAVA_IDS) {
+  for (const entry of SUPPLEMENT_SEGMENT_STRAVA_IDS) {
+    const { segment, stravaSegmentId } = entry
     if (packageSegmentTracks[segment]) continue
     const track = fetched[stravaSegmentId]
     if (!track) {
       resolved.unfetched[segment] = stravaSegmentId
       continue
     }
-    const mismatch = supplementTrackLengthMismatch(track, recordDistanceKm.get(segment))
+    const mismatch = supplementTrackLengthMismatch(track, expectedSupplementLengthM(entry))
     if (mismatch) {
       resolved.rejected[segment] = {
         reason: 'supplement-track-length',

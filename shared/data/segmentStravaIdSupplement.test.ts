@@ -49,6 +49,16 @@ describe('the segment Strava id supplement', () => {
     expect(accounted('prime') || accounted('prime-rev')).toBe(true)
   })
 
+  it('gives a measured length only with the evidence in its note, and only where it differs from the record by more than the 20 % rule', () => {
+    const measured = SUPPLEMENT_SEGMENT_STRAVA_IDS.filter(e => e.measuredLengthM !== undefined)
+    expect(measured.map(e => e.segment)).toEqual(['castle-park-sprint', 'castle-park-sprint-rev'])
+    for (const entry of measured) {
+      expect(entry.note, entry.segment).toMatch(/ZwiftInsider/)
+      const recordM = segments.find(s => s.slug === entry.segment)!.distance * 1000
+      expect(Math.abs(entry.measuredLengthM! - recordM) / recordM, entry.segment).toBeGreaterThan(0.2)
+    }
+  })
+
   it('says why Country Sprint forward has no Strava segment, and gives no other slug that reason', () => {
     expect(noStravaSegmentReason('country-sprint')).toMatch(/too short/)
     expect(noStravaSegmentReason('country-sprint-rev')).toBeUndefined()

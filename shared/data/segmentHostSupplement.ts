@@ -7,14 +7,32 @@
  * fails naming it, so it can be deleted. An entry only ever ADDS a host; no
  * host the package has is removed (#273).
  *
- * Every entry here is a FORWARD segment, and each is the dictionary's
+ * The first nine entries are FORWARD segments, each the dictionary's
  * `onRoutes` for that segment as fetched on 2026-10-09. The forward Castle
  * Park, Ballon and Pavé Sprints, Champion's Sprint and The Clyde Kicker have
- * no Strava id in `zwift-data`, so no track there to place them by; forward
- * Breakaway Brae is held (below). Their hand-found Strava ids are in
- * `segmentStravaIdSupplement.ts` (#274), and each is placed once its track is
- * fetched; until then they are listed on their segment pages without a
- * Placement.
+ * no Strava id in `zwift-data`; their hand-found ids are in
+ * `segmentStravaIdSupplement.ts` (#274) and their fetched tracks place them.
+ * Forward Breakaway Brae is held (below).
+ *
+ * The last nine entries are the other direction of a host `zwift-data` has,
+ * added on 2026-10-10 (#274) because two independent sources say the route
+ * rides that direction: ZwiftInsider's host list for the segment, and the
+ * segment's fetched track matched to the route's (the route passes the
+ * `zwift-data` direction's start turned 155-180° from it, and rides the other
+ * direction's track cleanly). The `zwift-data` host stays listed and
+ * unplaced, with that direction rejection as its explanation. The pairs:
+ *
+ * - Shisa Sprint forward on Island Outskirts, Country to Coastal, Island
+ *   Hopper, Tropic Rush and Turf N Surf (`zwift-data`: reverse); Shisa Sprint
+ *   Rev on Makuri 40 and Bridges and Boardwalks (`zwift-data`: forward).
+ *   Urumaze and Makuri Pretzel ride the direction `zwift-data` says.
+ * - Village Sprint Rev on Two Village Loop (`zwift-data`: forward). Note
+ *   ZwiftInsider also has the two Village Sprint lengths the other way round
+ *   from `zwift-data`'s records (forward 0.14 km, reverse 0.15 km), and the
+ *   fetched tracks agree with ZwiftInsider.
+ * - Prime (forward) on Downtown Dolphin (`zwift-data`: `prime-rev`), as the
+ *   dictionary said all along - see the Prime section of
+ *   `segmentStravaIdSupplement.ts`.
  *
  * ## Direction: where the dictionary and `zwift-data` disagree, zwift-data stands
  *
@@ -28,7 +46,8 @@
  * - Tidepool Sprint: Kaze Kicker, Mech Isle Mayhem, Urumaze
  * - Shisa Sprint: Urumaze
  * - Ballon Sprint: Sacre Bleu
- * - Prime: Downtown Dolphin
+ * - Prime: Downtown Dolphin (since 2026-10-10 the forward host is added
+ *   above on track evidence; the `zwift-data` host stays)
  * - Breakaway Brae: BRAEk-fast Crits and Grits, The Epiloch
  *
  * Three of them are UNRESOLVED, because the route's GPS track disagrees with
@@ -74,6 +93,7 @@ export interface SupplementSegmentHost {
 }
 
 const DICTIONARY_2026_10_09 = 'game dictionary onRoutes, 2026-10-09'
+const ZWIFTINSIDER_AND_TRACK_2026_10_10 = 'ZwiftInsider host list, and the segment track matched to the route track, 2026-10-10 (#274)'
 
 export const SUPPLEMENT_SEGMENT_HOSTS: SupplementSegmentHost[] = [
   { segment: 'castle-park-sprint', route: 'castle-to-castle', source: DICTIONARY_2026_10_09 },
@@ -84,7 +104,17 @@ export const SUPPLEMENT_SEGMENT_HOSTS: SupplementSegmentHost[] = [
   { segment: 'pave-sprint', route: 'sacre-bleu', source: DICTIONARY_2026_10_09 },
   { segment: 'champions-sprint', route: 'outer-scotland', source: DICTIONARY_2026_10_09 },
   { segment: 'the-clyde-kicker', route: 'outer-scotland', source: DICTIONARY_2026_10_09 },
-  { segment: 'breakaway-brae', route: 'outer-scotland', source: DICTIONARY_2026_10_09 }
+  { segment: 'breakaway-brae', route: 'outer-scotland', source: DICTIONARY_2026_10_09 },
+  // The direction the track and ZwiftInsider agree on, where zwift-data lists the other (#274, below).
+  { segment: 'shisa-sprint', route: 'island-outskirts', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'shisa-sprint', route: 'country-to-coastal', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'shisa-sprint', route: 'island-hopper', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'shisa-sprint', route: 'tropic-rush', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'shisa-sprint', route: 'turf-n-surf', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'shisa-sprint-rev', route: 'makuri-40', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'shisa-sprint-rev', route: 'bridges-and-boardwalks', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'village-sprint-rev', route: 'two-village-loop', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 },
+  { segment: 'prime', route: 'downtown-dolphin', source: ZWIFTINSIDER_AND_TRACK_2026_10_10 }
 ]
 
 /**
