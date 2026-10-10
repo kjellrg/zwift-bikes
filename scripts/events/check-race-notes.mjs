@@ -42,7 +42,8 @@ const { classifyBikeFrame, FIXED_WHEEL_FRAMES, PURCHASABLE_HALO_FRAMES } = loadS
 const { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } = loadSharedModule('shared/data/frameSpeedData.ts')
 const { WHEEL_SPEED_DATA } = loadSharedModule('shared/data/wheelSpeedData.ts')
 const { simulateRoute } = loadSharedModule('shared/utils/physics/simulator.ts')
-const { geometryForRouteLaps } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+// The resolved Ride is the one way in to a route's geometry (issue #319).
+const { rideForRoute } = loadSharedModule('shared/utils/recommendRide.ts')
 const { resolveDraft, draftOf, TTT_DEFAULT_RIDERS } = loadSharedModule('shared/utils/physics/draft.ts')
 const { DEFAULT_WEIGHT_KG, DEFAULT_HEIGHT_CM, DEFAULT_POWER_W } = loadSharedModule('shared/utils/riderBounds.ts')
 
@@ -90,7 +91,7 @@ function physicsGaps(race, builds) {
   for (const group of race.categories) {
     const route = group.routeSlug && getRouteBySlug(group.routeSlug)
     if (!route) continue
-    const geometry = geometryForRouteLaps(route, group.laps)
+    const geometry = rideForRoute(route, group.laps).planGeometry()
     const draft = resolveDraft(draftOf({ draftMode, tttRiders: TTT_DEFAULT_RIDERS }), geometry, rider)
     const time = ({ frame, wheelset }) => simulateRoute({
       rider, frame, wheelset, geometry,

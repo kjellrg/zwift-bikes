@@ -31,7 +31,9 @@ const { getRouteBySlug } = loadSharedModule('shared/utils/catalog.ts')
 const { getWheelsets } = loadSharedModule('shared/utils/wheelsets.ts')
 const { classifyBikeFrame } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
 const { simulateRoute } = loadSharedModule('shared/utils/physics/simulator.ts')
-const { geometryForRouteLaps, prependWarmup } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+const { prependWarmup } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+// The resolved Ride is the one way in to a route's geometry (issue #319).
+const { rideForRoute } = loadSharedModule('shared/utils/recommendRide.ts')
 const { racePowerScaleAtSpeed } = loadSharedModule('shared/utils/physics/draft.ts')
 const { EVENT_LEAD_IN_OVERRIDES } = loadSharedModule('shared/data/routeEventLeadIns.ts')
 const { bikeFrames, routes } = await import('zwift-data')
@@ -90,7 +92,7 @@ function medianErrorPct(race, useRawLeadIn) {
     ? { ...route, leadInDistance: raw.leadInDistance, leadInElevation: raw.leadInElevation }
     : route
 
-  let geometry = geometryForRouteLaps(effective, race.laps)
+  let geometry = rideForRoute(effective, race.laps).planGeometry()
   // The dataset's own `eventDistanceKm` is how the uncorrected model was made
   // to fit before the lead-in was understood; ignore it here so the chart
   // shows what the route data alone produces.

@@ -49,7 +49,8 @@ const { getRouteBySlug } = loadSharedModule('shared/utils/catalog.ts')
 const { getWheelsets } = loadSharedModule('shared/utils/wheelsets.ts')
 const { classifyBikeFrame } = loadSharedModule('shared/utils/classifyBikeFrame.ts')
 const { simulateRoute } = loadSharedModule('shared/utils/physics/simulator.ts')
-const { geometryForRouteLaps } = loadSharedModule('shared/utils/physics/routeGeometry.ts')
+// The resolved Ride is the one way in to a route's geometry (issue #319).
+const { rideForRoute } = loadSharedModule('shared/utils/recommendRide.ts')
 const { racePowerScaleAtSpeed, tttPowerScaleAtSpeed } = loadSharedModule('shared/utils/physics/draft.ts')
 const { bikeFrames } = await import('zwift-data')
 
@@ -85,7 +86,7 @@ const equipment = SCENARIOS.map((scenario) => {
  * gone with the split itself.
  */
 function lapOnlyGeometry(route) {
-  return geometryForRouteLaps({ ...route, leadInDistance: 0, leadInElevation: 0 }, 1)
+  return rideForRoute({ ...route, leadInDistance: 0, leadInElevation: 0 }, 1).planGeometry()
 }
 
 const powerScaleFor = draft => draft === 'race' ? racePowerScaleAtSpeed : draft === 'ttt' ? tttPowerScaleAtSpeed : undefined
