@@ -37,7 +37,7 @@ describe('worldListing', () => {
     const { routes } = worldListing('watopia')!
     const names = routes.map(route => route.name)
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)))
-    expect(routes[0]).toBe(allRouteCards().find(card => card.slug === routes[0]!.slug))
+    expect(routes[0]).toMatchObject(allRouteCards().find(card => card.slug === routes[0]!.slug)!)
   })
 
   it('lists the climbs first, most climbing first, then the sprints by name, as the segments index does', () => {
@@ -58,5 +58,16 @@ describe('worldListing', () => {
   it('has no listing for a world the game does not have', () => {
     expect(worldListing('mars')).toBeUndefined()
     expect(worldListing('')).toBeUndefined()
+  })
+})
+
+describe('a World page row\'s surface', () => {
+  it('carries the shares the route page states, not the card\'s any-amount flags', () => {
+    const hilly = worldListing('watopia')!.routes.find(route => route.slug === 'hilly-route')!
+    const catalog = getRoutesWithMeta().find(route => route.slug === 'hilly-route')!
+    expect(hilly.surface).toEqual({ gravel: catalog.surface.gravel, cobble: catalog.surface.cobble })
+    expect(hilly.cobble).toBe(true)
+    expect(hilly.surface.cobble).toBeGreaterThan(0)
+    expect(hilly.surface.cobble).toBeLessThan(10)
   })
 })

@@ -199,15 +199,19 @@ export const UPGRADE_STAGE_OPTIONS = [0, 1, 2, 3, 4, 5].map(level => ({
 export { POWERUP_LABELS }
 
 /**
- * A route's surface as a World page row says it (#58), from the card's two
- * surface families: "Includes gravel" and "Includes cobbles" are the
- * homepage's surface filter's own words, so a rider who filtered by them
- * reads the same thing here. "Road" rather than "Tarmac" for neither,
- * because the road family takes in brick and wood as well.
+ * A route's surface as a World page row says it (#58), from the shares of
+ * its lap that are gravel and cobbles: "18% gravel", "5% cobbles", both
+ * when both, or "Road" when neither rounds to a whole percent - the figures
+ * the twin's table prints for the same route, without the confidence it
+ * adds. Not the card's "Includes gravel" flags: any amount at all sets
+ * those, and almost every Watopia route has a few metres of something, so
+ * the flag would say the same thing on almost every row. "Road" rather than
+ * "Tarmac" because that family takes in brick and wood as well.
  */
-export function routeSurfaceWords({ gravel, cobble }: { gravel: boolean, cobble: boolean }): string {
-  if (gravel && cobble) return 'Includes gravel and cobbles'
-  if (gravel) return 'Includes gravel'
-  if (cobble) return 'Includes cobbles'
-  return 'Road'
+export function routeSurfaceWords({ gravel, cobble }: { gravel: number, cobble: number }): string {
+  const parts = [
+    Math.round(gravel) > 0 ? `${Math.round(gravel)}% gravel` : undefined,
+    Math.round(cobble) > 0 ? `${Math.round(cobble)}% cobbles` : undefined
+  ].filter(Boolean)
+  return parts.join(', ') || 'Road'
 }

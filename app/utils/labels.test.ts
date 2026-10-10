@@ -35,10 +35,14 @@ describe('formatGapText', () => {
 })
 
 describe('routeSurfaceWords', () => {
-  it('says what a World page row says about a route\'s surface, in the homepage filter\'s words', () => {
-    expect(routeSurfaceWords({ gravel: false, cobble: false })).toBe('Road')
-    expect(routeSurfaceWords({ gravel: true, cobble: false })).toBe('Includes gravel')
-    expect(routeSurfaceWords({ gravel: false, cobble: true })).toBe('Includes cobbles')
-    expect(routeSurfaceWords({ gravel: true, cobble: true })).toBe('Includes gravel and cobbles')
+  it('says what a World page row says about a route\'s surface: its gravel and cobble shares, rounded', () => {
+    expect(routeSurfaceWords({ gravel: 0, cobble: 0 })).toBe('Road')
+    expect(routeSurfaceWords({ gravel: 18.3, cobble: 0 })).toBe('18% gravel')
+    expect(routeSurfaceWords({ gravel: 0, cobble: 4.7 })).toBe('5% cobbles')
+    expect(routeSurfaceWords({ gravel: 12.5, cobble: 2.6 })).toBe('13% gravel, 3% cobbles')
+  })
+
+  it('calls a few metres of something a road, as the rounding does', () => {
+    expect(routeSurfaceWords({ gravel: 0.4, cobble: 0.3 })).toBe('Road')
   })
 })

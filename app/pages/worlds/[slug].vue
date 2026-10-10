@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { SegmentSummary } from '../../../shared/types/catalog'
-import type { RouteCardData } from '#shared/utils/routeCards'
+import type { WorldListing } from '../../../server/utils/worldListing'
 
 /**
  * A World page (#58; see **World page** in CONTEXT.md): every route in one
@@ -22,7 +21,7 @@ import type { RouteCardData } from '#shared/utils/routeCards'
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-const { data, error } = await useFetch<{ world: { slug: string, name: string }, routes: RouteCardData[], segments: SegmentSummary[] }>(() => `/api/worlds/${slug.value}`)
+const { data, error } = await useFetch<WorldListing>(() => `/api/worlds/${slug.value}`)
 if (error.value || !data.value) throw createError({ statusCode: 404, statusMessage: 'World not found', fatal: true })
 
 const worldName = computed(() => data.value?.world.name ?? '')
@@ -117,7 +116,7 @@ useHead({
                 <span><span class="font-semibold text-highlighted">{{ entry.distance.toFixed(1) }}</span> km</span>
                 <span><span class="font-semibold text-highlighted">{{ Math.round(entry.elevation) }}</span> m</span>
                 <span>{{ TERRAIN_LABELS[entry.terrain] }}</span>
-                <span>{{ routeSurfaceWords(entry) }}</span>
+                <span>{{ routeSurfaceWords(entry.surface) }}</span>
                 <span
                   v-if="entry.eventOnly"
                   class="text-xs text-muted"
