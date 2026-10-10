@@ -96,7 +96,7 @@ The ladder a frame's Upgrade stages are earned and gained on: what the rider mus
 _Avoid_: upgrade level, upgrade category, upgrade path
 
 **Supplement**:
-A frame or wheel that is live in Zwift but that the catalog's upstream package has not caught up with, kept by hand until it has. An entry can add equipment the package lacks, or rename equipment the package still names the old way; either way it is matched to the package's record by Zwift's id, so a rider's Garage entry for a frame survives the rename. When the package ships the same thing, the package wins and the entry is deleted.
+A frame or wheel that is live in Zwift but that the catalog's upstream package has not caught up with, kept by hand until it has. An entry can add equipment the package lacks, or rename equipment the package still names the old way; either way it is matched to the package's record by Zwift's id, so a rider's Garage entry for a frame survives the rename. The same goes for a Host route the Game dictionary gives a segment and the package lacks: that entry names the segment and the route by the package's slugs, and only ever adds the host. When the package ships the same thing, the package wins and the entry is deleted.
 _Avoid_: patch, override list, extra equipment
 
 **Provisional id**:
@@ -106,6 +106,14 @@ _Avoid_: fake id, temporary id, placeholder id (a placeholder is an unlocalised 
 **Game dictionary**:
 Zwift's own published record of every frame, wheel, route and segment in the game, and the authority on their names and ids. The catalog's upstream package is generated from it and runs weeks to months behind it, so it is where a rename, a new frame or a real name for a placeholder shows up first. It is consulted to see what is coming, never ranked from: what the site ranks is the catalog. Zwift changes it without notice, including which upgrade scheme a frame sits on.
 _Avoid_: Zwift API, Zwift catalog, game data
+
+**Host route**:
+A route a segment is ridden on, in one direction: a forward segment and its reverse are different segments, each with its own host routes. A host is known from the catalog or added from the Game dictionary, and adding one never takes a host away. A host is listed on the segment's page whether or not it has a Placement; without one it can only be named, not drawn or timed against.
+_Avoid_: parent route, containing route, "on route"
+
+**Placement**:
+Where a segment starts and ends on one Host route, in km from the lap start. A route that passes a segment more than once has one placement per pass. A placement is measured, either by the catalog or by matching the segment's track to the route's, never estimated; a host that cannot be measured stays unplaced.
+_Avoid_: position, offset, segment km
 
 **Ranking**:
 Every eligible setup for a Ride, ordered by the finish time the Applied rider gets on it, fastest first. It is one list, shown whole as a table from rank 1 down: the Recommendation above it is rank 1 shown as the page's answer, and rank 1's own row stays in the table so the fastest and the rest can be read together. A row carries what belongs to a row - the comparison pick, its disclosure and its Wheel alternatives - so those exist once, on the row. A Directed search, a filter change or a Garage change produces a new ranking rather than narrowing this one, and a ranking of a single setup is a recommendation with one row beneath it.

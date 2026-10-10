@@ -3,6 +3,7 @@ import { getAllSegmentSummaries, routeWithMetaForSegment, routeWithMetaForSegmen
 import { SILHOUETTE_LISTING_SAMPLES } from './silhouette'
 import { getRoutesWithMeta } from './catalog'
 import { sliceSurfaceSegments } from './surfaceGeometry'
+import { SUPPLEMENT_SEGMENT_HOSTS } from '../data/segmentHostSupplement'
 
 function hostRouteBySlug(slug: string) {
   return getRoutesWithMeta().find(r => r.slug === slug)
@@ -208,5 +209,37 @@ describe('a climb carries its measured outline for its card', () => {
       if (summary.type === 'sprint' || summary.measuredElevationM === undefined) expect(summary.shape).toBeUndefined()
       else expect(summary.shape?.heights).toHaveLength(SILHOUETTE_LISTING_SAMPLES)
     }
+  })
+})
+
+describe('every Host route is listed on its segment (#273)', () => {
+  const hostSlugs = (segment: string) => getAllSegmentSummaries().find(s => s.slug === segment)?.hostRoutes.map(h => h.slug)
+
+  it('lists a host with no placement next to the segment\'s placed hosts', () => {
+    // Kaze Kicker is the only host of tidepool-sprint-rev with no zwift-data
+    // placement; it used to be hidden because the segment is placed on
+    // Mech Isle Mayhem and Urumaze.
+    expect(hostSlugs('tidepool-sprint-rev')).toContain('kaze-kicker')
+    expect(hostSlugs('fuego-flats')).toEqual(expect.arrayContaining(['tempus-fugit', 'accelerate-to-elevate', 'going-coastal']))
+  })
+
+  it('lists the supplement\'s hosts after the package\'s, so a new host never changes the fallback', () => {
+    // Pavé Sprint has no placement anywhere; its stand-in host is the first.
+    expect(hostSlugs('pave-sprint')!.slice(-2).sort()).toEqual(['knights-of-the-roundabout', 'sacre-bleu'])
+  })
+
+  it('lists all 9 hosts the supplement adds from the game dictionary', () => {
+    for (const { segment, route } of SUPPLEMENT_SEGMENT_HOSTS) expect(hostSlugs(segment), segment).toContain(route)
+  })
+
+  it('lists every route\'s membership on the segment, placed or not', () => {
+    const missing: string[] = []
+    for (const route of getRoutesWithMeta()) {
+      for (const segment of route.segments ?? []) {
+        const hosts = hostSlugs(segment)
+        if (hosts && !hosts.includes(route.slug)) missing.push(`${segment} on ${route.slug}`)
+      }
+    }
+    expect(missing).toEqual([])
   })
 })

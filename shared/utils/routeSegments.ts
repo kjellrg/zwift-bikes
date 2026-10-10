@@ -3,6 +3,7 @@ import { segments } from 'zwift-data'
 import type { RouteSegmentPlacement, RouteWithMeta, SegmentSummary, SurfaceSegment } from '../types/catalog'
 import type { PhysicsSurface } from '../types/physics'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
+import { isSupplementHost } from '../data/segmentHostSupplement'
 import { sliceElevationProfile } from './elevationGeometry'
 import { rescaleElevationProfile, rescaleSurfaceSegments } from './traceScale'
 import { sliceSurfaceSegments, surfaceCompositionFromSegments } from './surfaceGeometry'
@@ -50,23 +51,33 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
     }
   }
 
-  // Second pass: segments no route places positionally. 51 of 335 routes
-  // don't publish `segmentsOnRoute` at all, so 39 real sprint/climb segments
-  // (Makuri 40's five scoring sprints among them) would otherwise not exist
-  // here - but 38 of them do appear in some route's non-positional `segments`
-  // membership array, which is enough to know *that* they're on the route,
-  // just not where. Their length/grade come from the segment's own record;
-  // the same sprint-vs-climb asymmetry as above applies (sprints without
-  // gradient data stay flat, climbs without any elevation signal are skipped,
-  // matching `routeClimbs.ts`). The one segment with no host at all (`prime`)
-  // is skipped by the empty-`hostRoutes` guard.
+  // Second pass: every Host route known only by membership. 51 of 335
+  // routes don't publish `segmentsOnRoute` at all, and some that do don't
+  // place every segment they list, but a route's non-positional `segments`
+  // array is enough to know *that* a segment is on it, just not where. Every
+  // such host is listed, placed or not (#273): next to a segment's placed
+  // hosts it is only named, never timed against (`pickHostRoute` prefers a
+  // placed host). A segment no route places at all - 39 real sprint/climb
+  // segments, Makuri 40's five scoring sprints among them - is still listed,
+  // its length/grade from the segment's own record; the same
+  // sprint-vs-climb asymmetry as above applies (sprints without gradient
+  // data stay flat, climbs without any elevation signal are skipped,
+  // matching `routeClimbs.ts`). The one segment with no host at all
+  // (`prime`) is skipped by the empty-`hostRoutes` guard.
   for (const segment of segments) {
     if (segment.type !== 'sprint' && segment.type !== 'climb') continue
-    if (bySlug.has(segment.slug)) continue
 
+    // The package's own hosts first, the supplement's after them, so adding
+    // a host never changes which one `pickHostRoute` falls back on.
     const hostRoutes = getRoutesWithMeta()
       .filter(route => route.segments?.includes(segment.slug))
+      .sort((a, b) => Number(isSupplementHost(segment.slug, a.slug)) - Number(isSupplementHost(segment.slug, b.slug)))
       .map(route => ({ slug: route.slug, name: route.name }))
+    const listed = bySlug.get(segment.slug)
+    if (listed) {
+      for (const host of hostRoutes) if (!listed.hostRoutes.some(h => h.slug === host.slug)) listed.hostRoutes.push(host)
+      continue
+    }
     if (!hostRoutes.length) continue
 
     const lengthKm = segment.distance
