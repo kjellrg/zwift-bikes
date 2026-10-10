@@ -34,7 +34,7 @@ const MAX_OFF_TRACK_M = 25
  * a route riding one has the other's end on its track too; the length is
  * what rejects the wrong one.
  */
-const MAX_LENGTH_ERROR = 0.2
+export const MAX_LENGTH_ERROR = 0.2
 
 /**
  * How far the route's heading where it passes a segment's start or end may

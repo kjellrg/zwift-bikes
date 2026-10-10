@@ -10,9 +10,11 @@
  * Every entry here is a FORWARD segment, and each is the dictionary's
  * `onRoutes` for that segment as fetched on 2026-10-09. The forward Castle
  * Park, Ballon and Pavé Sprints, Champion's Sprint and The Clyde Kicker have
- * no Strava id, so no track to place them by; forward Breakaway Brae is held
- * (below). Until #274 finds their tracks, all nine are listed on their
- * segment pages without a Placement.
+ * no Strava id in `zwift-data`, so no track there to place them by; forward
+ * Breakaway Brae is held (below). Their hand-found Strava ids are in
+ * `segmentStravaIdSupplement.ts` (#274), and each is placed once its track is
+ * fetched; until then they are listed on their segment pages without a
+ * Placement.
  *
  * ## Direction: where the dictionary and `zwift-data` disagree, zwift-data stands
  *

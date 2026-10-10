@@ -4,6 +4,9 @@ import { placeSegmentOnTrack } from './segmentMatching'
 import { placementsAreRideRelative } from './routeClimbs'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
 import { heldReason, supplementHostsFor } from '../data/segmentHostSupplement'
+import { noStravaSegmentReason } from '../data/segmentStravaIdSupplement'
+import type { RejectedSupplementTrack, SupplementStreamsFile } from './segmentSupplementStreams'
+import { resolveSupplementTracks } from './segmentSupplementStreams'
 
 /** One generated Placement, in the shape of a `zwift-data` `segmentsOnRoute` entry: km from the lap start. */
 export interface GeneratedSegmentPlacement {
@@ -15,8 +18,12 @@ export interface GeneratedSegmentPlacement {
 export interface UnplacedSegmentHost {
   route: string
   segment: string
-  /** `held`, a missing track, a ride-relative route, or the matching rule that failed (`TrackRejection`). */
-  reason: 'held' | 'no-segment-track' | 'no-route-track' | 'ride-relative-route' | TrackRejection['rule']
+  /**
+   * `held`, no Strava segment at all, a missing track, a supplement track the
+   * length check refused, a ride-relative route, or the matching rule that
+   * failed (`TrackRejection`).
+   */
+  reason: 'held' | 'no-strava-segment' | 'no-segment-track' | RejectedSupplementTrack['reason'] | 'no-route-track' | 'ride-relative-route' | TrackRejection['rule']
   detail: string
 }
 
@@ -65,10 +72,16 @@ function isRideRelativeForPlacing(route: (typeof routes)[number]): boolean {
  * `SUPPLEMENT_SEGMENT_HOSTS`, sprints and climbs only (the lap markers are
  * never ranked or listed). A pair `zwift-data` has placed is skipped
  * entirely - its placement wins - and a held pair is reported, never matched.
+ *
+ * A segment's track is the package's, or else the one fetched for its
+ * hand-found Strava id (`segmentStravaIdSupplement.ts`), from `supplement` -
+ * the committed `segmentStreams.supplement.json`, passed in like `tracks` -
+ * if its length fits the record (#274).
  */
-export function placeSegmentHosts(tracks: StreamTracks): SegmentPlacementsFile {
+export function placeSegmentHosts(tracks: StreamTracks, supplement: SupplementStreamsFile = {}): SegmentPlacementsFile {
   const placements: Record<string, GeneratedSegmentPlacement[]> = {}
   const unplaced: UnplacedSegmentHost[] = []
+  const fromSupplement = resolveSupplementTracks(supplement, tracks.segments)
 
   for (const route of routes) {
     for (const slug of [...route.segments ?? [], ...supplementHostsFor(route)]) {
@@ -82,9 +95,22 @@ export function placeSegmentHosts(tracks: StreamTracks): SegmentPlacementsFile {
         report('held', held)
         continue
       }
-      const segmentTrack = tracks.segments[slug]
+      const noStravaSegment = noStravaSegmentReason(slug)
+      if (noStravaSegment) {
+        report('no-strava-segment', noStravaSegment)
+        continue
+      }
+      const rejected = fromSupplement.rejected[slug]
+      if (rejected) {
+        report(rejected.reason, rejected.detail)
+        continue
+      }
+      const segmentTrack = tracks.segments[slug] ?? fromSupplement.tracks[slug]
       if (!segmentTrack) {
-        report('no-segment-track', segment.stravaSegmentId ? `zwift-data/streams has no track for Strava segment ${segment.stravaSegmentId}` : 'the segment has no Strava id in zwift-data, so no track')
+        const unfetched = fromSupplement.unfetched[slug]
+        report('no-segment-track', unfetched
+          ? `Strava segment ${unfetched} is in segmentStravaIdSupplement.ts but its track has not been fetched: run \`npm run segment-streams:fetch\``
+          : segment.stravaSegmentId ? `zwift-data/streams has no track for Strava segment ${segment.stravaSegmentId}` : 'the segment has no Strava id in zwift-data, so no track')
         continue
       }
       const routeTrack = tracks.routes[route.slug]

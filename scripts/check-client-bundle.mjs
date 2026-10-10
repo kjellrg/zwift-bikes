@@ -14,7 +14,11 @@
 //
 // shared/data/segmentPlacements.generated.json (#273) is reachable the same
 // way, through `shared/utils/catalog.ts`; its marker is a reason only its
-// unplaced report carries.
+// unplaced report carries. shared/data/segmentStreams.supplement.json (#274),
+// the fetched Strava tracks, is read only by the placement generator and its
+// tests - `placeSegmentHosts` takes it as an argument so that nothing the app
+// imports reaches it - and its marker is the field every one of its entries
+// carries (in client code only; `server/utils/siteFlags.ts` has its own).
 //
 // Nuxt auto-imports every export of `shared/utils/*.ts` into every `.vue`
 // file, so a single bare call to e.g. `getRoutesWithMeta()` in a component
@@ -35,7 +39,8 @@ const chunkDir = path.join(repoRoot, '.output/public/_nuxt')
 const MARKERS = [
   { text: 'traceCoveredLeadIn', payload: 'shared/data/routeSurfaces.generated.json' },
   { text: 'stravaSegmentId', payload: 'the zwift-data route catalog' },
-  { text: 'no-segment-track', payload: 'shared/data/segmentPlacements.generated.json' }
+  { text: 'no-segment-track', payload: 'shared/data/segmentPlacements.generated.json' },
+  { text: 'fetchedAt', payload: 'shared/data/segmentStreams.supplement.json' }
 ]
 const MAX_CHUNK_BYTES = 512 * 1024
 

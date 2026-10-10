@@ -3,8 +3,11 @@ import { routes, segments } from 'zwift-data'
 import * as streams from 'zwift-data/streams'
 import { placeSegmentOnTrack } from './segmentMatching'
 import { placeSegmentHosts } from './segmentHostPlacement'
+import type { SupplementStreamsFile } from './segmentSupplementStreams'
 import { SUPPLEMENT_SEGMENT_HOSTS } from '../data/segmentHostSupplement'
+import { supplementStravaIdFor } from '../data/segmentStravaIdSupplement'
 import committed from '../data/segmentPlacements.generated.json'
+import committedSupplementStreams from '../data/segmentStreams.supplement.json'
 
 /**
  * zwift-data placements that are not in their route track's km. Hilly Route
@@ -55,7 +58,7 @@ describe('the track matcher, calibrated against zwift-data', () => {
 })
 
 describe('placeSegmentHosts', () => {
-  const result = placeSegmentHosts(streams)
+  const result = placeSegmentHosts(streams, committedSupplementStreams as SupplementStreamsFile)
   const placed = (route: string, segment: string) => {
     const passes = result.placements[route]?.filter(p => p.segment === segment).map(p => [p.from, p.to])
     return passes?.length ? passes : undefined
@@ -84,6 +87,61 @@ describe('placeSegmentHosts', () => {
   it('takes in the supplement\'s hosts, reporting the ones with no segment track', () => {
     expect(unplaced('castle-to-castle', 'castle-park-sprint')).toMatchObject({ reason: 'no-segment-track' })
     expect(unplaced('knights-of-the-roundabout', 'pave-sprint')).toMatchObject({ reason: 'no-segment-track' })
+  })
+
+  it('reports Country Sprint forward\'s hosts as having no Strava segment at all', () => {
+    for (const route of ['two-village-loop', 'flatland-loop']) {
+      expect(unplaced(route, 'country-sprint'), route).toMatchObject({ reason: 'no-strava-segment', detail: expect.stringMatching(/too short for Strava/) })
+    }
+  })
+
+  it('tells a host whose hand-found Strava id has no fetched track yet how to fetch it', () => {
+    const id = supplementStravaIdFor('prime-rev')!.stravaSegmentId
+    expect(placeSegmentHosts(streams, {}).unplaced.find(u => u.route === 'downtown-dolphin' && u.segment === 'prime-rev')).toEqual({
+      route: 'downtown-dolphin',
+      segment: 'prime-rev',
+      reason: 'no-segment-track',
+      detail: `Strava segment ${id} is in segmentStravaIdSupplement.ts but its track has not been fetched: run \`npm run segment-streams:fetch\``
+    })
+    // A slug with no id anywhere keeps the package's wording.
+    expect(unplaced('lady-liberty', 'new-york-sprint-rev')).toMatchObject({ reason: 'no-segment-track', detail: 'the segment has no Strava id in zwift-data, so no track' })
+  })
+
+  describe('with a fetched supplement track', () => {
+    /** The stretch of a recorded track between two distances, re-based to start at 0 m. */
+    function cut(track: { latlng: ReadonlyArray<readonly [number, number]>, distance: ReadonlyArray<number>, altitude: ReadonlyArray<number> }, fromM: number, toM: number) {
+      const i = track.distance.findIndex(d => d >= fromM)
+      const j = track.distance.findIndex(d => d >= toM)
+      return {
+        latlng: track.latlng.slice(i, j + 1).map(([lat, lng]) => [lat, lng] as [number, number]),
+        distance: track.distance.slice(i, j + 1).map(d => d - track.distance[i]!),
+        altitude: [...track.altitude.slice(i, j + 1)],
+        fetchedAt: '2026-10-10'
+      }
+    }
+    const castleTrack = streams.routes['castle-to-castle']!
+
+    it('places a supplement segment by the track fetched for its Strava id', () => {
+      // Stands in for Castle Park Sprint's track: 320 m of Castle to Castle's own, from 1.0 km.
+      const id = supplementStravaIdFor('castle-park-sprint')!.stravaSegmentId
+      const withTrack = placeSegmentHosts(streams, { [id]: cut(castleTrack, 1000, 1320) })
+      const [pass, ...more] = withTrack.placements['castle-to-castle']!.filter(p => p.segment === 'castle-park-sprint')
+      expect(more).toEqual([])
+      expect(pass!.from).toBeCloseTo(1.0, 1)
+      expect(pass!.to).toBeCloseTo(1.32, 1)
+      expect(withTrack.unplaced.find(u => u.route === 'castle-to-castle' && u.segment === 'castle-park-sprint')).toBeUndefined()
+    })
+
+    it('never places a track whose length is more than 20 % off the record - 197 m for Prime Rev\'s 288 m', () => {
+      const id = supplementStravaIdFor('prime-rev')!.stravaSegmentId
+      const dolphin = streams.routes['downtown-dolphin']!
+      const withShortTrack = placeSegmentHosts(streams, { [id]: cut(dolphin, 1000, 1197) })
+      expect(withShortTrack.placements['downtown-dolphin']?.some(p => p.segment === 'prime-rev')).toBeFalsy()
+      expect(withShortTrack.unplaced.find(u => u.route === 'downtown-dolphin' && u.segment === 'prime-rev')).toMatchObject({
+        reason: 'supplement-track-length',
+        detail: expect.stringMatching(new RegExp(`^Strava segment ${id}'s track is \\d+ m; the record says 288 m`))
+      })
+    })
   })
 
   it('never re-places a pair zwift-data has placed', () => {

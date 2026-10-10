@@ -86,19 +86,19 @@
       "route": "electric-break",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "glasgow-crit-six",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "glasgow-crit-six",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "hilly-route-rev",
@@ -110,19 +110,19 @@
       "route": "sacre-bleu",
       "segment": "pave-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "scotland-smash",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "scotland-smash",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "scotland-smash",
@@ -158,25 +158,25 @@
       "route": "makuri-madness",
       "segment": "tidepool-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-madness",
       "segment": "boardwalk-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "island-outskirts",
       "segment": "shisa-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "island-outskirts",
       "segment": "tidepool-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "sugar-cookie",
@@ -242,19 +242,19 @@
       "route": "twilight-crit",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "braek-fast-crits-and-grits",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "braek-fast-crits-and-grits",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "braek-fast-crits-and-grits",
@@ -266,13 +266,13 @@
       "route": "fine-and-sandy",
       "segment": "boardwalk-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "fine-and-sandy",
       "segment": "tidepool-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "gotham-grind",
@@ -289,8 +289,8 @@
     {
       "route": "countryside-tour",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "figure-8-reverse",
@@ -302,25 +302,25 @@
       "route": "country-to-coastal",
       "segment": "village-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "country-to-coastal",
       "segment": "country-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "country-to-coastal",
       "segment": "shisa-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "country-to-coastal",
       "segment": "tidepool-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "flat-irons",
@@ -403,26 +403,26 @@
     {
       "route": "what-yumezi-were-lost",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "roule-ma-poule",
       "segment": "pave-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-40",
       "segment": "village-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-40",
       "segment": "country-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-40",
@@ -434,13 +434,13 @@
       "route": "makuri-40",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-40",
       "segment": "shisa-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "electric-loop",
@@ -458,13 +458,13 @@
       "route": "peaky-pave",
       "segment": "pave-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "downtown-dolphin",
       "segment": "prime-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170270 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "watts-of-the-wild",
@@ -476,13 +476,13 @@
       "route": "douce-france",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "douce-france",
       "segment": "pave-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "richmond-uci-rev",
@@ -536,7 +536,7 @@
       "route": "neokyo-crit-course",
       "segment": "castle-park-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "power-punches",
@@ -566,13 +566,13 @@
       "route": "mech-isle-loop",
       "segment": "village-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "mech-isle-loop",
       "segment": "country-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "mech-isle-loop",
@@ -584,13 +584,13 @@
       "route": "mech-isle-loop",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "mech-isle-loop",
       "segment": "shisa-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "neon-after-party",
@@ -608,7 +608,7 @@
       "route": "neon-after-party",
       "segment": "castle-park-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "loch-loop-run",
@@ -620,7 +620,7 @@
       "route": "la-reine",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "temple-trek-run",
@@ -638,7 +638,7 @@
       "route": "neokyo-all-nighter",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "neokyo-all-nighter",
@@ -686,7 +686,7 @@
       "route": "gentil-8",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "thats-amore-rev",
@@ -758,19 +758,19 @@
       "route": "bridges-and-boardwalks",
       "segment": "boardwalk-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "bridges-and-boardwalks",
       "segment": "shisa-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "rgv",
       "segment": "pave-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "rgv",
@@ -788,7 +788,7 @@
       "route": "hell-of-the-north",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "park-perimeter-loop",
@@ -836,19 +836,19 @@
       "route": "france-classic-fondo",
       "segment": "pave-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "france-classic-fondo",
       "segment": "pave-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "france-classic-fondo",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "france-classic-fondo",
@@ -860,19 +860,19 @@
       "route": "island-hopper",
       "segment": "boardwalk-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "island-hopper",
       "segment": "tidepool-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169050 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "island-hopper",
       "segment": "shisa-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "oh-hill-no-run",
@@ -890,7 +890,7 @@
       "route": "dun-dash",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "dun-dash",
@@ -968,19 +968,19 @@
       "route": "tire-bouchon",
       "segment": "pave-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "tire-bouchon",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "tire-bouchon",
       "segment": "pave-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "laguardia-loop",
@@ -1010,7 +1010,7 @@
       "route": "yumezi-grit",
       "segment": "village-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168897 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "coast-crusher",
@@ -1117,14 +1117,14 @@
     {
       "route": "two-village-loop",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "two-village-loop",
       "segment": "village-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168903 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "jarvis-seaside-sprint",
@@ -1148,13 +1148,13 @@
       "route": "outer-scotland",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "outer-scotland",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "outer-scotland",
@@ -1166,25 +1166,25 @@
       "route": "kaze-kicker",
       "segment": "boardwalk-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "petit-boucle",
       "segment": "pave-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "petit-boucle",
       "segment": "pave-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "petit-boucle",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "petit-boucle",
@@ -1207,14 +1207,14 @@
     {
       "route": "chasing-the-sun",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "bell-lap",
       "segment": "prime-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170270 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "red-zone-repeats",
@@ -1250,13 +1250,13 @@
       "route": "makuri-pretzel",
       "segment": "country-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168940 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-pretzel",
       "segment": "shisa-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-pretzel",
@@ -1268,13 +1268,13 @@
       "route": "makuri-pretzel",
       "segment": "shisa-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "makuri-pretzel",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "makuri-pretzel",
@@ -1345,14 +1345,14 @@
     {
       "route": "flatland-loop",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "sleepless-city",
       "segment": "castle-park-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "two-bridges-loop",
@@ -1382,7 +1382,7 @@
       "route": "shisa-shakedown",
       "segment": "castle-park-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "shisa-shakedown",
@@ -1394,19 +1394,19 @@
       "route": "shisa-shakedown",
       "segment": "shisa-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168992 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "glasgow-crit-circuit-run",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "glasgow-crit-circuit-run",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "sprinters-playground",
@@ -1418,7 +1418,7 @@
       "route": "sprinters-playground",
       "segment": "castle-park-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168847 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "sprinters-playground",
@@ -1429,8 +1429,8 @@
     {
       "route": "sukis-playground",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "three-village-loop",
@@ -1441,8 +1441,8 @@
     {
       "route": "three-village-loop",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "figure-8",
@@ -1460,7 +1460,7 @@
       "route": "neon-flats",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "seaside-sprint-run",
@@ -1490,7 +1490,7 @@
       "route": "the-epiloch",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "the-epiloch",
@@ -1532,7 +1532,7 @@
       "route": "neon-shore-loop",
       "segment": "boardwalk-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169040 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "tropic-rush",
@@ -1544,13 +1544,13 @@
       "route": "tropic-rush",
       "segment": "shisa-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "tropic-rush",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "tropic-rush",
@@ -1580,13 +1580,13 @@
       "route": "the-muckle-yin",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "the-muckle-yin",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "laguardia-after-party",
@@ -1627,8 +1627,8 @@
     {
       "route": "chain-chomper",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "castle-to-castle",
@@ -1640,19 +1640,19 @@
       "route": "castle-to-castle",
       "segment": "castle-park-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38168855 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "glasgow-crit-circuit",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "glasgow-crit-circuit",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "laguardia-loop-reverse",
@@ -1669,8 +1669,8 @@
     {
       "route": "wandering-flats",
       "segment": "country-sprint",
-      "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "reason": "no-strava-segment",
+      "detail": "Country Sprint forward has no Strava segment - too short for Strava (checked by hand, 2026-10-10) - so no track to place it by"
     },
     {
       "route": "wandering-flats",
@@ -1688,7 +1688,7 @@
       "route": "casse-pattes",
       "segment": "pave-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710570 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "casse-pattes",
@@ -1700,13 +1700,13 @@
       "route": "knights-of-the-roundabout",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "knights-of-the-roundabout",
       "segment": "pave-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 24710565 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "jurassic-coast",
@@ -1742,7 +1742,7 @@
       "route": "urumaze",
       "segment": "shisa-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "radio-rendezvous",
@@ -1778,7 +1778,7 @@
       "route": "petite-douleur",
       "segment": "ballon-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169142 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "coast-to-coast",
@@ -1790,13 +1790,13 @@
       "route": "scotland-after-party",
       "segment": "champions-sprint",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170243 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "scotland-after-party",
       "segment": "the-clyde-kicker",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38170244 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "turf-n-surf",
@@ -1808,7 +1808,7 @@
       "route": "turf-n-surf",
       "segment": "shisa-sprint-rev",
       "reason": "no-segment-track",
-      "detail": "the segment has no Strava id in zwift-data, so no track"
+      "detail": "Strava segment 38169009 is in segmentStravaIdSupplement.ts but its track has not been fetched: run `npm run segment-streams:fetch`"
     },
     {
       "route": "mayan-mash",

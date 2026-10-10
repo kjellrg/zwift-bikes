@@ -34,6 +34,7 @@
     "route-surfaces:polygons": "node scripts/route-surfaces/extract-surface-polygons.mjs",
     "route-surfaces:compute": "node scripts/route-surfaces/compute-route-surfaces.mjs",
     "segment-placements:compute": "node scripts/segment-placements/compute-segment-placements.mjs",
+    "segment-streams:fetch": "node scripts/segment-placements/fetch-segment-streams.mjs",
     "audit:signatures": "node scripts/audit-signatures.mjs"
   },
   "dependencies": {
