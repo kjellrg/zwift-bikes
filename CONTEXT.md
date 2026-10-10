@@ -63,6 +63,10 @@ _Avoid_: hub, list page, index page, landing page
 A page that ranks one Ride: a route, a segment or a Race. It states the Ride itself - its heading, selection control, Fact row and Course hero - and beneath that shows the Ranking results and the analysis of rank 1 the same way on every ranking page. It is the counterpart of a Discovery page, which lists Rides and ranks none.
 _Avoid_: detail page, ride page, results page
 
+**Ride statement**:
+What a Ranking page says about its Ride on its own, before and regardless of any Ranking: the Ride's name, the question the page asks, its title and descriptions, the words on its share card, the Fact row and its notes, its breadcrumb trail, and on a race page the race's own facts - where the points are, the PowerUps, and whether the organiser's published figures agree with the course. It follows the ride the rider has selected, so it is Ride-only: there with zero matches and through a refresh. The one thing it takes from a Ranking is rank 1's name, for the description. A page and its Twin read one statement, so what one says the other says. A Race format's consequences - which frames are barred, whether there is a draft, and why, in one wording - are part of it wherever a page is told a format. It is not the Course hero (drawn from the same Ride, but a drawing), the TTT line (which describes one ranked setup) or the row of upcoming races (which depends on the day).
+_Avoid_: page meta, SEO strings, header data, page copy, head
+
 **Twin**:
 The markdown representation of a page, served at the page's own URL to a caller that asks for markdown. It is the page, not a summary of it: whatever the page says about its Ride, its run state and whether it is indexed, the twin says too, on the day it is asked for.
 _Avoid_: markdown version, agent view, export
