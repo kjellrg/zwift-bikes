@@ -599,9 +599,13 @@ and validation evidence is in [ttt-drafting.md](ttt-drafting.md):
   first page only) under the draft's own `solo`: the same rider, same power,
   same pacing plan, with only the draft removed. The only difference between
   the two rides is the draft, so the gap is exactly what the paceline is worth.
-  The speed chart's dashed solo line and the TTT plan tab read the same
-  resolver, on their own geometry, so they cannot be computed under different
-  rules from the ranking.
+  The speed chart and the TTT plan tab read the very draft the ranking
+  resolves, on the Ride's own full `planGeometry` (issue #319): the chart then
+  simulates a route's first lap with its lead-in, cut out of that geometry,
+  under the full Ride's plan, and a segment whole, entered off the same
+  warm-up `timeCombo` uses (its dashed solo line off a solo warm-up). Neither
+  resolves a draft on geometry of its own, so neither can be computed under
+  different rules from the ranking.
 
 ## 10. Race draft mode
 
