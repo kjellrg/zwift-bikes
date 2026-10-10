@@ -558,9 +558,11 @@ describe('the index documents', () => {
  * the listing the page itself is drawn from rather than against a number.
  */
 describe('a World page\'s document', () => {
-  const ORIGIN = CONTEXT.origin
+  // The slugs the document links under `/routes/` or `/segments/`, in order:
+  // a split on the literal link prefix rather than a regex built from the
+  // origin, which would need escaping.
   const links = (markdown: string, kind: 'routes' | 'segments') =>
-    [...markdown.matchAll(new RegExp(`\\]\\(${ORIGIN.replace(/\./g, '\\.')}/${kind}/([^)]+)\\)`, 'g'))].map(match => match[1])
+    markdown.split(`](${CONTEXT.origin}/${kind}/`).slice(1).map(rest => rest.slice(0, rest.indexOf(')')))
 
   it('links every route and every segment of the world, and nothing outside it', async () => {
     const listing = worldListing('watopia')!
