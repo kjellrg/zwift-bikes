@@ -125,7 +125,8 @@ export function useRankingPage<S extends RideStatement>(inputs: RankingPageInput
     restrictions: () => appliedRestrictions.value,
     rideRules: () => answerRide.value?.rideRules
   })
-  const faqQuestion = computed(() => statement.value?.question)
+  // The question the answer answers, so it names the Ride the answer does.
+  const faqQuestion = computed(() => appliedStatement.value?.question)
   const faqAnswer = computed(() => answer.value?.text)
 
   // The trail is the statement's; the envelope, the keying and the escaping

@@ -113,6 +113,15 @@ document and its page's browser request reach **one cache entry**:
 real route endpoint the query string the browser sends for the page, and
 checks the endpoint's cache read is the key the document wrote.
 
+What a ranking page says about its Ride on its own - its name and question,
+its Fact row and the notes under it, and on a race page where the points
+are, the PowerUps and whether the organiser's figures agree with the course -
+is its **Ride statement** ([CONTEXT.md](../CONTEXT.md)), built by
+[`shared/utils/rideStatement`](../shared/utils/rideStatement/index.ts). The
+page renders it and so does its document, which has no words of its own for
+any of it; `documents.test.ts` builds each kind's statement on its own and
+checks that every string of it is in the document.
+
 A ranking that is not there leaves the document serving the page's facts
 with a note instead of the table: "temporarily paused" for the kill switch,
 and "could not be computed" for a rider who stalls (an outcome of the
@@ -127,8 +136,9 @@ Three things are said out loud that the page can leave to its UI:
   reader's own.
 - **What narrowed "fastest".** Road frames only, verified equipment only,
   upgrade stage 5, Halo frames excluded, one wheelset per frame, one row per
-  frame however many paints Zwift sells it in - and, on a
-  race, what the organiser's format bars outright.
+  frame however many paints Zwift sells it in. On a race, what the
+  organiser's format bars outright is the page's own note under its Fact
+  row, from the Ride statement.
 - **What the number rests on.** The `Data` column carries `measured` or
   `estimated` per row, with the confidence note from the MCP formatter.
 
@@ -260,7 +270,8 @@ already answered `text/markdown`.
    so a new document is metered the moment `markdownDocumentFor` knows it.
 5. Cover it in `documents.test.ts` - at minimum that its ranking reaches the
    same cache entry as the prerendered page's own request, which it will if
-   it states the page's Ride and ranks it through `rankAsThePage`.
+   it states the page's Ride and ranks it through `rankAsThePage`, and, for a
+   Ranking page, that it says everything its page's Ride statement says.
 
 `/about` has no twin on purpose: its content is hand-written prose in a Vue
 file, and a markdown copy would be a second one to keep in step. `/profile`

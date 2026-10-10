@@ -127,6 +127,6 @@ export function surfaceCoverageLine(surface: SurfaceEstimate): string {
  * when the surfaces are mapped - the common case, which needs no caveat.
  */
 export function surfaceCoverageNote(surface: SurfaceEstimate): string | undefined {
-  const line = surfaceCoverageLine(surface)
-  return line === 'Mapped surfaces' ? undefined : `${line}.`
+  const mapped = surface.confidence === 'measured' && (surface.segments?.length ?? 0) > 0
+  return mapped ? undefined : `${surfaceCoverageLine(surface)}.`
 }

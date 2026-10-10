@@ -73,7 +73,8 @@ const siteConfig = useSiteConfig()
 const rankingPage = useRankingPage({
   ride: () => ride.value,
   key: `recommend-race-${seasonSlug.value}-${raceSlug.value}`,
-  statement: answer => raceStatement({ season, race, groupIndex: categoryGroupIndex.value, course: routeInfo.value, today: today.value, siteUrl: siteConfig.url, answer })
+  // A race's description names no setup, so the statement takes no answer.
+  statement: () => raceStatement({ season, race, groupIndex: categoryGroupIndex.value, course: routeInfo.value, today: today.value, siteUrl: siteConfig.url })
 })
 const { tttPlan, rules, bikeSearch, bikeSearchDebounced } = rankingPage
 // A race always has a statement: it is the race's own, with or without a course.
@@ -414,24 +415,24 @@ if (shareCard) {
           </thead>
           <tbody>
             <tr
-              v-for="group in race.categories"
-              :key="formatCategoryGroup(group)"
+              v-for="group in statement.groups"
+              :key="group.label"
               class="border-b border-default"
             >
               <td class="px-2 py-2 whitespace-nowrap font-medium text-highlighted">
-                {{ formatCategoryGroup(group) }}
+                {{ group.label }}
               </td>
               <td class="px-2 py-2">
-                {{ group.routeName ?? 'TBC' }}
+                {{ group.routeName }}
               </td>
               <td class="px-2 py-2 text-right">
                 {{ group.laps }}
               </td>
               <td class="px-2 py-2 text-right whitespace-nowrap">
-                {{ group.officialDistanceKm ? formatDistance(group.officialDistanceKm) : '-' }}
+                {{ group.distance }}
               </td>
               <td class="px-2 py-2 text-right whitespace-nowrap">
-                {{ group.officialElevationM !== undefined ? formatElevation(group.officialElevationM) : '-' }}
+                {{ group.elevation }}
               </td>
             </tr>
           </tbody>

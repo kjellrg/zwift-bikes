@@ -41,7 +41,8 @@ export function segmentStatement({ segment, course, ride, siteUrl, answer }: Seg
   const elevationM = segment.measuredElevationM ?? segment.elevationM
   const gradePercent = segment.measuredAvgGradePercent ?? segment.avgGradePercent
   const grade = gradePercent ? formatGrade(gradePercent) : 'Flat'
-  const climbCategory = segment.climbType && (segment.climbType === 'HC' ? 'HC' : `category ${segment.climbType}`)
+  // "category 2", "HC" - a climb's category, as the crumb and the share card name it.
+  const climbCategory = type === 'climb' && segment.climbType ? (segment.climbType === 'HC' ? 'HC' : `category ${segment.climbType}`) : undefined
   // Stat-rich for SERP snippets: "12.2 km at 8.5%" is what long-tail queries
   // ("alpe du zwift gradient") contain. The climbing clause is skipped for
   // near-flat segments (most sprints), where "0 m of climbing" is noise.

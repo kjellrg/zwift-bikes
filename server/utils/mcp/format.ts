@@ -150,7 +150,7 @@ export function formatRaceAssumption(physics: RankingPhysics | undefined): strin
  * and its consequence (issue #225). `requestedDraftMode` is what the caller
  * asked for, only so the Race of Truth line can say what was taken away.
  *
- * Wording of its own rather than the site's `rideRulesLine`: this is a header
+ * Wording of its own rather than the site's `raceFormatRules`: this is a header
  * for a model deciding what to say next, not a sentence under a ranking. The
  * rules themselves still come from `ttBikesAllowed` / `draftingAllowed`.
  */

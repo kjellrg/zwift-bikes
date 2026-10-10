@@ -22,7 +22,7 @@ import type { SegmentStatement } from './segment'
 export type RideStatement = RouteStatement | SegmentStatement | RaceStatement
 
 export { officialFiguresDiffer, raceRide, raceStatement, scoringRows } from './race'
-export type { RaceStatement, RaceStatementInputs, RaceWithFormat, ScoringRow } from './race'
+export type { RaceGroupCourse, RaceStatement, RaceStatementInputs, RaceWithFormat, ScoringRow } from './race'
 export { routeStatement } from './route'
 export type { RouteStatement, RouteStatementInputs } from './route'
 export { segmentStatement } from './segment'

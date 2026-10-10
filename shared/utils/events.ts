@@ -283,6 +283,12 @@ export const eventSeasonSchema = z.strictObject({
 export type RaceFormat = z.infer<typeof raceFormatSchema>
 export type RaceCategory = z.infer<typeof raceCategorySchema>
 export type Powerup = z.infer<typeof powerupSchema>
+export type RaceScoringSegment = z.infer<typeof raceScoringSegmentSchema>
+export type RaceCategoryGroup = z.infer<typeof raceCategoryGroupSchema>
+export type RacePowerups = z.infer<typeof racePowerupsSchema>
+export type EventRace = z.infer<typeof eventRaceSchema>
+export type EventRound = z.infer<typeof eventRoundSchema>
+export type EventSeason = z.infer<typeof eventSeasonSchema>
 
 /**
  * Zwift's race powerups, as spelled in event listings. Here beside `Powerup`
@@ -298,12 +304,6 @@ export const POWERUP_LABELS: Record<Powerup, string> = {
   steamroller: 'Steamroller',
   burrito: 'Burrito'
 }
-export type RaceScoringSegment = z.infer<typeof raceScoringSegmentSchema>
-export type RaceCategoryGroup = z.infer<typeof raceCategoryGroupSchema>
-export type RacePowerups = z.infer<typeof racePowerupsSchema>
-export type EventRace = z.infer<typeof eventRaceSchema>
-export type EventRound = z.infer<typeof eventRoundSchema>
-export type EventSeason = z.infer<typeof eventSeasonSchema>
 
 /**
  * Validated once at module init. A schema violation throws here with the

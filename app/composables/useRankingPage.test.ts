@@ -282,10 +282,10 @@ describe('useRankingPage', () => {
       const page = setup(live => ({
         key: 'recommend-race-zrl-2026-27-round-1-week-3',
         // The group the live Ride races, as the page's selector would have it.
-        statement: (answer) => {
+        statement: () => {
           const groupIndex = Math.max(0, race.categories.findIndex(group => group.routeSlug === live.value?.course.slug))
           const course = live.value && getRouteBySlug(live.value.course.slug)
-          return raceStatement({ season, race, groupIndex, course, today: '2026-09-01', siteUrl: SITE, answer })
+          return raceStatement({ season, race, groupIndex, course, today: '2026-09-01', siteUrl: SITE })
         }
       }))
       page.liveRide.value = groupRide(0)

@@ -412,6 +412,8 @@ describe('a twin says everything its page\'s Ride statement says', () => {
         statement.officialFiguresNote,
         statement.powerupsLine,
         statement.runNotice?.title,
+        // The per-group table, with the organiser's own figures.
+        ...statement.groups.map(group => `| ${group.laps} | ${group.distance} | ${group.elevation} |`),
         ...(statement.scoring.rows.length ? [statement.rules.segmentLinkNote] : []),
         ...statement.scoring.rows.map(row => `${row.name}](${ORIGIN}/segments/${row.slug}?rules=${statement.rules.format}) | ${row.fal || '-'}${row.fal ? 'x' : ''} | ${row.fts || '-'}${row.fts ? 'x' : ''} |`),
         ...statement.scoring.rows.flatMap(row => row.positionsKm.map(km => `${km.toFixed(1)} km`))

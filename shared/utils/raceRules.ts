@@ -52,7 +52,7 @@ export interface RaceFormatRules {
  *
  * Who does the barring differs and it matters to a rider reading the rules:
  * Zwift itself disables TT frames in points and scratch races, whereas WTRL
- * bans them by regulation from a Race of Truth - where drafting being off
+ * bans them by regulation from a Race of Truth - where having no draft
  * would otherwise be the TT bike's whole argument, so a rider is owed the
  * reason rather than just the verdict.
  *

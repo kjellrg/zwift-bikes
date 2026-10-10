@@ -3,7 +3,6 @@ import { createError } from 'h3'
 import type { BikeCategory, ComboScore, RouteSummary } from '../../../shared/types/catalog'
 import { getRouteBySlug, getRoutesWithMeta, toRouteSummary } from '../../../shared/utils/catalog'
 import {
-  formatCategoryGroup,
   getRaceBySlug,
   getRoundForRace,
   getSeasonBySlug,
@@ -440,7 +439,7 @@ async function renderRouteDocument(slug: string, context: MarkdownRenderContext)
       `- **One lap**: ${route.distance.toFixed(1)} km, ${Math.round(route.elevation)} m`,
       route.leadInDistance ? `- **Lead-in** (ridden once): ${route.leadInDistance.toFixed(1)} km, ${Math.round(route.leadInElevation ?? 0)} m` : undefined,
       `- **Lappable**: ${route.lap ? `yes, up to ${maxLapsForRoute(route)} laps on this site` : 'no - point to point, ridden once'}`,
-      `- **Terrain**: ${route.terrain.category}, ${Math.round(route.terrain.climbRatio)} m of climbing per km`,
+      `- **Terrain**: ${route.terrain.category}`,
       `- **Surface**: ${formatSurface(route.surface)}`,
       `- **Event only**: ${route.eventOnly ? 'yes - it can only be ridden in an event' : 'no - it can be free-ridden as well as raced'}`,
       // Which of the three geometry sources the physics model got, said the
@@ -485,9 +484,6 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
   const result = await rankAsThePage({ kind: 'segment', segment }, ride, context)
   const ranking = 'ranking' in result ? result.ranking : undefined
 
-  const elevationM = Math.round(segment.measuredElevationM ?? segment.elevationM)
-  const gradePercent = (segment.measuredAvgGradePercent ?? segment.avgGradePercent).toFixed(1)
-
   const unavailable = rankingUnavailable(result)
   const lines = [
     ...rankingHeader(statement.question, (ranking && answerLine(ranking, ride, { rideName: statement.rideName, distanceKm: segment.lengthKm })) ?? unavailable, canonical),
@@ -512,8 +508,6 @@ async function renderSegmentDocument(slug: string, context: MarkdownRenderContex
       `- **Slug**: \`${segment.slug}\` (the id the API takes)`,
       `- **Type**: ${segment.type}${segment.climbType ? `, climb category ${segment.climbType}` : ''}`,
       `- **World**: ${segment.worldName}`,
-      `- **Length**: ${segment.lengthKm.toFixed(1)} km`,
-      `- **Elevation**: ${elevationM} m at ${gradePercent}% average`,
       `- **Surface**: ${formatSurface(course.surface)}`
     ]),
     ''
@@ -628,16 +622,17 @@ async function renderRaceDocument(seasonSlug: string, raceSlug: string, context:
     '',
     ...facts([
       `- **Series**: ${raceContextLabel(season, round)}`,
-      `- **Date**: ${race.date}${race.endDate && race.endDate !== race.date ? ` to ${race.endDate}` : ''}`,
+      `- **Date**: ${statement.dateLabel}`,
       `- **Format**: ${statement.rules.label}`
     ]),
     '',
     '### Category groups',
     '',
-    '| Group | Laps | Course |',
-    '| --- | --- | --- |',
-    ...race.categories.map((entry, index) =>
-      `| ${formatCategoryGroup(entry)}${index === 0 ? ' (ranked above)' : ''} | ${entry.laps} | ${entry.routeSlug ? `[${entry.routeName ?? entry.routeSlug}](${origin}/routes/${entry.routeSlug})` : (entry.routeName ?? 'to be confirmed')} |`),
+    '| Group | Course | Laps | Distance | Elevation |',
+    '| --- | --- | --- | --- | --- |',
+    ...statement.groups.map((entry, index) =>
+      `| ${entry.label}${index === 0 ? ' (ranked above)' : ''} | ${entry.routeSlug ? `[${entry.routeName}](${origin}/routes/${entry.routeSlug})` : entry.routeName} | ${entry.laps} | ${entry.distance} | ${entry.elevation} |`),
+
     ''
   )
 

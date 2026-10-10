@@ -22,7 +22,7 @@ import { computeRouteTotals } from '../routeLaps'
 import { expandClimbsForLaps, expandSprintsForLaps } from '../routeOccurrences'
 import { runRaceNotice, type RunRaceNotice } from '../runRaceNotice'
 import { formatDistance, formatElevation } from '../units'
-import type { RideStatementAnswer, RideStatementBase } from './types'
+import type { RideStatementBase } from './types'
 
 /** A race with a page: one whose organiser has published its format. */
 export type RaceWithFormat = EventRace & { format: RaceFormat }
@@ -41,7 +41,19 @@ export interface RaceStatementInputs {
   /** The day the page is rendered or read on, as `hasBeenRun` takes it. */
   today: string
   siteUrl: string
-  answer?: RideStatementAnswer
+}
+
+/** One Category group's course as the organiser publishes it, for the per-group table. */
+export interface RaceGroupCourse {
+  label: string
+  /** The course's published name, or "TBC". */
+  routeName: string
+  /** Set where the catalog has the route. */
+  routeSlug: string | undefined
+  laps: number
+  /** The organiser's figures as printed, "-" where none is published. */
+  distance: string
+  elevation: string
 }
 
 /** One scoring segment, merged across the organiser's FAL and FTS lists. */
@@ -69,6 +81,8 @@ export interface RaceStatement extends RideStatementBase {
   routeNamesByCategory: string
   /** Whether the groups differ in route or laps - what earns the per-group course table its place. */
   coursesDiffer: boolean
+  /** Every Category group's course, laps and published figures, in the organiser's order. */
+  groups: RaceGroupCourse[]
   /** The race day, or its window. */
   dateLabel: string
   /** The Rider card's fixed lap count, and why it is fixed. */
@@ -190,6 +204,7 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
     .join(', ')
   const coursesDiffer = hasSplitCourses(race)
   const raceDate = formatRaceDate(race.date)
+  const dateLabel = race.endDate ? formatRaceDateRange(race.date, race.endDate) : raceDate
   const hasRun = hasBeenRun(race, today)
 
   const totals = course ? computeRouteTotals(course, laps) : undefined
@@ -254,7 +269,7 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
         { label: 'Events', to: '/events' },
         { label: `${season.seriesName} ${season.label}`, to: `/events/${season.slug}` },
         { label: rules.label },
-        { label: race.endDate ? formatRaceDateRange(race.date, race.endDate) : raceDate }
+        { label: dateLabel }
       ]
     },
     // The deepest trail on the site: a race under its season under the events
@@ -278,7 +293,15 @@ export function raceStatement({ season, race, groupIndex, course: lookedUp, toda
     routeNamesLabel,
     routeNamesByCategory,
     coursesDiffer,
-    dateLabel: race.endDate ? formatRaceDateRange(race.date, race.endDate) : raceDate,
+    groups: race.categories.map(entry => ({
+      label: formatCategoryGroup(entry),
+      routeName: entry.routeName ?? 'TBC',
+      routeSlug: entry.routeSlug,
+      laps: entry.laps,
+      distance: entry.officialDistanceKm ? formatDistance(entry.officialDistanceKm) : '-',
+      elevation: entry.officialElevationM !== undefined ? formatElevation(entry.officialElevationM) : '-'
+    })),
+    dateLabel,
     fixedLaps: {
       label: `${laps} lap${laps === 1 ? '' : 's'}`,
       reason: group && race.categories.length > 1 ? `Set by the ${groupLabel} race group` : 'Set by the race'

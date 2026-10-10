@@ -35,6 +35,11 @@ describe('raceStatement', () => {
     // The same whichever group is selected: they describe the race.
     expect(statementFor(week3, 1).title).toBe(statement.title)
     expect(statement.coursesDiffer).toBe(true)
+    // Each group's course as the organiser publishes it, for the per-group table.
+    expect(statement.groups).toEqual([
+      { label: 'A/B', routeName: 'Makuri 40', routeSlug: 'makuri-40', laps: 1, distance: '40.3 km', elevation: '313 m' },
+      { label: 'C/D', routeName: 'Urumaze', routeSlug: 'urumaze', laps: 1, distance: '24.8 km', elevation: '193 m' }
+    ])
   })
 
   it('names the selected group\'s course as the Ride, the heading and the report', () => {
