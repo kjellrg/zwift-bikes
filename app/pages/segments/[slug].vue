@@ -2,7 +2,7 @@
 import type { RaceFormat } from '#shared/utils/events'
 import type { Ride, RideCourse } from '../../utils/recommendRequest'
 import { RACE_FORMATS } from '#shared/utils/events'
-import { segmentStatement } from '../../../shared/utils/rideStatement'
+import { segmentStatement } from '#shared/utils/rideStatement'
 import { rideRulesForFormat } from '../../utils/recommendRequest'
 
 const route = useRoute()

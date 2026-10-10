@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PublishableRace } from '../../../shared/utils/events'
-import { routeStatement } from '../../../shared/utils/rideStatement'
+import { routeStatement } from '#shared/utils/rideStatement'
 import type { Ride } from '../../utils/recommendRequest'
 
 const route = useRoute()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { raceRide, raceStatement } from '../../../../shared/utils/rideStatement'
+import { raceRide, raceStatement } from '#shared/utils/rideStatement'
 
 /**
  * One race. Everything a route page can't know - the date, the lap count for
