@@ -22,10 +22,7 @@ import type { RouteCardData } from '#shared/utils/routeCards'
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-const { data, error } = await useFetch<{ world: { slug: string, name: string }, routes: RouteCardData[], segments: SegmentSummary[] }>(
-  () => `/api/worlds/${slug.value}`,
-  { key: `world-${slug.value}` }
-)
+const { data, error } = await useFetch<{ world: { slug: string, name: string }, routes: RouteCardData[], segments: SegmentSummary[] }>(() => `/api/worlds/${slug.value}`)
 if (error.value || !data.value) throw createError({ statusCode: 404, statusMessage: 'World not found', fatal: true })
 
 const worldName = computed(() => data.value?.world.name ?? '')
