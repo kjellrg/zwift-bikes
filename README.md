@@ -74,8 +74,8 @@ profile, where the surface changes, and what each surface costs you in watts.*
 - **MCP server** — `https://zwiftbikes.com/api/mcp`, streamable HTTP, access
   gated at the edge. Set a rider profile, then ask for a route or a segment.
   Details and design notes in [docs/mcp-server.md](docs/mcp-server.md).
-- **Markdown** — every route, segment and race page (plus the two pages that
-  list them) returns markdown instead of HTML when the request sends
+- **Markdown** — every route, segment and race page (plus the homepage, the
+  segments index and the World pages that list them) returns markdown instead of HTML when the request sends
   `Accept: text/markdown`, and
   [`/llms.txt`](https://zwiftbikes.com/llms.txt) indexes the whole catalog.
   See [docs/markdown-for-agents.md](docs/markdown-for-agents.md).

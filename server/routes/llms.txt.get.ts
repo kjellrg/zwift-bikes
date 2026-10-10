@@ -1,4 +1,5 @@
 import type { RouteSummary, SegmentSummary } from '../../shared/types/catalog'
+import { getWorlds } from '../../shared/utils/catalog'
 import { getIndexedRaces, isoDay, RACE_FORMAT_LABELS, raceContextLabel, raceDisplayName } from '../../shared/utils/events'
 
 /**
@@ -66,13 +67,17 @@ export default defineEventHandler(async (event) => {
     'Frame and wheel performance is solved from ZwiftInsider\'s published bot-test data and fed to a physics model that simulates the ride over the route\'s real elevation profile, '
     + 'so a recommendation is a predicted time rather than a reputation. Every predicted time scales with the rider\'s weight, height and sustained power, so ask for those before quoting one.',
     '',
-    'Send `Accept: text/markdown` to any route, segment or race page - and to the two pages that list them - and the same URL returns `text/markdown` instead of HTML, '
+    'Send `Accept: text/markdown` to any route, segment or race page - and to the pages that list them - and the same URL returns `text/markdown` instead of HTML, '
     + 'with an `x-markdown-tokens` header estimating what it costs to read. That is every page below except the season and About links under "Start here", which answer in HTML only.',
     '',
     '## Start here',
     '',
     `- [All routes](${origin}/): the route catalog, and what the site is.`,
     `- [Climbs and sprints](${origin}/segments): the named segments that can be ranked on their own.`,
+    // The World pages (#58), the game's own order: each lists one world's
+    // routes and segments in full, where a model asked about "routes in
+    // Watopia" gets the whole answer in one fetch.
+    `- One world at a time: ${getWorlds().map(world => `[${world.name}](${origin}/worlds/${world.slug})`).join(', ')} - every route, climb and sprint in that world.`,
     `- [Races](${origin}/events): organiser calendars. Each race page under it is rankable, and carries the format rules that decide what may be started on.`,
     `- [About](${origin}/about): where the data comes from, and what the model does and does not claim.`,
     '',

@@ -86,6 +86,7 @@ if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
 const PAGES = [
   { kind: 'home', path: '/' },
   { kind: 'segments hub', path: '/segments', sampleSegments: true },
+  { kind: 'world page', path: '/worlds/watopia', sampleSegments: true },
   { kind: 'route', path: '/routes/hilly-route', sampleSegments: true },
   { kind: 'climb segment', path: '/segments/alpe-du-zwift' },
   { kind: 'sprint segment', path: '/segments/fuego-flats' },
@@ -192,7 +193,7 @@ async function checkPage({ kind, path, sampleSegments, noindex }) {
  * adding to it. Rendering a ranking document runs the recommend pipeline, so
  * it stays one request per path and never a sweep.
  */
-const MARKDOWN_PAGES = ['/', '/segments', '/routes/hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']
+const MARKDOWN_PAGES = ['/', '/segments', '/worlds/watopia', '/routes/hilly-route', '/segments/alpe-du-zwift', '/events/zrl-2026-27/round-1-week-1']
 
 async function checkMarkdownNegotiation() {
   for (const path of MARKDOWN_PAGES) {
