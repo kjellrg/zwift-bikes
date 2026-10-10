@@ -85,7 +85,8 @@ async function answer(ride: Ride, label: ExampleLabel, href: string, rider: Exam
   ])
   const top = ranking.combos[0]
   if (!top || top.finishTimeSec === undefined) return undefined
-  const totals = computeRouteTotals(route, laps)
+  const live = rideForRoute(route, laps)
+  const totals = live.totals
   return {
     href,
     context: label.detail ? `${label.context} · ${route.worldName}` : label.context,
@@ -97,7 +98,7 @@ async function answer(ride: Ride, label: ExampleLabel, href: string, rider: Exam
     wheelName: top.wheelset?.name,
     finishTimeSec: top.finishTimeSec,
     riderLabel: exampleRiderLabel(rider, stored),
-    shape: rideSilhouette(rideForRoute(route, laps), CARD_SAMPLES)
+    shape: rideSilhouette(live, CARD_SAMPLES)
   }
 }
 

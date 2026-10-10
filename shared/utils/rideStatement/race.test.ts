@@ -14,7 +14,6 @@ const week3 = race('round-1-week-3')
 const makuri40 = getRouteBySlug('makuri-40')!
 const urumaze = getRouteBySlug('urumaze')!
 const hilly = getRouteBySlug('hilly-route')!
-/** The group's own course, the way the page looks it up, unless a test passes another - `null` for none. */
 /** A course resolved as the page resolves the selected group's Ride. */
 const resolved = (course: RouteWithMeta | undefined, laps: number) => course && rideForRoute(course, laps)
 const statementFor = (raceData: RaceWithFormat, groupIndex = 0, course?: RouteWithMeta | null, today = BEFORE) =>

@@ -23,10 +23,11 @@ import { surfaceFamily } from '#shared/utils/silhouette'
  * One Ride: the Applied one, resolved (`ride`). The equipment views must
  * describe the ride and the rider their setup was ranked for, and during a
  * refresh they keep the previous results, dimmed, as the answer does. The
- * course tabs (climbs and sprints, surfaces) read the same Ride, so unlike
- * the Course hero above they are not Ride-only: the whole section follows the
- * Applied Ranking and waits for a refreshed one rather than describing a
- * course the times on screen were not computed over. It is the Applied Ranking's own course on every page,
+ * course tabs (climbs and sprints, surfaces) are Ride-only information, but
+ * they read the Applied Ride, not the selected one the Course hero above
+ * draws: the whole section follows the Applied Ranking and waits for a
+ * refreshed one rather than describing a course the times on screen were not
+ * computed over. It is the Applied Ranking's own course on every page,
  * never the selected one standing in for it: on a race the category group
  * can move the course itself (#233). The TTT plan arrives from the page
  * (`useTttPlan`), which computes it once for the Fact row's TTT line and
