@@ -341,6 +341,10 @@ test.describe('route discovery', () => {
     const alpe = resultGroup(page, 'Climbs and sprints').getByRole('option', { name: /Alpe du Zwift/ })
     await expect(alpe).toBeVisible()
     await expect(alpe).toContainText('Climb · Watopia')
+    // No route is named for it, so the grid says so and points to the climb
+    // rather than blaming filters the rider never touched.
+    await expect(finder(page).getByText('No route named “alpe”.')).toBeVisible()
+    await expect(finder(page).getByRole('link', { name: 'Alpe du Zwift' })).toHaveAttribute('href', '/segments/alpe-du-zwift')
 
     const id = (await alpe.getAttribute('id'))!
     for (let step = 0; step < 12 && await searchBox(page).getAttribute('aria-activedescendant') !== id; step++) {

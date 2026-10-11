@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { SegmentSummary, TerrainCategory } from '../../shared/types/catalog'
-import type { RouteCardData } from '#shared/utils/routeCards'
+import { ROUTE_SURFACE_WORDS, type RouteCardData } from '#shared/utils/routeCards'
 import { filterRouteCards, ROUTE_DISTANCE_MAX_KM, ROUTE_ELEVATION_MAX_M, ROUTE_LIST_PAGE_SIZE } from '../utils/routeCardFilters'
-import { matchesSearch, nearMatches } from '../utils/homeSearch'
+import { matchesSearch, NEAR_MATCH_LIMIT, nearMatches } from '../utils/homeSearch'
 
 // Without a page-level title the homepage inherits app.vue's bare
 // "ZwiftBikes", dropping the "best bike" phrase from the most-indexed page.
@@ -88,8 +88,8 @@ const worldLinks = computed(() => worldRouteCounts(allCards.value, data.value?.w
 
 const surfaceOptions = [
   { label: 'Any surface', value: 'all' },
-  { label: 'Includes gravel', value: 'gravel' },
-  { label: 'Includes cobbles', value: 'cobble' }
+  { label: `Includes ${ROUTE_SURFACE_WORDS.gravel}`, value: 'gravel' },
+  { label: `Includes ${ROUTE_SURFACE_WORDS.cobble}`, value: 'cobble' }
 ]
 
 // Routes only: segments have their own browsable home at /segments (linked
@@ -138,16 +138,16 @@ function loadSegments() {
 }
 
 // A term that names no route at all, whatever the other filters, gets the
-// search's own empty state above the grid - the term, the routes it was
-// closest to, and Reset - as it does in the dropdown. A term that matches
-// routes the other filters then leave out keeps the filters' message.
+// search's own empty state above the grid - the term, the climbs and
+// sprints it does name, the routes it was closest to, and Reset - as it
+// does in the dropdown. A term that matches routes the other filters then
+// leave out keeps the filters' message.
 const unmatchedTerm = computed(() => {
   const term = searchDebounced.value
-  if (!term.trim() || allCards.value.some(card => matchesSearch(card, term))) return undefined
-  if (segments.value?.some(segment => matchesSearch(segment, term))) return undefined
-  return term
+  return term.trim() && !allCards.value.some(card => matchesSearch(card, term)) ? term : undefined
 })
-const nearRoutes = computed(() => unmatchedTerm.value ? nearMatches(allCards.value, unmatchedTerm.value, 3) : [])
+const termSegments = computed(() => unmatchedTerm.value ? (segments.value ?? []).filter(segment => matchesSearch(segment, unmatchedTerm.value!)) : [])
+const nearRoutes = computed(() => unmatchedTerm.value && !termSegments.value.length ? nearMatches(allCards.value, unmatchedTerm.value, NEAR_MATCH_LIMIT) : [])
 
 // Whose rider the times on the site are for, under the search - the default
 // is never silent. Read after mount like everything stored.
@@ -267,7 +267,7 @@ watch(filters, (value) => {
           :cards="allCards"
           :segments="segments"
           class="mt-6"
-          @use="loadSegments"
+          @focus="loadSegments"
           @open="openRide"
           @submit="showResults"
           @reset="resetFilters"
@@ -315,16 +315,16 @@ watch(filters, (value) => {
            the gravel colour is every loose surface and the cobbles colour
            brick and wood too, as "Includes gravel" and "Includes cobbles"
            already count them. -->
-      <p class="mt-1.5 flex flex-wrap items-center gap-x-4 text-sm text-muted">
-        <span>Under each profile, the surface strip marks</span>
-        <span class="inline-flex items-center"><span
-          class="mr-1.5 inline-block h-1 w-4 rounded-[2px] bg-dirt"
+      <p class="mt-1.5 text-sm text-muted">
+        Under each profile, the surface strip marks
+        <span
+          class="mx-1 inline-block h-1 w-4 rounded-[2px] bg-dirt align-middle"
           aria-hidden="true"
-        />gravel</span>
-        <span class="inline-flex items-center"><span
-          class="mr-1.5 inline-block h-1 w-4 rounded-[2px] bg-rough"
+        />{{ ROUTE_SURFACE_WORDS.gravel }} and
+        <span
+          class="mx-1 inline-block h-1 w-4 rounded-[2px] bg-rough align-middle"
           aria-hidden="true"
-        />cobbles</span>
+        />{{ ROUTE_SURFACE_WORDS.cobble }}.
       </p>
 
       <!-- Two rows, one question each: what kind of route (world, terrain,
@@ -452,6 +452,7 @@ watch(filters, (value) => {
           <SearchEmptyState
             :term="unmatchedTerm"
             :near="nearRoutes"
+            :segments="termSegments"
             :segments-checked="!!segments"
             class="py-8"
             @reset="resetFilters"

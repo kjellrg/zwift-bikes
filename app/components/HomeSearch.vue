@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { SegmentSummary } from '../../shared/types/catalog'
 import type { RouteCardData } from '#shared/utils/routeCards'
-import { nearMatches, rankedMatches } from '../utils/homeSearch'
+import type { Silhouette } from '#shared/utils/silhouette'
+import { matchesSearch, NEAR_MATCH_LIMIT, nearMatches, noMatchHeadline, rankedMatches } from '../utils/homeSearch'
 
 /**
  * The homepage's hero search as a combobox (#331): as the rider types, a
@@ -19,8 +20,8 @@ import { nearMatches, rankedMatches } from '../utils/homeSearch'
  * input, the arrow keys move `aria-activedescendant` through the options,
  * Enter opens the highlighted one and Esc closes the list and keeps the
  * term. Enter with nothing highlighted takes the rider to the grid instead.
- * The segments come from the page, which fetches them the first time the
- * search is used (`use`), so the homepage's own load carries none.
+ * The segments come from the page, which fetches them when the search is
+ * first focused, so the homepage's own load carries none.
  */
 const props = defineProps<{
   cards: readonly RouteCardData[]
@@ -31,8 +32,8 @@ const props = defineProps<{
 const term = defineModel<string>({ required: true })
 
 const emit = defineEmits<{
-  /** The search was focused: the page fetches the segments, once. */
-  use: []
+  /** The search took focus: the page fetches the segments, the first time. */
+  focus: []
   /** An option was chosen: the page opens it. */
   open: [to: string]
   /** Enter with no option highlighted: the page shows the grid. */
@@ -43,7 +44,16 @@ const emit = defineEmits<{
 /** How many of each kind the list offers: enough to see, few enough to fit over a phone's keyboard. */
 const ROUTE_LIMIT = 6
 const SEGMENT_LIMIT = 4
-const NEAR_LIMIT = 3
+
+/** One row of the list, whichever kind of Ride it opens. */
+interface SearchOption {
+  id: string
+  to: string
+  name: string
+  /** The line under the name: identity and the numbers a rider chooses by. */
+  detail: string
+  shape: Silhouette | undefined
+}
 
 const id = useId()
 const listboxId = `${id}-listbox`
@@ -53,40 +63,66 @@ const open = ref(false)
 const active = ref(-1)
 const root = useTemplateRef<HTMLElement>('root')
 
-const routeOptions = computed(() => rankedMatches(props.cards, term.value, ROUTE_LIMIT))
-const segmentOptions = computed(() => rankedMatches(props.segments ?? [], term.value, SEGMENT_LIMIT))
-const options = computed(() => [
-  ...routeOptions.value.map(route => ({ key: `r-${route.slug}`, to: `/routes/${route.slug}` })),
-  ...segmentOptions.value.map(segment => ({ key: `s-${segment.slug}`, to: `/segments/${segment.slug}` }))
-])
-const optionId = (key: string) => `${id}-${key}`
-const near = computed(() => options.value.length ? [] : nearMatches(props.cards, term.value, NEAR_LIMIT))
+const groups = computed(() => [
+  {
+    id: `${id}-routes`,
+    label: 'Routes',
+    options: rankedMatches(props.cards, term.value, ROUTE_LIMIT).map((route): SearchOption => ({
+      id: `${id}-r-${route.slug}`,
+      to: `/routes/${route.slug}`,
+      name: route.name,
+      detail: `${route.worldName} · ${route.distance.toFixed(1)} km · ${Math.round(route.elevation)} m`,
+      shape: route.shape
+    }))
+  },
+  {
+    id: `${id}-segments`,
+    label: 'Climbs and sprints',
+    options: rankedMatches(props.segments ?? [], term.value, SEGMENT_LIMIT).map((segment): SearchOption => ({
+      id: `${id}-s-${segment.slug}`,
+      to: `/segments/${segment.slug}`,
+      name: segment.name,
+      detail: `${segment.type === 'sprint' ? 'Sprint' : 'Climb'} · ${segment.worldName}`,
+      shape: segment.shape
+    }))
+  }
+].filter(group => group.options.length))
+const options = computed(() => groups.value.flatMap(group => group.options))
+const activeId = computed(() => options.value[active.value]?.id)
+
+const near = computed(() => options.value.length ? [] : nearMatches(props.cards, term.value, NEAR_MATCH_LIMIT))
 const hasTerm = computed(() => term.value.trim() !== '')
 const expanded = computed(() => open.value && hasTerm.value)
 
-const segmentKind = (segment: SegmentSummary) => segment.type === 'sprint' ? 'Sprint' : 'Climb'
-
-// What a screen reader hears as the list changes. Kept in the DOM even while
-// the list is shut - a live region that appears with its text is announced
-// by nothing.
+// What a screen reader hears as the list changes: every match, not just the
+// few the list shows, and on no match the empty state's own words. Kept in
+// the DOM while the list is shut - a live region that appears with its text
+// is announced by nothing.
 const status = computed(() => {
   if (!expanded.value) return ''
-  if (!options.value.length) return `No route${props.segments ? ' or segment' : ''} named “${term.value.trim()}”.`
-  const parts = [`${routeOptions.value.length} route${routeOptions.value.length === 1 ? '' : 's'}`]
-  if (props.segments) parts.push(`${segmentOptions.value.length} climb${segmentOptions.value.length === 1 ? '' : 's'} and sprints`)
-  return `${parts.join(', ')}. Arrow down to choose.`
+  if (!options.value.length) {
+    const headline = noMatchHeadline(term.value, !!props.segments)
+    return near.value.length ? `${headline} Did you mean ${near.value.map(route => route.name).join(' or ')}?` : headline
+  }
+  const routes = props.cards.filter(card => matchesSearch(card, term.value)).length
+  const parts = [`${routes} route${routes === 1 ? '' : 's'}`]
+  if (props.segments) {
+    const segments = props.segments.filter(segment => matchesSearch(segment, term.value)).length
+    parts.push(`${segments} ${segments === 1 ? 'climb or sprint' : 'climbs and sprints'}`)
+  }
+  return `${parts.join(' and ')} match. Arrow down to choose.`
 })
 
 function onInput() {
+  if (!open.value) revealOnPhone()
   open.value = true
   active.value = -1
-  revealOnPhone()
 }
 
 /**
  * On a phone the keyboard takes half the screen, and the hero puts the
- * search a third of the way down it - lift the input to just under the
- * header so the list's first results open above the keyboard.
+ * search a third of the way down it - as the list opens, lift the input to
+ * just under the header so the first results sit above the keyboard.
  */
 function revealOnPhone() {
   if (window.matchMedia('(max-width: 639px)').matches) root.value?.scrollIntoView({ block: 'start' })
@@ -98,7 +134,7 @@ function move(step: number) {
   active.value = active.value < 0
     ? (step > 0 ? 0 : count - 1)
     : (active.value + step + count) % count
-  document.getElementById(optionId(options.value[active.value]!.key))?.scrollIntoView({ block: 'nearest' })
+  if (activeId.value) document.getElementById(activeId.value)?.scrollIntoView({ block: 'nearest' })
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -158,14 +194,14 @@ watch(options, () => {
       aria-autocomplete="list"
       :aria-expanded="expanded && options.length > 0"
       :aria-controls="listboxId"
-      :aria-activedescendant="expanded && active >= 0 ? optionId(options[active]!.key) : undefined"
+      :aria-activedescendant="expanded ? activeId : undefined"
       :aria-describedby="statusId"
       autocomplete="off"
       placeholder="Route, climb or world, e.g. Alpe du Zwift"
       class="w-full"
       @input="onInput"
       @keydown="onKeydown"
-      @focus="emit('use')"
+      @focus="emit('focus')"
     />
     <p
       :id="statusId"
@@ -178,86 +214,51 @@ watch(options, () => {
       v-show="expanded"
       class="absolute inset-x-0 top-full z-30 mt-1.5 max-h-[min(28rem,60vh)] overflow-y-auto rounded-lg border border-default bg-elevated p-1.5 shadow-lg"
     >
-      <!-- Every option keeps the input's focus on press (`mousedown.prevent`),
-           so a click opens the ride rather than blurring the search and
-           shutting the list under the pointer first. -->
       <!-- The listbox stays in the DOM, empty, when nothing matched, so the
            input's `aria-controls` always names an element; the combobox
-           then reports itself collapsed and the empty state below is read
-           through the live status instead. -->
+           then reports itself collapsed and the live status reads the empty
+           state out instead. Every option keeps the input's focus on press
+           (`mousedown.prevent`), so a click opens the ride rather than
+           blurring the search and shutting the list under the pointer. -->
       <ul
         :id="listboxId"
         role="listbox"
         aria-label="Search results"
       >
         <li
-          v-if="routeOptions.length"
+          v-for="(group, index) in groups"
+          :key="group.id"
           role="presentation"
         >
           <p
-            :id="`${id}-routes`"
-            class="px-2.5 pt-1.5 pb-1 text-xs text-muted"
+            :id="group.id"
+            class="px-2.5 pb-1 text-xs text-muted"
+            :class="index ? 'pt-2.5' : 'pt-1.5'"
           >
-            Routes
+            {{ group.label }}
           </p>
           <ul
             role="group"
-            :aria-labelledby="`${id}-routes`"
+            :aria-labelledby="group.id"
           >
             <li
-              v-for="route in routeOptions"
-              :id="optionId(`r-${route.slug}`)"
-              :key="route.slug"
+              v-for="option in group.options"
+              :id="option.id"
+              :key="option.id"
               role="option"
-              :aria-selected="options[active]?.key === `r-${route.slug}`"
+              :aria-selected="option.id === activeId"
               class="flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-2"
-              :class="options[active]?.key === `r-${route.slug}` ? 'bg-accented' : 'hover:bg-accented/60'"
+              :class="option.id === activeId ? 'bg-accented' : 'hover:bg-accented/60'"
               @mousedown.prevent
-              @click="choose(`/routes/${route.slug}`)"
+              @click="choose(option.to)"
             >
               <RouteSilhouette
-                :shape="route.shape"
+                :shape="option.shape"
                 class="h-7 w-14 shrink-0"
               />
               <span class="min-w-0">
-                <span class="block truncate font-medium text-highlighted">{{ route.name }}</span>
-                <span class="block text-xs text-muted">{{ route.worldName }} · {{ route.distance.toFixed(1) }} km · {{ Math.round(route.elevation) }} m</span>
-              </span>
-            </li>
-          </ul>
-        </li>
-        <li
-          v-if="segmentOptions.length"
-          role="presentation"
-        >
-          <p
-            :id="`${id}-segments`"
-            class="px-2.5 pt-2.5 pb-1 text-xs text-muted"
-          >
-            Climbs and sprints
-          </p>
-          <ul
-            role="group"
-            :aria-labelledby="`${id}-segments`"
-          >
-            <li
-              v-for="segment in segmentOptions"
-              :id="optionId(`s-${segment.slug}`)"
-              :key="segment.slug"
-              role="option"
-              :aria-selected="options[active]?.key === `s-${segment.slug}`"
-              class="flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-2"
-              :class="options[active]?.key === `s-${segment.slug}` ? 'bg-accented' : 'hover:bg-accented/60'"
-              @mousedown.prevent
-              @click="choose(`/segments/${segment.slug}`)"
-            >
-              <RouteSilhouette
-                :shape="segment.shape"
-                class="h-7 w-14 shrink-0"
-              />
-              <span class="min-w-0">
-                <span class="block truncate font-medium text-highlighted">{{ segment.name }}</span>
-                <span class="block text-xs text-muted">{{ segmentKind(segment) }} · {{ segment.worldName }}</span>
+                <span class="block truncate font-medium text-highlighted">{{ option.name }}</span>
+                <span class="block text-xs text-muted">{{ option.detail }}</span>
               </span>
             </li>
           </ul>

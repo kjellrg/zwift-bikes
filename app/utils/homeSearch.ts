@@ -103,3 +103,15 @@ export function nearMatches<T extends SearchableRide>(rides: readonly T[], term:
     .slice(0, limit)
     .map(entry => entry.ride)
 }
+
+/** How many near matches the empty state offers, in the dropdown and over the grid alike. */
+export const NEAR_MATCH_LIMIT = 3
+
+/**
+ * The empty state's first line, which the search's live status reads out
+ * too. `namesSegments` is whether it may say no segment has the name either:
+ * not before the segments have been fetched, and not when some do.
+ */
+export function noMatchHeadline(term: string, namesSegments: boolean): string {
+  return `No route${namesSegments ? ' or segment' : ''} named “${term.trim()}”.`
+}

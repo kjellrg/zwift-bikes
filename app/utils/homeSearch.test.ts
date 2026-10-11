@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { matchesSearch, nearMatches, rankedMatches } from './homeSearch'
+import { matchesSearch, nearMatches, noMatchHeadline, rankedMatches } from './homeSearch'
 
 const ride = (name: string, worldName = 'Watopia') => ({ name, worldName })
 
@@ -52,6 +52,16 @@ describe('rankedMatches', () => {
     expect(names(rankedMatches(rides, 'watopia', 6))).toEqual(['Watopia Flat Route', 'Volcano Circuit', 'Big Loop', 'Loop de Loop'])
   })
 
+  it('finds a climb by its name the way it finds a route', () => {
+    const segments = [
+      { slug: 'epic-kom', name: 'Epic KOM', type: 'climb', worldName: 'Watopia' },
+      { slug: 'alpe-du-zwift', name: 'Alpe du Zwift', type: 'climb', worldName: 'Watopia' },
+      { slug: 'fuego-flats-sprint', name: 'Fuego Flats Sprint', type: 'sprint', worldName: 'Watopia' }
+    ]
+    expect(rankedMatches(segments, 'alpe', 4).map(segment => segment.slug)).toEqual(['alpe-du-zwift'])
+    expect(rankedMatches(segments, 'Fuego-flats', 4).map(segment => segment.slug)).toEqual(['fuego-flats-sprint'])
+  })
+
   it('stops at the limit and offers nothing for a blank term', () => {
     expect(names(rankedMatches(rides, 'watopia', 2))).toEqual(['Watopia Flat Route', 'Volcano Circuit'])
     expect(rankedMatches(rides, '  ', 6)).toEqual([])
@@ -82,5 +92,12 @@ describe('nearMatches', () => {
 
   it('stops at the limit', () => {
     expect(nearMatches(rides, 'road to', 1)).toHaveLength(1)
+  })
+})
+
+describe('noMatchHeadline', () => {
+  it('names the term, and segments too only once they were searched and none matched', () => {
+    expect(noMatchHeadline('  xyz ', true)).toBe('No route or segment named “xyz”.')
+    expect(noMatchHeadline('alpe', false)).toBe('No route named “alpe”.')
   })
 })
