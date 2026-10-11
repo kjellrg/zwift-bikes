@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RouteSummary } from '../types/catalog'
 import { SILHOUETTE_LISTING_SAMPLES } from './silhouette'
-import { toRouteCard } from './routeCards'
+import { routeCardSurfaces, toRouteCard } from './routeCards'
 
 const summary = (elevationProfile: { distanceM: number, elevationM: number }[], mix = { gravel: 0, cobble: 0 }) => ({
   slug: 'fixture',
@@ -32,5 +32,13 @@ describe('toRouteCard', () => {
 
   it('has no outline for a route with no measured profile', () => {
     expect(toRouteCard(summary([])).shape).toBeUndefined()
+  })
+})
+
+describe('routeCardSurfaces', () => {
+  it('names the surfaces in the Surface filter\'s words, gravel first, and nothing for an all-tarmac route', () => {
+    expect(routeCardSurfaces({ gravel: true, cobble: true })).toEqual(['Gravel', 'Cobbles'])
+    expect(routeCardSurfaces({ gravel: false, cobble: true })).toEqual(['Cobbles'])
+    expect(routeCardSurfaces({ gravel: false, cobble: false })).toEqual([])
   })
 })

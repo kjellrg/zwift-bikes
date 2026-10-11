@@ -62,11 +62,20 @@ test.describe('the way to a World page', () => {
     await expect(page.getByRole('main').locator('a[href="/routes/hilly-route"]')).toHaveCount(1)
   })
 
-  test('the homepage hero links every world, with its route count', async ({ page, request }) => {
-    const { worlds }: { worlds: unknown[] } = await (await request.get('/api/route-cards')).json()
+  test('the homepage links every world, with its route count, as a full-size target', async ({ page, request }) => {
+    const { worlds }: { worlds: { slug: string }[] } = await (await request.get('/api/route-cards')).json()
     await visitPage(page, '/')
     const row = page.getByRole('navigation', { name: 'Browse by world' })
     await expect(row.getByRole('link')).toHaveCount(worlds.length)
+    // Under the grid since #331, not in the hero beside the search, and each
+    // link a 44px target rather than a line of 15px text.
+    expect(await row.evaluate(nav => !!(document.getElementById('route-finder-heading')!.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
+    for (const height of await row.getByRole('link').evaluateAll(links => links.map(link => link.getBoundingClientRect().height))) {
+      expect(height).toBeGreaterThanOrEqual(44)
+    }
+    // Plain links in the server's HTML, so a crawler reaches every World page - and from it every route - without running the page.
+    const html = await (await request.get('/')).text()
+    for (const world of worlds) expect(html).toContain(`href="/worlds/${world.slug}"`)
     const watopia = row.getByRole('link', { name: /^Watopia \d+$/ })
     await expect(watopia).toHaveAttribute('href', WORLD)
     await watopia.click()

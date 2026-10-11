@@ -49,3 +49,14 @@ export function toRouteCard(route: RouteSummary): RouteCardData {
     shape: rideSilhouette(rideForListedRoute(route))
   }
 }
+
+/**
+ * The surfaces a card names after its terrain (#331), in the homepage
+ * Surface filter's words - "Includes gravel", "Includes cobbles" - so the
+ * card, the filter and the legend over the grid say one thing. The gravel
+ * flag is every loose surface and the cobbles flag brick and wood too, as
+ * the strip's two colours are.
+ */
+export function routeCardSurfaces(card: Pick<RouteCardData, 'gravel' | 'cobble'>): string[] {
+  return [...(card.gravel ? ['Gravel'] : []), ...(card.cobble ? ['Cobbles'] : [])]
+}

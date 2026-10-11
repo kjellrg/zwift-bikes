@@ -38,6 +38,15 @@ describe('filterRouteCards', () => {
     expect(slugs(filterRouteCards(cards, only({ search: '   ' })))).toEqual(slugs(cards))
   })
 
+  it('searches the way the homepage search does (#331): accents, punctuation and the world\'s name', () => {
+    const named = [
+      card('champs-elysees', { name: 'Champs-Élysées', world: 'paris', worldName: 'Paris' }),
+      card('temple-trek', { name: 'Temple Trek', world: 'makuri-islands', worldName: 'Makuri Islands' })
+    ]
+    expect(slugs(filterRouteCards(named, only({ search: 'champs elysees' })))).toEqual(['champs-elysees'])
+    expect(slugs(filterRouteCards(named, only({ search: 'makuri' })))).toEqual(['temple-trek'])
+  })
+
   it('narrows to a world and to a surface the route includes', () => {
     expect(slugs(filterRouteCards(cards, only({ world: 'scotland' })))).toEqual(['the-muckle-yin'])
     expect(slugs(filterRouteCards(cards, only({ surface: 'gravel' })))).toEqual(['the-muckle-yin'])

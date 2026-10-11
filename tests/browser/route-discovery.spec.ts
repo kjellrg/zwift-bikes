@@ -25,12 +25,18 @@ const RACES_AHEAD = new Date('2026-09-25T12:00:00Z')
 const NO_RACES_AHEAD = new Date('2027-05-01T12:00:00Z')
 const TERRAIN = /\b(Flat|Rolling|Hilly|Mountainous)\b/
 
-const searchBox = (page: Page) => page.getByRole('textbox', { name: 'Search routes' })
+/** The hero search, a combobox since #331. */
+const searchBox = (page: Page) => page.getByRole('combobox', { name: 'Search routes' })
+const results = (page: Page) => page.getByRole('listbox', { name: 'Search results' })
+const resultGroup = (page: Page, name: string) => results(page).getByRole('group', { name })
 /** A `USelectMenu`'s trigger is a button carrying the filter's `aria-label`. */
 const filter = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
 const filters = (page: Page) => page.getByRole('group', { name: 'Route filters' })
 const terrainChip = (page: Page, name: string) => filters(page).getByRole('button', { name, exact: true })
-const resetButton = (page: Page) => page.getByRole('button', { name: 'Reset' })
+/** The filter row's Reset - the search's empty state has one of its own. */
+const resetButton = (page: Page) => filters(page).getByRole('button', { name: 'Reset', exact: true })
+/** The route grid and everything above it in its section, below the filter row. */
+const finder = (page: Page) => page.locator('section:has(#route-finder-heading)')
 /** The live count line on the filter row - "N routes found". */
 const statusLine = (page: Page) => filters(page).locator('p[aria-live="polite"]')
 /** Every route card in the finder - the example card links to a route too, from outside the finder. */
@@ -133,11 +139,14 @@ test.describe('route discovery', () => {
     expect(await reportedCount(page)).toBe(both)
   })
 
-  test('says when nothing matched, and Reset brings the whole catalog back', async ({ page }) => {
+  test('says when the filters leave nothing, and Reset brings the whole catalog back', async ({ page }) => {
     await visitPage(page, '/')
     const everything = await reportedCount(page)
 
-    await searchBox(page).fill('zzzzz')
+    // A term that names routes, narrowed to a world that has none of them:
+    // the filters' message, not the search's.
+    await searchBox(page).fill('road to sky')
+    await pickFilter(page, 'World', 'London')
     await expect(page.getByText(/No routes match your filters\./)).toBeVisible()
     await expect(statusLine(page)).toHaveText('0 routes found')
     await expect(cards(page)).toHaveCount(0)
@@ -294,5 +303,141 @@ test.describe('route discovery', () => {
     expect(await cardGround()).toBe('rgb(255, 255, 255)')
     expect(await bodyGround()).not.toBe(await cardGround())
     await expectNoHorizontalOverflow(page)
+  })
+
+  test('answers in a list under the search: arrow down and Enter open the route, and back restores the search', async ({ page }) => {
+    await visitPage(page, '/')
+    await searchBox(page).fill('road to sky')
+    await expect(searchBox(page)).toHaveAttribute('aria-expanded', 'true')
+    const first = resultGroup(page, 'Routes').getByRole('option').first()
+    await expect(first).toContainText('Road to Sky')
+    await expect(first.locator('svg[data-silhouette]')).toHaveCount(1)
+    // Identity and the numbers a rider chooses by - no time, no setup.
+    await expect(first).toContainText(/Watopia · \d+\.\d km · \d+ m/)
+    await expect(first).not.toContainText(/\d:\d{2}/)
+
+    await page.keyboard.press('ArrowDown')
+    await expect(first).toHaveAttribute('aria-selected', 'true')
+    await expect(searchBox(page)).toHaveAttribute('aria-activedescendant', (await first.getAttribute('id'))!)
+    // Enter before the grid's debounce has settled: the term still has to
+    // reach the URL before the page is left, or back would lose it.
+    await page.keyboard.press('Enter')
+    await page.waitForURL('**/routes/road-to-sky')
+    await ready(page)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Road to Sky')
+
+    await page.goBack()
+    await expect(page).toHaveURL(/[?&]q=road(\+|%20)to(\+|%20)sky/)
+    await expect(searchBox(page)).toHaveValue('road to sky')
+    for (const found of await cards(page).all()) expect((await cardName(found)).toLowerCase()).toContain('road to sky')
+  })
+
+  test('finds a climb by name and opens its segment page from the keyboard', async ({ page }) => {
+    await visitPage(page, '/')
+    const segmentRequest = page.waitForRequest(request => new URL(request.url()).pathname === '/api/segments')
+    await searchBox(page).focus()
+    await segmentRequest
+    await page.keyboard.type('alpe')
+    const alpe = resultGroup(page, 'Climbs and sprints').getByRole('option', { name: /Alpe du Zwift/ })
+    await expect(alpe).toBeVisible()
+    await expect(alpe).toContainText('Climb · Watopia')
+
+    const id = (await alpe.getAttribute('id'))!
+    for (let step = 0; step < 12 && await searchBox(page).getAttribute('aria-activedescendant') !== id; step++) {
+      await page.keyboard.press('ArrowDown')
+    }
+    await expect(searchBox(page)).toHaveAttribute('aria-activedescendant', id)
+    await page.keyboard.press('Enter')
+    await page.waitForURL('**/segments/alpe-du-zwift')
+  })
+
+  test('closes the list on Esc and keeps the term', async ({ page }) => {
+    await visitPage(page, '/')
+    await searchBox(page).fill('loop')
+    await expect(results(page).getByRole('option').first()).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(searchBox(page)).toHaveAttribute('aria-expanded', 'false')
+    await expect(results(page)).toBeHidden()
+    await expect(searchBox(page)).toHaveValue('loop')
+    await expect(searchBox(page)).toBeFocused()
+  })
+
+  test('matches names whatever their accents and hyphens, and worlds by name', async ({ page }) => {
+    await visitPage(page, '/')
+    const routeOptions = resultGroup(page, 'Routes').getByRole('option')
+    await searchBox(page).fill('casse pattes')
+    await expect(routeOptions.first()).toContainText('Casse-Pattes')
+    await searchBox(page).fill('champs elysees')
+    await expect(routeOptions.first()).toContainText('Champs-Élysées')
+    await searchBox(page).fill('makuri')
+    await expect(routeOptions.first()).toBeVisible()
+    for (const text of await routeOptions.allInnerTexts()) expect(text).toContain('Makuri Islands')
+    // The grid follows the same rules: every card it keeps is in Makuri Islands.
+    await expect(statusLine(page)).not.toHaveText(/^\d{3} routes/)
+    for (const text of await cards(page).allInnerTexts()) expect(text).toContain('Makuri Islands')
+  })
+
+  test('names a term that found nothing, offers the nearest routes, and resets from inside the message', async ({ page }) => {
+    await visitPage(page, '/')
+    const everything = await reportedCount(page)
+    const segmentRequest = page.waitForResponse(response => new URL(response.url()).pathname === '/api/segments')
+    await searchBox(page).focus()
+    await segmentRequest
+    await page.keyboard.type('rod to skye')
+
+    const message = 'No route or segment named “rod to skye”.'
+    // In the dropdown, where the rider is looking ...
+    const dropdown = page.locator('div:has(> [role="listbox"])')
+    await expect(dropdown.getByText(message)).toBeVisible()
+    await expect(dropdown.getByRole('link', { name: 'Road to Sky' })).toHaveAttribute('href', '/routes/road-to-sky')
+    // ... and above the grid, where the count line still says so.
+    await expect(finder(page).getByText(message)).toHaveCount(1)
+    await expect(statusLine(page)).toHaveText('0 routes found')
+
+    await dropdown.getByRole('button', { name: 'Reset', exact: true }).click()
+    await expect(searchBox(page)).toHaveValue('')
+    await expect(statusLine(page)).toHaveText(`${everything} routes found`)
+    await expect(page.getByText(message)).toHaveCount(0)
+  })
+
+  test('loads no segments with the page, only once the search is used', async ({ page }) => {
+    const segmentRequests: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/segments') segmentRequests.push(request.url())
+    })
+    await visitPage(page, '/')
+    expect(segmentRequests).toEqual([])
+    const fetched = page.waitForResponse(response => new URL(response.url()).pathname === '/api/segments')
+    await searchBox(page).click()
+    await fetched
+    await searchBox(page).fill('a')
+    await searchBox(page).fill('al')
+    expect(segmentRequests).toHaveLength(1)
+  })
+
+  test('opens the first results where a phone\'s keyboard leaves them visible', async ({ page }, testInfo) => {
+    await visitPage(page, '/')
+    await searchBox(page).click()
+    await page.keyboard.type('loop')
+    const first = results(page).getByRole('option').first()
+    await expect(first).toBeVisible()
+    const box = (await first.boundingBox())!
+    const viewport = page.viewportSize()!
+    // A phone's keyboard covers roughly the lower half of the screen; the
+    // first result has to sit above it. On a desktop it simply has to be on screen.
+    expect(box.y + box.height).toBeLessThanOrEqual(testInfo.project.name === 'mobile' ? viewport.height * 0.5 : viewport.height)
+  })
+
+  test('names gravel and cobbles in the card text and in a legend over the grid', async ({ page }) => {
+    await visitPage(page, '/')
+    await expect(finder(page).getByText('Under each profile, the surface strip marks')).toBeVisible()
+    await pickFilter(page, 'Surface', 'Includes gravel')
+    for (const text of await cards(page).allInnerTexts()) expect(text).toMatch(/ · Gravel\b/)
+    await pickFilter(page, 'Surface', 'Includes cobbles')
+    for (const text of await cards(page).allInnerTexts()) expect(text).toMatch(/ · Cobbles\b/)
+    await resetButton(page).click()
+    await searchBox(page).fill('tempus fugit')
+    await expect(cards(page)).toHaveCount(1)
+    await expect(cards(page).first()).not.toContainText(/Gravel|Cobbles/)
   })
 })

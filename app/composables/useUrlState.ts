@@ -64,7 +64,10 @@ export function useUrlState(route: RouteLocationNormalizedLoaded, router: Router
   /**
    * Merges `patch` into the current query: a `undefined` value removes the
    * key, everything else is written as a string. No history entry - a
-   * slider move is not a navigation.
+   * slider move is not a navigation. Returns the replace while one is under
+   * way, for a page that navigates straight after a write: a push started
+   * before the replace lands would cancel it, and back would then return
+   * to the view without it.
    */
   function replaceQuery(patch: Record<string, string | number | undefined>) {
     const next: LocationQueryRaw = {}
@@ -77,7 +80,7 @@ export function useUrlState(route: RouteLocationNormalizedLoaded, router: Router
       if (param(key) !== encoded) changed = true
       if (encoded !== undefined) next[key] = encoded
     }
-    if (changed) router.replace({ query: next })
+    return changed ? router.replace({ query: next }) : undefined
   }
 
   return { param, enumParam, searchParam, slugParam, replaceQuery }

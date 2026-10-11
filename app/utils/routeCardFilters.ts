@@ -1,5 +1,6 @@
 import type { TerrainCategory } from '../../shared/types/catalog'
 import type { RouteCardData } from '#shared/utils/routeCards'
+import { matchesSearch } from './homeSearch'
 
 /** The top of the homepage's distance slider, in km: a range ending here is open above. */
 export const ROUTE_DISTANCE_MAX_KM = 120
@@ -39,13 +40,14 @@ const withinRange = (value: number, [low, high]: readonly [number, number], max:
  * The cards the homepage's filters leave, in the order given (#262). The
  * homepage holds every route's card from its prerendered payload and filters
  * them here, so a filter change makes no request. The rules are the ones
- * `/api/routes` has always applied to the same controls: the name contains
- * the search in any case, and a slider at its end leaves that side open.
+ * `/api/routes` has always applied to the same controls - a slider at its
+ * end leaves that side open - except the search, which matches the way the
+ * homepage search's dropdown does (`matchesSearch`, #331): accents,
+ * punctuation and the world's name included.
  */
 export function filterRouteCards(cards: readonly RouteCardData[], filters: RouteCardFilters): RouteCardData[] {
-  const search = filters.search.trim().toLowerCase()
   return cards.filter(card =>
-    (!search || card.name.toLowerCase().includes(search))
+    matchesSearch(card, filters.search)
     && (!filters.world || card.world === filters.world)
     && (!filters.surface || card[filters.surface])
     && withinRange(card.distance, filters.distance, ROUTE_DISTANCE_MAX_KM)

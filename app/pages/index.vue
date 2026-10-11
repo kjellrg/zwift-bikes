@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { TerrainCategory } from '../../shared/types/catalog'
+import type { SegmentSummary, TerrainCategory } from '../../shared/types/catalog'
 import type { RouteCardData } from '#shared/utils/routeCards'
 import { filterRouteCards, ROUTE_DISTANCE_MAX_KM, ROUTE_ELEVATION_MAX_M, ROUTE_LIST_PAGE_SIZE } from '../utils/routeCardFilters'
+import { matchesSearch, nearMatches } from '../utils/homeSearch'
 
 // Without a page-level title the homepage inherits app.vue's bare
 // "ZwiftBikes", dropping the "best bike" phrase from the most-indexed page.
@@ -78,10 +79,11 @@ const worldOptions = computed(() => [
 ])
 
 // "Browse by world" (#58): every world's World page, with its route count,
-// under the search. Server-rendered links, unlike the World select further
-// down, so a crawler reaches every route page in two clicks from here -
-// the grid's first page alone left 113 of them with no link path at all.
-// Counted from the cards already fetched, so the payload does not grow.
+// in a row under the grid since #331 slimmed the hero to its search.
+// Server-rendered links, unlike the World select further up, so a crawler
+// reaches every route page in two clicks from here - the grid's first page
+// alone left 113 of them with no link path at all. Counted from the cards
+// already fetched, so the payload does not grow.
 const worldLinks = computed(() => worldRouteCounts(allCards.value, data.value?.worlds ?? []))
 
 const surfaceOptions = [
@@ -118,11 +120,67 @@ const visibleItems = computed(() => items.value.slice(0, visibleCount.value))
 const resultCounts = computed(() => [{ value: items.value.length, noun: 'route' }])
 const countLine = computed(() => discoveryCountLine(resultCounts.value))
 
+// The climbs and sprints the search also offers (#331), fetched the first
+// time the search is used - focused, or restored from `?q=` - rather than
+// with the page, so the homepage's own load does not grow by them. A failed
+// fetch leaves them undefined and lets the next use try again: the search
+// still answers with routes meanwhile.
+const segments = shallowRef<SegmentSummary[]>()
+let segmentsRequest: Promise<void> | undefined
+function loadSegments() {
+  segmentsRequest ??= $fetch<{ segments: SegmentSummary[] }>('/api/segments')
+    .then((response) => {
+      segments.value = response.segments
+    })
+    .catch(() => {
+      segmentsRequest = undefined
+    })
+}
+
+// A term that names no route at all, whatever the other filters, gets the
+// search's own empty state above the grid - the term, the routes it was
+// closest to, and Reset - as it does in the dropdown. A term that matches
+// routes the other filters then leave out keeps the filters' message.
+const unmatchedTerm = computed(() => {
+  const term = searchDebounced.value
+  if (!term.trim() || allCards.value.some(card => matchesSearch(card, term))) return undefined
+  if (segments.value?.some(segment => matchesSearch(segment, term))) return undefined
+  return term
+})
+const nearRoutes = computed(() => unmatchedTerm.value ? nearMatches(allCards.value, unmatchedTerm.value, 3) : [])
+
 // Whose rider the times on the site are for, under the search - the default
 // is never silent. Read after mount like everything stored.
 const { weightKg, powerW, hasStoredProfile, load: loadRiderProfile } = useRiderProfile()
 const { openProfile } = useOverlays()
 onMounted(loadRiderProfile)
+
+const routeFinderHeading = useTemplateRef<HTMLElement>('routeFinderHeading')
+// The URL write the filters' watcher last started, for `openRide` to wait on.
+let urlWrite: Promise<unknown> | undefined
+
+/** Settles the typed term at once, as the filters and the URL read it, instead of after the debounce. */
+async function commitSearch() {
+  clearTimeout(searchDebounceTimer)
+  searchDebounced.value = search.value
+  await nextTick()
+  await urlWrite
+}
+
+// Choosing from the search's list: the term goes into the URL before the
+// page is left, so back returns to the same search and the same grid even
+// when the rider chose before the debounce settled.
+async function openRide(to: string) {
+  await commitSearch()
+  await navigateTo(to)
+}
+
+// Enter with nothing chosen: the grid is the rest of the answer, a screen
+// or more below the hero, so take the rider to it.
+async function showResults() {
+  await commitSearch()
+  routeFinderHeading.value?.scrollIntoView({ block: 'start' })
+}
 
 function resetFilters() {
   // The debounce is for typing; a reset shows the whole catalog at once.
@@ -156,7 +214,13 @@ const rangeParam = (key: string, max: number): [number, number] | undefined => {
 }
 onMounted(() => {
   const q = searchParam('q')
-  if (q) search.value = q
+  if (q) {
+    // Straight to the grid too: the debounce is for typing, and a restored
+    // view that showed the whole catalog for 300 ms first would be a flicker.
+    search.value = q
+    searchDebounced.value = q
+    loadSegments()
+  }
   const world = slugParam('world')
   if (world) worldFilter.value = world
   const surface = enumParam('surface', ['gravel', 'cobble'] as const)
@@ -177,7 +241,7 @@ onMounted(() => {
 watch(filters, (value) => {
   const [minD, maxD] = value.distance
   const [minE, maxE] = value.elevation
-  replaceQuery({
+  urlWrite = replaceQuery({
     q: value.search || undefined,
     world: value.world,
     surface: value.surface,
@@ -198,36 +262,16 @@ watch(filters, (value) => {
         <p class="mt-4 max-w-[46ch] text-lg text-toned">
           Pick a route. ZwiftBikes rides every frame and wheelset in the game over its real elevation and surfaces, at your weight and power, and ranks them by finish time.
         </p>
-        <UInput
+        <HomeSearch
           v-model="search"
-          icon="i-lucide-search"
-          size="xl"
-          aria-label="Search routes"
-          placeholder="Route name, e.g. Road to Sky"
-          class="mt-6 w-full max-w-xl"
+          :cards="allCards"
+          :segments="segments"
+          class="mt-6"
+          @use="loadSegments"
+          @open="openRide"
+          @submit="showResults"
+          @reset="resetFilters"
         />
-        <nav
-          v-if="worldLinks.length"
-          aria-label="Browse by world"
-          class="mt-4 max-w-xl"
-        >
-          <p class="text-xs text-muted">
-            Browse by world
-          </p>
-          <ul class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            <li
-              v-for="world in worldLinks"
-              :key="world.slug"
-            >
-              <NuxtLink
-                :to="`/worlds/${world.slug}`"
-                class="text-toned hover:text-highlighted hover:underline"
-              >
-                {{ world.name }} <span class="text-muted">{{ world.routes }}</span>
-              </NuxtLink>
-            </li>
-          </ul>
-        </nav>
         <p class="mt-3.5 text-sm text-muted">
           <template v-if="hasStoredProfile">
             Times are for you, {{ weightKg }} kg at {{ powerW }} W.
@@ -259,12 +303,28 @@ watch(filters, (value) => {
     >
       <h2
         id="route-finder-heading"
-        class="text-2xl font-semibold font-heading text-highlighted"
+        ref="routeFinderHeading"
+        class="scroll-mt-[calc(var(--ui-header-height)+1rem)] text-2xl font-semibold font-heading text-highlighted"
       >
         Every route, by its shape
       </h2>
       <p class="mt-1 text-sm text-muted">
         Each card draws the route's elevation profile, so you can pick by terrain before you read a number.
+      </p>
+      <!-- The strip's two colours in the Surface filter's own words (#331):
+           the gravel colour is every loose surface and the cobbles colour
+           brick and wood too, as "Includes gravel" and "Includes cobbles"
+           already count them. -->
+      <p class="mt-1.5 flex flex-wrap items-center gap-x-4 text-sm text-muted">
+        <span>Under each profile, the surface strip marks</span>
+        <span class="inline-flex items-center"><span
+          class="mr-1.5 inline-block h-1 w-4 rounded-[2px] bg-dirt"
+          aria-hidden="true"
+        />gravel</span>
+        <span class="inline-flex items-center"><span
+          class="mr-1.5 inline-block h-1 w-4 rounded-[2px] bg-rough"
+          aria-hidden="true"
+        />cobbles</span>
       </p>
 
       <!-- Two rows, one question each: what kind of route (world, terrain,
@@ -385,6 +445,18 @@ watch(filters, (value) => {
         :counts="resultCounts"
         count-elsewhere
       >
+        <template
+          v-if="unmatchedTerm"
+          #empty
+        >
+          <SearchEmptyState
+            :term="unmatchedTerm"
+            :near="nearRoutes"
+            :segments-checked="!!segments"
+            class="py-8"
+            @reset="resetFilters"
+          />
+        </template>
         <div class="space-y-6">
           <ul class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <li
@@ -411,7 +483,35 @@ watch(filters, (value) => {
       </DiscoveryStatus>
     </section>
 
-    <div class="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-default bg-elevated px-6 py-5">
+    <nav
+      v-if="worldLinks.length"
+      aria-labelledby="browse-by-world-heading"
+      class="mt-12"
+    >
+      <h2
+        id="browse-by-world-heading"
+        class="text-sm font-medium text-muted"
+      >
+        Browse by world
+      </h2>
+      <!-- Each link is a full 44px target (#331); the row stays plain
+           server-rendered links for the crawler, see `worldLinks`. -->
+      <ul class="mt-1 -ml-2.5 flex flex-wrap text-sm">
+        <li
+          v-for="world in worldLinks"
+          :key="world.slug"
+        >
+          <NuxtLink
+            :to="`/worlds/${world.slug}`"
+            class="inline-flex min-h-11 items-center gap-1.5 rounded-md px-2.5 text-toned hover:text-highlighted hover:underline"
+          >
+            {{ world.name }} <span class="text-muted">{{ world.routes }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-default bg-elevated px-6 py-5">
       <h2 class="text-xl font-semibold font-heading text-highlighted">
         After one climb or sprint?
       </h2>

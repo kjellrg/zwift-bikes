@@ -22,6 +22,9 @@ import type { DiscoveryCount } from '../utils/discoveryCounts'
  * this component at all once its calendar is loaded and has nothing upcoming:
  * a season being over is an answer in its own words, not a search that
  * matched nothing. See `showsStatus` in `pages/events/[season]/index.vue`.
+ * A page whose empty list has more to say passes it through `#empty`: the
+ * homepage names a search term that found no route at all (#331), and keeps
+ * this message for filters that left nothing.
  */
 
 const props = defineProps<{
@@ -105,12 +108,14 @@ const countLine = computed(() => discoveryCountLine(props.counts))
       v-if="isLoading"
       name="skeleton"
     />
-    <p
+    <slot
       v-else-if="isEmpty && !failed"
-      class="py-10 text-muted"
+      name="empty"
     >
-      No {{ subject }} match your filters. Loosen one, or reset them.
-    </p>
+      <p class="py-10 text-muted">
+        No {{ subject }} match your filters. Loosen one, or reset them.
+      </p>
+    </slot>
     <slot v-else />
   </div>
 </template>

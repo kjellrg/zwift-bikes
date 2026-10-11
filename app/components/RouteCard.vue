@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import type { RouteCardData } from '#shared/utils/routeCards'
+import { routeCardSurfaces, type RouteCardData } from '#shared/utils/routeCards'
 
 /**
  * A route as the homepage lists it: its Silhouette and surface strip first,
  * so terrain reads before any number, then its name, and at the foot its
  * world and terrain over the numbers a rider picks a route by - distance,
  * climbing, climb ratio - as plain text. Terrain is a word, "Event only" a
- * small text tag: nothing on a card is a coloured badge.
+ * small text tag: nothing on a card is a coloured badge. A route with gravel
+ * or cobbles says so after its terrain, in the Surface filter's words
+ * (#331): the strip that draws them is colour alone and hidden from
+ * assistive tech.
  *
  * The name has the card's whole width and wraps; the foot is pinned to the
  * bottom, so the cards in a grid row line their numbers up whichever name
@@ -32,7 +35,7 @@ defineProps<{
     </h3>
     <span class="mt-auto block pt-1.5">
       <span class="flex items-baseline justify-between gap-2 text-sm text-muted">
-        <span class="min-w-0">{{ route.worldName }} · {{ TERRAIN_LABELS[route.terrain] }}</span>
+        <span class="min-w-0">{{ [route.worldName, TERRAIN_LABELS[route.terrain], ...routeCardSurfaces(route)].join(' · ') }}</span>
         <span
           v-if="route.eventOnly"
           class="shrink-0 text-xs"
