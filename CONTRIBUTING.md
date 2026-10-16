@@ -26,14 +26,19 @@ section of the README.
   minute in total, but it does need both of those tools installed.
 - **Speed-data edits** come with an extra step: the precomputed physics
   table must be regenerated (`npm run equipment-physics:compute`), or
-  `npm run validate` fails the build on the drift it detects. Any change to
-  frame/wheel/route numbers also needs a verified source — see below.
+  `npm run validate` fails the build on the drift it detects. The Bikes and
+  Wheels standings are precomputed from it too, so run
+  `npm run standings:compute` after it (a few minutes, on every core) - the
+  same check fails until you do. Any change to frame/wheel/route numbers also
+  needs a verified source — see below.
 - **Recommend pipeline edits** (`server/utils/recommendPipeline.ts`, the Ride
   ranking module `server/utils/rankRide.ts`, or either endpoint under
   `server/api/recommend/`) that are meant to change nothing
   get proved with `npm run parity:recommend`, which runs the real handlers on
   your tree and on the baseline commit and diffs every response — see
-  [scripts/recommend-parity/](scripts/recommend-parity/README.md).
+  [scripts/recommend-parity/](scripts/recommend-parity/README.md). An edit
+  that does change a time also changes the standings: rerun
+  `npm run standings:compute` ([docs/standings.md](docs/standings.md)).
 
 ## Reporting bugs and wrong data
 

@@ -14,6 +14,12 @@ export const ROUTE_ELEVATION_MAX_M = 2000
  */
 export const ROUTE_LIST_PAGE_SIZE = 24
 
+/**
+ * What the filters read of a route: the card's own fields, so the Standings
+ * pages cut their routes by exactly the rules the homepage cuts its grid by.
+ */
+export type FilterableRoute = Pick<RouteCardData, 'name' | 'worldName' | 'world' | 'gravel' | 'cobble' | 'distance' | 'elevation' | 'terrain'>
+
 /** The homepage's route filters, as its controls hold them. */
 export interface RouteCardFilters {
   /** What the rider typed, as typed. */
@@ -45,7 +51,7 @@ const withinRange = (value: number, [low, high]: readonly [number, number], max:
  * homepage search's dropdown does (`matchesSearch`, #331): accents,
  * punctuation and the world's name included.
  */
-export function filterRouteCards(cards: readonly RouteCardData[], filters: RouteCardFilters): RouteCardData[] {
+export function filterRouteCards<T extends FilterableRoute>(cards: readonly T[], filters: RouteCardFilters): T[] {
   return cards.filter(card =>
     matchesSearch(card, filters.search)
     && (!filters.world || card.world === filters.world)

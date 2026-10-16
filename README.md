@@ -28,6 +28,11 @@ numbers are backed by verified test data or an estimate.*
   frame + wheelset combos with an estimated finish time for your weight and
   power. The rankings aim to reflect how equipment actually behaves in-game —
   which often differs from real-world cycling.
+- **Compare bikes and wheels across routes.** The Bikes and Wheels pages
+  rank every frame and wheelset by how far behind the fastest it finishes
+  on average over the routes you pick - every route, one world, only the
+  mountainous ones - using the homepage's route filters. See
+  [docs/standings.md](docs/standings.md).
 - **Explore routes and segments.** See each route's surface breakdown
   (road / gravel / cobbles), climb profile and lap info — and get
   recommendations scoped to a single climb or sprint, not just the whole
@@ -80,7 +85,9 @@ profile, where the surface changes, and what each surface costs you in watts.*
   [`/llms.txt`](https://zwiftbikes.com/llms.txt) indexes the whole catalog.
   See [docs/markdown-for-agents.md](docs/markdown-for-agents.md).
 - **JSON** — `GET /api/recommend/{routeSlug}?weightKg=&heightCm=&powerW=`,
-  plus `/api/routes`, `/api/segments`, `/api/bikes` and `/api/wheelsets`.
+  plus `/api/routes`, `/api/segments`, `/api/bikes` and `/api/wheelsets`,
+  and the precomputed standings at `/api/standings/bikes` and
+  `/api/standings/wheels`.
 
   ```bash
   curl -H 'Accept: text/markdown' https://zwiftbikes.com/routes/hilly-route

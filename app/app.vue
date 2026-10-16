@@ -58,6 +58,8 @@ const route = useRoute()
 const section = computed(() => {
   const path = route.path
   if (path === '/' || path.startsWith('/routes/')) return 'routes'
+  if (path === '/bikes') return 'bikes'
+  if (path === '/wheels') return 'wheels'
   if (path.startsWith('/segments')) return 'segments'
   if (path.startsWith('/events')) return 'events'
   return undefined
@@ -71,10 +73,13 @@ const section = computed(() => {
 const { load: loadSiteFlags, eventsVisible } = useSiteFlags()
 onMounted(loadSiteFlags)
 
-// The three section entries, in the order the header and the mobile menu
-// both list them. Events hides with its section.
+// The section entries, in the order the header and the mobile menu both
+// list them: the Standings beside the routes they average. Events hides
+// with its section.
 const sectionEntries = computed(() => [
   { key: 'routes', label: 'Routes', to: '/' },
+  { key: 'bikes', label: 'Bikes', to: '/bikes' },
+  { key: 'wheels', label: 'Wheels', to: '/wheels' },
   { key: 'segments', label: 'Segments', to: '/segments' },
   ...(eventsVisible.value ? [{ key: 'events', label: 'Events', to: '/events' }] : [])
 ])

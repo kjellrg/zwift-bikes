@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { SegmentSummary, TerrainCategory } from '../../shared/types/catalog'
+import type { SegmentSummary } from '../../shared/types/catalog'
 import { ROUTE_SURFACE_WORDS, type RouteCardData } from '#shared/utils/routeCards'
-import { filterRouteCards, ROUTE_DISTANCE_MAX_KM, ROUTE_ELEVATION_MAX_M, ROUTE_LIST_PAGE_SIZE } from '../utils/routeCardFilters'
+import { filterRouteCards, ROUTE_LIST_PAGE_SIZE } from '../utils/routeCardFilters'
 import { matchesSearch, NEAR_MATCH_LIMIT, nearMatches } from '../utils/homeSearch'
 
 // Without a page-level title the homepage inherits app.vue's bare
@@ -30,37 +30,9 @@ watch(search, (value) => {
   }, 300)
 })
 
-const worldFilter = ref<string>('all')
-const surfaceFilter = ref<'all' | 'gravel' | 'cobble'>('all')
-// Two refs per range: the `pending*` one the slider drags against, and the
-// committed one the list and the URL read. The committed value moves once, on
-// `change` (value-commit, i.e. pointer release), the same treatment the text
-// search gets from its 300ms debounce above: the grid and the count settle on
-// what the rider chose rather than reshuffling under every step of a drag
-// (issue #155, when each step was a request). The slider is a controlled
-// `:model-value` rather than `v-model` so `resetFilters` can move both halves
-// in one place.
-const distanceRange = ref<[number, number]>([0, ROUTE_DISTANCE_MAX_KM])
-const elevationRange = ref<[number, number]>([0, ROUTE_ELEVATION_MAX_M])
-const pendingDistanceRange = ref<[number, number]>([...distanceRange.value])
-const pendingElevationRange = ref<[number, number]>([...elevationRange.value])
-const commitDistanceRange = () => {
-  distanceRange.value = [...pendingDistanceRange.value]
-}
-const commitElevationRange = () => {
-  elevationRange.value = [...pendingElevationRange.value]
-}
-// USlider types its payload for both the single and the range shape; only the
-// two-element array is meaningful here, and anything else leaves the drag
-// where it is rather than collapsing the range.
-const asRange = (value: number[] | number | undefined): [number, number] | undefined =>
-  Array.isArray(value) && value.length === 2 ? [value[0]!, value[1]!] : undefined
-const onDistanceRangeInput = (value: number[] | number | undefined) => {
-  pendingDistanceRange.value = asRange(value) ?? pendingDistanceRange.value
-}
-const onElevationRangeInput = (value: number[] | number | undefined) => {
-  pendingElevationRange.value = asRange(value) ?? pendingElevationRange.value
-}
+// World, terrain, surface, distance and elevation - shared with the
+// Standings pages through `useRouteFilters`, which `RouteFilterBar` edits.
+const routeFilters = useRouteFilters()
 const visibleCount = ref(ROUTE_LIST_PAGE_SIZE)
 
 // Every cycling route's card, once (#262): the prerendered payload carries
@@ -72,12 +44,6 @@ const visibleCount = ref(ROUTE_LIST_PAGE_SIZE)
 const { data } = await useFetch<{ cards: RouteCardData[], worlds: { slug: string, name: string }[] }>('/api/route-cards', { key: 'route-cards' })
 const allCards = computed(() => data.value?.cards ?? [])
 
-const worldOptions = computed(() => [
-  { label: 'All worlds', value: 'all' },
-  // The game's own order, Watopia first, as the segments page lists them.
-  ...(data.value?.worlds ?? []).map(w => ({ label: w.name, value: w.slug }))
-])
-
 // "Browse by world" (#58): every world's World page, with its route count,
 // in a row under the grid since #331 slimmed the hero to its search.
 // Server-rendered links, unlike the World select further up, so a crawler
@@ -86,32 +52,14 @@ const worldOptions = computed(() => [
 // already fetched, so the payload does not grow.
 const worldLinks = computed(() => worldRouteCounts(allCards.value, data.value?.worlds ?? []))
 
-const surfaceOptions = [
-  { label: 'Any surface', value: 'all' },
-  { label: `Includes ${ROUTE_SURFACE_WORDS.gravel}`, value: 'gravel' },
-  { label: `Includes ${ROUTE_SURFACE_WORDS.cobble}`, value: 'cobble' }
-]
-
 // Routes only: segments have their own browsable home at /segments (linked
 // from the nav and below the hero), so the old merged routes-and-segments
 // mode - and the "Show" kind filter that gated it - is gone. One page per
 // content type keeps both lists' filters honest: the distance/elevation/
 // surface controls here never applied to segments anyway.
-const TERRAIN_CHIPS: { value: TerrainCategory, label: string }[] = (['flat', 'rolling', 'hilly', 'mountainous'] as const)
-  .map(value => ({ value, label: TERRAIN_LABELS[value] }))
-const terrainFilter = ref<TerrainCategory[]>([])
-function toggleTerrain(value: TerrainCategory) {
-  terrainFilter.value = terrainFilter.value.includes(value)
-    ? terrainFilter.value.filter(entry => entry !== value)
-    : [...terrainFilter.value, value]
-}
 const filters = computed(() => ({
   search: searchDebounced.value,
-  world: worldFilter.value !== 'all' ? worldFilter.value : undefined,
-  surface: surfaceFilter.value !== 'all' ? surfaceFilter.value : undefined,
-  distance: distanceRange.value,
-  elevation: elevationRange.value,
-  terrain: terrainFilter.value
+  ...routeFilters.active
 }))
 const items = computed<RouteCardData[]>(() => filterRouteCards(allCards.value, filters.value))
 const visibleItems = computed(() => items.value.slice(0, visibleCount.value))
@@ -187,13 +135,7 @@ function resetFilters() {
   clearTimeout(searchDebounceTimer)
   search.value = ''
   searchDebounced.value = ''
-  worldFilter.value = 'all'
-  surfaceFilter.value = 'all'
-  terrainFilter.value = []
-  distanceRange.value = [0, ROUTE_DISTANCE_MAX_KM]
-  elevationRange.value = [0, ROUTE_ELEVATION_MAX_M]
-  pendingDistanceRange.value = [...distanceRange.value]
-  pendingElevationRange.value = [...elevationRange.value]
+  routeFilters.reset()
 }
 
 watch(filters, () => {
@@ -202,16 +144,8 @@ watch(filters, () => {
 
 // The filters live in the URL too - `?q=alpe&world=watopia&surface=gravel
 // &dist=10-40&elev=0-500` - read once after mount and written from the
-// committed values, see `useUrlState`. Ranges are validated as a pair: a
-// half-range or an inverted one is ignored rather than guessed at.
+// committed values, see `useUrlState` and `useRouteFilters`.
 const { param, enumParam, searchParam, slugParam, replaceQuery } = useUrlState(useRoute(), useRouter())
-const rangeParam = (key: string, max: number): [number, number] | undefined => {
-  const match = /^(\d+)-(\d+)$/.exec(param(key) ?? '')
-  if (!match) return undefined
-  const low = Math.min(max, Number(match[1]))
-  const high = Math.min(max, Number(match[2]))
-  return low <= high ? [low, high] : undefined
-}
 onMounted(() => {
   const q = searchParam('q')
   if (q) {
@@ -221,33 +155,12 @@ onMounted(() => {
     searchDebounced.value = q
     loadSegments()
   }
-  const world = slugParam('world')
-  if (world) worldFilter.value = world
-  const surface = enumParam('surface', ['gravel', 'cobble'] as const)
-  if (surface) surfaceFilter.value = surface
-  const terrain = (param('terrain') ?? '').split(',').filter((value): value is TerrainCategory => TERRAIN_CHIPS.some(chip => chip.value === value))
-  if (terrain.length) terrainFilter.value = [...new Set(terrain)]
-  const dist = rangeParam('dist', ROUTE_DISTANCE_MAX_KM)
-  if (dist) {
-    distanceRange.value = dist
-    pendingDistanceRange.value = [...dist]
-  }
-  const elev = rangeParam('elev', ROUTE_ELEVATION_MAX_M)
-  if (elev) {
-    elevationRange.value = elev
-    pendingElevationRange.value = [...elev]
-  }
+  routeFilters.restore({ param, enumParam, slugParam })
 })
 watch(filters, (value) => {
-  const [minD, maxD] = value.distance
-  const [minE, maxE] = value.elevation
   urlWrite = replaceQuery({
     q: value.search || undefined,
-    world: value.world,
-    surface: value.surface,
-    terrain: value.terrain.length ? TERRAIN_CHIPS.map(chip => chip.value).filter(entry => value.terrain.includes(entry)).join(',') : undefined,
-    dist: minD > 0 || maxD < ROUTE_DISTANCE_MAX_KM ? `${minD}-${maxD}` : undefined,
-    elev: minE > 0 || maxE < ROUTE_ELEVATION_MAX_M ? `${minE}-${maxE}` : undefined
+    ...routeFilters.query
   })
 })
 </script>
@@ -327,117 +240,13 @@ watch(filters, (value) => {
         />{{ ROUTE_SURFACE_WORDS.cobble }}.
       </p>
 
-      <!-- Two rows, one question each: what kind of route (world, terrain,
-           surface), then how big (distance, elevation), with the count and
-           Reset closing the second row as they close the segments page's.
-           One wrapping row put the elevation slider alone under the world
-           select at desktop widths. -->
-      <div
-        class="mt-4 space-y-4 border-y border-default py-4"
-        role="group"
-        aria-label="Route filters"
-      >
-        <div class="flex flex-wrap items-end gap-x-6 gap-y-4">
-          <div>
-            <label class="mb-1 block text-xs text-muted">World</label>
-            <USelectMenu
-              v-model="worldFilter"
-              value-key="value"
-              :items="worldOptions"
-              :search-input="false"
-              aria-label="World"
-              class="w-44"
-            />
-          </div>
-          <div>
-            <p class="mb-1 block text-xs text-muted">
-              Terrain
-            </p>
-            <div class="flex flex-wrap gap-1.5">
-              <button
-                v-for="chip in TERRAIN_CHIPS"
-                :key="chip.value"
-                type="button"
-                class="inline-flex h-8 items-center rounded-full border px-3 text-sm transition-colors"
-                :class="terrainFilter.includes(chip.value) ? 'border-ink bg-accented text-highlighted' : 'border-accented bg-elevated text-toned hover:text-highlighted'"
-                :aria-pressed="terrainFilter.includes(chip.value)"
-                @click="toggleTerrain(chip.value)"
-              >
-                {{ chip.label }}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label class="mb-1 block text-xs text-muted">Surface</label>
-            <USelectMenu
-              v-model="surfaceFilter"
-              value-key="value"
-              :items="surfaceOptions"
-              :search-input="false"
-              aria-label="Surface"
-              class="w-44"
-            />
-          </div>
-        </div>
-        <div class="flex flex-wrap items-end gap-x-6 gap-y-4">
-          <!-- The h-8 wrapper gives the thin slider track the same 32px control
-             height as the selects, so the row's items-end alignment lines every
-             cell up. -->
-          <div class="w-full sm:w-52">
-            <label class="mb-1 block text-xs text-muted">
-              Distance {{ pendingDistanceRange[0] }}–{{ pendingDistanceRange[1] }} km
-            </label>
-            <div class="flex h-8 items-center">
-              <USlider
-                :model-value="pendingDistanceRange"
-                :min="0"
-                :max="ROUTE_DISTANCE_MAX_KM"
-                :step="5"
-                size="sm"
-                aria-label="Distance range in kilometres"
-                @update:model-value="onDistanceRangeInput"
-                @change="commitDistanceRange"
-              />
-            </div>
-          </div>
-          <div class="w-full sm:w-52">
-            <label class="mb-1 block text-xs text-muted">
-              Elevation {{ pendingElevationRange[0] }}–{{ pendingElevationRange[1] }} m
-            </label>
-            <div class="flex h-8 items-center">
-              <USlider
-                :model-value="pendingElevationRange"
-                :min="0"
-                :max="ROUTE_ELEVATION_MAX_M"
-                :step="50"
-                size="sm"
-                aria-label="Elevation range in metres"
-                @update:model-value="onElevationRangeInput"
-                @change="commitElevationRange"
-              />
-            </div>
-          </div>
-          <div class="flex items-center gap-3 lg:ml-auto">
-            <!-- The count sits with the controls that produced it; the live
-               region is always there, so a change is announced. -->
-            <p
-              class="text-sm text-muted"
-              aria-live="polite"
-            >
-              {{ countLine }}
-            </p>
-            <UButton
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              icon="i-lucide-rotate-ccw"
-              @click="resetFilters"
-            >
-              Reset
-            </UButton>
-          </div>
-        </div>
-      </div>
+      <RouteFilterBar
+        class="mt-4"
+        :filters="routeFilters"
+        :worlds="data?.worlds ?? []"
+        :count-line="countLine"
+        @reset="resetFilters"
+      />
 
       <DiscoveryStatus
         class="mt-5"

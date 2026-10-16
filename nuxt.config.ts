@@ -96,6 +96,8 @@ export default defineNuxtConfig({
     '/api/bikes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/segments': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/wheelsets': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
+    // The Standings are a committed table, as static as the catalog.
+    '/api/standings/**': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     // A glob: every season lives under its own slug and is as static
     // as the catalog. Without a rule this endpoint had NO Cache-Control at
     // all (the security-headers middleware skips /api/**), leaving it to
@@ -158,6 +160,10 @@ export default defineNuxtConfig({
         '/report',
         '/events',
         '/segments',
+        // The Standings pages carry every route's gaps in their payload and
+        // filter them in the browser, as the homepage does its route cards.
+        '/bikes',
+        '/wheels',
         ...getIndexedSeasons(isoDay(new Date())).map(season => `/events/${season.slug}`),
         ...getIndexedRaces(isoDay(new Date())).map(race => race.path),
         ...getWorlds().map(world => `/worlds/${world.slug}`),
