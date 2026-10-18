@@ -40,8 +40,8 @@
     "audit:signatures": "node scripts/audit-signatures.mjs"
   },
   "dependencies": {
-    "@iconify-json/lucide": "^1.2.139",
-    "@iconify-json/simple-icons": "^1.2.98",
+    "@iconify-json/lucide": "^1.2.142",
+    "@iconify-json/simple-icons": "^1.2.99",
     "@nuxt/ui": "^4.11.3",
     "@nuxtjs/robots": "^6.2.4",
     "@nuxtjs/sitemap": "^8.6.1",
@@ -50,13 +50,13 @@
     "nuxt": "^4.5.2",
     "nuxt-og-image": "^6.10.3",
     "tailwindcss": "^4.3.3",
-    "zod": "^4.6.5",
+    "zod": "^4.6.6",
     "zwift-data": "^2.1.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@nuxt/eslint": "^1.17.0",
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.0",
     "@types/node": "^22.20.5",
     "cspell": "^10.3.6",
     "devalue": "^5.9.4",
@@ -65,7 +65,7 @@
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11",
-    "vue-tsc": "^3.3.12",
-    "wrangler": "^4.147.0"
+    "vue-tsc": "^3.3.13",
+    "wrangler": "^4.149.0"
   }
 }
