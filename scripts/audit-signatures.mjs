@@ -51,7 +51,8 @@ const lock = JSON.parse(readFileSync(path.join(repoRoot, 'package-lock.json'), '
 const packages = new Map()
 for (const [location, entry] of Object.entries(lock.packages)) {
   if (!location || entry.link || entry.inBundle || !entry.resolved?.startsWith(`${registry}/`)) continue
-  const name = location.slice(location.lastIndexOf('node_modules/') + 'node_modules/'.length)
+  // An npm alias (string-width-cjs -> string-width@4) sits under the alias folder but carries the real name.
+  const name = entry.name ?? location.slice(location.lastIndexOf('node_modules/') + 'node_modules/'.length)
   packages.set(`${name}@${entry.version}`, { name, version: entry.version, integrity: entry.integrity })
 }
 
