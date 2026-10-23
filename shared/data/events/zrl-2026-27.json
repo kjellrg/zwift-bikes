@@ -164,18 +164,30 @@
           "categories": [
             {
               "cats": ["A", "B", "C", "D"],
-              "routeName": "ZRL Exclusive Route",
+              "routeSlug": "spiral-summit",
+              "routeName": "Spiral Summit",
               "laps": 1,
               "officialDistanceKm": 24.0,
               "officialElevationM": 283.5,
-              "scoringSegmentsTbd": true,
-              "curatorNote": "WTRL's revised R1 schedule moves A/B off Radio Rendezvous, so all four categories now ride the same ZRL-exclusive route - one group. It isn't in the public catalog (ZwiftInsider reports the name as 'Spiral Summit'), so no group here has a resolvable routeSlug and isRacePublishable() therefore drops the page back to a TBC calendar row. That is the documented publish gate working as intended, not data loss: the published figures stay recorded here and the page returns the moment zwift-data ships the route."
+              "curatorNote": "WTRL's revised R1 schedule moves A/B off Radio Rendezvous, so all four categories ride the same route - one group. Spiral Summit is now in zwift-data (23.9 km, 284 m, event-only) and the scoring passes match its positional segment data exactly: the Jarvis climb and sprint twice each, the Jarvis lap once and the Volcano climb once. The Jarvis lap has no segment page, so it is listed without a link.",
+              "falSegments": [
+                { "name": "Jarvis FWD Climb", "slug": "jarvis-kom", "times": 2 },
+                { "name": "Jarvis FWD Sprint", "slug": "jarvis-sprint", "times": 2 },
+                { "name": "Jarvis FWD Lap", "times": 1 },
+                { "name": "Volcano Climb FWD Climb", "slug": "volcano-kom", "times": 1 }
+              ],
+              "ftsSegments": [
+                { "name": "Jarvis FWD Climb", "slug": "jarvis-kom", "times": 2 },
+                { "name": "Jarvis FWD Sprint", "slug": "jarvis-sprint", "times": 2 },
+                { "name": "Jarvis FWD Lap", "times": 1 },
+                { "name": "Volcano Climb FWD Climb", "slug": "volcano-kom", "times": 1 }
+              ]
             }
           ],
-          "note": "The round closes on a ZRL-exclusive route - 24 km with 283 m of climbing, so rolling rather than mountainous - that is not in the public route catalog, so no bike ranking can be computed for it yet. Scoring segments are not published either. This page fills in as soon as the route becomes public.",
+          "note": "The round closes on Spiral Summit - 24 km with 283 m of climbing, so rolling rather than mountainous. Points are scored on the Jarvis climb and sprint (twice each), the Jarvis lap and the Volcano climb.",
           "powerups": { "allowed": [] },
           "sourceUrl": "https://www.wtrl.racing/zrl/schedule/2026/r1/",
-          "updatedAt": "2026-08-18"
+          "updatedAt": "2026-10-23"
         }
       ]
     },

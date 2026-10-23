@@ -24,8 +24,7 @@ describe('the events hub\'s list of races', () => {
     expect(listed(hubRaceGroups(getSeasons(), '2026-09-24'))).toEqual([
       { title: 'On now', races: ['ZRacing september-stage-3'] },
       { title: 'Next 7 days', races: ['ZRacing september-stage-4', 'ZRL round-1-week-2'] },
-      // Week 6 is on a course we can't rank, so it has no page and is not listed.
-      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5'] }
+      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5', 'ZRacing october-stage-4', 'ZRL round-1-week-6'] }
     ])
   })
 
@@ -124,12 +123,12 @@ describe('what a series box on the hub says', () => {
 
   it('reads the curated calendars as the design did on 2026-09-24', () => {
     expect(seriesStatusLines(getSeasonBySlug('zrl-2026-27')!, '2026-09-24')).toEqual([
-      'Round 1, Fresh & Fast, runs until Tue 27 Oct. Its last race is on a course that isn\'t in our route data, so we can\'t rank it.',
+      'Round 1, Fresh & Fast, runs until Tue 27 Oct.',
       'Round 2, Team Tempo, starts Tue 17 Nov. WTRL hasn\'t announced its routes yet.'
     ])
     expect(seriesStatusLines(getSeasonBySlug('zracing-2026')!, '2026-09-24')).toEqual([
       'September\'s stages, Zwift Racing Powered by DURA-ACE, run until Sun 4 Oct.',
-      'October\'s stages, Tour of Watopia, start Mon 5 Oct. Stage 4 and Stage 5 are on courses that aren\'t in our route data, so we can\'t rank them.'
+      'October\'s stages, Tour of Watopia, start Mon 5 Oct. Its last race is on a course that isn\'t in our route data, so we can\'t rank it.'
     ])
   })
 

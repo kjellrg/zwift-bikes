@@ -335,11 +335,12 @@
             {
               "cats": [],
               "label": "All categories",
+              "routeSlug": "california-dreamin",
               "routeName": "California Dreamin'",
               "laps": 1,
               "officialDistanceKm": 19.1,
               "officialElevationM": 153,
-              "curatorNote": "Zwift Insider lists California Dreamin' as stage 4's Short Ride & Race; California Roll (33.2 km) is the Standard Ride, not a race. New Watopia expansion route, not in zwift-data yet, so this stays a TBC row until it ships; add the routeSlug then. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
+              "curatorNote": "Zwift Insider lists California Dreamin' as stage 4's Short Ride & Race; California Roll (33.2 km) is the Standard Ride, not a race. New Watopia expansion route, now in zwift-data. Published 153 m is well above the route's 106 m (lead-in included), so the page shows both figures. Scratch race format confirmed by the user; the announcement itself publishes no powerups or categories."
             }
           ],
           "note": "Stage 4 of Tour of Watopia is California Dreamin', 19.1 km and 153 m, on a new route from the Watopia expansion.",
