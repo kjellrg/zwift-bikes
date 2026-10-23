@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { StandingsEntry, StandingsRoute, StandingsRouteTimes } from '#shared/types/standings'
-import { formatMeanGap, parseGaps, rankStandings, secondsPerHour } from './standings'
+import { formatMeanGap, parseGaps, profileDiffersFromRider, rankStandings, secondsPerHour, usualTimingFrames } from './standings'
 
 const entries: StandingsEntry[] = [
   { id: '1', name: 'Aero' },
@@ -112,5 +112,25 @@ describe('secondsPerHour', () => {
   it('turns a share into seconds lost per hour of riding', () => {
     expect(secondsPerHour(1)).toBe(36)
     expect(secondsPerHour(0.42)).toBe(15)
+  })
+})
+
+describe('usualTimingFrames', () => {
+  it('names the most common timing frames first, at most two, ties alphabetical', () => {
+    const on = (slug: string, timedOn: string): StandingsRoute => {
+      const base = route(slug, { fastestSec: 600, gapTenths: [0] })
+      return { ...base, times: { standard: { ...base.times.standard!, timedOn } } }
+    }
+    const routes = [on('a', 'Tarmac'), on('b', 'Aethos'), on('c', 'Tarmac'), on('d', 'Venge')]
+    expect(usualTimingFrames(routes, 'standard')).toEqual(['Tarmac', 'Aethos'])
+    expect(usualTimingFrames(routes, 'tt')).toEqual([])
+  })
+})
+
+describe('profileDiffersFromRider', () => {
+  const rider = { weightKg: 75, heightCm: 183, powerW: 225, upgradeStage: 5, draftMode: 'solo' }
+  it('compares weight, height and power', () => {
+    expect(profileDiffersFromRider({ weightKg: 75, heightCm: 183, powerW: 225 }, rider)).toBe(false)
+    expect(profileDiffersFromRider({ weightKg: 75, heightCm: 183, powerW: 230 }, rider)).toBe(true)
   })
 })

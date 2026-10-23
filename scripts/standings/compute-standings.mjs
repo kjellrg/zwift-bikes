@@ -143,8 +143,8 @@ async function inputFingerprint() {
   const hash = createHash('sha256')
   hash.update(JSON.stringify({
     version: STANDINGS_VERSION,
-    rider: [rider.weightKg, rider.heightCm, rider.powerW, rider.defaultUnownedLevel, rider.draftMode, rider.verifiedOnly, rider.includeHaloBikes],
-    frames: getFrames().filter(frame => frame.confidence === 'measured').map(frame => [frame.id, frame.name, frame.category]),
+    rider,
+    frames: getFrames().filter(frame => frame.confidence === 'measured').map(frame => [frame.id, frame.name, frame.category, frame.otherPaints]),
     wheels: getWheelsets().filter(wheelset => wheelset.confidence === 'measured').map(wheelset => [wheelset.key, wheelset.name, wheelset.crrClass])
   }))
   hash.update(readFileSync(path.join(repoRoot, 'shared/data/equipmentPhysics.generated.json')))
@@ -230,7 +230,8 @@ async function worker() {
   // with only the category opened: a frame's time does not depend on which
   // other frames share the page.
   const inputs = { ...DEFAULT_RIDER_INPUTS, bikeCategory: 'all' }
-  // Every wheel a road or TT frame takes under the default filters - the
+  // Every wheel a road or TT frame takes under the default filters (both take
+  // only road-class tyres, see `scoring.ts`) - the
   // pool behind each Wheel alternatives list below.
   const wheelPool = getWheelsets().filter(wheelset => wheelset.crrClass === 'road' && (!inputs.verifiedOnly || wheelset.confidence === 'measured'))
 
@@ -251,7 +252,9 @@ async function worker() {
     const wheels = {}
     const wheelInfo = new Map()
     for (const category of CATEGORIES) {
-      const timedOn = ranked.combos.find(row => row.frame.category === category && !row.frame.hasFixedWheels)
+      // Fastest first by construction of the ranking, but this pick depends on it.
+      const fastestFirst = [...ranked.combos].sort((a, b) => a.finishTimeSec - b.finishTimeSec)
+      const timedOn = fastestFirst.find(row => row.frame.category === category && !row.frame.hasFixedWheels)
       if (!timedOn) continue
       const list = await runRecommendPipeline(undefined, {
         ...request,

@@ -74,14 +74,14 @@ const { load: loadSiteFlags, eventsVisible } = useSiteFlags()
 onMounted(loadSiteFlags)
 
 // The section entries, in the order the header and the mobile menu both
-// list them: the Standings beside the routes they average. Events hides
-// with its section.
+// list them: the courses (routes, segments, events), then the equipment
+// Standings (bikes, wheels). Events hides with its section.
 const sectionEntries = computed(() => [
   { key: 'routes', label: 'Routes', to: '/' },
-  { key: 'bikes', label: 'Bikes', to: '/bikes' },
-  { key: 'wheels', label: 'Wheels', to: '/wheels' },
   { key: 'segments', label: 'Segments', to: '/segments' },
-  ...(eventsVisible.value ? [{ key: 'events', label: 'Events', to: '/events' }] : [])
+  ...(eventsVisible.value ? [{ key: 'events', label: 'Events', to: '/events' }] : []),
+  { key: 'bikes', label: 'Bikes', to: '/bikes' },
+  { key: 'wheels', label: 'Wheels', to: '/wheels' }
 ])
 
 // UHeader's mobile menu closes itself when an entry navigates. These

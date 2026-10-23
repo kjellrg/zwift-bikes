@@ -71,12 +71,15 @@ describe('the committed standings table', () => {
       expect(entry.frameSec[index]).toBe(round1(row.finishTimeSec!))
     }
 
-    const wheelList = entry.wheels.standard!
-    const wheels = await rankRideForQuery({ kind: 'route', route }, { ...query, wheelsForFrame: wheelList.frameId }, { killSwitches: DEFAULT_SITE_FLAGS.killSwitches })
-    if (wheels.status !== 'answer') throw new Error(`wheel alternatives on ${slug} did not answer: ${wheels.status}`)
-    for (const row of wheels.ranking.combos) {
-      const index = table.wheels.findIndex(wheel => wheel.key === row.wheelset!.key)
-      expect(wheelList.sec[index]).toBe(round1(row.finishTimeSec!))
+    for (const category of STANDINGS_CATEGORIES) {
+      const wheelList = entry.wheels[category]
+      if (!wheelList) continue
+      const wheels = await rankRideForQuery({ kind: 'route', route }, { ...query, wheelsForFrame: wheelList.frameId }, { killSwitches: DEFAULT_SITE_FLAGS.killSwitches })
+      if (wheels.status !== 'answer') throw new Error(`${category} wheel alternatives on ${slug} did not answer: ${wheels.status}`)
+      for (const row of wheels.ranking.combos) {
+        const index = table.wheels.findIndex(wheel => wheel.key === row.wheelset!.key)
+        expect(wheelList.sec[index]).toBe(round1(row.finishTimeSec!))
+      }
     }
   })
 })

@@ -37,10 +37,10 @@ const cached: Partial<Record<StandingsKind, StandingsData>> = {}
 
 /** The data one Standings page averages - see the module comment. */
 export function standingsData(kind: StandingsKind): StandingsData {
-  return cached[kind] ??= build(kind)
+  return cached[kind] ??= buildStandingsData(kind)
 }
 
-function build(kind: StandingsKind): StandingsData {
+function buildStandingsData(kind: StandingsKind): StandingsData {
   const cards = new Map(allRouteCards().map(card => [card.slug, card]))
   const timedRoutes = table.routes.filter(route => cards.has(route.slug))
   const columns = kind === 'bikes' ? frameColumns() : wheelColumns()
@@ -71,13 +71,13 @@ function gapsToFastest(seconds: (number | null)[]): Pick<StandingsRouteTimes, 'f
   return { fastestSec, gapTenths: seconds.map(value => value === null ? '' : String(Math.round((value - fastestSec) * 10))).join(',') }
 }
 
-interface Columns {
+interface EntryColumns {
   entries: Record<StandingsCategory, StandingsEntry[]>
   times: (route: StandingsTable['routes'][number], category: StandingsCategory) => StandingsRouteTimes | undefined
 }
 
 /** Bikes: each category's frames, each timed on its own fastest wheels, against the category's fastest frame. */
-function frameColumns(): Columns {
+function frameColumns(): EntryColumns {
   const indices = Object.fromEntries(STANDINGS_CATEGORIES.map(category => [
     category,
     table.frames.flatMap((frame, index) => frame.category === category ? [index] : [])
@@ -101,18 +101,19 @@ function frameEntry(frame: StandingsTable['frames'][number]): StandingsEntry {
  * every route are listed once - as the Wheel alternatives list collapses
  * them - under the plainest name, with the others beside it.
  */
-function wheelColumns(): Columns {
+function wheelColumns(): EntryColumns {
   const groups = new Map<string, number[]>()
   table.wheels.forEach((_, index) => {
     const signature = JSON.stringify(table.routes.map(route => STANDINGS_CATEGORIES.map(category => route.wheels[category]?.sec[index] ?? null)))
     groups.set(signature, [...(groups.get(signature) ?? []), index])
   })
-  const plainestFirst = (a: number, b: number) => table.wheels[a]!.name.length - table.wheels[b]!.name.length || table.wheels[a]!.key.localeCompare(table.wheels[b]!.key, 'en')
-  const leads = [...groups.values()].map(members => [...members].sort(plainestFirst))
+  const wheelAt = (index: number) => table.wheels[index]!
+  const byPlainestName = (a: number, b: number) => wheelAt(a).name.length - wheelAt(b).name.length || wheelAt(a).key.localeCompare(wheelAt(b).key, 'en')
+  const leads = [...groups.values()].map(members => [...members].sort(byPlainestName))
   const entries: StandingsEntry[] = leads.map(([lead, ...others]) => ({
-    id: table.wheels[lead!]!.key,
-    name: table.wheels[lead!]!.name,
-    ...(others.length ? { sameTimes: others.map(other => table.wheels[other]!.name) } : {})
+    id: wheelAt(lead!).key,
+    name: wheelAt(lead!).name,
+    ...(others.length ? { sameTimes: others.map(other => wheelAt(other).name) } : {})
   }))
   const frameNames = new Map(table.frames.map(frame => [frame.id, frame.name]))
   return {

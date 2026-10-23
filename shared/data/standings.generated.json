@@ -1,5 +1,5 @@
 {
-  "fingerprint": "e827460d6adc67a2866d5c0a1e093d2f197230f1d5552a62c34d8bf8daf2c82b",
+  "fingerprint": "cb0ca2559aa61b793b0290bd4509ba784e0be1454674fecf0e23e7d051079b15",
   "rider": {"weightKg":75,"heightCm":175,"powerW":225,"upgradeStage":5,"draftMode":"solo"},
   "frames": [
     {"id":2454550,"name":"Ventum One","category":"tt"},
