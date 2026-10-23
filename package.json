@@ -47,7 +47,7 @@
     "@nuxtjs/sitemap": "^8.6.2",
     "@takumi-rs/core": "^2.16.2",
     "h3": "^1.15.11",
-    "nuxt": "^4.5.2",
+    "nuxt": "^4.6.2",
     "nuxt-og-image": "^6.10.4",
     "tailwindcss": "^4.3.3",
     "zod": "^4.6.7",
