@@ -4,7 +4,7 @@ import { STANDINGS_CATEGORIES } from '#shared/types/standings'
 import { discoveryCountLine } from '../utils/discoveryCounts'
 import { otherPaintsLine } from '../utils/rankingResults'
 import { filterRouteCards } from '../utils/routeCardFilters'
-import { formatMeanGap, rankStandings, secondsPerHour, STANDINGS_PAGE_SIZE } from '../utils/standings'
+import { formatMeanGap, profileDiffersFromRider, rankStandings, secondsPerHour, STANDINGS_PAGE_SIZE, usualTimingFrames, wheelTimingNote } from '../utils/standings'
 
 /**
  * A Standings page (see `CONTEXT.md`): every bike, or every wheelset, ranked
@@ -65,25 +65,9 @@ const { openProfile } = useOverlays()
 onMounted(loadRiderProfile)
 const rider = computed(() => data.value?.rider)
 const profileDiffers = computed(() => hasStoredProfile.value && rider.value
-  && (weightKg.value !== rider.value.weightKg || heightCm.value !== rider.value.heightCm || powerW.value !== rider.value.powerW))
+  && profileDiffersFromRider({ weightKg: weightKg.value, heightCm: heightCm.value, powerW: powerW.value }, rider.value))
 
-// The frame each route's wheels were timed on, most common first: the
-// wheels page names the usual one, so "the route's fastest frame" is a bike
-// a rider can picture rather than a rule.
-const usualTimingFrames = computed(() => {
-  const tally = new Map<string, number>()
-  for (const route of routes.value) {
-    const frame = route.times[category.value]?.timedOn
-    if (frame) tally.set(frame, (tally.get(frame) ?? 0) + 1)
-  }
-  return [...tally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'en')).slice(0, 2).map(([name]) => name)
-})
-
-const wheelTimingNote = computed(() => {
-  const bike = category.value === 'tt' ? 'TT' : 'road'
-  const usual = usualTimingFrames.value.length ? ` - here mostly the ${usualTimingFrames.value.join(' or the ')} -` : ''
-  return `On each route, every wheelset is timed on the route's fastest ${bike} bike that takes wheels${usual} and compared with the fastest wheels on it: the list rank 1 opens on that route's page.`
-})
+const wheelNote = computed(() => wheelTimingNote(category.value, usualTimingFrames(routes.value, category.value)))
 
 // The filters live in the URL, as the homepage's do - `?category=tt
 // &world=watopia&terrain=hilly` - read once after mount and written from the
@@ -292,7 +276,7 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
           On each route, every frame is timed on its own fastest wheels and compared with the route's fastest {{ category === 'tt' ? 'TT' : 'road' }} bike - the ranking that route's page shows.
         </p>
         <p v-else>
-          {{ wheelTimingNote }}
+          {{ wheelNote }}
         </p>
         <p>
           A gap counts as its share of the route's fastest time, so each route weighs the same however long it is, and the standings rank the mean of those shares. The seconds per hour are that same share as time: what it costs over an hour of riding.

@@ -1,4 +1,4 @@
-import type { StandingsCategory, StandingsEntry, StandingsRoute, StandingsRouteTimes } from '#shared/types/standings'
+import type { StandingsCategory, StandingsEntry, StandingsRider, StandingsRoute, StandingsRouteTimes } from '#shared/types/standings'
 
 /** How many rows a Standings page shows before its "Show all" button. */
 export const STANDINGS_PAGE_SIZE = 25
@@ -34,10 +34,10 @@ export interface Standings {
  */
 export function rankStandings(routes: readonly StandingsRoute[], entries: readonly StandingsEntry[], category: StandingsCategory): Standings {
   const counted = routes.flatMap(route => route.times[category] ?? [])
-  const sums = entries.map(() => ({ pct: 0, wins: 0, timed: 0 }))
+  const totals = entries.map(() => ({ pct: 0, wins: 0, timed: 0 }))
   for (const times of counted) {
     parseGaps(times).forEach((gapTenths, index) => {
-      const sum = sums[index]
+      const sum = totals[index]
       if (gapTenths === null || !sum) return
       sum.pct += (gapTenths / 10) / times.fastestSec * 100
       if (gapTenths === 0) sum.wins++
@@ -49,7 +49,7 @@ export function rankStandings(routes: readonly StandingsRoute[], entries: readon
   const untimed: StandingsEntry[] = []
   if (counted.length) {
     entries.forEach((entry, index) => {
-      const sum = sums[index]!
+      const sum = totals[index]!
       if (sum.timed < counted.length) untimed.push(entry)
       else rows.push({ entry, meanGapPct: sum.pct / counted.length, wins: sum.wins })
     })
@@ -79,4 +79,26 @@ export function formatMeanGap(pct: number): string {
 /** The same gap as seconds lost per hour of riding - the share, in time a rider can picture. */
 export function secondsPerHour(pct: number): number {
   return Math.round(pct / 100 * 3600)
+}
+
+/** The frames the routes' wheels were timed on, most common first (at most two): "the route's fastest frame" as a bike a rider can picture. */
+export function usualTimingFrames(routes: readonly StandingsRoute[], category: StandingsCategory): string[] {
+  const tally = new Map<string, number>()
+  for (const route of routes) {
+    const frame = route.times[category]?.timedOn
+    if (frame) tally.set(frame, (tally.get(frame) ?? 0) + 1)
+  }
+  return [...tally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'en')).slice(0, 2).map(([name]) => name)
+}
+
+/** How the Wheels page says its times are worked out for `category`, naming the usual timing frames. */
+export function wheelTimingNote(category: StandingsCategory, usualFrames: readonly string[]): string {
+  const bike = category === 'tt' ? 'TT' : 'road'
+  const usual = usualFrames.length ? ` - here mostly the ${usualFrames.join(' or the ')} -` : ''
+  return `On each route, every wheelset is timed on the route's fastest ${bike} bike that takes wheels${usual} and compared with the fastest wheels on it: the list rank 1 opens on that route's page.`
+}
+
+/** Whether a stored rider profile differs from the default rider the standings were timed for. */
+export function profileDiffersFromRider(profile: Pick<StandingsRider, 'weightKg' | 'heightCm' | 'powerW'>, rider: StandingsRider): boolean {
+  return profile.weightKg !== rider.weightKg || profile.heightCm !== rider.heightCm || profile.powerW !== rider.powerW
 }

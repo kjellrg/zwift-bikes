@@ -230,7 +230,8 @@ async function worker() {
   // with only the category opened: a frame's time does not depend on which
   // other frames share the page.
   const inputs = { ...DEFAULT_RIDER_INPUTS, bikeCategory: 'all' }
-  // Every wheel a road or TT frame takes under the default filters - the
+  // Every wheel a road or TT frame takes under the default filters (both take
+  // only road-class tyres, see `scoring.ts`) - the
   // pool behind each Wheel alternatives list below.
   const wheelPool = getWheelsets().filter(wheelset => wheelset.crrClass === 'road' && (!inputs.verifiedOnly || wheelset.confidence === 'measured'))
 
