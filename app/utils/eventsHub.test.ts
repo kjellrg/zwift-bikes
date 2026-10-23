@@ -24,7 +24,7 @@ describe('the events hub\'s list of races', () => {
     expect(listed(hubRaceGroups(getSeasons(), '2026-09-24'))).toEqual([
       { title: 'On now', races: ['ZRacing september-stage-3'] },
       { title: 'Next 7 days', races: ['ZRacing september-stage-4', 'ZRL round-1-week-2'] },
-      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5', 'ZRacing october-stage-4', 'ZRL round-1-week-6'] }
+      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5', 'ZRL round-1-week-6'] }
     ])
   })
 
@@ -128,7 +128,7 @@ describe('what a series box on the hub says', () => {
     ])
     expect(seriesStatusLines(getSeasonBySlug('zracing-2026')!, '2026-09-24')).toEqual([
       'September\'s stages, Zwift Racing Powered by DURA-ACE, run until Sun 4 Oct.',
-      'October\'s stages, Tour of Watopia, start Mon 5 Oct. Its last race is on a course that isn\'t in our route data, so we can\'t rank it.'
+      'October\'s stages, Tour of Watopia, start Mon 5 Oct. Stage 4 and Stage 5 are on courses that aren\'t in our route data, so we can\'t rank them.'
     ])
   })
 
