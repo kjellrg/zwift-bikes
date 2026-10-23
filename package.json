@@ -40,32 +40,32 @@
     "audit:signatures": "node scripts/audit-signatures.mjs"
   },
   "dependencies": {
-    "@iconify-json/lucide": "^1.2.142",
-    "@iconify-json/simple-icons": "^1.2.99",
-    "@nuxt/ui": "^4.11.3",
+    "@iconify-json/lucide": "^1.2.145",
+    "@iconify-json/simple-icons": "^1.2.100",
+    "@nuxt/ui": "^4.12.0",
     "@nuxtjs/robots": "^6.2.4",
-    "@nuxtjs/sitemap": "^8.6.1",
-    "@takumi-rs/core": "^2.14.0",
+    "@nuxtjs/sitemap": "^8.6.2",
+    "@takumi-rs/core": "^2.16.2",
     "h3": "^1.15.11",
     "nuxt": "^4.5.2",
-    "nuxt-og-image": "^6.10.3",
+    "nuxt-og-image": "^6.10.4",
     "tailwindcss": "^4.3.3",
-    "zod": "^4.6.6",
+    "zod": "^4.6.7",
     "zwift-data": "^2.1.0"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.13.0",
+    "@axe-core/playwright": "4.14.0",
     "@nuxt/eslint": "^1.17.0",
-    "@playwright/test": "1.64.0",
+    "@playwright/test": "1.64.1",
     "@types/node": "^22.20.5",
-    "cspell": "^10.3.6",
+    "cspell": "^10.4.0",
     "devalue": "^5.9.4",
     "esbuild": "^0.27.7",
     "eslint": "^10.12.0",
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.11",
+    "vitest": "^4.1.12",
     "vue-tsc": "^3.3.13",
-    "wrangler": "^4.149.0"
+    "wrangler": "^4.151.0"
   }
 }
