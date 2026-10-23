@@ -32,6 +32,27 @@ watch([() => routeFilters.active, category], () => {
   visibleCount.value = STANDINGS_PAGE_SIZE
 })
 
+const routesLabel = (count: number) => `${count} ${count === 1 ? 'route' : 'routes'}`
+
+// What differs between the two pages, in one place.
+const COPY = {
+  bikes: {
+    title: 'The fastest bikes across your routes',
+    intro: 'Every bot-tested frame, on its own fastest wheels, ridden over every route you pick - and ranked by how far behind each route\'s fastest bike it finishes, on average.',
+    heading: 'Bike standings',
+    categoryLabel: 'Bikes',
+    column: 'Bike'
+  },
+  wheels: {
+    title: 'The fastest wheels across your routes',
+    intro: 'Every bot-tested wheelset, on each route\'s fastest bike, ridden over every route you pick - and ranked by how far behind each route\'s fastest wheels it finishes, on average.',
+    heading: 'Wheel standings',
+    categoryLabel: 'Ridden on',
+    column: 'Wheels'
+  }
+} as const
+const copy = computed(() => COPY[props.kind])
+
 const subjects = computed(() => props.kind === 'bikes'
   ? { plural: 'bikes', category: category.value === 'tt' ? 'TT bikes' : 'road bikes' }
   : { plural: 'wheels', category: category.value === 'tt' ? 'wheels on TT bikes' : 'wheels on road bikes' })
@@ -64,10 +85,6 @@ const wheelTimingNote = computed(() => {
   return `On each route, every wheelset is timed on the route's fastest ${bike} bike that takes wheels${usual} and compared with the fastest wheels on it: the list rank 1 opens on that route's page.`
 })
 
-function resetFilters() {
-  routeFilters.reset()
-}
-
 // The filters live in the URL, as the homepage's do - `?category=tt
 // &world=watopia&terrain=hilly` - read once after mount and written from the
 // committed values. They belong to the page: never a Shared view, never the
@@ -87,20 +104,10 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
   <UContainer class="pb-8">
     <div class="pt-10 pb-5 lg:pt-16 lg:pb-7">
       <h1 class="text-balance text-[clamp(2.25rem,5.5vw,3.75rem)] leading-[0.98] font-bold font-display tracking-[-0.01em] text-highlighted">
-        <template v-if="kind === 'bikes'">
-          The fastest bikes across your routes
-        </template>
-        <template v-else>
-          The fastest wheels across your routes
-        </template>
+        {{ copy.title }}
       </h1>
       <p class="mt-4 max-w-[60ch] text-lg text-toned">
-        <template v-if="kind === 'bikes'">
-          Every bot-tested frame, on its own fastest wheels, ridden over every route you pick - and ranked by how far behind each route's fastest bike it finishes, on average.
-        </template>
-        <template v-else>
-          Every bot-tested wheelset, on each route's fastest bike, ridden over every route you pick - and ranked by how far behind each route's fastest wheels it finishes, on average.
-        </template>
+        {{ copy.intro }}
       </p>
       <p
         v-if="rider"
@@ -127,7 +134,7 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
         id="standings-heading"
         class="text-2xl font-semibold font-heading text-highlighted"
       >
-        {{ kind === 'bikes' ? 'Bike standings' : 'Wheel standings' }}
+        {{ copy.heading }}
       </h2>
       <p class="mt-1 text-sm text-muted">
         Narrow the routes and the standings follow: only the routes your filters leave are averaged.
@@ -138,7 +145,7 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
           :id="`standings-category-${kind}`"
           class="mb-1 block text-xs text-muted"
         >
-          {{ kind === 'bikes' ? 'Bikes' : 'Ridden on' }}
+          {{ copy.categoryLabel }}
         </p>
         <div
           class="flex flex-wrap gap-1.5"
@@ -164,7 +171,7 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
         :filters="routeFilters"
         :worlds="data?.worlds ?? []"
         :count-line="countLine"
-        @reset="resetFilters"
+        @reset="routeFilters.reset()"
       />
 
       <DiscoveryStatus
@@ -178,7 +185,7 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
         <div class="space-y-6">
           <table class="w-full border-collapse text-left">
             <caption class="sr-only">
-              {{ subjects.category }}, ranked by mean gap to the fastest over {{ standings.routeCount }} {{ standings.routeCount === 1 ? 'route' : 'routes' }}
+              {{ subjects.category }}, ranked by mean gap to the fastest over {{ routesLabel(standings.routeCount) }}
             </caption>
             <thead>
               <tr class="border-b border-default text-xs text-muted">
@@ -192,7 +199,7 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                   scope="col"
                   class="px-2.5 py-2 font-normal"
                 >
-                  {{ kind === 'bikes' ? 'Bike' : 'Wheels' }}
+                  {{ copy.column }}
                 </th>
                 <th
                   scope="col"
@@ -236,11 +243,8 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                   >
                     Times the same as {{ row.entry.sameTimes.join(', ') }}
                   </p>
-                  <p
-                    v-if="row.wins"
-                    class="text-sm text-muted sm:hidden"
-                  >
-                    Fastest on {{ row.wins }} {{ row.wins === 1 ? 'route' : 'routes' }}
+                  <p class="text-sm text-muted sm:hidden">
+                    Fastest on {{ routesLabel(row.wins) }}
                   </p>
                 </td>
                 <td class="whitespace-nowrap px-2.5 py-3 text-right">
@@ -252,7 +256,7 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                   </p>
                 </td>
                 <td class="whitespace-nowrap px-2.5 pt-4 text-right text-toned max-sm:hidden">
-                  {{ row.wins ? `${row.wins} ${row.wins === 1 ? 'route' : 'routes'}` : '–' }}
+                  {{ routesLabel(row.wins) }}
                 </td>
               </tr>
             </tbody>

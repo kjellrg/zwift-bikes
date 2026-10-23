@@ -143,8 +143,8 @@ async function inputFingerprint() {
   const hash = createHash('sha256')
   hash.update(JSON.stringify({
     version: STANDINGS_VERSION,
-    rider: [rider.weightKg, rider.heightCm, rider.powerW, rider.defaultUnownedLevel, rider.draftMode, rider.verifiedOnly, rider.includeHaloBikes],
-    frames: getFrames().filter(frame => frame.confidence === 'measured').map(frame => [frame.id, frame.name, frame.category]),
+    rider,
+    frames: getFrames().filter(frame => frame.confidence === 'measured').map(frame => [frame.id, frame.name, frame.category, frame.otherPaints]),
     wheels: getWheelsets().filter(wheelset => wheelset.confidence === 'measured').map(wheelset => [wheelset.key, wheelset.name, wheelset.crrClass])
   }))
   hash.update(readFileSync(path.join(repoRoot, 'shared/data/equipmentPhysics.generated.json')))
@@ -251,7 +251,9 @@ async function worker() {
     const wheels = {}
     const wheelInfo = new Map()
     for (const category of CATEGORIES) {
-      const timedOn = ranked.combos.find(row => row.frame.category === category && !row.frame.hasFixedWheels)
+      // Fastest first by construction of the ranking, but this pick depends on it.
+      const fastestFirst = [...ranked.combos].sort((a, b) => a.finishTimeSec - b.finishTimeSec)
+      const timedOn = fastestFirst.find(row => row.frame.category === category && !row.frame.hasFixedWheels)
       if (!timedOn) continue
       const list = await runRecommendPipeline(undefined, {
         ...request,
