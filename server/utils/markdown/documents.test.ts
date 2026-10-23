@@ -506,9 +506,9 @@ describe('the twin of a race that has been run', () => {
   })
 
   it('points to a next race with no page yet at its round on the season page', async () => {
-    // Round 1 Week 6, on Tue 27 Oct, is on a course the catalog doesn't carry.
-    const run = await markdownDocumentFor('/events/zrl-2026-27/round-1-week-5')!({ ...PAUSED, today: '2026-10-21' })
-    expect(run.markdown).toContain(`> Next ZRL race: [Week 6, Tue 27 Oct](${ORIGIN}/events/zrl-2026-27#round-1)`)
+    // Tour of Watopia stage 4, on Mon 26 Oct, is on a course the catalog doesn't carry yet.
+    const run = await markdownDocumentFor('/events/zracing-2026/october-stage-3')!({ ...PAUSED, today: '2026-10-26' })
+    expect(run.markdown).toContain(`> Next ZRacing race: [Stage 4, 26 Oct – 1 Nov](${ORIGIN}/events/zracing-2026#round-10)`)
   })
 
   it('points to the next round with nothing announced once no race is left but its season is not over', async () => {
