@@ -23,6 +23,7 @@
 import type { ReportKind } from '../utils/report'
 import type { ComboScore } from '../../shared/types/catalog'
 import type { EquipmentDrawerRecord } from '../utils/equipmentDrawer'
+import type { StandingsBikeRecord, StandingsWinsRecord } from '../utils/standings'
 
 /** What a contextual "something look wrong here?" link prefills the report form with. */
 export interface ReportSeed {
@@ -60,6 +61,13 @@ export function useOverlays() {
   // from the Applied Ranking on screen for as long as that ranking contains
   // its bike, which `BikeDetailSlideover` does; nothing pushes at it.
   const bikeDetail = useState<EquipmentDrawerRecord | undefined>('overlay-bike-detail', () => undefined)
+  // The Standings' Fastest on drawer: also opened from a button, over a page
+  // that has no ranking for it to read, so its record is whole at opening.
+  const isStandingsWinsOpen = useState<boolean>('overlay-standings-wins-open', () => false)
+  const standingsWins = useState<StandingsWinsRecord | undefined>('overlay-standings-wins', () => undefined)
+  // The Bikes standings' bike drawer, opened the same way from a row's name.
+  const isStandingsBikeOpen = useState<boolean>('overlay-standings-bike-open', () => false)
+  const standingsBike = useState<StandingsBikeRecord | undefined>('overlay-standings-bike', () => undefined)
   // True while the open overlay was opened from the mobile menu, which is
   // gone by the time the overlay closes - `app.vue` then sends focus to the
   // menu toggle instead of letting Reka return it to a detached entry. Set
@@ -81,7 +89,7 @@ export function useOverlays() {
 
   /**
    * Whether anything a back gesture should dismiss is on screen: any of the
-   * five Overlays, the mobile menu, or a hand-over between two of them
+   * seven Overlays, the mobile menu, or a hand-over between two of them
    * mid-flight. One value, deliberately - the history entry (#239) belongs to
    * the chain rather than to whichever Overlay is mounted right now, so a menu
    * that opens an Overlay, or an About that becomes a Report, is one entry and
@@ -92,6 +100,8 @@ export function useOverlays() {
     || isProfileOpen.value
     || isReportOpen.value
     || isBikeDetailOpen.value
+    || isStandingsWinsOpen.value
+    || isStandingsBikeOpen.value
     || isMenuOpen.value
     || isSwappingOverlays.value)
 
@@ -107,6 +117,8 @@ export function useOverlays() {
     isProfileOpen.value = false
     isReportOpen.value = false
     isBikeDetailOpen.value = false
+    isStandingsWinsOpen.value = false
+    isStandingsBikeOpen.value = false
     isMenuOpen.value = false
     isSwappingOverlays.value = false
   }
@@ -119,6 +131,18 @@ export function useOverlays() {
   function openBikeDetail(combo: ComboScore) {
     bikeDetail.value = openedEquipmentDrawerRecord(combo, appliedRanking.value)
     isBikeDetailOpen.value = true
+  }
+
+  /** Opens the drawer on the routes one Standings row is fastest on. */
+  function openStandingsWins(record: StandingsWinsRecord) {
+    standingsWins.value = record
+    isStandingsWinsOpen.value = true
+  }
+
+  /** Opens the drawer on one bike's place in the Standings on screen. */
+  function openStandingsBike(record: StandingsBikeRecord) {
+    standingsBike.value = record
+    isStandingsBikeOpen.value = true
   }
 
   function openAbout(event: MouseEvent) {
@@ -195,6 +219,12 @@ export function useOverlays() {
     isBikeDetailOpen,
     bikeDetail,
     openBikeDetail,
+    isStandingsWinsOpen,
+    standingsWins,
+    openStandingsWins,
+    isStandingsBikeOpen,
+    standingsBike,
+    openStandingsBike,
     openAbout,
     openGarage,
     openProfile,

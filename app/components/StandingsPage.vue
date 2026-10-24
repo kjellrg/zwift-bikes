@@ -4,7 +4,7 @@ import { STANDINGS_CATEGORIES } from '#shared/types/standings'
 import { discoveryCountLine } from '../utils/discoveryCounts'
 import { otherPaintsLine } from '../utils/rankingResults'
 import { filterRouteCards } from '../utils/routeCardFilters'
-import { formatMeanGap, profileDiffersFromRider, rankStandings, secondsPerHour, STANDINGS_PAGE_SIZE, usualTimingFrames, wheelTimingNote } from '../utils/standings'
+import { bikeRecord, formatMeanGap, profileDiffersFromRider, rankStandings, secondsPerHour, STANDINGS_PAGE_SIZE, usualTimingFrames, wheelTimingNote, winsRecord, type StandingsRow } from '../utils/standings'
 
 /**
  * A Standings page (see `CONTEXT.md`): every bike, or every wheelset, ranked
@@ -33,6 +33,10 @@ watch([() => routeFilters.active, category], () => {
 })
 
 const routesLabel = (count: number) => `${count} ${count === 1 ? 'route' : 'routes'}`
+
+const { openStandingsWins, openStandingsBike } = useOverlays()
+const showWins = (row: StandingsRow) => openStandingsWins(winsRecord(row, category.value))
+const showBike = (row: StandingsRow) => openStandingsBike(bikeRecord(row, standings.value.rows, routes.value, data.value?.entries[category.value] ?? [], category.value))
 
 // What differs between the two pages, in one place.
 const COPY = {
@@ -213,7 +217,19 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                 </td>
                 <td class="min-w-0 px-2.5 py-3">
                   <p class="font-semibold text-highlighted break-words">
-                    {{ row.entry.name }}
+                    <button
+                      v-if="kind === 'bikes'"
+                      type="button"
+                      aria-haspopup="dialog"
+                      class="text-left font-semibold underline decoration-rule-strong hover:decoration-current"
+                      :aria-label="`Details for ${row.entry.name}`"
+                      @click="showBike(row)"
+                    >
+                      {{ row.entry.name }}
+                    </button>
+                    <template v-else>
+                      {{ row.entry.name }}
+                    </template>
                   </p>
                   <p
                     v-if="row.entry.otherPaints"
@@ -227,7 +243,25 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                   >
                     Times the same as {{ row.entry.sameTimes.join(', ') }}
                   </p>
-                  <p class="text-sm text-muted sm:hidden">
+                  <p
+                    v-if="row.wins"
+                    class="text-sm text-muted sm:hidden"
+                  >
+                    Fastest on
+                    <button
+                      type="button"
+                      aria-haspopup="dialog"
+                      class="underline decoration-rule-strong hover:text-highlighted"
+                      :aria-label="`${routesLabel(row.wins)} ${row.entry.name} is fastest on`"
+                      @click="showWins(row)"
+                    >
+                      {{ routesLabel(row.wins) }}
+                    </button>
+                  </p>
+                  <p
+                    v-else
+                    class="text-sm text-muted sm:hidden"
+                  >
                     Fastest on {{ routesLabel(row.wins) }}
                   </p>
                 </td>
@@ -240,7 +274,19 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                   </p>
                 </td>
                 <td class="whitespace-nowrap px-2.5 pt-4 text-right text-toned max-sm:hidden">
-                  {{ routesLabel(row.wins) }}
+                  <button
+                    v-if="row.wins"
+                    type="button"
+                    aria-haspopup="dialog"
+                    class="underline decoration-rule-strong hover:text-highlighted"
+                    :aria-label="`${routesLabel(row.wins)} ${row.entry.name} is fastest on`"
+                    @click="showWins(row)"
+                  >
+                    {{ routesLabel(row.wins) }}
+                  </button>
+                  <template v-else>
+                    {{ routesLabel(row.wins) }}
+                  </template>
                 </td>
               </tr>
             </tbody>
