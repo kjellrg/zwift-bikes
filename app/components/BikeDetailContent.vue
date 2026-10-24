@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ClassifiedWheel, ComboScore, EquipmentPhysicsDelta } from '../../shared/types/catalog'
 import type { EquipmentDrawerView } from '../utils/equipmentDrawer'
+import { FRAME_RATINGS, upgradeSchemeText } from '../utils/frameLabels'
 import { formatSignedDelta } from '../utils/rankingResults'
 
 /**
@@ -229,12 +230,7 @@ const scoreRows = computed(() => {
     cols.push({ key: 'front', label: 'Front wheel', scores: wheelset.value.front.scores })
     if (wheelset.value.rear.id !== wheelset.value.front.id) cols.push({ key: 'rear', label: 'Rear wheel', scores: wheelset.value.rear.scores })
   }
-  return { cols, rows: [
-    { key: 'aero', label: 'Aero (flat/fast)' },
-    { key: 'climb', label: 'Climbing' },
-    { key: 'gravel', label: 'Gravel' },
-    { key: 'cobble', label: 'Cobbles' }
-  ] as const }
+  return { cols, rows: FRAME_RATINGS }
 })
 
 /**
@@ -252,12 +248,7 @@ const physicsRows = computed(() => {
 
 const signed = formatSignedDelta
 
-// Zwift's own names for the scheme, matching docs/bike-upgrade-levels.md.
-const UPGRADE_AXIS_LABELS = { distance: 'distance', duration: 'duration', elevation: 'elevation' } as const
-const UPGRADE_TIER_LABELS = { entry: 'entry-level', mid: 'mid-range', high: 'high-end' } as const
-const upgradeSchemeText = computed(() => frame.value.upgradeScheme
-  ? `${UPGRADE_TIER_LABELS[frame.value.upgradeScheme.tier]} frame, stages earned by ${UPGRADE_AXIS_LABELS[frame.value.upgradeScheme.axis]}`
-  : undefined)
+const schemeText = computed(() => frame.value.upgradeScheme ? upgradeSchemeText(frame.value.upgradeScheme) : undefined)
 const baselineName = computed(() => frame.value.category === 'tt' ? 'the Zwift TT reference bike' : 'the Zwift Carbon reference bike')
 const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'Road', gravel: 'Gravel', mountain: 'Mountain' }
 </script>
@@ -450,8 +441,8 @@ const CRR_CLASS_LABELS: Record<ClassifiedWheel['crrClass'], string> = { road: 'R
         />
       </div>
       <p class="text-xs text-muted">
-        Seconds saved per hour over the just-bought bike at each stage, from ZwiftInsider's bot tests at 300 W (flat: Tempus Fugit, climb: Alpe du Zwift).<template v-if="upgradeSchemeText">
-          A {{ upgradeSchemeText }}.
+        Seconds saved per hour over the just-bought bike at each stage, from ZwiftInsider's bot tests at 300 W (flat: Tempus Fugit, climb: Alpe du Zwift).<template v-if="schemeText">
+          A {{ schemeText }}.
         </template>
         A stage that adds nothing on one test is real: each stage upgrades one thing, and an aero stage barely shows uphill.
       </p>

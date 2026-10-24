@@ -94,6 +94,7 @@ export default defineNuxtConfig({
     '/api/routes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/route-cards': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/bikes': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
+    '/api/bikes/**': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/segments': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     '/api/wheelsets': { headers: { 'cache-control': 'public, max-age=300, stale-while-revalidate=3600' } },
     // The Standings are a committed table, as static as the catalog.

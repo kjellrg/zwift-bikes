@@ -11,7 +11,7 @@
 // are shared with links buried elsewhere - "(edit profile)" / "(edit garage)"
 // on the route, segment and event pages, and the report link inside the About
 // overlay itself.
-const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport, isBikeDetailOpen, returnsFocusToMenuToggle, isMenuOpen, closeOverlays } = useOverlays()
+const { isAboutOpen, isGarageOpen, isProfileOpen, isReportOpen, reportSeed, openAbout, openGarage, openProfile, openReport, isBikeDetailOpen, isStandingsWinsOpen, isStandingsBikeOpen, returnsFocusToMenuToggle, isMenuOpen, closeOverlays } = useOverlays()
 
 // Where focus goes when the about, garage, profile or report overlay
 // closes. Reka returns it to the element that had it when the dialog
@@ -330,6 +330,14 @@ useHead({
     />
     <BikeDetailSlideover
       v-model:open="isBikeDetailOpen"
+      :content="drawerContent"
+    />
+    <StandingsWinsSlideover
+      v-model:open="isStandingsWinsOpen"
+      :content="drawerContent"
+    />
+    <StandingsBikeSlideover
+      v-model:open="isStandingsBikeOpen"
       :content="drawerContent"
     />
     <ReportModal
