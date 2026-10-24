@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { StandingsEntry, StandingsRoute, StandingsRouteTimes } from '#shared/types/standings'
-import { bikeRecord, formatGapSeconds, formatMargin, formatMeanGap, parseGaps, profileDiffersFromRider, rankStandings, secondsPerHour, usualTimingFrames, winsRecord } from './standings'
+import { bikeRecord, routeLink, formatGapSeconds, formatMargin, formatMeanGap, parseGaps, profileDiffersFromRider, rankStandings, secondsPerHour, usualTimingFrames, winsRecord } from './standings'
 
 const entries: StandingsEntry[] = [
   { id: '1', name: 'Aero' },
@@ -54,7 +54,7 @@ describe('rankStandings', () => {
       route('b', { fastestSec: 1000, gapTenths: [0, 40, 10] }),
       route('c', { fastestSec: 1000, gapTenths: [20, 0, 10] })
     ]
-    const wins = Object.fromEntries(rankStandings(routes, entries, 'standard').rows.map(row => [row.entry.name, row.wins]))
+    const wins = Object.fromEntries(rankStandings(routes, entries, 'standard').rows.map(row => [row.entry.name, row.wonOn.length]))
     expect(wins).toEqual({ Aero: 2, Climber: 1, Allround: 0 })
   })
 
@@ -69,13 +69,12 @@ describe('rankStandings', () => {
     expect(aero.wonOn.map(won => won.slug)).toEqual(['b-route', 'a-route'])
     expect(winsRecord(aero, 'standard')).toEqual({
       name: 'Aero',
-      linkQuery: '',
+      category: 'standard',
       routes: [
         { slug: 'a-route', name: 'a-route', worldName: 'Watopia', terrainLabel: 'Rolling' },
         { slug: 'b-route', name: 'b-route', worldName: 'Watopia', terrainLabel: 'Rolling' }
       ]
     })
-    expect(winsRecord(aero, 'tt').linkQuery).toBe('?category=tt')
     expect(rows.find(row => row.entry.name === 'Allround')!.wonOn).toEqual([])
   })
 
@@ -127,17 +126,18 @@ describe('bikeRecord', () => {
   it('breaks the mean gap down by terrain and names the closest and furthest routes', () => {
     const standings = rankStandings(routes, entries, 'standard')
     const aero = standings.rows.find(row => row.entry.name === 'Aero')!
-    const record = bikeRecord(aero, standings.rows, routes, entries, 'standard')
-    expect(record).toMatchObject({ frameId: 1, name: 'Aero', rank: 3, ranked: 3, wins: 2, routeCount: 4, linkQuery: '' })
+    const record = bikeRecord(aero, standings.rows, { routes, entries, category: 'standard' })
+    expect(record).toMatchObject({ frameId: 1, name: 'Aero', rank: 3, ranked: 3, wins: 2, routeCount: 4, category: 'standard' })
     expect(record.meanGapSec).toBeCloseTo(3)
     // Flat: 0% and 0.2%; hilly: 1% and 0% - each as a share of a 1000 s route.
     expect(record.terrain.map(row => [row.label, row.routeCount])).toEqual([['Flat', 2], ['Hilly', 2]])
     expect(record.terrain[0]!.meanGapPct).toBeCloseTo(0.1)
     expect(record.terrain[1]!.meanGapPct).toBeCloseTo(0.5)
     expect(record.terrain.map(row => row.meanGapSec)).toEqual([1, 5])
-    expect(record.closest.map(gap => gap.slug)).toEqual(['flat-1', 'hilly-2', 'flat-2'])
-    expect(record.closest.map(gap => gap.gapSec)).toEqual([0, 0, 2])
-    expect(record.furthest.map(gap => gap.slug)).toEqual(['hilly-1'])
+    // The two routes it wins are no near-miss, so only where it loses is listed.
+    expect(record.closest.map(gap => gap.slug)).toEqual(['flat-2', 'hilly-1'])
+    expect(record.closest.map(gap => gap.gapSec)).toEqual([2, 10])
+    expect(record.furthest).toEqual([])
   })
 
   it('measures the fastest bike against the runner-up instead of against itself', () => {
@@ -145,20 +145,21 @@ describe('bikeRecord', () => {
     // loses 1 s and Climber 5 s, on flat-2 Allround 1 s and Climber 0 s, and so on.
     const standings = rankStandings(routes, entries, 'standard')
     const leader = standings.rows[0]!
-    const record = bikeRecord(leader, standings.rows, routes, entries, 'standard')
+    const record = bikeRecord(leader, standings.rows, { routes, entries, category: 'standard' })
     expect(leader.entry.name).toBe('Allround')
     expect(record.marginAgainst).toBe('Climber')
+    expect(record.marginRouteCount).toBe(4)
     // Margins to Climber: flat-1 -0.4%, flat-2 +0.1%, hilly-1 +0.1%, hilly-2 -0.2% (negative: ahead).
     expect(record.closest.map(gap => [gap.slug, gap.gapPct.toFixed(1)])).toEqual([['flat-2', '0.1'], ['hilly-1', '0.1'], ['hilly-2', '-0.2']])
     expect(record.furthest.map(gap => gap.slug)).toEqual(['flat-1'])
     expect(record.furthest[0]!.gapSec).toBeCloseTo(-4)
     // Everyone else is measured against the fastest, as before.
-    expect(bikeRecord(standings.rows[1]!, standings.rows, routes, entries, 'standard').marginAgainst).toBeUndefined()
+    expect(bikeRecord(standings.rows[1]!, standings.rows, { routes, entries, category: 'standard' }).marginAgainst).toBeUndefined()
   })
 
   it('names the bikes ranked either side of it, and how far apart their means are', () => {
     const standings = rankStandings(routes, entries, 'standard')
-    const at = (name: string) => bikeRecord(standings.rows.find(row => row.entry.name === name)!, standings.rows, routes, entries, 'standard')
+    const at = (name: string) => bikeRecord(standings.rows.find(row => row.entry.name === name)!, standings.rows, { routes, entries, category: 'standard' })
     // Climber (0.2%, 2 s) sits between Allround (0.1%, 1 s) and Aero (0.3%, 3 s).
     expect(at('Climber').ahead).toMatchObject({ name: 'Allround' })
     expect(at('Climber').ahead!.gapPct).toBeCloseTo(0.1)
@@ -167,6 +168,22 @@ describe('bikeRecord', () => {
     expect(at('Climber').behind!.gapSec).toBeCloseTo(1)
     expect(at('Allround').ahead).toBeUndefined()
     expect(at('Aero').behind).toBeUndefined()
+  })
+
+  it('counts the routes each neighbour is faster, slower and level on, from the neighbour\'s side', () => {
+    // Climber is faster than Aero on a and b, slower on c, level on d.
+    const headToHead = [
+      route('a', { fastestSec: 1000, gapTenths: [20, 0] }),
+      route('b', { fastestSec: 1000, gapTenths: [30, 0] }),
+      route('c', { fastestSec: 1000, gapTenths: [0, 90] }),
+      route('d', { fastestSec: 1000, gapTenths: [5, 5] })
+    ]
+    const pair = entries.slice(0, 2)
+    const standings = rankStandings(headToHead, pair, 'standard')
+    expect(standings.rows.map(row => row.entry.name)).toEqual(['Aero', 'Climber'])
+    const scope = { routes: headToHead, entries: pair, category: 'standard' } as const
+    expect(bikeRecord(standings.rows[0]!, standings.rows, scope).behind).toMatchObject({ name: 'Climber', fasterOn: 2, slowerOn: 1, levelOn: 1 })
+    expect(bikeRecord(standings.rows[1]!, standings.rows, scope).ahead).toMatchObject({ name: 'Aero', fasterOn: 1, slowerOn: 2, levelOn: 1 })
   })
 
   it('keeps the sign of the seconds, which can disagree with the ranking by share', () => {
@@ -180,7 +197,7 @@ describe('bikeRecord', () => {
     const pair = entries.slice(0, 2)
     const standings = rankStandings(mixed, pair, 'standard')
     expect(standings.rows.map(row => row.entry.name)).toEqual(['Aero', 'Climber'])
-    const aero = bikeRecord(standings.rows[0]!, standings.rows, mixed, pair, 'standard')
+    const aero = bikeRecord(standings.rows[0]!, standings.rows, { routes: mixed, entries: pair, category: 'standard' })
     expect(aero.behind!.gapPct).toBeCloseTo(0.5)
     expect(aero.behind!.gapSec).toBeCloseTo(-24)
   })
@@ -188,12 +205,13 @@ describe('bikeRecord', () => {
   it('leaves out routes the bike has no time on, and links Time trial routes in their category', () => {
     const partial = [...routes, terrainRoute('untimed', 'rolling', [null, 0, 0])]
     const standings = rankStandings(partial, entries, 'standard')
-    const row = { entry: entries[0]!, rank: 1, meanGapPct: 0, wins: 0, wonOn: [] }
-    const record = bikeRecord(row, [row], partial, entries, 'standard')
+    const row = { entry: entries[0]!, rank: 1, meanGapPct: 0, wonOn: [] }
+    const record = bikeRecord(row, [row], { routes: partial, entries, category: 'standard' })
     expect(record.routeCount).toBe(4)
     expect(record.terrain.map(terrain => terrain.label)).not.toContain('Rolling')
     expect(standings.untimed.map(entry => entry.name)).toEqual(['Aero'])
-    expect(bikeRecord(row, [row], [], entries, 'tt').linkQuery).toBe('?category=tt')
+    expect(routeLink('a', 'standard')).toBe('/routes/a')
+    expect(routeLink('a', 'tt')).toBe('/routes/a?category=tt')
   })
 })
 

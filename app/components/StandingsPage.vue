@@ -4,7 +4,7 @@ import { STANDINGS_CATEGORIES } from '#shared/types/standings'
 import { discoveryCountLine } from '../utils/discoveryCounts'
 import { otherPaintsLine } from '../utils/rankingResults'
 import { filterRouteCards } from '../utils/routeCardFilters'
-import { bikeRecord, formatMeanGap, profileDiffersFromRider, rankStandings, secondsPerHour, STANDINGS_PAGE_SIZE, usualTimingFrames, wheelTimingNote, winsRecord, type StandingsRow } from '../utils/standings'
+import { bikeRecord, formatMeanGap, profileDiffersFromRider, rankStandings, secondsPerHour, STANDINGS_PAGE_SIZE, usualTimingFrames, wheelTimingNote, winsRecord, type StandingsRow, type StandingsScope } from '../utils/standings'
 
 /**
  * A Standings page (see `CONTEXT.md`): every bike, or every wheelset, ranked
@@ -22,7 +22,8 @@ const CATEGORY_CHIPS: Record<StandingsCategory, string> = { standard: 'Road', tt
 
 const routeFilters = useRouteFilters()
 const routes = computed(() => filterRouteCards(data.value?.routes ?? [], { search: '', ...routeFilters.active }))
-const standings = computed(() => rankStandings(routes.value, data.value?.entries[category.value] ?? [], category.value))
+const scope = computed<StandingsScope>(() => ({ routes: routes.value, entries: data.value?.entries[category.value] ?? [], category: category.value }))
+const standings = computed(() => rankStandings(scope.value.routes, scope.value.entries, scope.value.category))
 const counts = computed(() => [{ value: standings.value.routeCount, noun: 'route' }])
 const countLine = computed(() => discoveryCountLine(counts.value))
 
@@ -32,11 +33,9 @@ watch([() => routeFilters.active, category], () => {
   visibleCount.value = STANDINGS_PAGE_SIZE
 })
 
-const routesLabel = (count: number) => `${count} ${count === 1 ? 'route' : 'routes'}`
-
 const { openStandingsWins, openStandingsBike } = useOverlays()
 const showWins = (row: StandingsRow) => openStandingsWins(winsRecord(row, category.value))
-const showBike = (row: StandingsRow) => openStandingsBike(bikeRecord(row, standings.value.rows, routes.value, data.value?.entries[category.value] ?? [], category.value))
+const showBike = (row: StandingsRow) => openStandingsBike(bikeRecord(row, standings.value.rows, scope.value))
 
 // What differs between the two pages, in one place.
 const COPY = {
@@ -243,26 +242,12 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                   >
                     Times the same as {{ row.entry.sameTimes.join(', ') }}
                   </p>
-                  <p
-                    v-if="row.wins"
-                    class="text-sm text-muted sm:hidden"
-                  >
+                  <p class="text-sm text-muted sm:hidden">
                     Fastest on
-                    <button
-                      type="button"
-                      aria-haspopup="dialog"
-                      class="underline decoration-rule-strong hover:text-highlighted"
-                      :aria-label="`${routesLabel(row.wins)} ${row.entry.name} is fastest on`"
-                      @click="showWins(row)"
-                    >
-                      {{ routesLabel(row.wins) }}
-                    </button>
-                  </p>
-                  <p
-                    v-else
-                    class="text-sm text-muted sm:hidden"
-                  >
-                    Fastest on {{ routesLabel(row.wins) }}
+                    <StandingsWinsButton
+                      :row="row"
+                      @open="showWins(row)"
+                    />
                   </p>
                 </td>
                 <td class="whitespace-nowrap px-2.5 py-3 text-right">
@@ -274,19 +259,10 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
                   </p>
                 </td>
                 <td class="whitespace-nowrap px-2.5 pt-4 text-right text-toned max-sm:hidden">
-                  <button
-                    v-if="row.wins"
-                    type="button"
-                    aria-haspopup="dialog"
-                    class="underline decoration-rule-strong hover:text-highlighted"
-                    :aria-label="`${routesLabel(row.wins)} ${row.entry.name} is fastest on`"
-                    @click="showWins(row)"
-                  >
-                    {{ routesLabel(row.wins) }}
-                  </button>
-                  <template v-else>
-                    {{ routesLabel(row.wins) }}
-                  </template>
+                  <StandingsWinsButton
+                    :row="row"
+                    @open="showWins(row)"
+                  />
                 </td>
               </tr>
             </tbody>

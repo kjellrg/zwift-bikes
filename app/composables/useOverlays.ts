@@ -61,11 +61,11 @@ export function useOverlays() {
   // from the Applied Ranking on screen for as long as that ranking contains
   // its bike, which `BikeDetailSlideover` does; nothing pushes at it.
   const bikeDetail = useState<EquipmentDrawerRecord | undefined>('overlay-bike-detail', () => undefined)
-  // The Standings' Fastest on drawer: also opened from a button, over a page
+  // The Standings' Fastest on Overlay: also opened from a button, over a page
   // that has no ranking for it to read, so its record is whole at opening.
   const isStandingsWinsOpen = useState<boolean>('overlay-standings-wins-open', () => false)
   const standingsWins = useState<StandingsWinsRecord | undefined>('overlay-standings-wins', () => undefined)
-  // The Bikes standings' bike drawer, opened the same way from a row's name.
+  // The Bikes standings' bike Overlay, opened the same way from a row's name.
   const isStandingsBikeOpen = useState<boolean>('overlay-standings-bike-open', () => false)
   const standingsBike = useState<StandingsBikeRecord | undefined>('overlay-standings-bike', () => undefined)
   // True while the open overlay was opened from the mobile menu, which is
@@ -133,13 +133,13 @@ export function useOverlays() {
     isBikeDetailOpen.value = true
   }
 
-  /** Opens the drawer on the routes one Standings row is fastest on. */
+  /** Opens the Fastest on Overlay on the routes one Standings row is fastest on. */
   function openStandingsWins(record: StandingsWinsRecord) {
     standingsWins.value = record
     isStandingsWinsOpen.value = true
   }
 
-  /** Opens the drawer on one bike's place in the Standings on screen. */
+  /** Opens the bike Overlay on one bike's place in the Standings on screen. */
   function openStandingsBike(record: StandingsBikeRecord) {
     standingsBike.value = record
     isStandingsBikeOpen.value = true

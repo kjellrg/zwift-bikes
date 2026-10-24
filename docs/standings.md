@@ -25,28 +25,45 @@ time**, so every route weighs the same. A mean of seconds would let one
 100 km route outweigh ten 10 km ones. The "≈ s per hour" figure beside each
 mean is the same share as seconds over an hour of riding. "Fastest on" counts
 the routes where the bike or wheelset is the fastest; the count is a button
-that opens an Overlay listing those routes with their world and terrain (only the ones the filters leave,
-so the list matches the count), each linking to its page - with `?category=tt`
-when the Time trial switch is on. A count of zero is plain text.
+that opens an Overlay listing those routes with their world and terrain (only
+the ones the filters leave, so the list matches the count), each linking to
+its page - with `?category=tt` when the Time trial switch is on. A count of zero is plain text.
 
-On the Bikes page the bike's name opens a second drawer (the Wheels page has
+On the Bikes page the bike's name opens a second Overlay (the Wheels page has
 none). It has two halves. The first is worked out in the browser from the
 payload already loaded, over the filtered routes: the rank, the mean gap as a
-share and in seconds, the bikes ranked just ahead and just behind it (with how
-far apart the means are), the mean gap by terrain class, and the three routes
-the bike is closest to and furthest from the fastest on (each linking to its
-page). The fastest bike cannot be measured against itself, so for it the same
-two lists are its margins to the runner-up instead, smallest and largest, as
-"ahead" or "behind". The seconds are a plain average over routes of different lengths: a
-feel for the size of the share, which is what ranks the bikes. The second is
-the frame itself, fetched when the drawer opens from `/api/bikes/{id}` (the
-standings entry's id is the frame's id): its category, style, ratings, whether
-its wheels are fixed, Garage controls, and its upgrade curve. The upgrade
-numbers are ZwiftInsider's flat and climb bot tests per stage, not a
-per-route simulation - per-route upgrade times would multiply the compute and
-the payload by six, and the route page's own drawer already has them. The
-"Upgrades" column of the stage table (`app/utils/upgradeStages.ts`) is
-checked against the published charts by `upgradeStages.test.ts`.
+share and in seconds, the bikes ranked just ahead and just behind it, the mean
+gap by terrain class, and the three routes the bike is closest to and furthest
+from the fastest on (each linking to its page). Each neighbour is told from
+its own side: how far ahead or behind it is on mean share, how many seconds
+faster or slower it is per route on average, and on how many of the routes
+both are timed on it is faster, slower and level. The closest and furthest
+lists leave out routes the bike is the fastest on, which are no near-miss. The
+fastest bike cannot be measured against itself, so for it the same two lists
+are its margins to the runner-up instead, smallest and largest, as "ahead" or
+"behind", over the routes both have a time on - the Overlay says how many of
+the routes that is. The seconds are a plain average over routes of different
+lengths: a feel for the size of the share, which is what ranks the bikes.
+
+The second half is the frame itself, fetched when the Overlay opens from
+`/api/bikes/{id}` (the standings entry's id is the frame's id), which is
+cached like `/api/bikes`: its category, style, ratings, whether its wheels are
+fixed, whether ZwiftInsider bot-tested it ("Bot-tested") or its numbers are
+estimated ("Estimated"), the Garage add/remove control, and its upgrade
+curve - small flat and climb charts, a stage table, and what full upgrading
+saves per hour. Everything is at upgrade stage 5, the stage every standing is
+timed at (`DEFAULT_UNOWNED_LEVEL`), so there is no stage picker; the rider's
+own stage applies on each route's page. The upgrade numbers are ZwiftInsider's
+flat and climb bot tests per stage, not a per-route simulation - per-route
+upgrade times would multiply the compute and the payload by six, and the
+route page's Equipment drawer already has them. The "Upgrades" column of the
+stage table (`app/utils/upgradeStages.ts`) is checked against the published
+charts by `upgradeStages.test.ts`. While the frame loads the Overlay shows a
+skeleton, and if the fetch fails a "Try again" button.
+
+Both Overlays close once a route link in them has been followed
+(`useCloseOverlaysOnNavigate`): they are mounted in `app.vue`, so they would
+otherwise stay open over the route page.
 
 ## Where the times come from
 

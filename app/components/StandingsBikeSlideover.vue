@@ -2,28 +2,27 @@
 import type { SlideoverProps } from '@nuxt/ui'
 import type { ClassifiedBikeFrame } from '../../shared/types/catalog'
 import { BIKE_STYLE_LABELS } from '../utils/labels'
-import { formatGapSeconds, formatMargin, formatMeanGap, secondsPerHour } from '../utils/standings'
+import { DEFAULT_UNOWNED_LEVEL } from '#shared/utils/upgradeStage'
+import { FRAME_RATINGS, upgradeSchemeText } from '../utils/frameLabels'
+import { formatSignedDelta } from '../utils/rankingResults'
+import { formatGapSeconds, formatGapShare, formatMargin, formatNeighbourSeconds, routeLink, secondsPerHour } from '../utils/standings'
 import { upgradeGains } from '../utils/upgradeCurve'
 import { stageSteps, stageUpgrades } from '../utils/upgradeStages'
 
-// Mounted once in `app.vue` beside the other drawers and opened through
+// Mounted once in `app.vue` beside the other Overlays and opened through
 // `useOverlays().openStandingsBike` from a Bikes standings row's name. What
 // the row already knows (its place, its gaps by terrain, its closest and
 // furthest routes) arrives in the record; the frame itself - upgrade curve
-// and scheme, ratings, fixed wheels - is fetched once the drawer opens, so
+// and scheme, ratings, fixed wheels - is fetched once the Overlay opens, so
 // the page does not carry it for every row.
 defineProps<{ content?: SlideoverProps['content'] }>()
 const open = defineModel<boolean>('open', { default: false })
-const { standingsBike, closeOverlays } = useOverlays()
+const { standingsBike } = useOverlays()
+useCloseOverlaysOnNavigate(open)
 
-// A link in an Overlay takes the rider off it: see `StandingsWinsSlideover`.
-const route = useRoute()
-watch(() => route.path, () => {
-  if (open.value) closeOverlays()
-})
-
-// Every standing is timed at the last stage, so that is the one marked on the curves.
-const STANDINGS_STAGE = 5
+// `compute-standings.mjs` times every bike at the default stage for an unowned
+// frame, so that is the one marked on the curves.
+const STANDINGS_STAGE = DEFAULT_UNOWNED_LEVEL
 
 const frame = ref<ClassifiedBikeFrame>()
 const failed = ref(false)
@@ -31,14 +30,14 @@ let token = 0
 async function loadFrame() {
   const record = standingsBike.value
   if (!record) return
-  const mine = ++token
+  const request = ++token
   frame.value = undefined
   failed.value = false
   try {
     const loaded = await $fetch<ClassifiedBikeFrame>(`/api/bikes/${record.frameId}`)
-    if (mine === token) frame.value = loaded
+    if (request === token) frame.value = loaded
   } catch {
-    if (mine === token) failed.value = true
+    if (request === token) failed.value = true
   }
 }
 watch([open, standingsBike], ([isOpen]) => {
@@ -52,21 +51,6 @@ watch(open, (isOpen) => {
 }, { immediate: true })
 const ownedLevel = computed(() => frame.value ? owned.value[frame.value.id] : undefined)
 const isOwned = computed(() => ownedLevel.value !== undefined)
-
-const routesLabel = (count: number) => `${count} ${count === 1 ? 'route' : 'routes'}`
-// A gap that rounds to nothing but is not nothing is not "0.00%": that is
-// what the drawer says only where the bike loses nothing at all.
-const gapText = (pct: number) => formatMeanGap(pct) === '0.00%' && pct > 0 ? '<0.01%' : formatMeanGap(pct)
-
-// Said by the sign of the seconds, not by where the bike is ranked: the
-// ranking goes by share, so a neighbour can be a little slower in seconds
-// than the bike ranked behind it.
-const neighbourSeconds = (seconds: number) => Math.abs(seconds) < 0.05
-  ? 'about the same on average'
-  : `${formatGapSeconds(Math.abs(seconds))} ${seconds < 0 ? 'faster' : 'slower'} on average`
-
-const UPGRADE_AXIS_LABELS = { distance: 'distance', duration: 'duration', elevation: 'elevation' } as const
-const UPGRADE_TIER_LABELS = { entry: 'entry-level', mid: 'mid-range', high: 'high-end' } as const
 
 const upgrade = computed(() => {
   const current = frame.value
@@ -83,13 +67,11 @@ const upgrade = computed(() => {
   }
 })
 
-const signed = (value: number) => `${value >= 0 ? '+' : '−'}${Math.abs(value).toFixed(1)}`
-const RATINGS = [
-  { key: 'aero', label: 'Aero (flat/fast)' },
-  { key: 'climb', label: 'Climbing' },
-  { key: 'gravel', label: 'Gravel' },
-  { key: 'cobble', label: 'Cobbles' }
-] as const
+const signed = (value: number) => formatSignedDelta(value, 1)
+
+// Each neighbour's head to head over the routes both are timed on, from its side.
+const headToHead = (near: { fasterOn: number, slowerOn: number, levelOn: number }) =>
+  `Faster on ${routesLabel(near.fasterOn)}, slower on ${routesLabel(near.slowerOn)}${near.levelOn ? `, level on ${routesLabel(near.levelOn)}` : ''}`
 </script>
 
 <template>
@@ -115,7 +97,7 @@ const RATINGS = [
               Mean gap to the fastest
             </dt>
             <dd class="text-xl font-semibold font-heading text-highlighted">
-              {{ standingsBike.meanGapSec === 0 ? 'Fastest on every route' : gapText(standingsBike.meanGapPct) }}
+              {{ standingsBike.meanGapSec === 0 ? 'Fastest on every route' : formatGapShare(standingsBike.meanGapPct) }}
               <span
                 v-if="standingsBike.meanGapSec !== 0"
                 class="block text-sm font-normal text-muted"
@@ -139,12 +121,13 @@ const RATINGS = [
               </dt>
               <dd class="text-highlighted break-words">
                 {{ near.other!.name }}
-                <span class="block text-sm text-muted">{{ gapText(near.other!.gapPct).replace('+', '') }} apart · {{ neighbourSeconds(near.other!.gapSec) }}</span>
+                <span class="block text-sm text-muted">{{ formatGapShare(near.other!.gapPct).replace('+', '') }} {{ near.key === 'ahead' ? 'ahead' : 'behind' }} on mean share · {{ formatNeighbourSeconds(near.other!.gapSec) }}</span>
+                <span class="block text-xs text-muted">{{ headToHead(near.other!) }}</span>
               </dd>
             </template>
           </dl>
           <p class="text-xs text-muted">
-            Over the routes your filters leave, timed on its own fastest wheels at upgrade stage 5 for the default rider. The bikes are ranked by the percentage, which weighs every route alike; the seconds are the plain average over routes of different lengths.
+            Over the routes your filters leave, timed on its own fastest wheels at upgrade stage {{ STANDINGS_STAGE }} for the default rider. The bikes are ranked by the percentage, which weighs every route alike; the seconds are the plain average over routes of different lengths.
           </p>
         </section>
 
@@ -200,7 +183,7 @@ const RATINGS = [
                   {{ row.routeCount }}
                 </td>
                 <td class="px-1 py-2 text-right font-semibold text-highlighted">
-                  {{ row.meanGapSec === 0 ? 'Fastest' : gapText(row.meanGapPct) }}
+                  {{ row.meanGapSec === 0 ? 'Fastest' : formatGapShare(row.meanGapPct) }}
                 </td>
                 <td class="px-1 py-2 text-right text-muted tabular-nums">
                   {{ row.meanGapSec === 0 ? '–' : formatGapSeconds(row.meanGapSec) }}
@@ -210,6 +193,12 @@ const RATINGS = [
           </table>
         </section>
 
+        <p
+          v-if="standingsBike.marginAgainst"
+          class="text-xs text-muted"
+        >
+          This is the fastest bike, so the lists below are its margins to the runner-up, {{ standingsBike.marginAgainst }}, over the {{ standingsBike.marginRouteCount }} of {{ routesLabel(standingsBike.routeCount) }} both are timed on.
+        </p>
         <section
           v-for="group in [
             { key: 'closest', heading: standingsBike.marginAgainst ? 'Closest to the runner-up' : 'Closest to the fastest', routes: standingsBike.closest },
@@ -221,12 +210,6 @@ const RATINGS = [
           <h3 class="text-lg font-semibold font-heading text-highlighted">
             {{ group.heading }}
           </h3>
-          <p
-            v-if="standingsBike.marginAgainst"
-            class="text-xs text-muted"
-          >
-            This is the fastest bike, so these are its margins to the runner-up, {{ standingsBike.marginAgainst }}.
-          </p>
           <ul
             :aria-label="group.heading"
             class="divide-y divide-default border-y border-default"
@@ -236,7 +219,7 @@ const RATINGS = [
               :key="gapRoute.slug"
             >
               <NuxtLink
-                :to="`/routes/${gapRoute.slug}${standingsBike.linkQuery}`"
+                :to="routeLink(gapRoute.slug, standingsBike.category)"
                 class="flex items-baseline justify-between gap-3 px-1 py-2.5 hover:text-primary"
               >
                 <span class="min-w-0">
@@ -244,11 +227,8 @@ const RATINGS = [
                   <span class="block text-xs text-muted">{{ gapRoute.worldName }} · {{ gapRoute.terrainLabel }}</span>
                 </span>
                 <span class="shrink-0 text-right">
-                  <span class="block font-semibold text-highlighted">{{ standingsBike.marginAgainst ? formatMargin(gapRoute.gapPct) : gapRoute.gapSec === 0 ? 'Fastest' : gapText(gapRoute.gapPct) }}</span>
-                  <span
-                    v-if="standingsBike.marginAgainst || gapRoute.gapSec !== 0"
-                    class="block text-xs text-muted tabular-nums"
-                  >{{ formatGapSeconds(standingsBike.marginAgainst ? Math.abs(gapRoute.gapSec) : gapRoute.gapSec) }}</span>
+                  <span class="block font-semibold text-highlighted">{{ standingsBike.marginAgainst ? formatMargin(gapRoute.gapPct) : formatGapShare(gapRoute.gapPct) }}</span>
+                  <span class="block text-xs text-muted tabular-nums">{{ formatGapSeconds(standingsBike.marginAgainst ? Math.abs(gapRoute.gapSec) : gapRoute.gapSec) }}</span>
                 </span>
               </NuxtLink>
             </li>
@@ -301,7 +281,7 @@ const RATINGS = [
             </p>
             <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-md sm:grid-cols-4">
               <div
-                v-for="rating in RATINGS"
+                v-for="rating in FRAME_RATINGS"
                 :key="rating.key"
               >
                 <dt class="text-xs text-muted">
@@ -323,28 +303,8 @@ const RATINGS = [
                 {{ isOwned ? 'Frame in your garage' : 'Add frame to garage' }}
               </UButton>
             </div>
-            <div
-              v-if="isOwned && frame.confidence === 'measured'"
-              class="flex flex-wrap items-center gap-2 text-sm"
-            >
-              <span class="text-muted">Your upgrade stage</span>
-              <div class="flex items-center gap-0.5">
-                <button
-                  v-for="level in [0, 1, 2, 3, 4, 5]"
-                  :key="level"
-                  type="button"
-                  class="flex size-7 items-center justify-center rounded text-xs font-medium transition-colors"
-                  :class="level === ownedLevel ? 'bg-inverted text-inverted' : 'bg-accented text-toned hover:text-highlighted'"
-                  :aria-label="`Set upgrade stage ${level} for ${frame.name}`"
-                  :aria-pressed="level === ownedLevel"
-                  @click="setOwned(frame.id, level)"
-                >
-                  {{ level }}
-                </button>
-              </div>
-            </div>
             <p class="text-xs text-muted">
-              The standings time every bike at stage 5. Your own stage applies on each route's page.
+              Timed at upgrade stage {{ STANDINGS_STAGE }}, the stage marked on the curves below. Your own stage applies on each route's page.
             </p>
           </section>
 
@@ -369,7 +329,7 @@ const RATINGS = [
             </div>
             <p class="text-sm text-toned">
               Fully upgraded it saves {{ upgrade.totalFlat.toFixed(1) }} s per hour on the flat and {{ upgrade.totalClimb.toFixed(1) }} s per hour on a climb, over the just-bought bike.<template v-if="frame.upgradeScheme">
-                A {{ UPGRADE_TIER_LABELS[frame.upgradeScheme.tier] }} frame, stages earned by {{ UPGRADE_AXIS_LABELS[frame.upgradeScheme.axis] }}.
+                A {{ upgradeSchemeText(frame.upgradeScheme) }}.
               </template>
             </p>
             <table class="w-full border-collapse text-md">

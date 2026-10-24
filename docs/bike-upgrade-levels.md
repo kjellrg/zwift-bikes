@@ -34,10 +34,13 @@ Each stage upgrades **one specific thing**, and which thing depends on the tier:
 | Tier | Stage 1 | Stage 2 | Stage 3 | Stage 4 | Stage 5 |
 |---|---|---|---|---|---|
 | Entry-Level | Aero | Weight | Drivetrain | *5% Drops* | *5% XP* |
-| Mid-Range | Aero | Weight | Drivetrain | Aero¹ | *5% Drops* |
+| Mid-Range | Aero | Weight | Drivetrain | Aero | *5% Drops* |
 | High-End / Halo | Aero | Weight | Drivetrain | Aero¹ | Weight¹ |
 
-¹ Duration-based frames swap these: stage 4 is Weight and stage 5 is Aero.
+¹ High-end duration-based frames swap these: stage 4 is Weight and stage 5 is
+Aero. Mid-range duration frames do not: their measured curves jump on the flat
+at stage 4, which is an aero stage (see `stageUpgrades` in
+`app/utils/upgradeStages.ts`).
 
 Two consequences fall straight out of that table:
 

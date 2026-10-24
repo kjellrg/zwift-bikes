@@ -71,7 +71,7 @@ test.describe('a bike on the Bikes page', () => {
     const drawer = page.getByRole('dialog')
 
     await openers.first().click()
-    await expect(drawer.getByText('This is the fastest bike, so these are its margins to the runner-up').first()).toBeVisible()
+    await expect(drawer.getByText('This is the fastest bike, so the lists below are its margins to the runner-up').first()).toBeVisible()
     // Where it loses nothing on a terrain it says so, rather than printing a gap of nothing.
     await expect(drawer.getByRole('table', { name: 'Mean gap to the fastest by route terrain' }).getByRole('cell', { name: 'Fastest', exact: true }).first()).toBeVisible()
     await expect(drawer.getByText('0.00%', { exact: true })).toHaveCount(0)

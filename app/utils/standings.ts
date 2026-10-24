@@ -15,9 +15,7 @@ export interface StandingsRow {
    * 100 km route does not outweigh ten 10 km ones.
    */
   meanGapPct: number
-  /** How many of the routes it is the fastest on. */
-  wins: number
-  /** Those routes, in the order the filtered routes came in. */
+  /** The routes it is the fastest on, in the order the filtered routes came in; its "Fastest on" count is their number. */
   wonOn: StandingsRoute[]
 }
 
@@ -28,6 +26,9 @@ export interface Standings {
   /** Entries left out because some of those routes have no time for them - a mean over fewer routes is not comparable. */
   untimed: StandingsEntry[]
 }
+
+/** A gap in tenths of a second as a share of its route's fastest time, in percent. */
+const gapShare = (gapTenths: number, times: StandingsRouteTimes) => (gapTenths / 10) / times.fastestSec * 100
 
 /**
  * Ranks `entries` by their mean gap to the fastest over `routes` (see
@@ -45,7 +46,7 @@ export function rankStandings(routes: readonly StandingsRoute[], entries: readon
     parseGaps(times).forEach((gapTenths, index) => {
       const sum = totals[index]
       if (gapTenths === null || !sum) return
-      sum.pct += (gapTenths / 10) / times.fastestSec * 100
+      sum.pct += gapShare(gapTenths, times)
       if (gapTenths === 0) sum.wonOn.push(route)
       sum.timed++
     })
@@ -57,71 +58,84 @@ export function rankStandings(routes: readonly StandingsRoute[], entries: readon
     entries.forEach((entry, index) => {
       const sum = totals[index]!
       if (sum.timed < counted.length) untimed.push(entry)
-      else rows.push({ entry, meanGapPct: sum.pct / counted.length, wins: sum.wonOn.length, wonOn: sum.wonOn })
+      else rows.push({ entry, meanGapPct: sum.pct / counted.length, wonOn: sum.wonOn })
     })
   }
-  rows.sort((a, b) => a.meanGapPct - b.meanGapPct || b.wins - a.wins || a.entry.name.localeCompare(b.entry.name, 'en'))
+  rows.sort((a, b) => a.meanGapPct - b.meanGapPct || b.wonOn.length - a.wonOn.length || a.entry.name.localeCompare(b.entry.name, 'en'))
   return { rows: rows.map((row, index) => ({ ...row, rank: index + 1 })), routeCount: counted.length, untimed }
 }
+
+/** A route as the Standings Overlays list and link it. */
+export interface StandingsRouteRef {
+  slug: string
+  name: string
+  worldName: string
+  terrainLabel: string
+}
+
+const routeRef = ({ slug, name, worldName, terrain }: StandingsRoute): StandingsRouteRef => ({ slug, name, worldName, terrainLabel: TERRAIN_LABELS[terrain] })
+
+/** A route's page in the category the standings are showing: the route page ranks road bikes unless told the Time trial category. */
+export const routeLink = (slug: string, category: StandingsCategory) => `/routes/${slug}${category === 'tt' ? '?category=tt' : ''}`
 
 /** What the Fastest on Overlay shows: the routes one entry is fastest on, ready to list and link. */
 export interface StandingsWinsRecord {
   /** The bike's or wheelset's name. */
   name: string
-  /** Appended to each route's link: the route page ranks road bikes unless told the Time trial category. */
-  linkQuery: string
-  routes: { slug: string, name: string, worldName: string, terrainLabel: string }[]
+  /** The category the standings were showing, which each route links in: see `routeLink`. */
+  category: StandingsCategory
+  routes: StandingsRouteRef[]
 }
-
-const linkQueryFor = (category: StandingsCategory) => category === 'tt' ? '?category=tt' : ''
 
 /** The Fastest on Overlay's record for `row`: its routes by name, each linking to its page in the category the standings are showing. */
 export function winsRecord(row: Pick<StandingsRow, 'entry' | 'wonOn'>, category: StandingsCategory): StandingsWinsRecord {
   return {
     name: row.entry.name,
-    linkQuery: linkQueryFor(category),
+    category,
     routes: row.wonOn
-      .map(({ slug, name, worldName, terrain }) => ({ slug, name, worldName, terrainLabel: TERRAIN_LABELS[terrain] }))
+      .map(routeRef)
       .sort((a, b) => a.name.localeCompare(b.name, 'en'))
   }
 }
 
 /** One route's gap for one bike: in seconds, and as a share of that route's fastest time. */
-export interface StandingsRouteGap {
-  slug: string
-  name: string
-  worldName: string
-  terrainLabel: string
+export interface StandingsRouteGap extends StandingsRouteRef {
   gapPct: number
   gapSec: number
 }
 
 /**
- * The bike just ahead of, or just behind, another in the standings on screen.
- * `gapPct` is how far apart their mean shares are, which is what ranks them;
- * `gapSec` is how many seconds slower than this bike it is on average -
- * negative when it is faster. The two can disagree in sign for bikes ranked
- * next to each other, because the seconds weigh a long route more heavily.
+ * The bike just ahead of, or just behind, another in the standings on screen,
+ * every number told from the neighbour's side. `gapPct` is how far apart their
+ * mean shares are, which is what ranks them; `gapSec` is how many seconds
+ * slower than this bike it is on average - negative when it is faster. The two
+ * can disagree in sign for bikes ranked next to each other, because the
+ * seconds weigh a long route more heavily.
  */
 export interface StandingsNeighbour {
   name: string
   gapPct: number
   gapSec: number
+  /** Of the routes both have a time on: how many the neighbour is faster on, slower on, and level on. */
+  fasterOn: number
+  slowerOn: number
+  levelOn: number
 }
 
-/** What the bike drawer shows of a bike's place in the standings on screen, fixed when it is opened. */
+/** What the bike Overlay shows of a bike's place in the standings on screen, fixed when it is opened. */
 export interface StandingsBikeRecord {
   /** The frame's id, which is also what `/api/bikes/{id}` looks it up by. */
   frameId: number
   name: string
+  /** The category the standings were showing, which each route links in: see `routeLink`. */
   category: StandingsCategory
-  linkQuery: string
   rank: number
   /** How many bikes are ranked: the denominator of the rank. */
   ranked: number
   meanGapPct: number
   /** The mean of its gap in seconds on the filtered routes: a feel for the size of the share, which is what ranks it. */
   meanGapSec: number
+  /** How many of the routes it is the fastest on. */
   wins: number
   routeCount: number
   /** Mean gap per terrain class, over the filtered routes of that class; classes with no route are left out. */
@@ -139,27 +153,38 @@ export interface StandingsBikeRecord {
    * this bike is ahead of it.
    */
   marginAgainst?: string
+  /** With `marginAgainst`: how many of `routeCount` the margins cover - the routes the runner-up also has a time on. */
+  marginRouteCount?: number
 }
+
+/** What a set of standings is ranked from: the filtered routes, the entries in the order the routes' gaps are in, and the category. */
+export interface StandingsScope {
+  routes: readonly StandingsRoute[]
+  entries: readonly StandingsEntry[]
+  category: StandingsCategory
+}
+
+/** "1 route", "3 routes". */
+export const routesLabel = (count: number) => `${count} ${count === 1 ? 'route' : 'routes'}`
 
 const ROUTES_SHOWN = 3
 
 const mean = (values: readonly number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0
 
 /**
- * The bike drawer's record for `row`: the same numbers the row prints, plus
+ * The bike Overlay's record for `row`: the same numbers the row prints, plus
  * where on the filtered routes they come from - by terrain, and the routes it
  * is closest to and furthest from the fastest on - and the bikes ranked either
- * side of it. `rows` are the standings on screen and `entries` the order the
- * routes' gaps are in.
+ * side of it. `rows` are the standings on screen, ranked from `scope`.
  */
-export function bikeRecord(row: StandingsRow, rows: readonly StandingsRow[], routes: readonly StandingsRoute[], entries: readonly StandingsEntry[], category: StandingsCategory): StandingsBikeRecord {
+export function bikeRecord(row: StandingsRow, rows: readonly StandingsRow[], { routes, entries, category }: StandingsScope): StandingsBikeRecord {
   const timedGaps = (entryId: string) => {
     const index = entries.findIndex(entry => entry.id === entryId)
     return routes.flatMap((route) => {
       const times = route.times[category]
       const gapTenths = times && index >= 0 ? parseGaps(times)[index] : null
       if (!times || gapTenths === null || gapTenths === undefined) return []
-      return [{ route, gapSec: gapTenths / 10, gapPct: (gapTenths / 10) / times.fastestSec * 100 }]
+      return [{ route, gapSec: gapTenths / 10, gapPct: gapShare(gapTenths, times) }]
     })
   }
 
@@ -172,10 +197,22 @@ export function bikeRecord(row: StandingsRow, rows: readonly StandingsRow[], rou
       : []
   })
 
-  const neighbour = (other: StandingsRow | undefined): StandingsNeighbour | undefined => other && {
-    name: other.entry.name,
-    gapPct: Math.abs(other.meanGapPct - row.meanGapPct),
-    gapSec: mean(timedGaps(other.entry.id).map(gap => gap.gapSec)) - meanGapSec
+  const neighbour = (other: StandingsRow | undefined): StandingsNeighbour | undefined => {
+    if (!other) return undefined
+    const otherGaps = new Map(timedGaps(other.entry.id).map(gap => [gap.route.slug, gap.gapSec]))
+    // Seconds the neighbour loses to this bike on each route both are timed on: negative where it is faster.
+    const behindBy = gaps.flatMap((gap) => {
+      const otherSec = otherGaps.get(gap.route.slug)
+      return otherSec === undefined ? [] : [otherSec - gap.gapSec]
+    })
+    return {
+      name: other.entry.name,
+      gapPct: Math.abs(other.meanGapPct - row.meanGapPct),
+      gapSec: mean([...otherGaps.values()]) - meanGapSec,
+      fasterOn: behindBy.filter(diff => diff < 0).length,
+      slowerOn: behindBy.filter(diff => diff > 0).length,
+      levelOn: behindBy.filter(diff => diff === 0).length
+    }
   }
 
   // The fastest bike has no one to be close to or far from "the fastest": it
@@ -183,30 +220,32 @@ export function bikeRecord(row: StandingsRow, rows: readonly StandingsRow[], rou
   // say something, as a margin (negative: ahead of it) rather than a gap.
   const runnerUp = row.rank === 1 ? rows.find(other => other.rank === 2) : undefined
   const runnerGaps = new Map(runnerUp ? timedGaps(runnerUp.entry.id).map(gap => [gap.route.slug, gap]) : [])
-  const byGap = gaps
+  const routesBySmallestGap = gaps
     .flatMap(({ route, gapPct, gapSec }) => {
       const other = runnerUp ? runnerGaps.get(route.slug) : undefined
       if (runnerUp && !other) return []
-      return [{ slug: route.slug, name: route.name, worldName: route.worldName, terrainLabel: TERRAIN_LABELS[route.terrain], gapPct: gapPct - (other?.gapPct ?? 0), gapSec: gapSec - (other?.gapSec ?? 0) }]
+      return [{ ...routeRef(route), gapPct: gapPct - (other?.gapPct ?? 0), gapSec: gapSec - (other?.gapSec ?? 0) }]
     })
     .sort((a, b) => Math.abs(a.gapPct) - Math.abs(b.gapPct) || a.name.localeCompare(b.name, 'en'))
+  // Against the fastest, the routes it wins are no near-miss: they are left
+  // out so the lists show where it loses least and most.
+  const listed = runnerUp ? routesBySmallestGap : routesBySmallestGap.filter(gap => gap.gapSec !== 0)
   return {
     frameId: Number(row.entry.id),
     name: row.entry.name,
     category,
-    linkQuery: linkQueryFor(category),
     rank: row.rank,
     ranked: rows.length,
     meanGapPct: row.meanGapPct,
     meanGapSec,
-    wins: row.wins,
+    wins: row.wonOn.length,
     routeCount: gaps.length,
     terrain,
     ahead: neighbour(rows.find(other => other.rank === row.rank - 1)),
     behind: neighbour(rows.find(other => other.rank === row.rank + 1)),
-    ...(runnerUp ? { marginAgainst: runnerUp.entry.name } : {}),
-    closest: byGap.slice(0, ROUTES_SHOWN),
-    furthest: byGap.slice(Math.max(ROUTES_SHOWN, byGap.length - ROUTES_SHOWN)).reverse()
+    ...(runnerUp ? { marginAgainst: runnerUp.entry.name, marginRouteCount: routesBySmallestGap.length } : {}),
+    closest: listed.slice(0, ROUTES_SHOWN),
+    furthest: listed.slice(Math.max(ROUTES_SHOWN, listed.length - ROUTES_SHOWN)).reverse()
   }
 }
 
@@ -228,9 +267,26 @@ export function formatMeanGap(pct: number): string {
   return rounded === '0.00' ? '0.00%' : `+${rounded}%`
 }
 
-/** A gap in seconds as the drawer prints it beside a share: "2.1 s", or "<0.1 s" for one too small to show. */
+/** A route's or mean gap as a share, where one that rounds to nothing but is not nothing is "<0.01%": "0.00%" is only for losing nothing at all. */
+export function formatGapShare(pct: number): string {
+  return formatMeanGap(pct) === '0.00%' && pct > 0 ? '<0.01%' : formatMeanGap(pct)
+}
+
+/** A gap in seconds as the Overlay prints it beside a share: "2.1 s", or "<0.1 s" for one too small to show. */
 export function formatGapSeconds(seconds: number): string {
   return seconds > 0 && seconds < 0.05 ? '<0.1 s' : `${seconds.toFixed(1)} s`
+}
+
+/**
+ * A neighbour's average seconds against this bike in words, from its signed
+ * `gapSec` (negative: faster). Said by the sign of the seconds, not by where
+ * the bike is ranked: the ranking goes by share, so a neighbour can be a
+ * little slower in seconds than the bike ranked behind it.
+ */
+export function formatNeighbourSeconds(seconds: number): string {
+  return Math.abs(seconds) < 0.05
+    ? 'about the same per route on average'
+    : `${formatGapSeconds(Math.abs(seconds))} ${seconds < 0 ? 'faster' : 'slower'} per route on average`
 }
 
 /** A margin to the runner-up in words, from its signed share (negative: ahead): "0.02% ahead", "0.03% behind", or "level". */
