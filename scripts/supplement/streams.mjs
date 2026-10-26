@@ -1,7 +1,8 @@
 // The recorded tracks the scripts read: every route's and segment's stream,
-// the package's first and then the supplement's
-// (shared/data/supplement/streams.generated.json) for a slug the package has
-// none for. A script never reaches into `zwift-data/streams` itself (a lint
+// the package's plus the supplement's (shared/data/supplement/streams.generated.json).
+// A slug the package has no track for takes the supplement's; one it has a
+// track for keeps it unless the supplement's entry corrects that record (a
+// fixed Strava id comes with its own track). A script never reaches into `zwift-data/streams` itself (a lint
 // rule holds that, eslint.config.mjs). Scripts only - the streams are far too
 // large for the app bundle, and nothing under app/, server/ or shared/
 // imports this file.
@@ -17,10 +18,11 @@ let merged
 export function getStreams() {
   if (!merged) {
     const supplement = JSON.parse(readFileSync(SUPPLEMENT_STREAMS_PATH, 'utf-8'))
-    // The package's track last, so a slug it has a track for never takes the supplement's.
+    // The file holds only tracks that are meant to be used: for a record the package lacks, or one the
+    // supplement corrects (`supplement:prune` drops the rest), so it takes precedence.
     merged = {
-      routes: { ...supplement.routes, ...packageStreams.routes },
-      segments: { ...supplement.segments, ...packageStreams.segments }
+      routes: { ...packageStreams.routes, ...supplement.routes },
+      segments: { ...packageStreams.segments, ...supplement.segments }
     }
   }
   return merged
