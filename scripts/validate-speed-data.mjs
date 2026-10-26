@@ -36,6 +36,9 @@
 //
 // On a mismatch the closest catalog candidate (case/whitespace-insensitive)
 // is printed with the codepoints of the differing span.
+// The raw package's frames and wheels on purpose: the supplements are merged in
+// below, and the check names an entry the package now ships.
+// eslint-disable-next-line no-restricted-imports
 import { bikeFrames, bikeFrontWheels, bikeRearWheels } from 'zwift-data'
 import { loadSharedModule } from './route-surfaces/loadShared.mjs'
 

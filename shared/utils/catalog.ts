@@ -1,4 +1,6 @@
-import { bikeFrames, routes, worlds } from 'zwift-data'
+import type { Route } from 'zwift-data'
+import { bikeFrames, worlds } from 'zwift-data'
+import { getRoutes } from '../data/catalogSources'
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta } from '../types/catalog'
 import { classifyBikeFrame } from './classifyBikeFrame'
 import { SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME, applyFrameSupplement } from '../data/frameSupplement'
@@ -47,7 +49,7 @@ export function getFrameById(id: number): ClassifiedBikeFrame | undefined {
 
 export function getRoutesWithMeta(): RouteWithMeta[] {
   if (!cachedRoutes) {
-    cachedRoutes = routes
+    cachedRoutes = getRoutes()
       // Routes without a stable slug can't be linked to reliably. Running-only
       // routes leave too (#324): ranking bikes for a run is not an answer this
       // site gives, and this is the one place every route enters the catalog,
@@ -91,7 +93,7 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
   return cachedRoutes
 }
 
-function withSegmentHostsBeyondPackage(route: (typeof routes)[number]): Pick<(typeof routes)[number], 'segments' | 'segmentsOnRoute'> {
+function withSegmentHostsBeyondPackage(route: Route): Pick<Route, 'segments' | 'segmentsOnRoute'> {
   const added = supplementHostsFor(route)
   const placed = getGeneratedSegmentPlacements(route.slug)
   return {

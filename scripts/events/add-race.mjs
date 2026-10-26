@@ -19,7 +19,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createInterface } from 'node:readline'
 import { spawnSync } from 'node:child_process'
-import { routes } from 'zwift-data'
+import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '../..')

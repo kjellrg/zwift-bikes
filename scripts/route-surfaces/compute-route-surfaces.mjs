@@ -43,10 +43,10 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { routes } from 'zwift-data'
 import { loadSharedModule } from './loadShared.mjs'
 import { normalizeRouteSurfaceEntry } from './normalize.mjs'
 
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 const { computeSurfaceProfile } = loadSharedModule('shared/utils/surfaceGeometry.ts')
 const { computeElevationProfile } = loadSharedModule('shared/utils/elevationGeometry.ts')
 const { eventLeadIn } = loadSharedModule('shared/data/routeEventLeadIns.ts')

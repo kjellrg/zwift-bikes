@@ -15,10 +15,10 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { routes } from 'zwift-data'
 import { loadSharedModule } from './loadShared.mjs'
 import { normalizeRouteSurfaceEntry } from './normalize.mjs'
 
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 const { eventLeadIn } = loadSharedModule('shared/data/routeEventLeadIns.ts')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

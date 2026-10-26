@@ -1,22 +1,22 @@
 // Generates .cspell/zwift-data-words.txt from the installed zwift-data package:
-// every word that appears in a route, segment, world, frame or wheel name.
+// every word that appears in a route, segment, world, frame or wheel name
+// (routes and segments as the catalog merges them, supplements included).
 // Runs from the postinstall hook (alongside `nuxt prepare`), so the dictionary
 // always matches the installed zwift-data version and never needs hand-curation
 // - new routes arrive with the Renovate bump that ships them. The output is
 // gitignored for the same reason .nuxt/ is: it is derived, not authored.
 import { writeFile, mkdir } from 'node:fs/promises'
-import {
-  bikeFrames,
-  bikeFrontWheels,
-  bikeRearWheels,
-  routes,
-  segments,
-  worlds
-} from 'zwift-data'
+// Frames and wheels from the raw package, as before: their supplements are
+// matched to it by id and carry names the dictionary already knows.
+// eslint-disable-next-line no-restricted-imports
+import { bikeFrames, bikeFrontWheels, bikeRearWheels, worlds } from 'zwift-data'
+import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+
+const { getRoutes, getSegments } = loadSharedModule('shared/data/catalogSources.ts')
 
 const names = [
-  ...routes,
-  ...segments,
+  ...getRoutes(),
+  ...getSegments(),
   ...worlds,
   ...bikeFrames,
   ...bikeFrontWheels,

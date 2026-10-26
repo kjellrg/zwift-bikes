@@ -1,5 +1,5 @@
 import type { Route } from 'zwift-data'
-import { segments } from 'zwift-data'
+import { getSegments } from '../data/catalogSources'
 import type { RouteSegmentPlacement, RouteWithMeta, SegmentSummary, SurfaceSegment } from '../types/catalog'
 import type { PhysicsSurface } from '../types/physics'
 import { coarsenSurfaceComposition, normalizeSurfaceComposition } from '../data/surfaceCrr'
@@ -65,7 +65,7 @@ export function getAllSegmentSummaries(): SegmentSummary[] {
   // any elevation signal are skipped, matching `routeClimbs.ts`). A segment
   // with no host at all is skipped by the empty-`hostRoutes` guard (none
   // since #274 gave `prime` Downtown Dolphin).
-  for (const segment of segments) {
+  for (const segment of getSegments()) {
     if (segment.type !== 'sprint' && segment.type !== 'climb') continue
 
     // The package's own hosts first, the supplement's after them, so adding
