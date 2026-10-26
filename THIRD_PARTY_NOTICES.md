@@ -38,9 +38,14 @@ dictionary at run time and stores no copy of it.
 This project depends on the [zwift-data](https://github.com/andipaetzold/zwift-data)
 npm package for structured reference data on Zwift worlds, routes, segments,
 and bike frames (used throughout `shared/utils/` and `shared/data/`, e.g.
-`catalog.ts`, `routeClimbs.ts`, and `routeSegments.ts`). It is used as-is at
-runtime rather than vendored/copied, but its MIT license is reproduced below
-per its terms.
+`catalog.ts`, `routeClimbs.ts`, and `routeSegments.ts`). The package itself
+is used as-is at runtime rather than vendored/copied.
+
+The exception is `shared/data/supplement/*.generated.json`: routes, segments
+and recorded tracks copied from a build of a local clone of `zwift-data`, kept
+only until a package release ships the same records (see `docs/supplements.md`).
+Those files are zwift-data's data, not this project's, and are covered by the
+same license, reproduced below per its terms.
 
 ```
 MIT License

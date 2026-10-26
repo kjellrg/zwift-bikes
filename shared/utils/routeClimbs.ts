@@ -1,5 +1,5 @@
 import type { Route } from 'zwift-data'
-import { segments } from 'zwift-data'
+import { getSegments } from '../data/catalogSources'
 import type { RouteClimb, RouteSegmentPlacement } from '../types/catalog'
 import { getGeneratedRouteSurface } from '../data/routeSurfaces'
 
@@ -25,7 +25,7 @@ import { getGeneratedRouteSurface } from '../data/routeSurfaces'
  * 16.8-24.2, which is km 6.0-13.4 once the lead-in is subtracted (inside the
  * lap - ridden once per lap).
  */
-const segmentsBySlug = new Map(segments.map(segment => [segment.slug, segment]))
+const segmentsBySlug = new Map(getSegments().map(segment => [segment.slug, segment]))
 
 /**
  * Whether a route's `segmentsOnRoute` positions are measured from the ride

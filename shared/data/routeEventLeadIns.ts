@@ -1,4 +1,4 @@
-import { routes } from 'zwift-data'
+import { getRoutes } from './catalogSources'
 
 /**
  * Event lead-in corrections for the handful of routes where Zwift's own
@@ -76,7 +76,7 @@ export const EVENT_LEAD_IN_OVERRIDES: Record<string, EventLeadInOverride> = {
   // them anyway. The rule above stands; the table waits for the next case.
 }
 
-const eventOnlySlugs = new Set(routes.filter(route => route.eventOnly).map(route => route.slug))
+const eventOnlySlugs = new Set(getRoutes().filter(route => route.eventOnly).map(route => route.slug))
 
 /**
  * The lead-in to use for a route, correction applied where one exists.

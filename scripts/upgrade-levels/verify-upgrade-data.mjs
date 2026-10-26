@@ -5,6 +5,8 @@
 // measured frame committed without an upgrade scheme passed every check and
 // silently fell back to linear level interpolation instead of its chart
 // shape - exactly the drift check 2 exists to catch.
+// The raw package's frames on purpose: the frame supplement is merged in below.
+// eslint-disable-next-line no-restricted-imports
 import { bikeFrames } from 'zwift-data'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 

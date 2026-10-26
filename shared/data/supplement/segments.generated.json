@@ -1,0 +1,83 @@
+{
+  "source": "f88528698e24d10dd637eec062cd8d35ca135fc8",
+  "zwiftDataVersion": "2.1.0",
+  "segments": [
+    {
+      "name": "Caldera Cruiser",
+      "slug": "caldera-cruiser",
+      "type": "segment",
+      "world": "watopia",
+      "distance": 4,
+      "stravaSegmentId": 42385702,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42385702",
+      "avgIncline": 0,
+      "elevation": 9
+    },
+    {
+      "name": "Caldera Cruiser Rev.",
+      "slug": "caldera-cruiser-rev",
+      "type": "segment",
+      "world": "watopia",
+      "distance": 4,
+      "stravaSegmentId": 42374295,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42374295",
+      "avgIncline": 0,
+      "elevation": 9
+    },
+    {
+      "name": "Lightning Lap",
+      "slug": "lightning-lap",
+      "type": "segment",
+      "world": "watopia",
+      "distance": 5,
+      "stravaSegmentId": 42385728,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42385728",
+      "avgIncline": 0,
+      "elevation": 0
+    },
+    {
+      "name": "Lightning Lap Rev.",
+      "slug": "lightning-lap-rev",
+      "type": "segment",
+      "world": "watopia",
+      "distance": 5.4,
+      "stravaSegmentId": 42385719,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42385719",
+      "avgIncline": 0,
+      "elevation": 0
+    },
+    {
+      "name": "Seafoam Circuit Rev.",
+      "slug": "seafoam-circuit-rev",
+      "type": "segment",
+      "world": "watopia",
+      "distance": 3.5,
+      "stravaSegmentId": 42380450,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42380450",
+      "avgIncline": 0,
+      "elevation": 18
+    },
+    {
+      "name": "Sunset Sprint",
+      "slug": "sunset-sprint",
+      "type": "sprint",
+      "world": "watopia",
+      "distance": 0.257,
+      "stravaSegmentId": 42385739,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42385739",
+      "avgIncline": -0.2,
+      "elevation": 0
+    },
+    {
+      "name": "Sunset Sprint Rev.",
+      "slug": "sunset-sprint-rev",
+      "type": "sprint",
+      "world": "watopia",
+      "distance": 0.255,
+      "stravaSegmentId": 42385747,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42385747",
+      "avgIncline": -0.4,
+      "elevation": 0
+    }
+  ]
+}

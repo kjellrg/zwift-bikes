@@ -46,7 +46,6 @@
 //     aerodynamics the physics contradicts (see check-race-notes.mjs; needs
 //     TYPESAFE_API_KEY and the network, so the build never passes it)
 
-import { routes } from 'zwift-data'
 // Shared TS modules can't be imported by plain node directly (extensionless,
 // bundler-style imports) - reuse the esbuild loader the route-surface scripts
 // already use for the same reason.
@@ -65,6 +64,7 @@ try {
   process.exit(1)
 }
 const { getAllSeasons, isRacePublishable, raceEndDate } = events
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 const { getAllSegmentSummaries } = loadSharedModule('shared/utils/routeSegments.ts')
 const { computeRouteTotals } = loadSharedModule('shared/utils/routeLaps.ts')
 const { officialFiguresDiffer } = loadSharedModule('shared/utils/rideStatement/race.ts')

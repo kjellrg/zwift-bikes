@@ -25,10 +25,14 @@
 //
 // Exits 1 only when a difference is not on ACCEPTED_GAPS (checkDictionary.mjs).
 import { readFileSync } from 'node:fs'
-import { bikeFrames, bikeFrontWheels, bikeRearWheels, routes } from 'zwift-data'
+// The raw package's frames and wheels on purpose: the catalog below is built by
+// merging the supplements into them, so each entry can say where it came from.
+// eslint-disable-next-line no-restricted-imports
+import { bikeFrames, bikeFrontWheels, bikeRearWheels } from 'zwift-data'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 import { ACCEPTED_GAPS, checkDictionary, formatReport, formatSchemeComparison, missingGroups } from './checkDictionary.mjs'
 
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 const { SUPPLEMENT_FRAMES, applyFrameSupplement, isProvisionalFrameId } = loadSharedModule('shared/data/frameSupplement.ts')
 const { SUPPLEMENT_FRONT_WHEELS, SUPPLEMENT_REAR_WHEELS, WITHDRAWN_FRONT_WHEELS, WITHDRAWN_REAR_WHEELS, applyWheelSupplement } = loadSharedModule('shared/data/wheelSupplement.ts')
 const { FRAME_UPGRADE_SCHEMES } = loadSharedModule('shared/data/frameUpgradeSchemes.ts')

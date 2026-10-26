@@ -36,11 +36,11 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { segments } from 'zwift-data'
-import * as streams from 'zwift-data/streams'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+import { getStreams } from '../supplement/streams.mjs'
 import { roundStravaStreams } from './roundStreams.mjs'
 
+const segments = loadSharedModule('shared/data/catalogSources.ts').getSegments()
 const { SUPPLEMENT_SEGMENT_STRAVA_IDS, supplementIdsThePackageShips } = loadSharedModule('shared/data/segmentStravaIdSupplement.ts')
 const { expectedSupplementLengthM, supplementTrackLengthMismatch } = loadSharedModule('shared/utils/segmentSupplementStreams.ts')
 
@@ -92,7 +92,7 @@ function serialize(results) {
 
 // The package wins: an entry zwift-data now has an id or a track for is to be
 // deleted, not fetched (segmentStravaIdSupplement.test.ts names it too).
-const shipped = new Set(supplementIdsThePackageShips(segments, Object.keys(streams.segments)).map(entry => entry.segment))
+const shipped = new Set(supplementIdsThePackageShips(segments, Object.keys(getStreams().segments)).map(entry => entry.segment))
 for (const slug of shipped) console.warn(`WARNING: zwift-data now has an id or a track for ${slug} - delete its entry from segmentStravaIdSupplement.ts instead of fetching it.`)
 
 const toFetch = SUPPLEMENT_SEGMENT_STRAVA_IDS.filter(entry => !shipped.has(entry.segment)

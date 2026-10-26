@@ -29,8 +29,8 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import * as streams from 'zwift-data/streams'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+import { getStreams } from '../supplement/streams.mjs'
 
 const { placeSegmentHosts } = loadSharedModule('shared/utils/segmentHostPlacement.ts')
 
@@ -38,7 +38,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 const outPath = path.join(repoRoot, 'shared/data/segmentPlacements.generated.json')
 const supplementStreams = JSON.parse(readFileSync(path.join(repoRoot, 'shared/data/segmentStreams.supplement.json'), 'utf-8'))
 
-const result = placeSegmentHosts(streams, supplementStreams)
+const result = placeSegmentHosts(getStreams(), supplementStreams)
 writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`)
 
 const placedPairs = new Set(Object.entries(result.placements).flatMap(([route, list]) => list.map(p => `${p.segment} on ${route}`)))

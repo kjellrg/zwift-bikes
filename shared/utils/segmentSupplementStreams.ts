@@ -1,4 +1,4 @@
-import { segments } from 'zwift-data'
+import { getSegments } from '../data/catalogSources'
 import type { Track } from './segmentMatching'
 import { MAX_LENGTH_ERROR } from './segmentMatching'
 import { SUPPLEMENT_SEGMENT_STRAVA_IDS } from '../data/segmentStravaIdSupplement'
@@ -42,7 +42,7 @@ export interface ResolvedSupplementTracks {
  * (`zwift-data`'s Alley Sprint and Breakaway Brae ids are swapped); where the
  * two directions differ in length, the length is what catches it.
  */
-const recordDistanceKm = new Map(segments.map(segment => [segment.slug, segment.distance]))
+const recordDistanceKm = new Map(getSegments().map(segment => [segment.slug, segment.distance]))
 
 /**
  * The length a supplement entry's track should measure: the record's

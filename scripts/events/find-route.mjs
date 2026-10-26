@@ -10,8 +10,9 @@
 // distance/elevation the official figures should roughly agree with, the
 // lead-in, and whether the route is lap-based (laps > 1 is only legal then).
 
-import { routes } from 'zwift-data'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
+
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 
 const args = process.argv.slice(2)
 const segmentsMode = args.includes('--segments')

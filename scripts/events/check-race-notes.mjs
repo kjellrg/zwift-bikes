@@ -27,6 +27,8 @@
 // frames are legal both builds are TT frames, because there the notes compare
 // TT setups with each other, not with a road bike.
 
+// The raw package's frames on purpose: the notes compare bikes zwift-data ships.
+// eslint-disable-next-line no-restricted-imports
 import { bikeFrames } from 'zwift-data'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 

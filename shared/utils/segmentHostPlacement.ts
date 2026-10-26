@@ -1,4 +1,5 @@
-import { routes, segments } from 'zwift-data'
+import type { Route } from 'zwift-data'
+import { getRoutes, getSegments } from '../data/catalogSources'
 import type { Track, TrackRejection } from './segmentMatching'
 import { placeSegmentOnTrack } from './segmentMatching'
 import { placementsAreRideRelative } from './routeClimbs'
@@ -40,7 +41,7 @@ export interface StreamTracks {
   segments: Readonly<Record<string, Track | undefined>>
 }
 
-const segmentsBySlug = new Map(segments.map(segment => [segment.slug, segment]))
+const segmentsBySlug = new Map(getSegments().map(segment => [segment.slug, segment]))
 
 /** Km rounded to the metre, as `zwift-data` writes `segmentsOnRoute`. */
 function roundKm(value: number): number {
@@ -59,7 +60,7 @@ function roundKm(value: number): number {
  * trace covered the lead-in would read as ride-relative the moment a
  * generated placement landed on it. Such a route is not placed on.
  */
-function isRideRelativeForPlacing(route: (typeof routes)[number]): boolean {
+function isRideRelativeForPlacing(route: Route): boolean {
   return placementsAreRideRelative(route) || ((route.leadInDistance ?? 0) > 0 && !!getGeneratedRouteSurface(route.slug)?.traceCoveredLeadIn)
 }
 
@@ -83,7 +84,7 @@ export function placeSegmentHosts(tracks: StreamTracks, supplement: SupplementSt
   const unplaced: UnplacedSegmentHost[] = []
   const fromSupplement = resolveSupplementTracks(supplement, tracks.segments)
 
-  for (const route of routes) {
+  for (const route of getRoutes()) {
     // #324: the catalog is cycling-only, so a host on a running-only route is never read.
     if (!route.sports.includes('cycling')) continue
     for (const slug of [...route.segments ?? [], ...supplementHostsFor(route)]) {

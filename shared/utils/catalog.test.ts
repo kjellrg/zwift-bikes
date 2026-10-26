@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { routes } from 'zwift-data'
+import { getRoutes } from '../data/catalogSources'
 import { getRouteBySlug, getRoutesWithMeta } from './catalog'
 import { placementsAreRideRelative } from './routeClimbs'
 
 describe('getRoutesWithMeta: cycling routes only (#324)', () => {
   it('holds the 293 cycling routes and none of the running-only ones', () => {
     const catalog = getRoutesWithMeta()
-    expect(catalog).toHaveLength(293)
-    expect(catalog).toHaveLength(routes.filter(r => r.slug && r.sports.includes('cycling')).length)
+    const packageCycling = routes.filter(r => r.slug && r.sports.includes('cycling'))
+    expect(packageCycling).toHaveLength(293)
+    // The package's cycling routes, then the supplement's (shared/data/supplement/routes.generated.json).
+    expect(catalog).toHaveLength(getRoutes().filter(r => r.slug && r.sports.includes('cycling')).length)
+    for (const route of packageCycling) expect(catalog.some(r => r.slug === route.slug), route.slug).toBe(true)
     for (const route of catalog) expect(route.sports, route.slug).toContain('cycling')
   })
 
@@ -41,7 +45,7 @@ describe('getRoutesWithMeta: segment hosts and placements beyond zwift-data (#27
 
   it('changes no route\'s placement frame: generated placements never make a lap-relative route read as ride-relative', () => {
     const flipped = getRoutesWithMeta()
-      .filter(merged => placementsAreRideRelative(merged) !== placementsAreRideRelative(routes.find(r => r.slug === merged.slug)!))
+      .filter(merged => placementsAreRideRelative(merged) !== placementsAreRideRelative(getRoutes().find(r => r.slug === merged.slug)!))
       .map(r => r.slug)
     expect(flipped).toEqual([])
   })

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { routes, segments } from 'zwift-data'
-import * as streams from 'zwift-data/streams'
+import { routes as packageRoutes } from 'zwift-data'
+import * as packageStreams from 'zwift-data/streams'
+import { getStreams } from '../../scripts/supplement/streams.mjs'
 import { placeSegmentOnTrack } from './segmentMatching'
 import { placeSegmentHosts } from './segmentHostPlacement'
 import type { SupplementStreamsFile } from './segmentSupplementStreams'
+import { getRoutes, getSegments } from '../data/catalogSources'
 import { SUPPLEMENT_SEGMENT_HOSTS } from '../data/segmentHostSupplement'
 import { supplementStravaIdFor } from '../data/segmentStravaIdSupplement'
 import committed from '../data/segmentPlacements.generated.json'
@@ -34,11 +36,11 @@ describe('the track matcher, calibrated against zwift-data', () => {
     let checked = 0
     const misses: string[] = []
     const offTrack: string[] = []
-    for (const route of routes) {
-      const routeTrack = streams.routes[route.slug]
+    for (const route of packageRoutes) {
+      const routeTrack = packageStreams.routes[route.slug]
       if (!routeTrack) continue
       for (const placed of route.segmentsOnRoute ?? []) {
-        const segmentTrack = streams.segments[placed.segment]
+        const segmentTrack = packageStreams.segments[placed.segment]
         if (!segmentTrack) continue
         checked++
         const match = placeSegmentOnTrack(routeTrack, segmentTrack)
@@ -58,6 +60,10 @@ describe('the track matcher, calibrated against zwift-data', () => {
 })
 
 describe('placeSegmentHosts', () => {
+  // The catalog as the generator reads it: the package's plus the supplement's.
+  const routes = getRoutes()
+  const segments = getSegments()
+  const streams = getStreams()
   // The JSON import types latlng as number[][]; the file is written as pairs.
   const result = placeSegmentHosts(streams, committedSupplementStreams as unknown as SupplementStreamsFile)
   const placed = (route: string, segment: string) => {

@@ -37,16 +37,25 @@
 //   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only tempus-fugit
 //   STRAVA_ACCESS_TOKEN=xxx node scripts/route-surfaces/compute-route-surfaces.mjs --only tempus-fugit --only the-pretzel
 //
+// --from-streams takes each route's track from the recorded streams
+// (`getRouteStream`: zwift-data's own, or the supplement's for a route it lacks)
+// instead of fetching it - those streams ARE the route's Strava segment, so the
+// result is the same without a token or a wait. Use it for a supplemented route
+// (docs/supplements.md), whose track is already committed:
+//
+//   node scripts/route-surfaces/compute-route-surfaces.mjs --from-streams --only pacific-pursuit
+//
 // --dry-run lists the routes a run would fetch and exits - no token, no
 // requests, nothing written.
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { routes } from 'zwift-data'
+import { getRouteStream } from '../supplement/streams.mjs'
 import { loadSharedModule } from './loadShared.mjs'
 import { normalizeRouteSurfaceEntry } from './normalize.mjs'
 
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 const { computeSurfaceProfile } = loadSharedModule('shared/utils/surfaceGeometry.ts')
 const { computeElevationProfile } = loadSharedModule('shared/utils/elevationGeometry.ts')
 const { eventLeadIn } = loadSharedModule('shared/data/routeEventLeadIns.ts')
@@ -57,6 +66,7 @@ const outPath = path.join(repoRoot, 'shared/data/routeSurfaces.generated.json')
 
 const force = process.argv.includes('--force')
 const dryRun = process.argv.includes('--dry-run')
+const fromStreams = process.argv.includes('--from-streams')
 const onlySlugs = new Set(process.argv.flatMap((arg, i) => (arg === '--only' && process.argv[i + 1] ? [process.argv[i + 1]] : [])))
 const requestDelayMs = 9_500 // ~1 req/9.5s, comfortably under Strava's 100 req/15min
 
@@ -64,6 +74,13 @@ const existing = existsSync(outPath) ? JSON.parse(readFileSync(outPath, 'utf-8')
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/** The recorded track in the shape a Strava fetch returns, for `--from-streams`. */
+function recordedStreams(slug) {
+  const stream = getRouteStream(slug)
+  if (!stream) throw new Error(`no recorded track for ${slug} in zwift-data/streams or the supplement`)
+  return { latlng: stream.latlng, distance: stream.distance, altitude: stream.altitude.length ? stream.altitude : undefined }
 }
 
 async function fetchStreams(stravaSegmentId) {
@@ -113,7 +130,7 @@ if (dryRun) {
 }
 
 const token = process.env.STRAVA_ACCESS_TOKEN
-if (!token) {
+if (!token && !fromStreams) {
   console.error('Missing STRAVA_ACCESS_TOKEN - see the comment at the top of this script for setup.')
   process.exit(1)
 }
@@ -143,7 +160,7 @@ let done = 0
 for (const route of routesToProcess) {
   process.stdout.write(`[${++done}/${routesToProcess.length}] ${route.world}/${route.slug}... `)
   try {
-    const { latlng, distance, altitude } = await fetchStreams(route.stravaSegmentId)
+    const { latlng, distance, altitude } = fromStreams ? recordedStreams(route.slug) : await fetchStreams(route.stravaSegmentId)
     const { composition, segments } = computeSurfaceProfile(route.world, latlng, distance)
     const elevationProfile = altitude ? computeElevationProfile(distance, altitude) : undefined
     // The community Strava segment may cover lead-in + lap instead of the lap
@@ -174,7 +191,7 @@ for (const route of routesToProcess) {
   }
 
   writeFileSync(outPath, JSON.stringify(results, null, 1))
-  if (done < routesToProcess.length) await sleep(requestDelayMs)
+  if (done < routesToProcess.length && !fromStreams) await sleep(requestDelayMs)
 }
 
 console.log(`\nWrote ${outPath} (${Object.keys(results).length} routes total)`)

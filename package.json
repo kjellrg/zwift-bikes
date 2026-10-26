@@ -4,7 +4,10 @@
   "type": "module",
   "scripts": {
     "build": "npm run validate && nuxt build && node scripts/check-client-bundle.mjs",
-    "validate": "npm run validate:events && npm run validate:speed-data && npm run validate:placements && npm run validate:upgrade-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas && npm run validate:standings",
+    "validate": "npm run validate:supplements && npm run validate:events && npm run validate:speed-data && npm run validate:placements && npm run validate:upgrade-data && npm run validate:equipment-physics && npm run validate:race-draft && npm run validate:api-schemas && npm run validate:standings",
+    "validate:supplements": "node scripts/supplement/extract.mjs --check",
+    "supplement:extract": "node scripts/supplement/extract.mjs",
+    "supplement:prune": "node scripts/supplement/extract.mjs --prune",
     "validate:upgrade-data": "node scripts/upgrade-levels/verify-upgrade-data.mjs",
     "validate:equipment-physics": "node scripts/equipment-physics/compute-equipment-physics.mjs --check",
     "equipment-physics:compute": "node scripts/equipment-physics/compute-equipment-physics.mjs",

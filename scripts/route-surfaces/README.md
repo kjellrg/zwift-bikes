@@ -1,7 +1,8 @@
 # Route surface data
 
 Generates real per-route surface composition (% tarmac/gravel/cobbles/brick/
-wood/dirt/snow/grass/sand) for every cycling route in `zwift-data`, the same
+wood/dirt/snow/grass/sand) for every cycling route in the catalog (`zwift-data`
+plus its supplement, `docs/supplements.md`), the same
 way [zwiftmap.com](https://zwiftmap.com) computes it: classify a route's real GPS
 trace against hand-mapped per-world surface polygons.
 
@@ -34,6 +35,13 @@ nothing in `app/`, `server/`, or the Nuxt build runs these scripts.
    shape instead of its synthetic named-climb/rolling-lap approximation
    whenever it's available. Re-run this whenever `zwift-data` adds new
    routes, or periodically to catch any Zwift road-surface changes.
+
+   The scripts read the routes through the catalog's merged source
+   (`getRoutes()` in `shared/data/catalogSources.ts`), so a supplemented route
+   is processed like any other, and `validate` fails for one with no entry
+   here. Its track is already committed with the supplement, so pass
+   `--from-streams` (with `--only <slug>`) to compute it from that instead of
+   fetching it from Strava - the same data, with no token.
 
    **Alignment normalization (issue #126):** the community Strava segments
    are heterogeneous - most cover exactly one lap, some cover lead-in + lap.

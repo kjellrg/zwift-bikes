@@ -42,8 +42,10 @@
 // and segment-efforts.json is gitignored for the same reason.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { routes } from 'zwift-data'
+import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 import generatedSurfaces from '../../shared/data/routeSurfaces.generated.json' with { type: 'json' }
+
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 
 const args = process.argv.slice(2)
 const flag = name => args.includes(name)

@@ -36,7 +36,8 @@ const { prependWarmup } = loadSharedModule('shared/utils/physics/routeGeometry.t
 const { rideForRoute } = loadSharedModule('shared/utils/recommendRide.ts')
 const { racePowerScaleAtSpeed } = loadSharedModule('shared/utils/physics/draft.ts')
 const { EVENT_LEAD_IN_OVERRIDES } = loadSharedModule('shared/data/routeEventLeadIns.ts')
-const { bikeFrames, routes } = await import('zwift-data')
+const { bikeFrames } = await import('zwift-data')
+const routes = loadSharedModule('shared/data/catalogSources.ts').getRoutes()
 
 const frame = classifyBikeFrame(bikeFrames.find(f => f.name === 'Specialized Tarmac Pro'), 5)
 const wheelset = getWheelsets().find(w => w.name === 'Zipp 353 NSW')
