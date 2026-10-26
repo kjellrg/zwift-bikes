@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Route, Segment } from 'zwift-data'
 import {
+  ROUTE_OVERRIDE_FIELDS,
   applyRouteSupplement,
   applySegmentSupplement,
   handWrittenDuplicateFindings,
+  isStaleFinding,
   pruneRouteEntries,
   pruneSegmentEntries,
   routeSupplementFindings,
@@ -74,6 +76,23 @@ describe('applyRouteSupplement', () => {
     const merged = applyRouteSupplement(base, [{ id: 2, override: { stravaSegmentId: 11, stravaSegmentUrl: 'https://www.strava.com/segments/11' } }])
     expect(merged[1]).toMatchObject({ stravaSegmentId: 11, stravaSegmentUrl: 'https://www.strava.com/segments/11', slug: 'bravo' })
     expect(applyRouteSupplement(base, [{ id: 2, override: { stravaSegmentId: 10 } }])[1]).toBe(base[1])
+  })
+
+  it('applies every field the allow-list names, so a correction to one is never mistaken for matched', () => {
+    const changed: Record<(typeof ROUTE_OVERRIDE_FIELDS)[number], unknown> = {
+      name: 'Bravo Two',
+      segments: ['peak'],
+      segmentsOnRoute: [{ from: 3, to: 4, segment: 'peak' }],
+      stravaSegmentId: 11,
+      stravaSegmentUrl: 'https://www.strava.com/segments/11',
+      leadInDistance: 1.5,
+      leadInElevation: 7
+    }
+    for (const field of ROUTE_OVERRIDE_FIELDS) {
+      const merged = applyRouteSupplement(base, [{ id: 2, override: { [field]: changed[field] } }])
+      expect(merged[1], field).not.toBe(base[1])
+      expect(routeSupplementFindings(base, [{ id: 2, override: { [field]: changed[field] } }], new Set(['hill', 'peak'])), field).toEqual([])
+    }
   })
 
   it('only adds to segments and segmentsOnRoute', () => {
@@ -193,7 +212,20 @@ describe('handWrittenDuplicateFindings', () => {
     expect(findings.map(f => f.identity)).toEqual(['valley', 'hill'])
   })
 
+  it('skips a correction of a route the package does not have, which no-record already reports', () => {
+    const findings = handWrittenDuplicateFindings({ ...input, routes: [{ id: 99, override: { segments: ['hill'] } }], segments: [], hosts: [{ segment: 'hill', route: 'ghost' }] })
+    expect(findings).toEqual([])
+  })
+
   it('finds nothing when the two do not overlap', () => {
     expect(handWrittenDuplicateFindings({ ...input, routes: [route(3, 'charlie')], segments: [], hosts: [{ segment: 'hill', route: 'charlie' }] })).toEqual([])
+  })
+})
+
+describe('isStaleFinding', () => {
+  it('is what supplement:prune deletes: what the package has caught up with, and nothing a person must fix', () => {
+    const finding = (reason: Parameters<typeof isStaleFinding>[0]['reason']) => isStaleFinding({ kind: 'route', identity: 'x', reason, detail: '' })
+    expect(['shipped', 'matched', 'stream-shipped'].map(r => finding(r as never))).toEqual([true, true, true])
+    expect(['no-record', 'slug-collision', 'name-collision', 'duplicate', 'unknown-segment', 'no-id', 'hand-written', 'stream-orphan', 'no-surface'].map(r => finding(r as never))).toEqual(Array(9).fill(false))
   })
 })

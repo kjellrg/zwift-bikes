@@ -32,7 +32,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import * as packageData from 'zwift-data'
 import * as packageStreams from 'zwift-data/streams'
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
-import { checkSupplement, diffRoutes, diffSegments, diffStreams, isStale, pruneSupplement, serializeSupplement } from './extractCore.mjs'
+import { checkSupplement, diffRoutes, diffSegments, diffStreams, entrySlugs, isCorrection, isStaleFinding, pruneSupplement, serializeSupplement } from './extractCore.mjs'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 // `--out` points the three files elsewhere, for the tests.
@@ -80,8 +80,8 @@ if (flag('check')) {
     console.log(`supplement: OK (${committed.routes.routes.length} routes, ${committed.segments.segments.length} segments, installed zwift-data ${installedVersion})`)
     process.exit(0)
   }
-  const stale = findings.filter(isStale)
-  const other = findings.filter(finding => !isStale(finding))
+  const stale = findings.filter(isStaleFinding)
+  const other = findings.filter(finding => !isStaleFinding(finding))
   console.error(`supplement: ${findings.length} problem(s) in ${entries} entries (installed zwift-data ${installedVersion})`)
   if (stale.length) {
     console.error(`\nThe installed package now has these - run \`npm run supplement:prune\` to delete them:\n${stale.map(describeFinding).join('\n')}`)
@@ -134,13 +134,12 @@ const segments = diffSegments(packageData.segments, sourceData.segments)
 const { applyRouteSupplement, applySegmentSupplement } = loadSharedModule('shared/data/supplementMerge.ts')
 const mergedRoutes = applyRouteSupplement(packageData.routes, routes.entries)
 const mergedSegments = applySegmentSupplement(packageData.segments, segments.entries)
-const overrideSlugs = (entries, packageRecords) => new Set(entries.filter(entry => 'override' in entry).map(entry => entry.slug ?? packageRecords.find(record => record.id === entry.id)?.slug))
-const routeTracks = diffStreams({ slugs: mergedRoutes.map(route => route.slug), overrideSlugs: overrideSlugs(routes.entries, packageData.routes), packageStreams: packageStreams.routes, sourceStreams: sourceStreams.routes })
-const segmentTracks = diffStreams({ slugs: mergedSegments.map(segment => segment.slug), overrideSlugs: overrideSlugs(segments.entries, packageData.segments), packageStreams: packageStreams.segments, sourceStreams: sourceStreams.segments })
+const routeTracks = diffStreams({ slugs: mergedRoutes.map(route => route.slug), correctedSlugs: entrySlugs(routes.entries, packageData.routes, { onlyCorrections: true }), packageStreams: packageStreams.routes, sourceStreams: sourceStreams.routes })
+const segmentTracks = diffStreams({ slugs: mergedSegments.map(segment => segment.slug), correctedSlugs: entrySlugs(segments.entries, packageData.routes, { onlyCorrections: true }), packageStreams: packageStreams.segments, sourceStreams: sourceStreams.segments })
 
 // A new route or segment with no track in the clone cannot be placed or measured.
-const entryRouteSlugs = new Set(routes.entries.filter(entry => !('override' in entry)).map(entry => entry.slug))
-const entrySegmentSlugs = new Set(segments.entries.filter(entry => !('override' in entry)).map(entry => entry.slug))
+const entryRouteSlugs = new Set(routes.entries.filter(entry => !isCorrection(entry)).map(entry => entry.slug))
+const entrySegmentSlugs = new Set(segments.entries.filter(entry => !isCorrection(entry)).map(entry => entry.slug))
 const noTrack = [
   ...routeTracks.missing.filter(slug => entryRouteSlugs.has(slug)).map(slug => `route ${slug}`),
   ...segmentTracks.missing.filter(slug => entrySegmentSlugs.has(slug)).map(slug => `segment ${slug}`)
@@ -148,7 +147,7 @@ const noTrack = [
 
 write({ routes: routes.entries, segments: segments.entries, streams: { routes: routeTracks.copied, segments: segmentTracks.copied } }, { source, zwiftDataVersion: installedVersion })
 
-const count = (entries, additions) => entries.filter(entry => ('override' in entry) !== additions).length
+const count = (entries, additions) => entries.filter(entry => isCorrection(entry) !== additions).length
 console.log(`supplement:extract from ${sourceDir} (zwift-data ${sourceVersion}, ${source})`)
 console.log(`  routes:   ${count(routes.entries, true)} new, ${count(routes.entries, false)} corrected${routes.skipped.length ? `, ${routes.skipped.length} not for cycling left out (${routes.skipped.map(route => route.slug).join(', ')})` : ''}`)
 console.log(`  segments: ${count(segments.entries, true)} new, ${count(segments.entries, false)} corrected`)

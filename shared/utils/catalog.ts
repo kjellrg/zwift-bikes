@@ -1,6 +1,6 @@
 import type { Route } from 'zwift-data'
 import { bikeFrames, worlds } from 'zwift-data'
-import { getRoutes } from '../data/catalogSources'
+import { generatedHostsFor, getRoutes } from '../data/catalogSources'
 import type { ClassifiedBikeFrame, RouteSummary, RouteWithMeta } from '../types/catalog'
 import { classifyBikeFrame } from './classifyBikeFrame'
 import { SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME, applyFrameSupplement } from '../data/frameSupplement'
@@ -96,8 +96,11 @@ export function getRoutesWithMeta(): RouteWithMeta[] {
 function withSegmentHostsBeyondPackage(route: Route): Pick<Route, 'segments' | 'segmentsOnRoute'> {
   const added = supplementHostsFor(route)
   const placed = getGeneratedSegmentPlacements(route.slug)
+  // The package's hosts, then the hand-written supplement's, then those a generated correction adds.
+  const generated = generatedHostsFor(route)
+  const own = generated.length ? (route.segments ?? []).filter(slug => !generated.includes(slug)) : route.segments ?? []
   return {
-    segments: added.length ? [...route.segments ?? [], ...added] : route.segments,
+    segments: added.length ? [...own, ...added, ...generated] : route.segments,
     segmentsOnRoute: placed.length ? [...route.segmentsOnRoute ?? [], ...placed].sort((a, b) => a.from - b.from) : route.segmentsOnRoute
   }
 }

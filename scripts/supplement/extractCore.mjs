@@ -4,12 +4,14 @@
 // what the supplement should carry and what it cannot.
 //
 //   - A route or segment only the source has is an ADDITION, written in full.
-//   - One both have, with an allow-listed field that differs, is an OVERRIDE
-//     of just those fields. `segments` and `segmentsOnRoute` only ever gain
-//     elements: one the source drops is an error, never written.
+//   - One both have, with an allow-listed field that differs, is a CORRECTION
+//     of just those fields (`{ id | slug, override }`). `segments` and
+//     `segmentsOnRoute` only ever gain elements: one the source drops is an
+//     error, never written.
 //   - A differing field outside the allow-list is an error, never written.
-//   - A route that cannot be ridden by bike (running only) is left out: the
-//     catalog drops it anyway (#324).
+//   - A new route that cannot be ridden by bike (running only) is left out:
+//     the catalog drops it anyway (#324). A route the package has is compared
+//     whatever its sports, so a change to one is still reported.
 import { loadSharedModule } from '../route-surfaces/loadShared.mjs'
 import { roundStravaStreams } from '../segment-placements/roundStreams.mjs'
 
@@ -18,15 +20,22 @@ const {
   SEGMENT_OVERRIDE_FIELDS,
   applyRouteSupplement,
   applySegmentSupplement,
+  entrySlug,
   handWrittenDuplicateFindings,
+  isCorrection,
+  isRouteOverride,
+  isStaleFinding,
+  placementKey,
   pruneRouteEntries,
   pruneSegmentEntries,
+  routeLabel,
   routeSupplementFindings,
   segmentSupplementFindings
 } = loadSharedModule('shared/data/supplementMerge.ts')
 
+export { isCorrection, isStaleFinding }
+
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
-const placementKey = placement => `${placement.segment}@${placement.from}-${placement.to}`
 const LIST_KEYS = { segments: slug => slug, segmentsOnRoute: placementKey }
 
 /**
@@ -60,8 +69,6 @@ function diffRecord(packageRecord, sourceRecord, allowed, label) {
   return { override, errors }
 }
 
-const routeLabel = route => `route ${route.slug} (${route.id})`
-
 /**
  * @param {ReadonlyArray<Record<string, any>>} packageRoutes
  * @param {ReadonlyArray<Record<string, any>>} sourceRoutes
@@ -72,20 +79,17 @@ export function diffRoutes(packageRoutes, sourceRoutes) {
   const errors = []
   const skipped = []
   for (const route of sourceRoutes) {
-    if (!route.sports?.includes('cycling')) {
-      if (!byId.has(route.id)) skipped.push(route)
-      continue
-    }
     if (route.id === undefined) {
-      errors.push(`${routeLabel(route)}: has no id, so it cannot be matched to the package's - not written`)
+      errors.push(`route ${routeLabel(route)}: has no id, so it cannot be matched to the package's - not written`)
       continue
     }
     const shipped = byId.get(route.id)
     if (!shipped) {
-      entries.push(route)
+      if (route.sports?.includes('cycling')) entries.push(route)
+      else skipped.push(route)
       continue
     }
-    const { override, errors: problems } = diffRecord(shipped, route, ROUTE_OVERRIDE_FIELDS, routeLabel(route))
+    const { override, errors: problems } = diffRecord(shipped, route, ROUTE_OVERRIDE_FIELDS, `route ${routeLabel(route)}`)
     errors.push(...problems)
     if (Object.keys(override).length) entries.push({ id: route.id, override })
   }
@@ -116,14 +120,14 @@ export function diffSegments(packageSegments, sourceSegments) {
 /**
  * The tracks to copy, for the records the supplement's merged catalog holds
  * (`slugs`): the source's where the package has none, and where the entry
- * corrects a record (`overrideSlugs`) and the source's track differs from the
- * package's - an override wins until the package matches it, tracks included
- * (a corrected Strava id comes with its own track). Any other track the
- * package has stands, so one that differs is only counted.
+ * corrects a record (`correctedSlugs`) and the source's track differs from
+ * the package's - a correction wins until the package matches it, tracks
+ * included (a corrected Strava id comes with its own track). Any other track
+ * the package has stands, so one that differs is only counted.
  *
- * @param {{ slugs: Iterable<string>, overrideSlugs: ReadonlySet<string>, packageStreams: Record<string, any>, sourceStreams: Record<string, any> }} input
+ * @param {{ slugs: Iterable<string>, correctedSlugs: ReadonlySet<string>, packageStreams: Record<string, any>, sourceStreams: Record<string, any> }} input
  */
-export function diffStreams({ slugs, overrideSlugs, packageStreams, sourceStreams }) {
+export function diffStreams({ slugs, correctedSlugs, packageStreams, sourceStreams }) {
   const copied = {}
   const missing = []
   const differing = []
@@ -131,7 +135,7 @@ export function diffStreams({ slugs, overrideSlugs, packageStreams, sourceStream
     const sourceStream = sourceStreams[slug]
     if (packageStreams[slug]) {
       if (sourceStream && !same(packageStreams[slug], sourceStream)) {
-        if (overrideSlugs.has(slug)) copied[slug] = roundStravaStreams(sourceStream)
+        if (correctedSlugs.has(slug)) copied[slug] = roundStravaStreams(sourceStream)
         else differing.push(slug)
       }
     } else if (sourceStream) {
@@ -161,10 +165,16 @@ export function serializeSupplement({ source, zwiftDataVersion, routes, segments
   }
 }
 
-/** The slugs of the records the supplement has an entry for, whole or as a correction. */
-function entrySlugsOf(packageRecords, entries) {
-  const slugById = new Map(packageRecords.map(record => [record.id, record.slug]))
-  return new Set(entries.map(entry => ('override' in entry ? (entry.slug ?? slugById.get(entry.id)) : entry.slug)))
+/**
+ * The slugs of the records the entries add or correct (`onlyCorrections` for
+ * just the corrected ones). Route corrections are named by id, so
+ * `packageRoutes` resolves them; segment entries carry their slug.
+ *
+ * @param {ReadonlyArray<any>} entries
+ * @param {ReadonlyArray<any>} packageRoutes
+ */
+export function entrySlugs(entries, packageRoutes, { onlyCorrections = false } = {}) {
+  return new Set(entries.filter(entry => !onlyCorrections || isCorrection(entry)).map(entry => entrySlug(entry, packageRoutes)).filter(Boolean))
 }
 
 /**
@@ -176,10 +186,6 @@ function entrySlugsOf(packageRecords, entries) {
 function trackIsStale(track, packageTrack, hasEntry) {
   return Boolean(packageTrack) && (!hasEntry || same(track, packageTrack))
 }
-
-/** Findings the package catching up causes: `supplement:prune` deletes them. Every other finding needs a person. */
-const STALE_REASONS = new Set(['shipped', 'matched', 'stream-shipped'])
-export const isStale = finding => STALE_REASONS.has(finding.reason)
 
 /**
  * Everything wrong with the committed supplement, as findings
@@ -203,21 +209,21 @@ export function checkSupplement(input) {
     ...segmentSupplementFindings(input.packageSegments, input.segments),
     ...handWrittenDuplicateFindings({ packageRoutes: input.packageRoutes, routes: input.routes, segments: input.segments, hosts: input.hosts, stravaIds: input.stravaIds })
   ]
-  for (const [kind, merged, tracks, packageTracks, entrySlugs] of [
-    ['route', mergedRoutes, input.streams.routes, input.packageStreams.routes, entrySlugsOf(input.packageRoutes, input.routes)],
-    ['segment', mergedSegments, input.streams.segments, input.packageStreams.segments, entrySlugsOf(input.packageSegments, input.segments)]
+  for (const [kind, merged, tracks, packageTracks, withEntry] of [
+    ['route', mergedRoutes, input.streams.routes, input.packageStreams.routes, entrySlugs(input.routes, input.packageRoutes)],
+    ['segment', mergedSegments, input.streams.segments, input.packageStreams.segments, entrySlugs(input.segments, input.packageRoutes)]
   ]) {
     const known = new Set(merged.map(record => record.slug))
     for (const slug of Object.keys(tracks)) {
       if (!known.has(slug)) findings.push({ kind, identity: slug, reason: 'stream-orphan', detail: `no ${kind} has this slug` })
-      else if (trackIsStale(tracks[slug], packageTracks[slug], entrySlugs.has(slug))) findings.push({ kind, identity: slug, reason: 'stream-shipped', detail: 'the package has its own track for it now' })
+      else if (trackIsStale(tracks[slug], packageTracks[slug], withEntry.has(slug))) findings.push({ kind, identity: slug, reason: 'stream-shipped', detail: 'the package has its own track for it now' })
     }
   }
   const packageIds = new Set(input.packageRoutes.map(route => route.id))
   for (const route of input.routes) {
-    if ('override' in route || packageIds.has(route.id) || !route.sports?.includes('cycling')) continue
+    if (isRouteOverride(route) || packageIds.has(route.id) || !route.sports?.includes('cycling')) continue
     if (!input.routeSurfaceSlugs.has(route.slug)) {
-      findings.push({ kind: 'route', identity: `${route.slug} (${route.id})`, reason: 'no-surface', detail: 'no entry in routeSurfaces.generated.json - run `node scripts/route-surfaces/compute-route-surfaces.mjs --from-streams --only <slug>` and commit it with the route' })
+      findings.push({ kind: 'route', identity: routeLabel(route), reason: 'no-surface', detail: 'no entry in routeSurfaces.generated.json - run `node scripts/route-surfaces/compute-route-surfaces.mjs --from-streams --only <slug>` and commit it with the route' })
     }
   }
   return findings
@@ -225,7 +231,7 @@ export function checkSupplement(input) {
 
 /**
  * What the committed files hold once everything stale is deleted: the
- * additions the package now ships, the overrides it now matches, and the
+ * additions the package now ships, the corrections it now matches, and the
  * tracks it now has its own of.
  *
  * @param {Parameters<typeof checkSupplement>[0] & { zwiftDataVersion: string, source: string | null }} input
@@ -237,7 +243,7 @@ export function pruneSupplement(input) {
     routes: new Set(applyRouteSupplement(input.packageRoutes, routes).map(record => record.slug)),
     segments: new Set(applySegmentSupplement(input.packageSegments, segments).map(record => record.slug))
   }
-  const entries = { routes: entrySlugsOf(input.packageRoutes, routes), segments: entrySlugsOf(input.packageSegments, segments) }
+  const entries = { routes: entrySlugs(routes, input.packageRoutes), segments: entrySlugs(segments, input.packageRoutes) }
   const keep = kind => Object.fromEntries(Object.entries(input.streams[kind]).filter(([slug, track]) => known[kind].has(slug) && !trackIsStale(track, input.packageStreams[kind][slug], entries[kind].has(slug))))
   return { routes, segments, streams: { routes: keep('routes'), segments: keep('segments') } }
 }

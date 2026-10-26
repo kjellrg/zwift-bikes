@@ -6,7 +6,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
 import { routes as packageRoutes, segments as packageSegments } from 'zwift-data'
-import { checkSupplement, diffRoutes, diffSegments, diffStreams, isStale, pruneSupplement, serializeSupplement } from './extractCore.mjs'
+import { checkSupplement, diffRoutes, diffSegments, diffStreams, isStaleFinding, pruneSupplement, serializeSupplement } from './extractCore.mjs'
 
 const route = (id, slug, extra = {}) => ({
   id,
@@ -39,6 +39,13 @@ describe('diffRoutes', () => {
     const result = diffRoutes([...base, shippedRun], [...base, shippedRun, run])
     expect(result.entries).toEqual([])
     expect(result.skipped).toEqual([run])
+  })
+
+  it('compares a route the package has even when the source makes it running-only, and reports the change', () => {
+    const result = diffRoutes(base, [base[0], route(2, 'bravo', { sports: ['running'] })])
+    expect(result.skipped).toEqual([])
+    expect(result.entries).toEqual([])
+    expect(result.errors).toEqual([expect.stringContaining('route bravo (2): "sports" differs')])
   })
 
   it('writes a changed allow-listed field as an override of just that field', () => {
@@ -98,7 +105,7 @@ describe('diffStreams', () => {
   it('copies a track the package lacks, and a corrected record\'s track that differs, rounded as zwift-data rounds', () => {
     const result = diffStreams({
       slugs: ['new', 'fixed', 'same', 'other', 'none'],
-      overrideSlugs: new Set(['fixed']),
+      correctedSlugs: new Set(['fixed']),
       packageStreams: { fixed: track(1), same: track(2), other: track(3) },
       sourceStreams: { new: { latlng: [[1.23456789, 2]], distance: [1.26], altitude: [3.04] }, fixed: track(9), same: track(2), other: track(8) }
     })
@@ -153,7 +160,7 @@ describe('checkSupplement and pruneSupplement', () => {
     })
     const findings = checkSupplement(stale)
     expect(findings.map(f => `${f.identity}:${f.reason}`)).toEqual(['alpha (1):shipped', 'bravo (2):matched', 'hill:shipped', 'alpha:stream-shipped'])
-    expect(findings.every(isStale)).toBe(true)
+    expect(findings.every(isStaleFinding)).toBe(true)
     const pruned = pruneSupplement({ ...stale, zwiftDataVersion: '2.1.0', source: 'abc' })
     expect(pruned.routes).toEqual([route(3, 'charlie')])
     expect(pruned.segments).toEqual([segment('valley')])
@@ -177,7 +184,7 @@ describe('checkSupplement and pruneSupplement', () => {
       stravaIds: [{ segment: 'peak', stravaSegmentId: 1 }]
     })
     const findings = checkSupplement(wrong)
-    expect(findings.filter(f => !isStale(f)).map(f => `${f.identity}:${f.reason}`)).toEqual([
+    expect(findings.filter(f => !isStaleFinding(f)).map(f => `${f.identity}:${f.reason}`)).toEqual([
       'delta (4):unknown-segment',
       'peak:name-collision',
       'hill on charlie:hand-written',

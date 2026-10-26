@@ -34,3 +34,18 @@ export function getSegments(): ReadonlyArray<Segment> {
   cachedSegments ??= applySegmentSupplement(packageSegments, (segmentsFile as SegmentsSupplementFile).segments)
   return cachedSegments
 }
+
+let packageHostsById: Map<number | undefined, ReadonlyArray<string>> | undefined
+
+/**
+ * The Host routes a generated correction added to a route the package has, in
+ * the order it added them; none for a route the package lacks, whose hosts
+ * are all its own. `getRoutesWithMeta` uses this to keep the order decision
+ * the supplement follows: the package's hosts, then the hand-written ones
+ * (`segmentHostSupplement.ts`), then the generated ones.
+ */
+export function generatedHostsFor(route: Pick<Route, 'id' | 'segments'>): string[] {
+  packageHostsById ??= new Map(packageRoutes.map(packageRoute => [packageRoute.id, packageRoute.segments ?? []]))
+  const own = packageHostsById.get(route.id)
+  return own ? (route.segments ?? []).filter(slug => !own.includes(slug)) : []
+}

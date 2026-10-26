@@ -6,21 +6,26 @@ import type { Route, Segment } from 'zwift-data'
  * always the base and always wins: a supplement entry is temporary, and goes
  * once a package release carries the same thing (`npm run supplement:prune`).
  *
- * Two kinds of entry, told apart by an `override` key:
+ * Two kinds of entry (CONTEXT.md, Supplement):
  *
  * - An ADDITION is a whole route or segment. If the package already ships its
  *   identity, or has a different record with its slug or its name in the same
  *   world, the package's record stands and the entry is skipped.
- * - An OVERRIDE corrects an allow-listed field of a record the package has. A
- *   scalar replaces the package's value until the package matches it. The two
- *   lists (`segments`, `segmentsOnRoute`) only ever gain elements: a host or
- *   a placement the package has is never taken away (CONTEXT.md, Host route).
+ * - A CORRECTION changes allow-listed fields of a record the package has,
+ *   stored as `{ id | slug, override: { ... } }`. A scalar replaces the
+ *   package's value until the package matches it. The two lists (`segments`,
+ *   `segmentsOnRoute`) only ever gain elements: a host or a placement the
+ *   package has is never taken away (CONTEXT.md, Host route).
  *
  * Routes are identified by `id`, segments by `slug`. With no entries the
  * package's own array comes back untouched.
  */
 
-export const ROUTE_OVERRIDE_FIELDS = ['name', 'segments', 'segmentsOnRoute', 'stravaSegmentId', 'stravaSegmentUrl', 'leadInDistance', 'leadInElevation'] as const
+/** A correction replaces these route fields... */
+const ROUTE_SCALAR_FIELDS = ['name', 'stravaSegmentId', 'stravaSegmentUrl', 'leadInDistance', 'leadInElevation'] as const
+/** ...and only adds to these. */
+const ROUTE_LIST_FIELDS = ['segments', 'segmentsOnRoute'] as const
+export const ROUTE_OVERRIDE_FIELDS = [...ROUTE_SCALAR_FIELDS, ...ROUTE_LIST_FIELDS] as const
 export const SEGMENT_OVERRIDE_FIELDS = ['name', 'stravaSegmentId', 'stravaSegmentUrl'] as const
 
 export type RouteOverride = Partial<Pick<Route, (typeof ROUTE_OVERRIDE_FIELDS)[number]>>
@@ -44,21 +49,39 @@ export interface SegmentsSupplementFile {
   segments: SegmentSupplementEntry[]
 }
 
-export function isRouteOverride(entry: RouteSupplementEntry): entry is RouteOverrideEntry {
+/** A correction of a record the package has, as opposed to an addition. */
+export function isCorrection(entry: RouteSupplementEntry | SegmentSupplementEntry): entry is RouteOverrideEntry | SegmentOverrideEntry {
   return 'override' in entry
+}
+
+export function isRouteOverride(entry: RouteSupplementEntry): entry is RouteOverrideEntry {
+  return isCorrection(entry)
 }
 
 export function isSegmentOverride(entry: SegmentSupplementEntry): entry is SegmentOverrideEntry {
-  return 'override' in entry
+  return isCorrection(entry)
 }
 
-const placementKey = (placement: { from: number, to: number, segment: string }) => `${placement.segment}@${placement.from}-${placement.to}`
+/** One Placement's identity: a correction adds a placement only if the package lacks this key. */
+export const placementKey = (placement: { from: number, to: number, segment: string }) => `${placement.segment}@${placement.from}-${placement.to}`
+/** How a route is named in every finding and error: `slug (id)`. */
+export const routeLabel = (route: { slug: string, id?: number }) => `${route.slug} (${route.id})`
 const nameKey = (record: { name: string, world: string }) => `${record.world}/${record.name.trim().toLowerCase()}`
 
-/** The package's route with the override applied; the very same object when the override changes nothing. */
+/**
+ * The slug of the record an entry adds or corrects. A route correction names
+ * its record by id, so it is looked up in the package; undefined when the
+ * package has no route with that id.
+ */
+export function entrySlug(entry: RouteSupplementEntry | SegmentSupplementEntry, packageRoutes: ReadonlyArray<Route>): string | undefined {
+  if (!isCorrection(entry) || 'slug' in entry) return entry.slug
+  return packageRoutes.find(route => route.id === entry.id)?.slug
+}
+
+/** The package's route with the correction applied; the very same object when it changes nothing. */
 export function overrideRoute(route: Route, override: RouteOverride): Route {
   let next = route
-  for (const field of ['name', 'stravaSegmentId', 'stravaSegmentUrl', 'leadInDistance', 'leadInElevation'] as const) {
+  for (const field of ROUTE_SCALAR_FIELDS) {
     const value = override[field]
     if (value !== undefined && value !== route[field]) next = { ...next, [field]: value }
   }
@@ -123,29 +146,32 @@ export function applySegmentSupplement(packageSegments: ReadonlyArray<Segment>, 
 
 export type SupplementFindingReason
   = 'shipped' // an addition the package now ships: stale, to be pruned
-    | 'matched' // an override the package's record now matches: stale, to be pruned
-    | 'no-record' // an override of a record the package does not have
+    | 'matched' // a correction the package's record now matches: stale, to be pruned
+    | 'stream-shipped' // a track the package now has its own of: stale, to be pruned
+    | 'no-record' // a correction of a record the package does not have
     | 'slug-collision' // an addition whose slug is another package record's
     | 'name-collision' // an addition whose name is another package record's, in the same world
     | 'duplicate' // the same identity twice in the supplement
     | 'unknown-segment' // a route names a segment neither the package nor the supplement has
     | 'no-id' // a route without an id cannot be matched to the package's
     | 'hand-written' // a hand-written supplement supplies the same thing: the generated one is kept, delete the hand-written one
+    | 'stream-orphan' // a track no route or segment of the merged catalog has
+    | 'no-surface' // a supplemented route with no route-surface data
 
 export interface SupplementFinding {
   kind: 'route' | 'segment'
-  /** The route's slug and id, or the segment's slug. */
+  /** The route's `slug (id)` (`routeLabel`), its bare id when the package has no such route, a segment's slug, or `segment on route` for a host. */
   identity: string
   reason: SupplementFindingReason
   detail: string
 }
 
-/** A finding that `supplement:prune` deletes: the package has caught up with the entry. */
-export function isStaleFinding(finding: SupplementFinding): boolean {
-  return finding.reason === 'shipped' || finding.reason === 'matched'
-}
+const STALE_REASONS: ReadonlySet<SupplementFindingReason> = new Set(['shipped', 'matched', 'stream-shipped'])
 
-const routeLabel = (route: { slug: string, id?: number }) => `${route.slug} (${route.id})`
+/** A finding `supplement:prune` deletes, because the package has caught up. Every other finding needs a person. */
+export function isStaleFinding(finding: SupplementFinding): boolean {
+  return STALE_REASONS.has(finding.reason)
+}
 
 export function routeSupplementFindings(
   packageRoutes: ReadonlyArray<Route>,
@@ -240,10 +266,11 @@ export function handWrittenDuplicateFindings(input: {
   stravaIds: ReadonlyArray<{ segment: string, stravaSegmentId: number }>
 }): SupplementFinding[] {
   const findings: SupplementFinding[] = []
-  const slugById = new Map(input.packageRoutes.map(route => [route.id, route.slug]))
   const generatedHosts = new Set<string>()
   for (const entry of input.routes) {
-    const slug = isRouteOverride(entry) ? slugById.get(entry.id) : entry.slug
+    // A correction of a route the package lacks is reported as `no-record` already.
+    const slug = entrySlug(entry, input.packageRoutes)
+    if (slug === undefined) continue
     const hosts = isRouteOverride(entry) ? entry.override.segments : entry.segments
     for (const segment of hosts ?? []) generatedHosts.add(`${segment} on ${slug}`)
   }
