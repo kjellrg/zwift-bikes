@@ -6,6 +6,10 @@ routes, segments and their tracks come from the `zwift-data` package; a
 supplement adds to them so a new route can be ranked the week it opens, with a
 normal deploy, rather than the week a release ships it.
 
+The supplement files are records copied from the package (or a clone of it), so
+they carry its MIT license; the notice is in
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
+
 Everything here is temporary by design. The package is always the base and
 always wins: when it ships the same thing, the supplement entry is deleted.
 
