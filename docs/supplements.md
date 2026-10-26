@@ -113,25 +113,42 @@ on purpose says so in an `eslint-disable` comment.
    npm run supplement:prune
    ```
 
-   and commit the result. It deletes every addition the package ships, every
-   correction it now matches and the tracks that go with them, and needs no
-   clone. Rerunning `supplement:extract` drops them as well.
+   and commit the result. It deletes exactly what `--check` calls stale (below):
+   every addition the package ships, every correction it now matches and every
+   track it now has its own of, and needs no clone. Rerunning
+   `supplement:extract` drops them as well.
 
 ## What `npm run validate` checks
 
 `npm run validate:supplements` (`supplement:extract --check`, part of
-`validate`) writes nothing and needs no clone. It fails, naming each entry, on:
+`validate`) writes nothing and needs no clone. It fails, naming each entry
+with the reason it prints, in two groups.
 
-- an entry the installed package now ships or matches, or a track it now has
-  (run `supplement:prune`)
-- an addition that collides with a different package record, a correction of a
-  record the package does not have, an identity listed twice, a route naming a
-  segment no catalog has, and a track no route or segment owns
-- the same thing supplied twice: a Host route in `segmentHostSupplement.ts`, or
-  a Strava id in `segmentStravaIdSupplement.ts`, that a generated entry also
-  supplies. The generated one is kept, since that is the one going upstream; the
-  hand-written one is deleted
-- a supplemented route with no entry in `routeSurfaces.generated.json`
+**Stale: the package has caught up, so `npm run supplement:prune` deletes
+these** (`isStaleFinding` in `shared/data/supplementMerge.ts` is the one
+definition both commands use):
+
+- `shipped`: an addition the installed package now ships
+- `matched`: a correction the package's record now matches
+- `stream-shipped`: a track the package now has its own of. A track that goes
+  with a correction stays until the package's track is the same one
+
+**Fix by hand: prune leaves these alone:**
+
+- `slug-collision`, `name-collision`: an addition whose slug, or name in the
+  same world, belongs to a different package record (or, for a slug, to an
+  earlier supplement route)
+- `no-record`: a correction of a record the package does not have
+- `duplicate`: the same identity listed twice
+- `no-id`: a supplemented route without the id Zwift gives it
+- `unknown-segment`: a route naming a segment no catalog has
+- `stream-orphan`: a track no route or segment owns
+- `hand-written`: the same thing supplied twice, as a Host route in
+  `segmentHostSupplement.ts` or a Strava id in `segmentStravaIdSupplement.ts`
+  that a generated entry also supplies. The generated one is kept, since that
+  is the one going upstream; the hand-written one is deleted
+- `no-surface`: a supplemented route with no entry in
+  `routeSurfaces.generated.json`
 
 The spell dictionary (`scripts/spell/generate-zwift-dict.mjs`) reads the merged
 lists, so supplemented names pass the spell check.
