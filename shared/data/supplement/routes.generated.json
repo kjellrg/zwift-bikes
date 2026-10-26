@@ -1,5 +1,434 @@
 {
-  "source": null,
+  "source": "f88528698e24d10dd637eec062cd8d35ca135fc8",
   "zwiftDataVersion": "2.1.0",
-  "routes": []
+  "routes": [
+    {
+      "id": 162354031,
+      "name": "The Watopia 150!",
+      "slug": "the-watopia-150",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 149.751,
+      "elevation": 0,
+      "leadInDistance": 1.838,
+      "leadInElevation": 0,
+      "leadInDistanceFreeRide": 0.124,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.136,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "lightning-lap-rev"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 85.251,
+          "to": 90.275,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 95.269,
+          "to": 100.286,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 110.315,
+          "to": 115.339,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 115.339,
+          "to": 120.361,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 135.395,
+          "to": 140.417,
+          "segment": "lightning-lap-rev"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 3000,
+      "stravaSegmentId": 42380444,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42380444",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/the-watopia-150"
+    },
+    {
+      "id": 966890401,
+      "name": "California Dreamin'",
+      "slug": "california-dreamin",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 19.067,
+      "elevation": 102,
+      "leadInDistance": 2.088,
+      "leadInElevation": 4,
+      "leadInDistanceFreeRide": 0.013,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.028,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "zwift-kom"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 6.948,
+          "to": 7.84,
+          "segment": "zwift-kom"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 380,
+      "stravaSegmentId": 42374395,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42374395",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/california-dreamin"
+    },
+    {
+      "id": 1127056801,
+      "override": {
+        "stravaSegmentId": 42371226,
+        "stravaSegmentUrl": "https://www.strava.com/segments/42371226"
+      }
+    },
+    {
+      "id": 1353706660,
+      "name": "Four Foalsmen",
+      "slug": "four-foalsmen",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 67.939,
+      "elevation": 618,
+      "leadInDistance": 2.28,
+      "leadInElevation": 6,
+      "leadInDistanceFreeRide": 0.033,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.049,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "fuego-flats",
+        "titans-grove-kom",
+        "volcano-kom",
+        "jarvis-sprint-rev",
+        "jarvis-kom-rev",
+        "sunset-sprint-rev",
+        "zwift-kom-rev"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 10.266,
+          "to": 12.888,
+          "segment": "titans-grove-kom"
+        },
+        {
+          "from": 23.982,
+          "to": 27.696,
+          "segment": "volcano-kom"
+        },
+        {
+          "from": 32.819,
+          "to": 33.017,
+          "segment": "jarvis-sprint-rev"
+        },
+        {
+          "from": 33.266,
+          "to": 34.558,
+          "segment": "jarvis-kom-rev"
+        },
+        {
+          "from": 47.341,
+          "to": 47.607,
+          "segment": "sunset-sprint-rev"
+        },
+        {
+          "from": 59.696,
+          "to": 62.162,
+          "segment": "zwift-kom-rev"
+        },
+        {
+          "from": 67.417,
+          "to": 67.918,
+          "segment": "fuego-flats"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 1360,
+      "stravaSegmentId": 42376396,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42376396",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/four-foalsmen"
+    },
+    {
+      "id": 1374321160,
+      "name": "Watt Goes Up Must Come Down",
+      "slug": "watt-goes-up-must-come-down",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 60.647,
+      "elevation": 775,
+      "leadInDistance": 1.853,
+      "leadInElevation": 1,
+      "leadInDistanceFreeRide": 0.028,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.054,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "sunset-sprint-rev",
+        "stoneway-sprint",
+        "acropolis-sprint",
+        "the-grade-kom",
+        "titans-grove-kom"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 12.036,
+          "to": 12.287,
+          "segment": "sunset-sprint-rev"
+        },
+        {
+          "from": 25.725,
+          "to": 29.255,
+          "segment": "the-grade-kom"
+        },
+        {
+          "from": 45.181,
+          "to": 47.789,
+          "segment": "titans-grove-kom"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 1215,
+      "stravaSegmentId": 42376334,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42376334",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/watt-goes-up-must-come-down"
+    },
+    {
+      "id": 1396603072,
+      "name": "Pacific Pursuit",
+      "slug": "pacific-pursuit",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 53.961,
+      "elevation": 381,
+      "leadInDistance": 0.194,
+      "leadInElevation": 0,
+      "leadInDistanceFreeRide": 0.098,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.116,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "sunset-sprint-rev",
+        "fuego-flats",
+        "titans-grove-kom"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 14.69,
+          "to": 14.947,
+          "segment": "sunset-sprint-rev"
+        },
+        {
+          "from": 33.85,
+          "to": 34.339,
+          "segment": "fuego-flats"
+        },
+        {
+          "from": 44.622,
+          "to": 47.247,
+          "segment": "titans-grove-kom"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 1080,
+      "stravaSegmentId": 42422497,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42422497",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/pacific-pursuit"
+    },
+    {
+      "id": 2076673816,
+      "name": "California Roll",
+      "slug": "california-roll",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 33.247,
+      "elevation": 123,
+      "leadInDistance": 0.623,
+      "leadInElevation": 16,
+      "leadInDistanceFreeRide": 0.069,
+      "leadInElevationFreeRide": 1,
+      "leadInDistanceMeetups": 0.105,
+      "leadInElevationInMeetups": 1,
+      "segments": [
+        "watopia-sprint"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 20.728,
+          "to": 21.057,
+          "segment": "watopia-sprint"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 665,
+      "stravaSegmentId": 42422101,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42422101",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/california-roll"
+    },
+    {
+      "id": 3266658632,
+      "name": "Caldera Coaster",
+      "slug": "caldera-coaster",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 4.001,
+      "elevation": 12,
+      "leadInDistance": 1.852,
+      "leadInElevation": 1,
+      "leadInDistanceFreeRide": 0.032,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.065,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "caldera-cruiser-rev"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 0,
+          "to": 3.992,
+          "segment": "caldera-cruiser-rev"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 80,
+      "stravaSegmentId": 42374295,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42374295",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/caldera-coaster"
+    },
+    {
+      "id": 3288023593,
+      "name": "Laps, Camera, Traction",
+      "slug": "laps-camera-traction",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 25.782,
+      "elevation": 201,
+      "leadInDistance": 0.623,
+      "leadInElevation": 16,
+      "leadInDistanceFreeRide": 0.058,
+      "leadInElevationFreeRide": 1,
+      "leadInDistanceMeetups": 0.085,
+      "leadInElevationInMeetups": 1,
+      "segments": [
+        "sunset-sprint-rev",
+        "sunset-sprint"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 2.815,
+          "to": 3.062,
+          "segment": "sunset-sprint-rev"
+        },
+        {
+          "from": 20.689,
+          "to": 20.933,
+          "segment": "sunset-sprint"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 515,
+      "stravaSegmentId": 42374729,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42374729",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/laps-camera-traction"
+    },
+    {
+      "id": 4045681681,
+      "name": "Seafoam Circuit",
+      "slug": "seafoam-circuit",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 3.5,
+      "elevation": 18,
+      "leadInDistance": 0.623,
+      "leadInElevation": 16,
+      "leadInDistanceFreeRide": 0.043,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.076,
+      "leadInElevationInMeetups": 1,
+      "segments": [
+        "seafoam-circuit-rev"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 0,
+          "to": 3.496,
+          "segment": "seafoam-circuit-rev"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 70,
+      "stravaSegmentId": 42380450,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42380450",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/seafoam-circuit"
+    }
+  ]
 }

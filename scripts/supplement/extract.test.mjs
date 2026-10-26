@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
@@ -226,9 +226,14 @@ describe('supplement:extract', () => {
     return dir
   }
 
+  /** A directory of empty supplement files, so a test never depends on what the repo has committed. */
   function freshOut(name) {
     const out = path.join(scratch, name)
-    cpSync(path.join(repoRoot, 'shared/data/supplement'), out, { recursive: true })
+    mkdirSync(out, { recursive: true })
+    const head = { source: null, zwiftDataVersion: installed }
+    writeFileSync(path.join(out, 'routes.generated.json'), JSON.stringify({ ...head, routes: [] }))
+    writeFileSync(path.join(out, 'segments.generated.json'), JSON.stringify({ ...head, segments: [] }))
+    writeFileSync(path.join(out, 'streams.generated.json'), JSON.stringify({ ...head, routes: {}, segments: {} }))
     return out
   }
 

@@ -247,8 +247,8 @@
     "neokyo-crit-course": [
       {
         "segment": "castle-park-sprint-rev",
-        "from": 2.323,
-        "to": 2.539
+        "from": 2.286,
+        "to": 2.503
       }
     ],
     "neon-after-party": [
@@ -1882,6 +1882,18 @@
     {
       "route": "mayan-mash",
       "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "watt-goes-up-must-come-down",
+      "segment": "stoneway-sprint",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "watt-goes-up-must-come-down",
+      "segment": "acropolis-sprint",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
     }

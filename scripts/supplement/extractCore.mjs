@@ -217,7 +217,7 @@ export function checkSupplement(input) {
   for (const route of input.routes) {
     if ('override' in route || packageIds.has(route.id) || !route.sports?.includes('cycling')) continue
     if (!input.routeSurfaceSlugs.has(route.slug)) {
-      findings.push({ kind: 'route', identity: `${route.slug} (${route.id})`, reason: 'no-surface', detail: 'no entry in routeSurfaces.generated.json - run `node scripts/route-surfaces/compute-route-surfaces.mjs --only <slug>` and commit it with the route' })
+      findings.push({ kind: 'route', identity: `${route.slug} (${route.id})`, reason: 'no-surface', detail: 'no entry in routeSurfaces.generated.json - run `node scripts/route-surfaces/compute-route-surfaces.mjs --from-streams --only <slug>` and commit it with the route' })
     }
   }
   return findings
