@@ -1,13 +1,74 @@
 {
-  "source": "f88528698e24d10dd637eec062cd8d35ca135fc8",
+  "source": "f88528698e24d10dd637eec062cd8d35ca135fc8+uncommitted",
   "zwiftDataVersion": "2.1.0",
   "routes": [
+    {
+      "id": 107363867,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.408,
+            "to": 2.608,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 121619062,
+      "name": "Molten Momentum",
+      "slug": "molten-momentum",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 20.679,
+      "elevation": 209,
+      "leadInDistance": 2.089,
+      "leadInElevation": 4,
+      "leadInDistanceFreeRide": 0.014,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.019,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "volcano-kom",
+        "jarvis-sprint-rev",
+        "jarvis-kom-rev"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 3.18,
+          "to": 6.896,
+          "segment": "volcano-kom"
+        },
+        {
+          "from": 12.03,
+          "to": 12.228,
+          "segment": "jarvis-sprint-rev"
+        },
+        {
+          "from": 12.463,
+          "to": 13.756,
+          "segment": "jarvis-kom-rev"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 415,
+      "stravaSegmentId": 42375992,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42375992",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/molten-momentum"
+    },
     {
       "id": 162354031,
       "name": "The Watopia 150!",
       "slug": "the-watopia-150",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 149.751,
       "elevation": 0,
       "leadInDistance": 1.838,
@@ -21,13 +82,113 @@
       ],
       "segmentsOnRoute": [
         {
+          "from": 0,
+          "to": 4.999,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 4.999,
+          "to": 10.018,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 10.018,
+          "to": 15.034,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 15.034,
+          "to": 20.049,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 20.049,
+          "to": 25.064,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 25.064,
+          "to": 30.079,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 30.079,
+          "to": 35.091,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 35.091,
+          "to": 40.101,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 40.101,
+          "to": 45.111,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 45.111,
+          "to": 50.121,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 50.121,
+          "to": 55.131,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 55.131,
+          "to": 60.144,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 60.144,
+          "to": 65.155,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 65.155,
+          "to": 70.159,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 70.159,
+          "to": 75.196,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 75.196,
+          "to": 80.228,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 80.228,
+          "to": 85.251,
+          "segment": "lightning-lap-rev"
+        },
+        {
           "from": 85.251,
           "to": 90.275,
           "segment": "lightning-lap-rev"
         },
         {
+          "from": 90.275,
+          "to": 95.269,
+          "segment": "lightning-lap-rev"
+        },
+        {
           "from": 95.269,
           "to": 100.286,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 100.286,
+          "to": 105.294,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 105.294,
+          "to": 110.315,
           "segment": "lightning-lap-rev"
         },
         {
@@ -37,19 +198,44 @@
         },
         {
           "from": 115.339,
-          "to": 120.361,
+          "to": 120.347,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 120.347,
+          "to": 125.368,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 125.368,
+          "to": 130.376,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 130.376,
+          "to": 135.395,
           "segment": "lightning-lap-rev"
         },
         {
           "from": 135.395,
           "to": 140.417,
           "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 140.417,
+          "to": 145.424,
+          "segment": "lightning-lap-rev"
+        },
+        {
+          "from": 145.424,
+          "to": 150.45,
+          "segment": "lightning-lap-rev"
         }
       ],
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -60,11 +246,138 @@
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/the-watopia-150"
     },
     {
+      "id": 242381847,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 72.621,
+            "to": 72.817,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 243949867,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.434,
+            "to": 2.625,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 263936293,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 3.856,
+            "to": 4.051,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 458819181,
+      "name": "One Ride to Rule Them All",
+      "slug": "one-ride-to-rule-them-all",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 38.587,
+      "elevation": 461,
+      "leadInDistance": 1.838,
+      "leadInElevation": 0,
+      "leadInDistanceFreeRide": 0.114,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.132,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "watopia-sprint-rev",
+        "zwift-kom-rev",
+        "titans-grove-kom-rev",
+        "volcano-kom"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 8.854,
+          "to": 9.054,
+          "segment": "watopia-sprint-rev"
+        },
+        {
+          "from": 11.244,
+          "to": 13.707,
+          "segment": "zwift-kom-rev"
+        },
+        {
+          "from": 20.242,
+          "to": 21.157,
+          "segment": "titans-grove-kom-rev"
+        },
+        {
+          "from": 34.838,
+          "to": 38.562,
+          "segment": "volcano-kom"
+        }
+      ],
+      "levelLocked": false,
+      "lap": false,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 770,
+      "stravaSegmentId": 42380499,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42380499",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/one-ride-to-rule-them-all"
+    },
+    {
+      "id": 482200332,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.414,
+            "to": 2.611,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 553661379,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.425,
+            "to": 2.622,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 762151244,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 70.099,
+            "to": 70.294,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
       "id": 966890401,
       "name": "California Dreamin'",
       "slug": "california-dreamin",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 19.067,
       "elevation": 102,
       "leadInDistance": 2.088,
@@ -86,7 +399,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -97,6 +410,18 @@
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/california-dreamin"
     },
     {
+      "id": 979250573,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.42,
+            "to": 2.629,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
       "id": 1127056801,
       "override": {
         "stravaSegmentId": 42371226,
@@ -104,11 +429,23 @@
       }
     },
     {
+      "id": 1201172818,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.422,
+            "to": 2.614,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
       "id": 1353706660,
       "name": "Four Foalsmen",
       "slug": "four-foalsmen",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 67.939,
       "elevation": 618,
       "leadInDistance": 2.28,
@@ -166,7 +503,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -181,7 +518,7 @@
       "name": "Watt Goes Up Must Come Down",
       "slug": "watt-goes-up-must-come-down",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 60.647,
       "elevation": 775,
       "leadInDistance": 1.853,
@@ -217,7 +554,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -232,7 +569,7 @@
       "name": "Pacific Pursuit",
       "slug": "pacific-pursuit",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 53.961,
       "elevation": 381,
       "leadInDistance": 0.194,
@@ -266,7 +603,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -277,11 +614,40 @@
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/pacific-pursuit"
     },
     {
+      "id": 1475638265,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 53.703,
+            "to": 53.895,
+            "segment": "watopia-sprint-rev"
+          },
+          {
+            "from": 104.197,
+            "to": 104.409,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1696938496,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.439,
+            "to": 2.634,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
       "id": 2076673816,
       "name": "California Roll",
       "slug": "california-roll",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 33.247,
       "elevation": 123,
       "leadInDistance": 0.623,
@@ -303,7 +669,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -314,11 +680,95 @@
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/california-roll"
     },
     {
+      "id": 2455695527,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.434,
+            "to": 2.625,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2494975884,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 33.108,
+            "to": 33.318,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2644664789,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 8.638,
+            "to": 8.826,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2661047295,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 12.258,
+            "to": 12.462,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2888820995,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.419,
+            "to": 2.614,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2900074211,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 49.113,
+            "to": 49.317,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3023359358,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.418,
+            "to": 2.616,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
       "id": 3266658632,
       "name": "Caldera Coaster",
       "slug": "caldera-coaster",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 4.001,
       "elevation": 12,
       "leadInDistance": 1.852,
@@ -340,7 +790,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -355,7 +805,7 @@
       "name": "Laps, Camera, Traction",
       "slug": "laps-camera-traction",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 25.782,
       "elevation": 201,
       "leadInDistance": 0.623,
@@ -383,7 +833,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -394,11 +844,129 @@
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/laps-camera-traction"
     },
     {
+      "id": 3312037616,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.414,
+            "to": 2.611,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3324272424,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.429,
+            "to": 2.62,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3382019812,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 13.849,
+            "to": 14.044,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3419787979,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 6.052,
+            "to": 6.256,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3453194200,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 16.259,
+            "to": 16.455,
+            "segment": "watopia-sprint-rev"
+          },
+          {
+            "from": 23.058,
+            "to": 23.253,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3454338139,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 6.052,
+            "to": 6.256,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3464446734,
+      "name": "Crit Cross",
+      "slug": "crit-cross",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 13.487,
+      "elevation": 35,
+      "leadInDistance": 1.852,
+      "leadInElevation": 1,
+      "leadInDistanceFreeRide": 0.03,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.058,
+      "leadInElevationInMeetups": 0,
+      "segments": [],
+      "segmentsOnRoute": [],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 270,
+      "stravaSegmentId": 42381269,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42381269",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/crit-cross"
+    },
+    {
+      "id": 3811569265,
+      "override": {
+        "segmentsOnRoute": [
+          {
+            "from": 2.411,
+            "to": 2.611,
+            "segment": "watopia-sprint-rev"
+          }
+        ]
+      }
+    },
+    {
       "id": 4045681681,
       "name": "Seafoam Circuit",
       "slug": "seafoam-circuit",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 3.5,
       "elevation": 18,
       "leadInDistance": 0.623,
@@ -420,7 +988,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"

@@ -511,10 +511,9 @@ describe('the twin of a race that has been run', () => {
     expect(run.markdown).toContain(`> Next ZRacing race: [Stage 4, 26 Oct – 1 Nov](${ORIGIN}/events/zracing-2026/october-stage-4)`)
   })
 
-  it('points to a next race with no page yet at its round on the season page', async () => {
-    // Tour of Watopia stage 5, on Mon 2 Nov, is on a course the catalog doesn't carry yet.
+  it('links to Molten Momentum now that Tour of Watopia stage 5 has a page', async () => {
     const run = await markdownDocumentFor('/events/zracing-2026/october-stage-4')!({ ...PAUSED, today: '2026-11-02' })
-    expect(run.markdown).toContain(`> Next ZRacing race: [Stage 5, 2–8 Nov](${ORIGIN}/events/zracing-2026#round-10)`)
+    expect(run.markdown).toContain(`> Next ZRacing race: [Stage 5, 2–8 Nov](${ORIGIN}/events/zracing-2026/october-stage-5)`)
   })
 
   it('points to the next round with nothing announced once no race is left but its season is not over', async () => {
