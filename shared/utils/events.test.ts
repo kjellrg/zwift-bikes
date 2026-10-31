@@ -424,6 +424,20 @@ describe('what the events hub and a season page read off a Season', () => {
 })
 
 describe('the curated seasons themselves', () => {
+  it('publishes Tour of Watopia stage 5 on Molten Momentum and links it from the route', () => {
+    const path = '/events/zracing-2026/october-stage-5'
+    const entry = getIndexedRaces('2026-10-31').find(race => race.path === path)
+    expect(entry?.race).toMatchObject({
+      date: '2026-11-02',
+      endDate: '2026-11-08',
+      format: 'scratch',
+      categories: [{ routeSlug: 'molten-momentum', laps: 1 }]
+    })
+    expect(getUpcomingEventsForRoute('molten-momentum', '2026-10-31').map(race => race.path)).toContain(path)
+    expect(getIndexedRaces('2026-11-08').map(race => race.path)).toContain(path)
+    expect(getIndexedRaces('2026-11-09').map(race => race.path)).not.toContain(path)
+  })
+
   it('season slugs and publishable race paths are unique', () => {
     const slugs = getAllSeasons().map(s => s.slug)
     expect(new Set(slugs).size).toBe(slugs.length)

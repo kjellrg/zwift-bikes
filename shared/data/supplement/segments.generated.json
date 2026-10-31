@@ -1,5 +1,5 @@
 {
-  "source": "f88528698e24d10dd637eec062cd8d35ca135fc8",
+  "source": "f88528698e24d10dd637eec062cd8d35ca135fc8+uncommitted",
   "zwiftDataVersion": "2.1.0",
   "segments": [
     {
@@ -41,7 +41,7 @@
       "type": "segment",
       "world": "watopia",
       "distance": 5.4,
-      "stravaSegmentId": 42385719,
+      "stravaSegmentId": 42460888,
       "stravaSegmentUrl": "https://www.strava.com/segments/42385719",
       "avgIncline": 0,
       "elevation": 0
@@ -78,6 +78,13 @@
       "stravaSegmentUrl": "https://www.strava.com/segments/42385747",
       "avgIncline": -0.4,
       "elevation": 0
+    },
+    {
+      "slug": "watopia-sprint-rev",
+      "override": {
+        "stravaSegmentId": 42371196,
+        "stravaSegmentUrl": "https://www.strava.com/segments/42371196"
+      }
     }
   ]
 }
