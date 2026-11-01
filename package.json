@@ -43,12 +43,12 @@
     "audit:signatures": "node scripts/audit-signatures.mjs"
   },
   "dependencies": {
-    "@iconify-json/lucide": "^1.2.145",
+    "@iconify-json/lucide": "^1.2.147",
     "@iconify-json/simple-icons": "^1.2.100",
     "@nuxt/ui": "^4.12.0",
     "@nuxtjs/robots": "^6.2.4",
     "@nuxtjs/sitemap": "^8.6.2",
-    "@takumi-rs/core": "^2.16.2",
+    "@takumi-rs/core": "^2.18.0",
     "h3": "^1.15.11",
     "nuxt": "^4.6.2",
     "nuxt-og-image": "^6.10.4",
@@ -64,11 +64,11 @@
     "cspell": "^10.4.0",
     "devalue": "^5.9.4",
     "esbuild": "^0.27.7",
-    "eslint": "^10.12.0",
+    "eslint": "^10.13.0",
     "husky": "^9.1.7",
     "typescript": "^6.0.3",
     "vitest": "^4.1.12",
     "vue-tsc": "^3.3.13",
-    "wrangler": "^4.151.0"
+    "wrangler": "^4.152.0"
   }
 }
