@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { StandingsCategory, StandingsData, StandingsKind } from '#shared/types/standings'
-import { STANDINGS_CATEGORIES } from '#shared/types/standings'
+import type { StandingsCategory, StandingsData, StandingsKind, StandingsProfile } from '#shared/types/standings'
+import { STANDINGS_CATEGORIES, STANDINGS_PROFILES } from '#shared/types/standings'
+import { STANDINGS_RIDERS } from '#shared/utils/standingsRiders'
 import { discoveryCountLine } from '../utils/discoveryCounts'
 import { otherPaintsLine } from '../utils/rankingResults'
 import { filterRouteCards } from '../utils/routeCardFilters'
@@ -15,7 +16,25 @@ import { bikeRecord, formatMeanGap, profileDiffersFromRider, rankStandings, seco
  */
 const props = defineProps<{ kind: StandingsKind }>()
 
-const { data, status, refresh } = await useFetch<StandingsData>(`/api/standings/${props.kind}`, { key: `standings-${props.kind}` })
+// The default rider's table is in the prerendered payload; the race rider's
+// is fetched the first time it is asked for, then kept for the toggle.
+const defaultFetch = await useFetch<StandingsData>(`/api/standings/${props.kind}`, { key: `standings-${props.kind}` })
+const raceFetch = useFetch<StandingsData>(`/api/standings/${props.kind}`, { key: `standings-${props.kind}-race`, query: { rider: 'race' }, immediate: false, lazy: true })
+
+const profile = ref<StandingsProfile>('default')
+function chooseProfile(chosen: StandingsProfile) {
+  profile.value = chosen
+  if (chosen === 'race' && raceFetch.status.value === 'idle') raceFetch.execute()
+}
+const active = computed(() => profile.value === 'race' ? raceFetch : defaultFetch)
+const data = computed(() => active.value.data.value ?? undefined)
+const status = computed(() => active.value.status.value)
+const refresh = () => active.value.refresh()
+const PROFILE_CHIPS: Record<StandingsProfile, string> = { default: 'Default rider', race: 'Race rider' }
+const riderLine = (chosen: StandingsProfile) => {
+  const { weightKg, powerW, draftMode } = STANDINGS_RIDERS[chosen]
+  return `${weightKg} kg, ${powerW} W, ${draftMode === 'race' ? 'race draft' : 'solo'}`
+}
 
 const category = ref<StandingsCategory>('standard')
 const CATEGORY_CHIPS: Record<StandingsCategory, string> = { standard: 'Road', tt: 'Time trial' }
@@ -60,9 +79,10 @@ const subjects = computed(() => props.kind === 'bikes'
   ? { plural: 'bikes', category: category.value === 'tt' ? 'TT bikes' : 'road bikes' }
   : { plural: 'wheels', category: category.value === 'tt' ? 'wheels on TT bikes' : 'wheels on road bikes' })
 
-// The rider the times are for. Precomputed, so always the default one -
-// said every time, and said again to a rider whose own profile the route
-// pages use instead. Read after mount like everything stored.
+// The rider the times are for. Precomputed, so always one of the two the
+// toggle offers - said every time, and said again to a rider whose own
+// profile the route pages use instead. Read after mount like everything
+// stored.
 const { weightKg, heightCm, powerW, hasStoredProfile, load: loadRiderProfile } = useRiderProfile()
 const { openProfile } = useOverlays()
 onMounted(loadRiderProfile)
@@ -73,17 +93,19 @@ const profileDiffers = computed(() => hasStoredProfile.value && rider.value
 const wheelNote = computed(() => wheelTimingNote(category.value, usualTimingFrames(routes.value, category.value)))
 
 // The filters live in the URL, as the homepage's do - `?category=tt
-// &world=watopia&terrain=hilly` - read once after mount and written from the
+// &rider=race&world=watopia&terrain=hilly` - read once after mount and written from the
 // committed values. They belong to the page: never a Shared view, never the
 // rider's stored preferences.
 const { param, enumParam, slugParam, replaceQuery } = useUrlState(useRoute(), useRouter())
 onMounted(() => {
   const tt = enumParam('category', ['tt'] as const)
   if (tt) category.value = tt
+  const riderParam = enumParam('rider', ['race'] as const)
+  if (riderParam) chooseProfile(riderParam)
   routeFilters.restore({ param, enumParam, slugParam })
 })
-watch([() => routeFilters.query, category], ([query, chosen]) => {
-  replaceQuery({ category: chosen === 'standard' ? undefined : chosen, ...query })
+watch([() => routeFilters.query, category, profile], ([query, chosen, rider]) => {
+  replaceQuery({ category: chosen === 'standard' ? undefined : chosen, rider: rider === 'default' ? undefined : rider, ...query })
 })
 </script>
 
@@ -100,9 +122,9 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
         v-if="rider"
         class="mt-3.5 text-sm text-muted"
       >
-        Times are for the default rider, {{ rider.weightKg }} kg at {{ rider.powerW }} W, riding solo with every frame fully upgraded - the same rankings each route's page shows for that rider.
+        Times are for {{ profile === 'race' ? 'the race rider' : 'the default rider' }}, {{ rider.weightKg }} kg at {{ rider.powerW }} W, riding {{ rider.draftMode === 'race' ? 'in a race bunch (race draft, where a route allows drafting)' : 'solo' }} with every frame fully upgraded - the same rankings each route's page shows for that rider.
         <template v-if="profileDiffers">
-          Your profile, {{ weightKg }} kg at {{ powerW }} W, applies on each route's own page; these standings are worked out ahead of time, across every route at once, so they stay with the default rider.
+          Your profile, {{ weightKg }} kg at {{ powerW }} W, applies on each route's own page; these standings are worked out ahead of time, across every route at once, so they stay with the two riders offered below.
           <a
             href="/profile"
             aria-haspopup="dialog"
@@ -126,6 +148,33 @@ watch([() => routeFilters.query, category], ([query, chosen]) => {
       <p class="mt-1 text-sm text-muted">
         Narrow the routes and the standings follow: only the routes your filters leave are averaged.
       </p>
+
+      <div class="mt-4">
+        <p
+          :id="`standings-rider-${kind}`"
+          class="mb-1 block text-xs text-muted"
+        >
+          Rider
+        </p>
+        <div
+          class="flex flex-wrap gap-1.5"
+          role="group"
+          :aria-labelledby="`standings-rider-${kind}`"
+        >
+          <button
+            v-for="value in STANDINGS_PROFILES"
+            :key="value"
+            type="button"
+            class="inline-flex h-8 items-center rounded-full border px-3 text-sm transition-colors"
+            :class="profile === value ? 'border-ink bg-accented text-highlighted' : 'border-accented bg-elevated text-toned hover:text-highlighted'"
+            :aria-pressed="profile === value"
+            @click="chooseProfile(value)"
+          >
+            {{ PROFILE_CHIPS[value] }}
+            <span class="ml-1.5 text-xs text-muted max-sm:hidden">{{ riderLine(value) }}</span>
+          </button>
+        </div>
+      </div>
 
       <div class="mt-4">
         <p

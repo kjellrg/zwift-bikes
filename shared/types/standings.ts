@@ -15,6 +15,13 @@ export type StandingsCategory = (typeof STANDINGS_CATEGORIES)[number]
 /** Which page: bikes are frames ridden on their own fastest wheels, wheels are wheelsets on each route's fastest frame. */
 export type StandingsKind = 'bikes' | 'wheels'
 
+/**
+ * Whose times a page shows: the default rider, solo, or a heavier, stronger
+ * one in a race bunch (`STANDINGS_RIDERS`). Each has its own committed table.
+ */
+export const STANDINGS_PROFILES = ['default', 'race'] as const
+export type StandingsProfile = (typeof STANDINGS_PROFILES)[number]
+
 /** One bike or wheelset as a Standings page lists it. */
 export interface StandingsEntry {
   /** A frame's id, or a wheelset's key - stable across catalog renames. */
@@ -56,7 +63,7 @@ export interface StandingsRoute extends Pick<RouteCardData, 'slug' | 'name' | 'w
   times: Partial<Record<StandingsCategory, StandingsRouteTimes>>
 }
 
-/** The rider every time was computed for: the default one the pages are prerendered with. */
+/** The rider every time in a table was computed for. */
 export interface StandingsRider {
   weightKg: number
   heightCm: number
@@ -66,9 +73,10 @@ export interface StandingsRider {
   draftMode: string
 }
 
-/** What `/api/standings/bikes` and `/api/standings/wheels` answer. */
+/** What `/api/standings/bikes` and `/api/standings/wheels` answer - for the race rider with `?rider=race`. */
 export interface StandingsData {
   kind: StandingsKind
+  profile: StandingsProfile
   rider: StandingsRider
   /** Per category, the entries the routes' `gapTenths` are in the order of. */
   entries: Record<StandingsCategory, StandingsEntry[]>

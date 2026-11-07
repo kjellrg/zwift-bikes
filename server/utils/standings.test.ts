@@ -2,33 +2,40 @@ import { gzipSync } from 'node:zlib'
 import { stringify } from 'devalue'
 import { describe, expect, it } from 'vitest'
 import generated from '../../shared/data/standings.generated.json'
-import { STANDINGS_CATEGORIES } from '../../shared/types/standings'
+import generatedRace from '../../shared/data/standings.race.generated.json'
+import type { StandingsProfile } from '../../shared/types/standings'
+import { STANDINGS_CATEGORIES, STANDINGS_PROFILES } from '../../shared/types/standings'
 import { getRouteBySlug } from '../../shared/utils/catalog'
-import { buildRecommendQuery, DEFAULT_RIDER_INPUTS } from '../../shared/utils/recommendQuery'
+import { buildRecommendQuery } from '../../shared/utils/recommendQuery'
+import { STANDINGS_RIDERS } from '../../shared/utils/standingsRiders'
 import { DEFAULT_SITE_FLAGS } from '../../shared/utils/siteFlags'
 import { recommendRouteQuerySchema } from './apiQuerySchemas'
 import { rankRideForQuery } from './rankRide'
-import { standingsData } from './standings'
+import { standingsData, standingsProfileFromQuery } from './standings'
 
 interface Table {
   frames: { id: number }[]
   wheels: { key: string }[]
   routes: { slug: string, frameSec: (number | null)[], wheels: Record<string, { frameId: number, sec: (number | null)[] }> }[]
 }
-const table = generated as Table
+const tables: Record<StandingsProfile, Table> = { default: generated as Table, race: generatedRace as Table }
+const table = tables.default
 
 const round1 = (seconds: number) => Math.round(seconds * 10) / 10
 
 describe('standingsData', () => {
   // Each page prerenders its data into its payload and averages it in the
   // browser, as the homepage does its route cards - under the same budget.
+  // The race rider's table is fetched on demand, but is held to the same size.
   it.each(['bikes', 'wheels'] as const)('fits the page payload budget: %s under 100 KB gzip, serialised the way a payload is', (kind) => {
-    const bytes = gzipSync(stringify(standingsData(kind))).length
-    expect(bytes).toBeLessThan(100 * 1024)
+    for (const profile of STANDINGS_PROFILES) {
+      const bytes = gzipSync(stringify(standingsData(kind, profile))).length
+      expect(bytes, `${kind} for ${profile}`).toBeLessThan(100 * 1024)
+    }
   })
 
   it.each(['bikes', 'wheels'] as const)('puts each route\'s fastest %s at a gap of zero in each category', (kind) => {
-    for (const route of standingsData(kind).routes) {
+    for (const route of [...standingsData(kind).routes, ...standingsData(kind, 'race').routes]) {
       for (const category of STANDINGS_CATEGORIES) {
         const times = route.times[category]
         if (!times) continue
@@ -48,20 +55,35 @@ describe('standingsData', () => {
     expect(entries.standard.some(entry => entries.tt.some(other => other.id === entry.id))).toBe(false)
   })
 
-  it('is built once per instance and reused', () => {
+  it('is built once per instance and reused, for each rider', () => {
     expect(standingsData('bikes')).toBe(standingsData('bikes'))
+    expect(standingsData('bikes', 'race')).toBe(standingsData('bikes', 'race'))
+    expect(standingsData('bikes', 'race')).not.toBe(standingsData('bikes'))
+  })
+
+  it('times the race rider as 80 kg at 280 W in a race bunch, and the default one solo', () => {
+    expect(standingsData('bikes', 'race')).toMatchObject({ profile: 'race', rider: { weightKg: 80, powerW: 280, draftMode: 'race' } })
+    expect(standingsData('bikes')).toMatchObject({ profile: 'default', rider: { draftMode: 'solo' } })
+  })
+
+  it('reads ?rider= as the default rider when absent and rejects anything else', () => {
+    expect(standingsProfileFromQuery(undefined)).toBe('default')
+    expect(standingsProfileFromQuery('race')).toBe('race')
+    expect(() => standingsProfileFromQuery('heavy')).toThrow()
+    expect(() => standingsProfileFromQuery(['race'])).toThrow()
   })
 })
 
-// The standings are meant to be what a route page shows for the default
+// The standings are meant to be what a route page shows for each table's
 // rider, averaged. These check the committed table still is: a change to the
 // physics or the ranking that moves a time, made without rerunning
 // `npm run standings:compute`, fails here. A flat route and a climb, so a
 // change that only moves one kind of time is caught too.
-describe('the committed standings table', () => {
+describe.each(STANDINGS_PROFILES)('the committed standings table for the %s rider', (profile) => {
+  const table = tables[profile]
   it.each(['tempus-fugit', 'road-to-sky'])('times %s exactly as its route page ranks it', async (slug) => {
     const route = getRouteBySlug(slug)!
-    const query = recommendRouteQuerySchema.parse(buildRecommendQuery(DEFAULT_RIDER_INPUTS, { course: { kind: 'route', slug } }))
+    const query = recommendRouteQuerySchema.parse(buildRecommendQuery(STANDINGS_RIDERS[profile], { course: { kind: 'route', slug } }))
     const page = await rankRideForQuery({ kind: 'route', route }, query, { killSwitches: DEFAULT_SITE_FLAGS.killSwitches })
     if (page.status !== 'answer') throw new Error(`ranking ${slug} did not answer: ${page.status}`)
     const entry = table.routes.find(candidate => candidate.slug === slug)!
