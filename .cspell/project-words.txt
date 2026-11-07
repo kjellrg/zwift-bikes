@@ -6,6 +6,7 @@ funbike
 handbike
 lappability
 lastmod
+loopipelago
 macrotask
 paceline
 pacelines
@@ -16,6 +17,7 @@ prerendered
 prerendering
 Racecraft
 rankable
+Seafoam
 Strava
 supertuck
 typesafe
