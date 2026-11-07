@@ -24,7 +24,7 @@ describe('the events hub\'s list of races', () => {
     expect(listed(hubRaceGroups(getSeasons(), '2026-09-24'))).toEqual([
       { title: 'On now', races: ['ZRacing september-stage-3'] },
       { title: 'Next 7 days', races: ['ZRacing september-stage-4', 'ZRL round-1-week-2'] },
-      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5', 'ZRacing october-stage-4', 'ZRL round-1-week-6', 'ZRacing october-stage-5'] }
+      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5', 'ZRacing october-stage-4', 'ZRL round-1-week-6', 'ZRacing october-stage-5', 'ZRacing november-stage-1', 'ZRacing november-stage-2', 'ZRacing november-stage-3', 'ZRacing november-stage-4'] }
     ])
   })
 

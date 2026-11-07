@@ -517,11 +517,11 @@ describe('the twin of a race that has been run', () => {
   })
 
   it('points to the next round with nothing announced once no race is left but its season is not over', async () => {
-    // The Tour of Watopia's last stage closed on Sun 8 Nov;
-    // Zwift has themed nothing after it, so November is a round with no races.
-    const run = await markdownDocumentFor('/events/zracing-2026/september-stage-4')!({ ...PAUSED, today: '2026-11-10' })
+    // Watopia Islands' last stage closes on Sun 6 Dec;
+    // Zwift has themed nothing after it, so December is a round with no races.
+    const run = await markdownDocumentFor('/events/zracing-2026/september-stage-4')!({ ...PAUSED, today: '2026-12-08' })
     expect(run.noindex).toBe(true)
-    expect(run.markdown).toContain(`> Next ZRacing round: [November, not announced yet](${ORIGIN}/events/zracing-2026#round-11)`)
+    expect(run.markdown).toContain(`> Next ZRacing round: [December, not announced yet](${ORIGIN}/events/zracing-2026#round-12)`)
   })
 
   it('points to the events hub once its season has nothing left to run', async () => {

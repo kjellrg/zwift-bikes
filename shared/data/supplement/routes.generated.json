@@ -1,5 +1,5 @@
 {
-  "source": "f88528698e24d10dd637eec062cd8d35ca135fc8+uncommitted",
+  "source": "517fe74b51fcc2176e2f53d657ef0aea530dc52f+uncommitted",
   "zwiftDataVersion": "2.1.0",
   "routes": [
     {
@@ -19,7 +19,7 @@
       "name": "Molten Momentum",
       "slug": "molten-momentum",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 20.679,
       "elevation": 209,
       "leadInDistance": 2.089,
@@ -53,7 +53,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -286,7 +286,7 @@
       "name": "One Ride to Rule Them All",
       "slug": "one-ride-to-rule-them-all",
       "world": "watopia",
-      "eventOnly": true,
+      "eventOnly": false,
       "distance": 38.587,
       "elevation": 461,
       "leadInDistance": 1.838,
@@ -326,7 +326,7 @@
       "levelLocked": false,
       "lap": false,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -519,11 +519,11 @@
       "slug": "watt-goes-up-must-come-down",
       "world": "watopia",
       "eventOnly": false,
-      "distance": 60.647,
+      "distance": 60.631,
       "elevation": 775,
-      "leadInDistance": 1.853,
+      "leadInDistance": 1.783,
       "leadInElevation": 1,
-      "leadInDistanceFreeRide": 0.028,
+      "leadInDistanceFreeRide": 0.035,
       "leadInElevationFreeRide": 0,
       "leadInDistanceMeetups": 0.054,
       "leadInElevationInMeetups": 0,
@@ -680,6 +680,61 @@
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/california-roll"
     },
     {
+      "id": 2155564554,
+      "name": "Island Interlude",
+      "slug": "island-interlude",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 49.231,
+      "elevation": 254,
+      "leadInDistance": 0.949,
+      "leadInElevation": 3,
+      "leadInDistanceFreeRide": 0.011,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.027,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "jarvis-sprint-rev",
+        "jarvis-kom-rev",
+        "caldera-cruiser-rev",
+        "lightning-lap"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 15.176,
+          "to": 15.376,
+          "segment": "jarvis-sprint-rev"
+        },
+        {
+          "from": 15.628,
+          "to": 16.917,
+          "segment": "jarvis-kom-rev"
+        },
+        {
+          "from": 21.005,
+          "to": 24.999,
+          "segment": "caldera-cruiser-rev"
+        },
+        {
+          "from": 28.271,
+          "to": 33.257,
+          "segment": "lightning-lap"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 985,
+      "stravaSegmentId": 42486420,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42486420",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/island-interlude"
+    },
+    {
       "id": 2455695527,
       "override": {
         "segmentsOnRoute": [
@@ -771,7 +826,7 @@
       "eventOnly": false,
       "distance": 4.001,
       "elevation": 12,
-      "leadInDistance": 1.852,
+      "leadInDistance": 1.783,
       "leadInElevation": 1,
       "leadInDistanceFreeRide": 0.032,
       "leadInElevationFreeRide": 0,
@@ -842,6 +897,43 @@
       "stravaSegmentId": 42374729,
       "stravaSegmentUrl": "https://www.strava.com/segments/42374729",
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/laps-camera-traction"
+    },
+    {
+      "id": 3306391797,
+      "name": "Miles of Isles",
+      "slug": "miles-of-isles",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 27.212,
+      "elevation": 161,
+      "leadInDistance": 1.838,
+      "leadInElevation": 0,
+      "leadInDistanceFreeRide": 0.028,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.054,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "sunset-sprint"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 21.215,
+          "to": 21.464,
+          "segment": "sunset-sprint"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 545,
+      "stravaSegmentId": 42486463,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42486463",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/miles-of-isles"
     },
     {
       "id": 3312037616,
@@ -925,10 +1017,10 @@
       "name": "Crit Cross",
       "slug": "crit-cross",
       "world": "watopia",
-      "eventOnly": true,
-      "distance": 13.487,
+      "eventOnly": false,
+      "distance": 13.485,
       "elevation": 35,
-      "leadInDistance": 1.852,
+      "leadInDistance": 1.783,
       "leadInElevation": 1,
       "leadInDistanceFreeRide": 0.03,
       "leadInElevationFreeRide": 0,
@@ -939,7 +1031,7 @@
       "levelLocked": false,
       "lap": true,
       "supportsTT": false,
-      "supportsMeetups": false,
+      "supportsMeetups": true,
       "sports": [
         "running",
         "cycling"
@@ -997,6 +1089,111 @@
       "stravaSegmentId": 42380450,
       "stravaSegmentUrl": "https://www.strava.com/segments/42380450",
       "zwiftInsiderUrl": "https://zwiftinsider.com/route/seafoam-circuit"
+    },
+    {
+      "id": 4123597378,
+      "name": "Better Lap Than Never",
+      "slug": "better-lap-than-never",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 15.074,
+      "elevation": 185,
+      "leadInDistance": 35.34,
+      "leadInElevation": 316,
+      "leadInDistanceFreeRide": 35.278,
+      "leadInElevationFreeRide": 316,
+      "leadInDistanceMeetups": 35.293,
+      "leadInElevationInMeetups": 316,
+      "segments": [
+        "jarvis-sprint-rev",
+        "jarvis-kom-rev",
+        "sunset-sprint-rev",
+        "mayan-mountainside-kom",
+        "itza-kom",
+        "acropolis-sprint-rev",
+        "stoneway-sprint-rev"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 3.824,
+          "to": 4.025,
+          "segment": "jarvis-sprint-rev"
+        },
+        {
+          "from": 4.263,
+          "to": 5.553,
+          "segment": "jarvis-kom-rev"
+        },
+        {
+          "from": 21.685,
+          "to": 21.936,
+          "segment": "sunset-sprint-rev"
+        },
+        {
+          "from": 28.789,
+          "to": 30.774,
+          "segment": "mayan-mountainside-kom"
+        },
+        {
+          "from": 31.379,
+          "to": 35.131,
+          "segment": "itza-kom"
+        },
+        {
+          "from": 43.819,
+          "to": 45.813,
+          "segment": "mayan-mountainside-kom"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 300,
+      "stravaSegmentId": 42494102,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42494102",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/better-lap-than-never"
+    },
+    {
+      "id": 4236593520,
+      "name": "Loopipelago",
+      "slug": "loopipelago",
+      "world": "watopia",
+      "eventOnly": true,
+      "distance": 18.487,
+      "elevation": 35,
+      "leadInDistance": 2.089,
+      "leadInElevation": 4,
+      "leadInDistanceFreeRide": 0.018,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.039,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "lightning-lap"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 3.387,
+          "to": 8.38,
+          "segment": "lightning-lap"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": false,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 370,
+      "stravaSegmentId": 42482499,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42482499",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/loopipelago"
     }
   ]
 }

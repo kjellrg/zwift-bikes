@@ -1782,6 +1782,18 @@
       "segment": "acropolis-sprint",
       "reason": "no-segment-track",
       "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "better-lap-than-never",
+      "segment": "acropolis-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
+    },
+    {
+      "route": "better-lap-than-never",
+      "segment": "stoneway-sprint-rev",
+      "reason": "no-segment-track",
+      "detail": "the segment has no Strava id in zwift-data, so no track"
     }
   ]
 }
