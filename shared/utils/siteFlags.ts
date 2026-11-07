@@ -21,6 +21,32 @@ import { z } from 'zod'
  *   runtime's lenient parse would just ignore the misspelled intent.
  */
 
+export type MotdMessagePart = { text: string } | { text: string, href: string }
+
+/**
+ * Splits a MOTD message into plain text and `[label](target)` links. Pure
+ * and total: any string parses, and a link is only a link where the syntax is
+ * exact. It does NOT judge the target - the schema rejects an unsafe one at
+ * push time and on the Worker, and the banner renders only the parts that
+ * pass `isSafeMotdLink`.
+ */
+export function parseMotdMessage(message: string): MotdMessagePart[] {
+  const parts: MotdMessagePart[] = []
+  let last = 0
+  for (const match of message.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)) {
+    if (match.index > last) parts.push({ text: message.slice(last, match.index) })
+    parts.push({ text: match[1]!, href: match[2]! })
+    last = match.index + match[0].length
+  }
+  if (last < message.length) parts.push({ text: message.slice(last) })
+  return parts
+}
+
+/** Site-relative ("/routes/x", not protocol-relative "//host") or https. */
+export function isSafeMotdLink(href: string): boolean {
+  return (href.startsWith('/') && !href.startsWith('//')) || href.startsWith('https://')
+}
+
 const motdShape = {
   /**
    * Identifies THIS message for dismissal: dismissing stores the id in
@@ -28,7 +54,16 @@ const motdShape = {
    * message (new id) reappears for everyone who dismissed the old one.
    */
   id: z.string().min(1).max(100),
-  message: z.string().min(1).max(500),
+  /**
+   * Plain text, with `[label](target)` links allowed anywhere in it
+   * (`parseMotdMessage`). A target must be site-relative ("/routes/x") or
+   * https, for the same defense-in-depth reason as `href` below: a violating
+   * message fails the runtime parse open to no-MOTD.
+   */
+  message: z.string().min(1).max(500)
+    .refine(value => parseMotdMessage(value).every(part => !('href' in part) || isSafeMotdLink(part.href)), {
+      message: 'every `motd.message` link target must be a site-relative path ("/routes/x") or an https:// URL'
+    }),
   /** Exactly the Nuxt UI alert colors the banner renders with. */
   tone: z.enum(['info', 'warning', 'error']).default('info'),
   dismissible: z.boolean().default(true),

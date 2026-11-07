@@ -6,6 +6,10 @@
  * HTML and the first client render agree; a live message then pops in.
  */
 const { activeMotd, dismissMotd } = useSiteFlags()
+
+// A link whose target fails the check renders as its plain label: the schema
+// already rejects such a message, this is the second lock.
+const parts = computed(() => activeMotd.value ? parseMotdMessage(activeMotd.value.message) : [])
 </script>
 
 <template>
@@ -14,7 +18,21 @@ const { activeMotd, dismissMotd } = useSiteFlags()
     class="pt-4"
   >
     <SiteNotice :tone="activeMotd.tone">
-      <p>{{ activeMotd.message }}</p>
+      <p>
+        <template
+          v-for="(part, index) in parts"
+          :key="index"
+        >
+          <NuxtLink
+            v-if="'href' in part && isSafeMotdLink(part.href)"
+            :to="part.href"
+            class="font-medium text-highlighted underline underline-offset-2 hover:text-default"
+          >{{ part.text }}</NuxtLink>
+          <template v-else>
+            {{ part.text }}
+          </template>
+        </template>
+      </p>
       <template
         v-if="activeMotd.href || activeMotd.dismissible"
         #actions
