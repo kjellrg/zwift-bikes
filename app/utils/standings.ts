@@ -319,6 +319,6 @@ export function wheelTimingNote(category: StandingsCategory, usualFrames: readon
 }
 
 /** Whether a stored rider profile differs from the default rider the standings were timed for. */
-export function profileDiffersFromRider(profile: Pick<StandingsRider, 'weightKg' | 'heightCm' | 'powerW'>, rider: StandingsRider): boolean {
+export function profileDiffersFromRider(profile: Pick<StandingsRider, 'weightKg' | 'heightCm' | 'powerW'>, rider: Pick<StandingsRider, 'weightKg' | 'heightCm' | 'powerW'>): boolean {
   return profile.weightKg !== rider.weightKg || profile.heightCm !== rider.heightCm || profile.powerW !== rider.powerW
 }

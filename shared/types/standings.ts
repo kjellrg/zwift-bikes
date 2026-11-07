@@ -1,3 +1,4 @@
+import type { DraftMode } from '../utils/physics/draft'
 import type { RouteCardData } from '../utils/routeCards'
 
 /**
@@ -21,6 +22,10 @@ export type StandingsKind = 'bikes' | 'wheels'
  */
 export const STANDINGS_PROFILES = ['default', 'race'] as const
 export type StandingsProfile = (typeof STANDINGS_PROFILES)[number]
+
+export function isStandingsProfile(value: unknown): value is StandingsProfile {
+  return STANDINGS_PROFILES.some(profile => profile === value)
+}
 
 /** One bike or wheelset as a Standings page lists it. */
 export interface StandingsEntry {
@@ -70,7 +75,7 @@ export interface StandingsRider {
   powerW: number
   /** The Upgrade stage every frame is ridden at. */
   upgradeStage: number
-  draftMode: string
+  draftMode: DraftMode
 }
 
 /** What `/api/standings/bikes` and `/api/standings/wheels` answer - for the race rider with `?rider=race`. */

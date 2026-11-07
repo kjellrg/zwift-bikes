@@ -1,7 +1,7 @@
 import generated from '../../shared/data/standings.generated.json'
 import generatedRace from '../../shared/data/standings.race.generated.json'
 import type { StandingsCategory, StandingsData, StandingsEntry, StandingsKind, StandingsProfile, StandingsRider, StandingsRoute, StandingsRouteTimes } from '../../shared/types/standings'
-import { STANDINGS_CATEGORIES, STANDINGS_PROFILES } from '../../shared/types/standings'
+import { isStandingsProfile, STANDINGS_CATEGORIES, STANDINGS_PROFILES } from '../../shared/types/standings'
 import { getWorlds } from '../../shared/utils/catalog'
 import { allRouteCards } from './routeCardCatalog'
 
@@ -132,6 +132,6 @@ function wheelColumns(table: StandingsTable): EntryColumns {
 /** The rider an endpoint's `?rider=` names - the default one when it is absent; anything else is a 400. */
 export function standingsProfileFromQuery(rider: unknown): StandingsProfile {
   if (rider === undefined) return 'default'
-  if (typeof rider === 'string' && (STANDINGS_PROFILES as readonly string[]).includes(rider)) return rider as StandingsProfile
+  if (isStandingsProfile(rider)) return rider
   throw createError({ statusCode: 400, statusMessage: `rider must be one of ${STANDINGS_PROFILES.join(', ')}` })
 }

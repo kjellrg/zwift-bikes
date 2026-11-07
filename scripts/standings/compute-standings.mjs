@@ -79,6 +79,9 @@ else await worker()
 async function main() {
   const check = process.argv.includes('--check')
   const catalog = await load('shared/utils/catalog.ts')
+  const { STANDINGS_RIDERS } = await load('shared/utils/standingsRiders.ts')
+  // Every rider has a table to write, and every table a rider.
+  if (Object.keys(OUTPUT_PATHS).sort().join() !== Object.keys(STANDINGS_RIDERS).sort().join()) throw new Error('OUTPUT_PATHS and STANDINGS_RIDERS name different riders')
   const profileArg = argValue('--profile')
   if (profileArg && !(profileArg in OUTPUT_PATHS)) throw new Error(`--profile must be one of ${Object.keys(OUTPUT_PATHS).join(', ')}`)
   const profiles = profileArg ? [profileArg] : Object.keys(OUTPUT_PATHS)
@@ -246,15 +249,25 @@ async function worker() {
   const { rankingRequestFromQuery } = await load('server/utils/rankRide.ts')
   const { runRecommendPipeline } = await load('server/utils/recommendPipeline.ts')
 
+  // Per rider, once per worker: neither depends on the route.
+  const setups = new Map()
+  function setupFor(profile) {
+    if (!setups.has(profile)) {
+      // The fresh visitor's query for the rider, as a route page is
+      // prerendered with it, with only the category opened: a frame's time
+      // does not depend on which other frames share the page.
+      const inputs = { ...STANDINGS_RIDERS[profile], bikeCategory: 'all' }
+      // Every wheel a road or TT frame takes under the default filters (both
+      // take only road-class tyres, see `scoring.ts`) - the pool behind each
+      // Wheel alternatives list below.
+      const wheelPool = getWheelsets().filter(wheelset => wheelset.crrClass === 'road' && (!inputs.verifiedOnly || wheelset.confidence === 'measured'))
+      setups.set(profile, { inputs, wheelPool })
+    }
+    return setups.get(profile)
+  }
+
   async function timeRoute(slug, profile) {
-    // The fresh visitor's query for the default rider, as every route page
-    // is prerendered with it, with only the category opened: a frame's time
-    // does not depend on which other frames share the page.
-    const inputs = { ...STANDINGS_RIDERS[profile], bikeCategory: 'all' }
-    // Every wheel a road or TT frame takes under the default filters (both
-    // take only road-class tyres, see `scoring.ts`) - the pool behind each
-    // Wheel alternatives list below.
-    const wheelPool = getWheelsets().filter(wheelset => wheelset.crrClass === 'road' && (!inputs.verifiedOnly || wheelset.confidence === 'measured'))
+    const { inputs, wheelPool } = setupFor(profile)
     const route = getRouteBySlug(slug)
     const query = recommendRouteQuerySchema.parse(buildRecommendQuery(inputs, { course: { kind: 'route', slug } }))
     const request = rankingRequestFromQuery(query)

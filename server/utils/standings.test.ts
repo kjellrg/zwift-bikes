@@ -19,7 +19,6 @@ interface Table {
   routes: { slug: string, frameSec: (number | null)[], wheels: Record<string, { frameId: number, sec: (number | null)[] }> }[]
 }
 const tables: Record<StandingsProfile, Table> = { default: generated as Table, race: generatedRace as Table }
-const table = tables.default
 
 const round1 = (seconds: number) => Math.round(seconds * 10) / 10
 
@@ -49,9 +48,9 @@ describe('standingsData', () => {
     expect(wake).toEqual([{ id: 'Princeton Wake 6560 Lava', name: 'Princeton Wake 6560 Lava', sameTimes: ['Princeton Wake 6560 White'] }])
   })
 
-  it('splits the bikes by category, every frame in exactly one', () => {
-    const { entries } = standingsData('bikes')
-    expect(entries.standard.length + entries.tt.length).toBe(table.frames.length)
+  it.each(STANDINGS_PROFILES)('splits the bikes by category, every frame in exactly one: %s rider', (profile) => {
+    const { entries } = standingsData('bikes', profile)
+    expect(entries.standard.length + entries.tt.length).toBe(tables[profile].frames.length)
     expect(entries.standard.some(entry => entries.tt.some(other => other.id === entry.id))).toBe(false)
   })
 

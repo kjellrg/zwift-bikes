@@ -99,7 +99,7 @@ following a stored profile, a Garage or a Draft, and the pages say so.
 - `npm run standings:compute` regenerates `shared/data/standings.generated.json`
   (the default rider) and `shared/data/standings.race.generated.json` (the
   race rider).
-  It spreads the routes over worker threads and takes ~3.5 minutes per rider on 8
+  It spreads the routes over worker threads and takes ~4-6 minutes per rider on 8
   cores. `--only slug,slug` refreshes a few routes and keeps the rest;
   `--profile default|race` does one rider; `--workers N` sets the thread count.
 - `npm run validate:standings`, part of `npm run validate` and so of the
