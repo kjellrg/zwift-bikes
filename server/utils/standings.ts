@@ -1,6 +1,7 @@
 import generated from '../../shared/data/standings.generated.json'
-import type { StandingsCategory, StandingsData, StandingsEntry, StandingsKind, StandingsRider, StandingsRoute, StandingsRouteTimes } from '../../shared/types/standings'
-import { STANDINGS_CATEGORIES } from '../../shared/types/standings'
+import generatedRace from '../../shared/data/standings.race.generated.json'
+import type { StandingsCategory, StandingsData, StandingsEntry, StandingsKind, StandingsProfile, StandingsRider, StandingsRoute, StandingsRouteTimes } from '../../shared/types/standings'
+import { isStandingsProfile, STANDINGS_CATEGORIES, STANDINGS_PROFILES } from '../../shared/types/standings'
 import { getWorlds } from '../../shared/utils/catalog'
 import { allRouteCards } from './routeCardCatalog'
 
@@ -9,11 +10,11 @@ import { allRouteCards } from './routeCardCatalog'
  * the table `scripts/standings/compute-standings.mjs` commits: every route's
  * default Ranking with every frame on it, and the Wheel alternatives of its
  * fastest road and TT frames that take wheels. Nothing is timed here - the
- * table is what a route page would show for the default rider, and this only
+ * table is what a route page would show for that table's rider, and this only
  * turns it into gaps and joins it to the route cards the filters read.
  *
- * The catalog only changes on deploy, so each page's data is built once per
- * worker instance, on first use, and reused - as the route cards are.
+ * The catalog only changes on deploy, so each rider's page data is built once
+ * per worker instance, on first use, and reused - as the route cards are.
  */
 
 /** The committed table, as the script writes it. */
@@ -31,19 +32,20 @@ interface StandingsTable {
   }[]
 }
 
-const table = generated as StandingsTable
+const tables: Record<StandingsProfile, StandingsTable> = { default: generated as StandingsTable, race: generatedRace as StandingsTable }
 
-const cached: Partial<Record<StandingsKind, StandingsData>> = {}
+const cached: Partial<Record<`${StandingsProfile}:${StandingsKind}`, StandingsData>> = {}
 
-/** The data one Standings page averages - see the module comment. */
-export function standingsData(kind: StandingsKind): StandingsData {
-  return cached[kind] ??= buildStandingsData(kind)
+/** The data one Standings page averages for one rider - see the module comment. */
+export function standingsData(kind: StandingsKind, profile: StandingsProfile = 'default'): StandingsData {
+  return cached[`${profile}:${kind}`] ??= buildStandingsData(kind, profile)
 }
 
-function buildStandingsData(kind: StandingsKind): StandingsData {
+function buildStandingsData(kind: StandingsKind, profile: StandingsProfile): StandingsData {
+  const table = tables[profile]
   const cards = new Map(allRouteCards().map(card => [card.slug, card]))
   const timedRoutes = table.routes.filter(route => cards.has(route.slug))
-  const columns = kind === 'bikes' ? frameColumns() : wheelColumns()
+  const columns = kind === 'bikes' ? frameColumns(table) : wheelColumns(table)
   const routes = timedRoutes.map((route): StandingsRoute => {
     const { slug, name, world, worldName, distance, elevation, terrain, gravel, cobble } = cards.get(route.slug)!
     const times: StandingsRoute['times'] = {}
@@ -55,6 +57,7 @@ function buildStandingsData(kind: StandingsKind): StandingsData {
   })
   return {
     kind,
+    profile,
     rider: table.rider,
     entries: columns.entries,
     routes,
@@ -77,7 +80,7 @@ interface EntryColumns {
 }
 
 /** Bikes: each category's frames, each timed on its own fastest wheels, against the category's fastest frame. */
-function frameColumns(): EntryColumns {
+function frameColumns(table: StandingsTable): EntryColumns {
   const indices = Object.fromEntries(STANDINGS_CATEGORIES.map(category => [
     category,
     table.frames.flatMap((frame, index) => frame.category === category ? [index] : [])
@@ -101,7 +104,7 @@ function frameEntry(frame: StandingsTable['frames'][number]): StandingsEntry {
  * every route are listed once - as the Wheel alternatives list collapses
  * them - under the plainest name, with the others beside it.
  */
-function wheelColumns(): EntryColumns {
+function wheelColumns(table: StandingsTable): EntryColumns {
   const groups = new Map<string, number[]>()
   table.wheels.forEach((_, index) => {
     const signature = JSON.stringify(table.routes.map(route => STANDINGS_CATEGORIES.map(category => route.wheels[category]?.sec[index] ?? null)))
@@ -124,4 +127,11 @@ function wheelColumns(): EntryColumns {
       return gaps && { ...gaps, timedOn: frameNames.get(list.frameId) }
     }
   }
+}
+
+/** The rider an endpoint's `?rider=` names - the default one when it is absent; anything else is a 400. */
+export function standingsProfileFromQuery(rider: unknown): StandingsProfile {
+  if (rider === undefined) return 'default'
+  if (isStandingsProfile(rider)) return rider
+  throw createError({ statusCode: 400, statusMessage: `rider must be one of ${STANDINGS_PROFILES.join(', ')}` })
 }

@@ -28,7 +28,7 @@ section of the README.
   table must be regenerated (`npm run equipment-physics:compute`), or
   `npm run validate` fails the build on the drift it detects. The Bikes and
   Wheels standings are precomputed from it too, so run
-  `npm run standings:compute` after it (a few minutes, on every core) - the
+  `npm run standings:compute` after it (a few minutes per rider, on every core) - the
   same check fails until you do. Any change to frame/wheel/route numbers also
   needs a verified source — see below.
 - **Recommend pipeline edits** (`server/utils/recommendPipeline.ts`, the Ride

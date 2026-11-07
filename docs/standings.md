@@ -67,33 +67,45 @@ otherwise stay open over the route page.
 
 ## Where the times come from
 
-`scripts/standings/compute-standings.mjs` runs, for every catalog route, the
-query a fresh visitor's route page sends (`buildRecommendQuery` with
-`DEFAULT_RIDER_INPUTS`). Two things are changed: the category is opened to
+`scripts/standings/compute-standings.mjs` runs, for every catalog route and
+each rider in `STANDINGS_RIDERS` (`shared/utils/standingsRiders.ts`), the
+query that rider's route page sends (`buildRecommendQuery`). Two things are
+changed: the category is opened to
 every frame, and the page is opened to the whole pool. The query goes through
 the recommend pipeline itself (`runRecommendPipeline`), followed by the Wheel
 alternatives of the fastest road and TT frames that take wheels. The
-standings are therefore the route pages' own rankings for the default rider:
-75 kg, 175 cm, 225 W, solo, verified equipment only.
+standings are therefore the route pages' own rankings for two riders, each
+with verified equipment only and 175 cm:
+
+- the **default rider** (`DEFAULT_RIDER_INPUTS`): 75 kg, 225 W, solo. This
+  table is prerendered with each page.
+- the **race rider**: 80 kg, 280 W, race draft, picked with the "Race rider"
+  chip (`?rider=race`). On a route that does not allow drafting the ride
+  falls back to solo, as a route page's does. Its table is fetched from
+  `/api/standings/{bikes,wheels}?rider=race` the first time the chip is
+  pressed, then kept.
+
 `server/utils/standings.test.ts` checks a flat route and a climb against a
-live ranking, time for time.
+live ranking, time for time, for each rider.
 
 It is precomputed because it cannot be answered per request. It costs about
 750 simulations per route, 1 to 8 CPU-seconds each on a recent laptop, while
 a request is limited to 30 CPU-seconds (see `shared/utils/recommendLimits.ts`).
-For the same reason the standings stay with the default rider rather than
+For the same reason the standings stay with those two riders rather than
 following a stored profile, a Garage or a Draft, and the pages say so.
 
 ## Keeping it current
 
-- `npm run standings:compute` regenerates `shared/data/standings.generated.json`.
-  It spreads the routes over worker threads and takes ~3.5 minutes on 8
+- `npm run standings:compute` regenerates `shared/data/standings.generated.json`
+  (the default rider) and `shared/data/standings.race.generated.json` (the
+  race rider).
+  It spreads the routes over worker threads and takes ~4-6 minutes per rider on 8
   cores. `--only slug,slug` refreshes a few routes and keeps the rest;
-  `--workers N` sets the thread count.
+  `--profile default|race` does one rider; `--workers N` sets the thread count.
 - `npm run validate:standings`, part of `npm run validate` and so of the
   pre-commit hook and the build, is a cheap fingerprint check. It covers the
-  equipment physics table, the measured frames and wheels, and the default
-  rider. A speed-data edit fails it until the table is regenerated.
+  equipment physics table, the measured frames and wheels, and each table's
+  rider. A speed-data edit fails it until the tables are regenerated.
 - Code is not fingerprinted. A change to the physics or the ranking that
   moves a time fails the test above instead. Rerun the compute after one.
 - A route the catalog gains is not a failure. The check warns, the route is
@@ -102,9 +114,11 @@ following a stored profile, a Garage or a Draft, and the pages say so.
 
 ## Payload
 
-Each page carries its own half of the table (the bikes or the wheels) in its
+Each page carries its own half of the default rider's table (the bikes or the
+wheels) in its
 prerendered payload: ~84 KB gzip, under the homepage's 100 KB budget, which a test
-holds it to. Each route's gaps travel as one comma-separated string, since
+holds it to - and holds the race rider's table to as well, though that one
+travels only on request. Each route's gaps travel as one comma-separated string, since
 the payload format gives every array element a slot of its own. The filters -
 the homepage's own, through `useRouteFilters` and
 `RouteFilterBar` - and the Road / TT switch then work in the browser, without
@@ -112,6 +126,6 @@ a request.
 
 ## Possible next steps
 
-- Standings for riders other than the default one, for example a few W/kg
-  bands. Each band would cost another full run.
+- Standings for more riders, for example a few W/kg bands. Each would cost
+  another full run and another committed table.
 - Markdown Twins for the two pages.

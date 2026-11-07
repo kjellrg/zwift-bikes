@@ -127,7 +127,7 @@ const headToHead = (near: { fasterOn: number, slowerOn: number, levelOn: number 
             </template>
           </dl>
           <p class="text-xs text-muted">
-            Over the routes your filters leave, timed on its own fastest wheels at upgrade stage {{ STANDINGS_STAGE }} for the default rider. The bikes are ranked by the percentage, which weighs every route alike; the seconds are the plain average over routes of different lengths.
+            Over the routes your filters leave, timed on its own fastest wheels at upgrade stage {{ STANDINGS_STAGE }} for the rider the standings are timed for. The bikes are ranked by the percentage, which weighs every route alike; the seconds are the plain average over routes of different lengths.
           </p>
         </section>
 

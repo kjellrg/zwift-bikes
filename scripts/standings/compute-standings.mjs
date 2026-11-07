@@ -5,8 +5,9 @@
 // equipment physics or another default rider than the ones in the repo now
 // (wired into `npm run validate`, which the pre-commit hook and the build run).
 //
-// What it times, per catalog route, for the rider every page is prerendered
-// with (`DEFAULT_RIDER_INPUTS`):
+// What it times, per catalog route, for each rider in `STANDINGS_RIDERS` - the
+// one every page is prerendered with (`DEFAULT_RIDER_INPUTS`), and the race
+// rider the pages' toggle offers - into a table each:
 //
 // - The route page's own Ranking, every frame on one page: the query the page
 //   sends (`buildRecommendQuery`) with the category opened to every frame, so
@@ -23,19 +24,19 @@
 // lists) - 1s of CPU for Hilly Route, 8s for the Gran Fondo on a recent
 // laptop - so a ranking over every route is minutes of CPU, against a 30s
 // per-request limit (see `recommendLimits.ts`). The times only change with
-// the physics, the speed data or the default rider, so they are computed
-// here, on several cores at once (~3.5 minutes for every route on 8), and
+// the physics, the speed data or the riders, so they are computed here, on
+// several cores at once (~3.5 minutes per rider for every route on 8), and
 // committed.
 //
 // The check is cheap on purpose - it runs in every pre-commit. It compares a
 // fingerprint of the inputs that change the numbers: the equipment physics
-// table, the measured frames and wheels, and the default rider. A route the
+// table, the measured frames and wheels, and each table's rider. A route the
 // catalog gained since is not a failure: it has no standings until the next
 // run, and the pages count only the routes they have times for. A change to
 // the physics or ranking CODE is not fingerprinted - rerun this after one, as
 // docs/standings.md says.
 //
-// Usage: node scripts/standings/compute-standings.mjs [--check] [--workers N] [--only slug,slug]
+// Usage: node scripts/standings/compute-standings.mjs [--check] [--workers N] [--only slug,slug] [--profile default|race]
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
@@ -45,7 +46,12 @@ import { isMainThread, parentPort, Worker } from 'node:worker_threads'
 import { createJiti } from 'jiti'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const outputPath = path.join(repoRoot, 'shared/data/standings.generated.json')
+
+/** Where each rider's table is committed. */
+const OUTPUT_PATHS = {
+  default: path.join(repoRoot, 'shared/data/standings.generated.json'),
+  race: path.join(repoRoot, 'shared/data/standings.race.generated.json')
+}
 
 /** Bump when what is timed, or how, changes - it is part of the fingerprint. */
 const STANDINGS_VERSION = 1
@@ -73,17 +79,28 @@ else await worker()
 async function main() {
   const check = process.argv.includes('--check')
   const catalog = await load('shared/utils/catalog.ts')
-  const fingerprint = await inputFingerprint()
+  const { STANDINGS_RIDERS } = await load('shared/utils/standingsRiders.ts')
+  // Every rider has a table to write, and every table a rider.
+  if (Object.keys(OUTPUT_PATHS).sort().join() !== Object.keys(STANDINGS_RIDERS).sort().join()) throw new Error('OUTPUT_PATHS and STANDINGS_RIDERS name different riders')
+  const profileArg = argValue('--profile')
+  if (profileArg && !(profileArg in OUTPUT_PATHS)) throw new Error(`--profile must be one of ${Object.keys(OUTPUT_PATHS).join(', ')}`)
+  const profiles = profileArg ? [profileArg] : Object.keys(OUTPUT_PATHS)
+  const fingerprints = Object.fromEntries(await Promise.all(profiles.map(async profile => [profile, await inputFingerprint(profile)])))
 
   if (check) {
-    const committed = JSON.parse(readFileSync(outputPath, 'utf8'))
-    const missing = catalog.getRoutesWithMeta().filter(route => !committed.routes.some(entry => entry.slug === route.slug))
-    if (missing.length) console.warn(`standings: ${missing.length} route(s) not timed yet (${missing.map(route => route.slug).join(', ')}) - run \`npm run standings:compute\` to add them`)
-    if (committed.fingerprint !== fingerprint) {
-      console.error('standings: shared/data/standings.generated.json was computed from other equipment physics or another default rider. Run `npm run standings:compute` and commit the result.')
-      process.exit(1)
+    let stale = false
+    for (const profile of profiles) {
+      const committed = JSON.parse(readFileSync(OUTPUT_PATHS[profile], 'utf8'))
+      const missing = catalog.getRoutesWithMeta().filter(route => !committed.routes.some(entry => entry.slug === route.slug))
+      if (missing.length) console.warn(`standings (${profile}): ${missing.length} route(s) not timed yet (${missing.map(route => route.slug).join(', ')}) - run \`npm run standings:compute\` to add them`)
+      if (committed.fingerprint !== fingerprints[profile]) {
+        console.error(`standings (${profile}): ${path.relative(repoRoot, OUTPUT_PATHS[profile])} was computed from other equipment physics or another rider. Run \`npm run standings:compute\` and commit the result.`)
+        stale = true
+      } else {
+        console.log(`standings (${profile}): up to date (${committed.routes.length} routes)`)
+      }
     }
-    console.log(`standings: up to date (${committed.routes.length} routes)`)
+    if (stale) process.exit(1)
     return
   }
 
@@ -94,52 +111,57 @@ async function main() {
   const routes = catalog.getRoutesWithMeta()
     .filter(route => !only || only.has(route.slug))
     .sort((a, b) => (b.distance + (b.leadInDistance ?? 0)) - (a.distance + (a.leadInDistance ?? 0)))
-  const workerCount = Math.max(1, Math.min(routes.length, Number(argValue('--workers')) || Math.min(8, availableParallelism() - 1)))
-  console.log(`standings: timing ${routes.length} routes on ${workerCount} workers`)
+  const tasks = routes.flatMap(route => profiles.map(profile => ({ slug: route.slug, profile })))
+  const workerCount = Math.max(1, Math.min(tasks.length, Number(argValue('--workers')) || Math.min(8, availableParallelism() - 1)))
+  console.log(`standings: timing ${routes.length} routes for ${profiles.join(' and ')} on ${workerCount} workers`)
 
   const started = Date.now()
   const results = []
-  const queue = routes.map(route => route.slug)
+  const queue = [...tasks]
   await Promise.all(Array.from({ length: workerCount }, () => new Promise((resolve, reject) => {
     const thread = new Worker(fileURLToPath(import.meta.url))
     const next = () => {
-      const slug = queue.shift()
-      if (slug) thread.postMessage(slug)
+      const task = queue.shift()
+      if (task) thread.postMessage(task)
       else thread.terminate().then(resolve, reject)
     }
     thread.on('message', (message) => {
       if (message.ready) return next()
       results.push(message)
-      if (message.skipped) console.warn(`standings: ${message.slug} skipped - ${message.skipped}`)
-      if (results.length % 25 === 0 || results.length === routes.length) {
-        console.log(`standings: ${results.length}/${routes.length} routes, ${Math.round((Date.now() - started) / 1000)}s`)
+      if (message.skipped) console.warn(`standings (${message.profile}): ${message.slug} skipped - ${message.skipped}`)
+      if (results.length % 25 === 0 || results.length === tasks.length) {
+        console.log(`standings: ${results.length}/${tasks.length} timings, ${Math.round((Date.now() - started) / 1000)}s`)
       }
       next()
     })
     thread.on('error', reject)
   })))
 
-  const timed = results.filter(result => !result.skipped)
-  if (only && existsSync(outputPath)) {
-    // A partial run refreshes the routes it was given and keeps the rest.
-    const previous = JSON.parse(readFileSync(outputPath, 'utf8'))
-    if (previous.fingerprint !== fingerprint) throw new Error('--only needs a committed file computed from the same inputs; run without it')
-    timed.push(...previous.routes.filter(entry => !only.has(entry.slug)).map(fromCommitted(previous)))
+  for (const profile of profiles) {
+    const outputPath = OUTPUT_PATHS[profile]
+    const timed = results.filter(result => result.profile === profile && !result.skipped)
+    if (only && existsSync(outputPath)) {
+      // A partial run refreshes the routes it was given and keeps the rest.
+      const previous = JSON.parse(readFileSync(outputPath, 'utf8'))
+      if (previous.fingerprint !== fingerprints[profile]) throw new Error('--only needs a committed file computed from the same inputs; run without it')
+      timed.push(...previous.routes.filter(entry => !only.has(entry.slug)).map(fromCommitted(previous)))
+    }
+    writeFileSync(outputPath, serialise(assemble(timed, fingerprints[profile], outputPath)))
+    console.log(`standings (${profile}): wrote ${timed.length} routes in ${Math.round((Date.now() - started) / 1000)}s`)
   }
-  writeFileSync(outputPath, serialise(assemble(timed, fingerprint)))
-  console.log(`standings: wrote ${timed.length} routes in ${Math.round((Date.now() - started) / 1000)}s`)
 }
 
 /**
  * What the times depend on besides code: the equipment physics table, the
- * measured equipment (names, categories, paints) and the default rider.
+ * measured equipment (names, categories, paints) and the table's rider.
  * Estimated equipment is left out - the default ranking never sees it - so a
  * catalog bump that only adds unmeasured frames does not make this stale.
  */
-async function inputFingerprint() {
+async function inputFingerprint(profile) {
   const { getFrames } = await load('shared/utils/catalog.ts')
   const { getWheelsets } = await load('shared/utils/wheelsets.ts')
-  const { DEFAULT_RIDER_INPUTS: rider } = await load('shared/utils/recommendQuery.ts')
+  const { STANDINGS_RIDERS } = await load('shared/utils/standingsRiders.ts')
+  const rider = STANDINGS_RIDERS[profile]
   const hash = createHash('sha256')
   hash.update(JSON.stringify({
     version: STANDINGS_VERSION,
@@ -166,7 +188,7 @@ function fromCommitted(previous) {
 }
 
 /** Every route's times as one table: frames and wheels each in one fixed order, a route per row. */
-function assemble(results, fingerprint) {
+function assemble(results, fingerprint, outputPath) {
   const frames = new Map()
   const wheels = new Map()
   for (const result of results) {
@@ -219,23 +241,33 @@ function argValue(flag) {
 async function worker() {
   const { getRouteBySlug } = await load('shared/utils/catalog.ts')
   const { getWheelsets } = await load('shared/utils/wheelsets.ts')
-  const { buildRecommendQuery, DEFAULT_RIDER_INPUTS } = await load('shared/utils/recommendQuery.ts')
+  const { buildRecommendQuery } = await load('shared/utils/recommendQuery.ts')
+  const { STANDINGS_RIDERS } = await load('shared/utils/standingsRiders.ts')
   const { rideForRoute } = await load('shared/utils/recommendRide.ts')
   const { comboPhysicsKey, RouteSimulationStallError } = await load('shared/utils/physics/index.ts')
   const { recommendRouteQuerySchema } = await load('server/utils/apiQuerySchemas.ts')
   const { rankingRequestFromQuery } = await load('server/utils/rankRide.ts')
   const { runRecommendPipeline } = await load('server/utils/recommendPipeline.ts')
 
-  // The fresh visitor's query, as every route page is prerendered with it,
-  // with only the category opened: a frame's time does not depend on which
-  // other frames share the page.
-  const inputs = { ...DEFAULT_RIDER_INPUTS, bikeCategory: 'all' }
-  // Every wheel a road or TT frame takes under the default filters (both take
-  // only road-class tyres, see `scoring.ts`) - the
-  // pool behind each Wheel alternatives list below.
-  const wheelPool = getWheelsets().filter(wheelset => wheelset.crrClass === 'road' && (!inputs.verifiedOnly || wheelset.confidence === 'measured'))
+  // Per rider, once per worker: neither depends on the route.
+  const setups = new Map()
+  function setupFor(profile) {
+    if (!setups.has(profile)) {
+      // The fresh visitor's query for the rider, as a route page is
+      // prerendered with it, with only the category opened: a frame's time
+      // does not depend on which other frames share the page.
+      const inputs = { ...STANDINGS_RIDERS[profile], bikeCategory: 'all' }
+      // Every wheel a road or TT frame takes under the default filters (both
+      // take only road-class tyres, see `scoring.ts`) - the pool behind each
+      // Wheel alternatives list below.
+      const wheelPool = getWheelsets().filter(wheelset => wheelset.crrClass === 'road' && (!inputs.verifiedOnly || wheelset.confidence === 'measured'))
+      setups.set(profile, { inputs, wheelPool })
+    }
+    return setups.get(profile)
+  }
 
-  async function timeRoute(slug) {
+  async function timeRoute(slug, profile) {
+    const { inputs, wheelPool } = setupFor(profile)
     const route = getRouteBySlug(slug)
     const query = recommendRouteQuerySchema.parse(buildRecommendQuery(inputs, { course: { kind: 'route', slug } }))
     const request = rankingRequestFromQuery(query)
@@ -275,17 +307,17 @@ async function worker() {
       wheels[category] = { frameId: timedOn.frame.id, times }
     }
 
-    const rider = { weightKg: query.weightKg, heightCm: query.heightCm, powerW: query.powerW, upgradeStage: query.defaultUnownedLevel, draftMode: DEFAULT_RIDER_INPUTS.draftMode }
-    return { slug, frames, frameInfo, wheels, wheelInfo: [...wheelInfo.values()], rider }
+    const rider = { weightKg: query.weightKg, heightCm: query.heightCm, powerW: query.powerW, upgradeStage: query.defaultUnownedLevel, draftMode: inputs.draftMode }
+    return { slug, profile, frames, frameInfo, wheels, wheelInfo: [...wheelInfo.values()], rider }
   }
 
-  parentPort.on('message', async (slug) => {
+  parentPort.on('message', async ({ slug, profile }) => {
     try {
-      parentPort.postMessage(await timeRoute(slug))
+      parentPort.postMessage(await timeRoute(slug, profile))
     } catch (error) {
-      // A rider who cannot hold a route's grade at the default power is a
+      // A rider who cannot hold a route's grade at their power is a
       // fact about the route, not a fault: it has no standings.
-      if (error instanceof RouteSimulationStallError) parentPort.postMessage({ slug, skipped: error.message })
+      if (error instanceof RouteSimulationStallError) parentPort.postMessage({ slug, profile, skipped: error.message })
       else throw error
     }
   })
