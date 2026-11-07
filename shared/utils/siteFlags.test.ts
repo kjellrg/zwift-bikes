@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SITE_FLAGS, isMotdActive, parseSiteFlags, siteFlagsStrictSchema, toPublicSiteFlags } from './siteFlags'
+import { DEFAULT_SITE_FLAGS, isMotdActive, isSafeMotdLink, parseMotdMessage, parseSiteFlags, siteFlagsStrictSchema, toPublicSiteFlags } from './siteFlags'
 
 const fullMotd = {
   id: '2026-08-rebalance',
@@ -71,6 +71,35 @@ describe('parseSiteFlags', () => {
     expect(parseSiteFlags(withHref('javascript:alert(1)'))).toBeNull()
     expect(parseSiteFlags(withHref('http://example.com'))).toBeNull()
     expect(parseSiteFlags(withHref('data:text/html,x'))).toBeNull()
+  })
+
+  it('accepts inline motd links only to site-relative paths or https', () => {
+    const withMessage = (message: string) => JSON.stringify({ motd: { id: 'x', message } })
+    expect(parseSiteFlags(withMessage('New: [Loopipelago](/routes/loopipelago) and [CRR](https://zwiftinsider.com/crr/).'))).not.toBeNull()
+    expect(parseSiteFlags(withMessage('Plain [brackets] and (parens) stay text.'))).not.toBeNull()
+    expect(parseSiteFlags(withMessage('[x](javascript:alert(1))'))).toBeNull()
+    expect(parseSiteFlags(withMessage('[x](//evil.example/a)'))).toBeNull()
+    expect(parseSiteFlags(withMessage('[x](http://example.com)'))).toBeNull()
+  })
+})
+
+describe('parseMotdMessage', () => {
+  it('splits links out of the text and leaves everything else as it was', () => {
+    expect(parseMotdMessage('Added [A](/routes/a), [B](/routes/b) (long).')).toEqual([
+      { text: 'Added ' },
+      { text: 'A', href: '/routes/a' },
+      { text: ', ' },
+      { text: 'B', href: '/routes/b' },
+      { text: ' (long).' }
+    ])
+    expect(parseMotdMessage('no links')).toEqual([{ text: 'no links' }])
+  })
+
+  it('judges targets only through isSafeMotdLink', () => {
+    expect(isSafeMotdLink('/routes/a')).toBe(true)
+    expect(isSafeMotdLink('https://example.com')).toBe(true)
+    expect(isSafeMotdLink('//example.com')).toBe(false)
+    expect(isSafeMotdLink('javascript:alert(1)')).toBe(false)
   })
 })
 
