@@ -4,6 +4,12 @@ The app exposes its route catalog and its bike-ranking pipeline over the
 [Model Context Protocol](https://modelcontextprotocol.io), so an LLM client can
 answer "which bike is fastest for me on this route?" directly.
 
+**Access is closed to the public** to keep usage within our hosting plan
+limits. Email `contact [at] zwiftbikes.com` to request
+access. Access is free and will be granted subject to availability and overall
+usage. Request access before configuring a client; the production endpoint is
+gated at the edge.
+
 - **Endpoint:** `POST https://zwiftbikes.com/api/mcp`
 - **Transport:** Streamable HTTP, JSON responses only (no SSE)
 - **Auth:** enforced at the Cloudflare edge, in front of the Worker - the

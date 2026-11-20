@@ -1,5 +1,6 @@
 # Hand-curated project jargon - see cspell.config.yaml. Keep sorted.
 alertable
+Cratère
 dealbreaker
 dedup
 funbike
@@ -18,6 +19,7 @@ prerendering
 Racecraft
 rankable
 Seafoam
+Sprinteur
 Strava
 supertuck
 typesafe

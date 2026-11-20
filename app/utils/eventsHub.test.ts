@@ -24,7 +24,7 @@ describe('the events hub\'s list of races', () => {
     expect(listed(hubRaceGroups(getSeasons(), '2026-09-24'))).toEqual([
       { title: 'On now', races: ['ZRacing september-stage-3'] },
       { title: 'Next 7 days', races: ['ZRacing september-stage-4', 'ZRL round-1-week-2'] },
-      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5', 'ZRacing october-stage-4', 'ZRL round-1-week-6', 'ZRacing october-stage-5', 'ZRacing november-stage-1', 'ZRacing november-stage-2', 'ZRacing november-stage-3', 'ZRacing november-stage-4'] }
+      { title: 'Later', races: ['ZRacing october-stage-1', 'ZRL round-1-week-3', 'ZRacing october-stage-2', 'ZRL round-1-week-4', 'ZRacing october-stage-3', 'ZRL round-1-week-5', 'ZRacing october-stage-4', 'ZRL round-1-week-6', 'ZRacing october-stage-5', 'ZRacing november-stage-1', 'ZRacing november-stage-2', 'ZRL round-2-week-1', 'ZRacing november-stage-3', 'ZRL round-2-week-2', 'ZRacing november-stage-4', 'ZRL round-2-week-3', 'ZRL round-2-week-4', 'ZRL round-2-week-5', 'ZRL round-2-week-6'] }
     ])
   })
 
@@ -124,7 +124,7 @@ describe('what a series box on the hub says', () => {
   it('reads the curated calendars as the design did on 2026-09-24', () => {
     expect(seriesStatusLines(getSeasonBySlug('zrl-2026-27')!, '2026-09-24')).toEqual([
       'Round 1, Fresh & Fast, runs until Tue 27 Oct.',
-      'Round 2, Team Tempo, starts Tue 17 Nov. WTRL hasn\'t announced its routes yet.'
+      'Round 2, Team Tempo, starts Tue 17 Nov. Its races are listed above.'
     ])
     expect(seriesStatusLines(getSeasonBySlug('zracing-2026')!, '2026-09-24')).toEqual([
       'September\'s stages, Zwift Racing Powered by DURA-ACE, run until Sun 4 Oct.',

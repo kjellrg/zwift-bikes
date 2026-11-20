@@ -122,6 +122,11 @@ test.describe('about and reporting', () => {
   test('serves both pages to a crawler, with no address in the HTML', async ({ page, request }) => {
     await visitPage(page, '/about')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('About ZwiftBikes')
+    const mcpAccess = page.getByRole('heading', { name: 'MCP access', exact: true }).locator('..')
+    await expect(mcpAccess).toContainText('no longer open to the public')
+    await expect(mcpAccess).toContainText('hosting plan limits')
+    await expect(mcpAccess).toContainText('Access is free on request, subject to availability and overall usage.')
+    await expect(mcpAccess.getByRole('link')).toHaveAttribute('href', 'mailto:contact@zwiftbikes.com')
     await visitPage(page, '/report')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Report an issue')
     await hydrated(page)
