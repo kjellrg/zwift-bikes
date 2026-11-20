@@ -179,6 +179,27 @@ const contactMailto = `mailto:${contactAddress}`
 
     <div class="flex flex-col gap-2">
       <h2 class="text-lg font-semibold font-heading text-highlighted">
+        MCP access
+      </h2>
+      <p>
+        The MCP server is no longer open to the public, to keep usage within
+        our hosting plan limits. Access is free on request, subject to
+        availability and overall usage.
+        <ClientOnly>
+          Request access by emailing
+          <a
+            :href="contactMailto"
+            class="underline decoration-rule-strong hover:text-highlighted"
+          >{{ contactAddress }}</a>.
+          <template #fallback>
+            Email us to request access; our contact details are below.
+          </template>
+        </ClientOnly>
+      </p>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <h2 class="text-lg font-semibold font-heading text-highlighted">
         Getting in touch
       </h2>
       <p>

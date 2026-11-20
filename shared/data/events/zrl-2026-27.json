@@ -7,12 +7,13 @@
   "organizer": "WTRL",
   "organizerUrl": "https://www.wtrl.racing/zwift-racing-league/",
   "description": "Team racing on Zwift across four six-week rounds, run by WTRL.",
-  "note": "Week 3 splits the field: A/B and C/D ride different courses. Week 6 is on a ZRL-only route that is not in the public catalog, so it can't be ranked. Rounds 2-4 get their routes here as WTRL announces each one.",
+  "note": "Round 2 runs until December 22. A/B and C/D ride different routes in weeks 2-4, then three and two laps respectively in week 6. Week 4 is a Race of Truth: no drafting and no TT bikes. Routes for rounds 3 and 4 are still to be announced.",
   "curatorNote": "Season structure, round names/dates ('4 x 6-week rounds'), registration opening 18 Aug 2026 and categories AB/CD come from the WTRL series page. Round 1 per-race details come from the R1 schedule page - note it renders its table in JavaScript, so fetching the HTML shows a 'TBC' placeholder skeleton; the real table is only visible in a browser. Every Round 1 distance and elevation agrees with this site's own lead-in-plus-laps totals to within 0.2%/0.3%, which is what cross-checks the route slugs and lap counts. Every race day is a Tuesday, weekly within a round; each round's sixth race lands exactly on WTRL's published round end date, which cross-checks the cadence. Revised 18 Aug 2026 against WTRL's updated R1 schedule: week 1 became a Race of Truth (format 'rot') with its scoring segments published, week 3 C/D gained its segments, and week 6 moved both halves of the field onto the exclusive route. Weeks 2, 4 and 5 were re-read and are unchanged, so their updatedAt stamps stay put - they drive sitemap lastmod.",
   "sources": [
     { "url": "https://www.wtrl.racing/zwift-racing-league/", "checkedAt": "2026-08-18" },
     { "url": "https://www.wtrl.racing/zrl/schedule/2026/r1/", "checkedAt": "2026-08-18" },
-    { "url": "https://www.wtrl.racing/zrl/resources/", "checkedAt": "2026-08-18" }
+    { "url": "https://www.wtrl.racing/zrl/resources/", "checkedAt": "2026-08-18" },
+    { "url": "https://zwiftinsider.com/zrl-r21/", "checkedAt": "2026-11-20" }
   ],
   "rounds": [
     {
@@ -197,12 +198,206 @@
       "startDate": "2026-11-17",
       "endDate": "2026-12-22",
       "races": [
-        { "slug": "round-2-week-1", "round": 2, "week": 1, "date": "2026-11-17", "categories": [], "updatedAt": "2026-08-14" },
-        { "slug": "round-2-week-2", "round": 2, "week": 2, "date": "2026-11-24", "categories": [], "updatedAt": "2026-08-14" },
-        { "slug": "round-2-week-3", "round": 2, "week": 3, "date": "2026-12-01", "categories": [], "updatedAt": "2026-08-14" },
-        { "slug": "round-2-week-4", "round": 2, "week": 4, "date": "2026-12-08", "categories": [], "updatedAt": "2026-08-14" },
-        { "slug": "round-2-week-5", "round": 2, "week": 5, "date": "2026-12-15", "categories": [], "updatedAt": "2026-08-14" },
-        { "slug": "round-2-week-6", "round": 2, "week": 6, "date": "2026-12-22", "categories": [], "updatedAt": "2026-08-14" }
+        {
+          "slug": "round-2-week-1",
+          "round": 2,
+          "week": 1,
+          "date": "2026-11-17",
+          "format": "ttt",
+          "categories": [
+            { "cats": ["A", "B", "C", "D"], "routeSlug": "london-calling", "routeName": "London Calling", "laps": 1, "officialDistanceKm": 31.7, "officialElevationM": 211 }
+          ],
+          "note": "One lap of London Calling opens the round with a team time trial. Keep the group together over the rolling roads: the team's result is taken from its fourth finisher. TT frames are allowed and can draft in this format.",
+          "powerups": { "allowed": ["aero", "draft"], "note": "250 XP at the start; Aero Boost at the lap arch once and Draft Boost at The Mall Sprint arch once." },
+          "sourceUrl": "https://zwiftinsider.com/zrl-r21/",
+          "updatedAt": "2026-11-20"
+        },
+        {
+          "slug": "round-2-week-2",
+          "round": 2,
+          "week": 2,
+          "date": "2026-11-24",
+          "format": "scratch",
+          "categories": [
+            { "cats": ["A", "B"], "routeSlug": "muir-and-the-mountain", "routeName": "Muir And The Mountain", "laps": 1, "officialDistanceKm": 39.2, "officialElevationM": 914 },
+            { "cats": ["C", "D"], "routeSlug": "elevation-evaluation", "routeName": "Elevation Evaluation", "laps": 1, "officialDistanceKm": 27.7, "officialElevationM": 410 }
+          ],
+          "note": "Climbing shapes both category races, with all points decided at the finish. A/B tackle the Epic KOM and the steep Radio Tower extension on Muir And The Mountain. C/D take on The Grade on Elevation Evaluation. Pace the long efforts carefully: a gap opened uphill can be difficult to close on the descent.",
+          "powerups": { "allowed": ["burrito", "feather"], "note": "250 XP at the start for all categories. A/B receive Burrito or Feather with equal probability at each arch; C/D receive Feather at each arch." },
+          "sourceUrl": "https://zwiftinsider.com/zrl-r21/",
+          "updatedAt": "2026-11-20"
+        },
+        {
+          "slug": "round-2-week-3",
+          "round": 2,
+          "week": 3,
+          "date": "2026-12-01",
+          "format": "points",
+          "categories": [
+            {
+              "cats": ["A", "B"],
+              "routeSlug": "bon-voyage",
+              "routeName": "Bon Voyage",
+              "laps": 1,
+              "officialDistanceKm": 31.4,
+              "officialElevationM": 155,
+              "falSegments": [
+                { "name": "Dos d’Âne Sprint Reverse", "times": 3 },
+                { "name": "Sprint du Cratère", "times": 3 },
+                { "name": "Sprinteur Sprint Reverse", "times": 3 },
+                { "name": "Pavé Sprint Reverse", "slug": "pave-sprint-rev", "times": 1 }
+              ],
+              "ftsSegments": [
+                { "name": "Dos d’Âne Sprint Reverse", "times": 3 },
+                { "name": "Sprint du Cratère", "times": 3 },
+                { "name": "Sprinteur Sprint Reverse", "times": 3 },
+                { "name": "Pavé Sprint Reverse", "slug": "pave-sprint-rev", "times": 1 }
+              ]
+            },
+            {
+              "cats": ["C", "D"],
+              "routeSlug": "gentil-8",
+              "routeName": "Gentil 8",
+              "laps": 1,
+              "officialDistanceKm": 25.8,
+              "officialElevationM": 258,
+              "falSegments": [
+                { "name": "Sprinteur Sprint", "times": 2 },
+                { "name": "Sprint du Cratère Reverse", "times": 1 },
+                { "name": "Ballon Sprint", "slug": "ballon-sprint", "times": 1 },
+                { "name": "Petit KOM", "slug": "petit-kom", "times": 1 },
+                { "name": "Dos d’Âne Sprint", "times": 1 }
+              ],
+              "ftsSegments": [
+                { "name": "Sprinteur Sprint", "times": 2 },
+                { "name": "Sprint du Cratère Reverse", "times": 1 },
+                { "name": "Ballon Sprint", "slug": "ballon-sprint", "times": 1 },
+                { "name": "Petit KOM", "slug": "petit-kom", "times": 1 },
+                { "name": "Dos d’Âne Sprint", "times": 1 }
+              ]
+            }
+          ],
+          "note": "France hosts two different points contests. A/B have ten scoring passes on Bon Voyage, making recovery between sprints part of the challenge. C/D have six on Gentil 8, including the Petit KOM, where the race can separate before the next sprint. Both finishing position and segment time earn intermediate points.",
+          "curatorNote": "Scoring counts and directions are from the Round 2 overview. Segments without a matching page in this site's catalog are deliberately left unlinked. Powerups remain unpublished.",
+          "sourceUrl": "https://zwiftinsider.com/zrl-r21/",
+          "updatedAt": "2026-11-20"
+        },
+        {
+          "slug": "round-2-week-4",
+          "round": 2,
+          "week": 4,
+          "date": "2026-12-08",
+          "format": "rot",
+          "categories": [
+            {
+              "cats": ["A", "B"],
+              "routeSlug": "no-sleep-till-brooklyn",
+              "routeName": "No Sleep Till Brooklyn",
+              "laps": 1,
+              "officialDistanceKm": 32.6,
+              "officialElevationM": 251,
+              "falSegments": [
+                { "name": "Manhattan Sprint Reverse", "slug": "manhattan-sprint-rev", "times": 1 },
+                { "name": "Center Sprint Reverse", "slug": "center-sprint-rev", "times": 1 },
+                { "name": "Manhattan Sprint", "slug": "manhattan-sprint", "times": 1 },
+                { "name": "Brooklyn Bridge KOM", "slug": "brooklyn-bridge-kom", "times": 1 }
+              ],
+              "ftsSegments": [
+                { "name": "Manhattan Sprint Reverse", "slug": "manhattan-sprint-rev", "times": 1 },
+                { "name": "Center Sprint Reverse", "slug": "center-sprint-rev", "times": 1 },
+                { "name": "Manhattan Sprint", "slug": "manhattan-sprint", "times": 1 },
+                { "name": "Brooklyn Bridge KOM", "slug": "brooklyn-bridge-kom", "times": 1 }
+              ]
+            },
+            {
+              "cats": ["C", "D"],
+              "routeSlug": "spinfinity",
+              "routeName": "Spinfinity",
+              "laps": 1,
+              "officialDistanceKm": 20.1,
+              "officialElevationM": 155,
+              "falSegments": [
+                { "name": "Times Square", "times": 1 },
+                { "name": "Brooklyn Bridge KOM", "slug": "brooklyn-bridge-kom", "times": 1 },
+                { "name": "Manhattan Sprint", "slug": "manhattan-sprint", "times": 1 }
+              ],
+              "ftsSegments": [
+                { "name": "Times Square", "times": 1 },
+                { "name": "Brooklyn Bridge KOM", "slug": "brooklyn-bridge-kom", "times": 1 },
+                { "name": "Manhattan Sprint", "slug": "manhattan-sprint", "times": 1 }
+              ]
+            }
+          ],
+          "note": "New York's Race of Truth removes the draft but keeps intermediate points. A/B ride No Sleep Till Brooklyn with four scoring segments; C/D ride Spinfinity with three. Both cross the Brooklyn Bridge KOM. Only road bikes are permitted, so plan the solo effort around the scoring efforts rather than relying on shelter in a group.",
+          "curatorNote": "Times Square has no segment page in this site's catalog, so it remains unlinked. Powerups remain unpublished.",
+          "sourceUrl": "https://zwiftinsider.com/zrl-r21/",
+          "updatedAt": "2026-11-20"
+        },
+        {
+          "slug": "round-2-week-5",
+          "round": 2,
+          "week": 5,
+          "date": "2026-12-15",
+          "format": "scratch",
+          "categories": [
+            { "cats": ["A", "B", "C", "D"], "routeSlug": "miles-of-isles", "routeName": "Miles of Isles", "laps": 1, "officialDistanceKm": 29.1, "officialElevationM": 161 }
+          ],
+          "note": "All categories share one lap of Miles of Isles in Watopia. Most of the course stays low, with the rise from the Marina towards the Jungle Pens interrupting the flatter roads. There are no intermediate points in this scratch race: stay attentive over the climb and save something for the finish.",
+          "sourceUrl": "https://zwiftinsider.com/zrl-r21/",
+          "updatedAt": "2026-11-20"
+        },
+        {
+          "slug": "round-2-week-6",
+          "round": 2,
+          "week": 6,
+          "date": "2026-12-22",
+          "format": "points",
+          "categories": [
+            {
+              "cats": ["A", "B"],
+              "routeSlug": "sprinters-playground",
+              "routeName": "Sprinter's Playground",
+              "laps": 3,
+              "officialDistanceKm": 37.3,
+              "officialElevationM": 202,
+              "falSegments": [
+                { "name": "Tower Sprint Reverse", "slug": "tower-sprint-rev", "times": 3 },
+                { "name": "Castle Park Sprint Reverse", "slug": "castle-park-sprint-rev", "times": 3 },
+                { "name": "Alley Sprint", "slug": "alley-sprint", "times": 3 },
+                { "name": "Railway Sprint", "slug": "railway-sprint", "times": 3 }
+              ],
+              "ftsSegments": [
+                { "name": "Tower Sprint Reverse", "slug": "tower-sprint-rev", "times": 3 },
+                { "name": "Castle Park Sprint Reverse", "slug": "castle-park-sprint-rev", "times": 3 },
+                { "name": "Alley Sprint", "slug": "alley-sprint", "times": 3 },
+                { "name": "Railway Sprint", "slug": "railway-sprint", "times": 3 }
+              ]
+            },
+            {
+              "cats": ["C", "D"],
+              "routeSlug": "sprinters-playground",
+              "routeName": "Sprinter's Playground",
+              "laps": 2,
+              "officialDistanceKm": 24.9,
+              "officialElevationM": 135,
+              "falSegments": [
+                { "name": "Tower Sprint Reverse", "slug": "tower-sprint-rev", "times": 2 },
+                { "name": "Castle Park Sprint Reverse", "slug": "castle-park-sprint-rev", "times": 2 },
+                { "name": "Alley Sprint", "slug": "alley-sprint", "times": 2 },
+                { "name": "Railway Sprint", "slug": "railway-sprint", "times": 2 }
+              ],
+              "ftsSegments": [
+                { "name": "Tower Sprint Reverse", "slug": "tower-sprint-rev", "times": 2 },
+                { "name": "Castle Park Sprint Reverse", "slug": "castle-park-sprint-rev", "times": 2 },
+                { "name": "Alley Sprint", "slug": "alley-sprint", "times": 2 },
+                { "name": "Railway Sprint", "slug": "railway-sprint", "times": 2 }
+              ]
+            }
+          ],
+          "note": "The round ends with repeated sprint efforts on Sprinter's Playground. Tower Reverse, Castle Park Reverse, Alley and Railway score on every lap, giving A/B twelve scoring passes over three laps and C/D eight over two. Choose which efforts to contest so the early sprints do not empty the tank before the final lap.",
+          "sourceUrl": "https://zwiftinsider.com/zrl-r21/",
+          "updatedAt": "2026-11-20"
+        }
       ]
     },
     {
