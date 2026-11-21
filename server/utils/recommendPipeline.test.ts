@@ -460,13 +460,10 @@ describe('runRecommendPipeline', () => {
     expect(emptyGarage.combos.length).toBeGreaterThan(0)
   })
 
-  it('ranks a Halo bike the rider owns even while Halo bikes are hidden', async () => {
-    // The three purchasable Halo bikes are heavy old frames that win nothing,
-    // so no page of nine holds one: walk the whole TT ranking instead of
-    // asserting a position, which is the only structural way to ask what the
-    // pool contains. One wheel per frame keeps that walk to three pages.
-    const espada = getFrames().find(f => f.name === 'Pinarello Espada')
-    if (!espada) throw new Error('the catalog no longer has the Pinarello Espada to hide')
+  it.each(['Pinarello Espada', 'Cervelo Baracchi'])('ranks owned or searched %s even while Halo bikes are hidden', async (name) => {
+    // Walk the whole TT ranking rather than assuming a Halo bike's position.
+    const halo = getFrames().find(f => f.name === name)
+    if (!halo) throw new Error(`the catalog no longer has ${name} to hide`)
     const wholeRanking = async (params: Record<string, string>) => {
       const names: string[] = []
       for (let offset = 0; offset <= RECOMMEND_MAX_OFFSET; offset += RECOMMEND_MAX_LIMIT) {
@@ -479,11 +476,16 @@ describe('runRecommendPipeline', () => {
       throw new Error('the TT ranking no longer ends within the endpoints\' own offset bound')
     }
 
-    expect(await wholeRanking({ includeHalo: 'true' })).toContain(espada.name)
-    expect(await wholeRanking({ includeHalo: 'false' })).not.toContain(espada.name)
+    expect(await wholeRanking({ includeHalo: 'true' })).toContain(halo.name)
+    expect(await wholeRanking({ includeHalo: 'false' })).not.toContain(halo.name)
     // Ownership is the exception: a rider who has one in the garage is asking
     // to be ranked on the bikes they can actually select.
-    expect(await wholeRanking({ includeHalo: 'false', owned: JSON.stringify({ [espada.id]: 3 }) })).toContain(espada.name)
+    expect(await wholeRanking({ includeHalo: 'false', owned: JSON.stringify({ [halo.id]: 3 }) })).toContain(halo.name)
+    const searched = await runRecommendPipeline(fakeEvent(), query({ category: 'tt', includeHalo: 'false', search: name }), routeRide([]))
+    expect(searched.combos).toHaveLength(1)
+    expect(searched.combos[0]?.frame.id).toBe(halo.id)
+    expect(searched.combos[0]?.wheelset).toBeUndefined()
+    expect(searched.combos[0]?.finishTimeSec).toBeGreaterThan(0)
   })
 
   it('leaves the page empty when the owned wheels cannot fit the owned frame', async () => {

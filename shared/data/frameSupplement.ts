@@ -95,7 +95,9 @@ export const SUPPLEMENT_FRAMES: BikeFrame[] = [
   // name, so nothing measured or owned for it moves; this one keeps its
   // year. `dictionary:check` accepts the difference for this id only
   // (its ACCEPTED_GAPS).
-  { id: 1969226988, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true }
+  { id: 1969226988, name: 'Cervelo P5 2026', modelYear: 2026, isTT: true },
+  // Halo TT, absent from zwift-data 2.1; dictionary record verified 2026-11-21.
+  { id: 1298256174, name: 'Cervelo Baracchi', modelYear: 2026, isTT: true }
 ]
 
 /**

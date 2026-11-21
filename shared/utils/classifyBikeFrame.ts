@@ -30,7 +30,7 @@ import { MAX_UPGRADE_STAGE, UPGRADE_STAGES, clampUpgradeStage, toUpgradeStage } 
  *    whole style/category bucket. `gravel`/`cobble` scores (not covered by
  *    the speed tests, and in Zwift's actual physics almost entirely driven
  *    by the *wheel*, not the frame - see `classifyWheel.ts`) still come from
- *    the style/category preset either way - except for the five
+ *    the style/category preset either way - except for the
  *    `FIXED_WHEEL_FRAMES`, whose integrated road-class wheels set their
  *    gravel/cobble instead (see `withFixedWheelOffroadScores`).
  *
@@ -177,8 +177,8 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
 // A handful of special/event-exclusive frames come with their own
 // integrated wheels that Zwift does not let you swap out - confirmed via
 // zwiftinsider.com/pinarello-espada/: "the Espada, like the Tron bike,
-// can only be tested with its disc wheels installed". Only the Espada
-// actually runs disc wheels; the Concept Z1's integrated wheels are its own
+// can only be tested with its disc wheels installed". The Concept Z1's
+// integrated wheels are its own
 // power-reactive lit wheels, not discs (zwiftinsider.com/halo-bikes/) - what
 // they share is that the wheel is welded to the frame choice, which is all
 // this set is about. The Specialized PROJECT 74 is the same story - it's
@@ -194,25 +194,26 @@ const CATEGORY_PRESETS: Record<Exclude<BikeCategory, 'standard'>, Classification
 // sheet tests with its own integrated wheels (its Wheels column names the
 // bike itself), which `zwift-data` also lists as a standalone front/rear
 // wheel - excluded from the swappable pool in `wheelsets.ts`.
+// The Cervelo Baracchi is a Halo TT with inseparable Zipp Baracchi disc
+// wheels (zwiftinsider.com/cervelo-baracchi/), measured as the complete bike.
 // Exported for `scripts/validate-speed-data.mjs`, which checks every name
 // against the catalog at build time.
-export const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade'])
+export const FIXED_WHEEL_FRAMES = new Set(['Pinarello Espada', 'Zwift Concept Z1', 'Zwift Golden Concept Z1', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade', 'Cervelo Baracchi'])
 
-// The three Halo bikes almost nobody can ride (issue #112). ZwiftInsider
-// lists exactly four Halo bikes (zwiftinsider.com/halo-bikes/): these three -
-// each unlocked by fully upgrading three frames of one brand and then costing
-// ~10M Drops to buy plus ~10M more to upgrade - and the Zwift Concept Z1
+// The purchasable Halo bikes almost nobody can ride (issue #112): each
+// unlocked by fully upgrading three frames of one brand and then costing
+// ~10M Drops to buy plus ~10M more to upgrade. The Zwift Concept Z1
 // ("Tron"). The Z1 pair is deliberately NOT in this set: the Tron is a free
 // Everest-challenge unlock, widely owned, and ZwiftInsider's own benchmark
 // bike, so hiding it would take away an answer most riders can act on.
-// The recommend endpoints drop these three from the ranked pool unless the
+// The recommend endpoints drop these from the ranked pool unless the
 // caller opts in (`includeHalo`), owns the frame, or is searching - see the
 // `isHiddenHalo` predicates there.
 // Intentionally a separate set from `FIXED_WHEEL_FRAMES` above: integrated
 // wheels and unlock cost are different facts about a frame, even though the
 // members currently coincide minus the Z1s.
 // Exported for `scripts/validate-speed-data.mjs`.
-export const PURCHASABLE_HALO_FRAMES = new Set(['Pinarello Espada', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade'])
+export const PURCHASABLE_HALO_FRAMES = new Set(['Pinarello Espada', 'Specialized PROJECT 74', 'Cannondale R4000 Roller Blade', 'Cervelo Baracchi'])
 
 // Each entry is one bike that Zwift sells under several names and paints: a
 // Colourway (see `CONTEXT.md`). Which frames are the same bike is a decision,

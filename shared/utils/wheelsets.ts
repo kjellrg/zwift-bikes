@@ -76,7 +76,7 @@ function averagePhysics(a: ClassifiedWheel, b: ClassifiedWheel): EquipmentPhysic
 // estimated score no measured wheel can beat (issue #87).
 // Exported for `scripts/validate-speed-data.mjs`, which checks every name
 // against the catalog at build time.
-export const INTEGRATED_ONLY_WHEELS = new Set(['Roval PROJECT 74', 'Cannondale R4000 Roller Blade'])
+export const INTEGRATED_ONLY_WHEELS = new Set(['Roval PROJECT 74', 'Cannondale R4000 Roller Blade', 'Zipp Baracchi'])
 
 let cachedWheelsets: Wheelset[] | undefined
 
