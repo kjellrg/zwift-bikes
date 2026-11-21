@@ -1,5 +1,6 @@
 # Hand-curated project jargon - see cspell.config.yaml. Keep sorted.
 alertable
+Baracchi
 Cratère
 dealbreaker
 dedup

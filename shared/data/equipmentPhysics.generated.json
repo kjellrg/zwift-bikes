@@ -3266,6 +3266,38 @@
     "crrDelta": -0.0003
    }
   ],
+  "Cervelo Baracchi": [
+   {
+    "cdaDeltaM2": -0.023581242938755714,
+    "bikeMassDeltaKg": 0.5898418317091076,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.025690876113994482,
+    "bikeMassDeltaKg": 0.5864399902101942,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02565355524915966,
+    "bikeMassDeltaKg": 0.38846971754921444,
+    "crrDelta": 0
+   },
+   {
+    "cdaDeltaM2": -0.02564237174701464,
+    "bikeMassDeltaKg": 0.3924004883068184,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.02567515273653062,
+    "bikeMassDeltaKg": 0.29355001332092545,
+    "crrDelta": -0.0003
+   },
+   {
+    "cdaDeltaM2": -0.03223574889178479,
+    "bikeMassDeltaKg": 0.2841421282169412,
+    "crrDelta": -0.0003
+   }
+  ],
   "Cervelo P5": [
    {
     "cdaDeltaM2": -0.006957561902571546,

@@ -146,6 +146,16 @@ distance and one on duration). On 2026-10-09 all 129 schemed frames agreed with
 their `lvId`. Only a frame with a real name counts: a record still under a
 placeholder name carries a default `lvId`, not its scheme.
 
+The [Cervelo Baracchi](https://zwiftinsider.com/cervelo-baracchi/) Halo TT
+was added from the live dictionary and speed sheet on 2026-11-21. Its
+`lvId` 3750357616 maps to Duration / Halo (`duration`, `high` in the app).
+All six stages use its own 300 W measurements, including its inseparable
+Zipp Baracchi wheels, relative to the Zwift TT baseline. Fully upgrading it
+saves 50.7 s/h on the flat and 26.6 s/h climbing. No `at150W` validation
+block is stored: the sheet has no upgraded 150 W measurements yet.
+Like the other purchasable Halo frames, it is hidden unless Halo bikes are
+included, the rider owns it, or a directed search finds it.
+
 `npm run dictionary:check` holds that 11-value table and compares every
 catalog frame with it:
 

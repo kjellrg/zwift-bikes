@@ -3,6 +3,7 @@ import { bikeFrames } from 'zwift-data'
 import { FRAME_SPEED_DATA, TT_FRAME_SPEED_DATA } from './frameSpeedData'
 import { FRAME_UPGRADE_SCHEMES } from './frameUpgradeSchemes'
 import { getFrames } from '../utils/catalog'
+import { getWheelsets } from '../utils/wheelsets'
 import { applyFrameSupplement, isProvisionalFrameId, PROVISIONAL_FRAME_ID_BASE, SUPPLEMENT_FRAMES, UNLOCALIZED_FRAME_NAME } from './frameSupplement'
 
 describe('applyFrameSupplement', () => {
@@ -51,6 +52,30 @@ describe('the shipped supplement', () => {
       expect(scheme, `${frame.name} scheme`).toBeDefined()
       if (!scheme?.awaitingMeasurement) expect((frame.isTT ? TT_FRAME_SPEED_DATA : FRAME_SPEED_DATA)[frame.name], `${frame.name} speed row`).toBeDefined()
     }
+  })
+})
+
+describe('the Cervelo Baracchi Halo TT', () => {
+  it('is one measured fixed-wheel TT under its game identity, with its own six-stage data', () => {
+    const matches = getFrames().filter(f => f.id === 1298256174)
+    expect(matches).toHaveLength(1)
+    expect(matches[0]).toMatchObject({
+      name: 'Cervelo Baracchi',
+      modelYear: 2026,
+      category: 'tt',
+      confidence: 'measured',
+      hasFixedWheels: true,
+      upgradeScheme: { axis: 'duration', tier: 'high' },
+      upgradeCurve: {
+        flat: [94.6, 103.5, 103.9, 116.9, 117.3, 145.3],
+        climb: [-12.9, -11.9, -4.3, 6.8, 10.6, 13.7]
+      }
+    })
+    expect(matches[0]?.physics).toBeDefined()
+  })
+
+  it('never offers its integrated Zipp Baracchi wheels as a swappable wheelset', () => {
+    expect(getWheelsets().some(w => w.front.id === 2616023348 || w.rear.id === 1462759504 || w.name === 'Zipp Baracchi')).toBe(false)
   })
 })
 

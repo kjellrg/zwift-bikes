@@ -247,6 +247,7 @@ export const FRAME_UPGRADE_SCHEMES: Record<string, UpgradeScheme> = {
   'Canyon Speedmax': { axis: 'duration', tier: 'mid' },
   'Canyon Speedmax CF SLX Disc': { axis: 'duration', tier: 'high' },
   'Canyon Speedmax CFR': { axis: 'duration', tier: 'high' },
+  'Cervelo Baracchi': { axis: 'duration', tier: 'high' }, // lvId 3750357616 (Halo)
   'Cervelo P5': { axis: 'duration', tier: 'mid' },
   'Cervelo P5 2026': { axis: 'duration', tier: 'high' },
   // Real, documented exception: TT-type frame that upgrades on the
