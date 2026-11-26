@@ -1,5 +1,5 @@
 {
-  "source": "517fe74b51fcc2176e2f53d657ef0aea530dc52f+uncommitted",
+  "source": "66e11a01cfc392c847de1d669d0d2ffb15d25f9a",
   "zwiftDataVersion": "2.1.0",
   "routes": [
     {
@@ -371,6 +371,81 @@
           }
         ]
       }
+    },
+    {
+      "id": 764392844,
+      "name": "Sacré Trois!",
+      "slug": "sacre-trois",
+      "world": "paris",
+      "eventOnly": false,
+      "distance": 24.17,
+      "elevation": 217,
+      "leadInDistance": 3.185,
+      "leadInElevation": 10,
+      "leadInDistanceFreeRide": 0.025,
+      "leadInElevationFreeRide": 0,
+      "leadInDistanceMeetups": 0.051,
+      "leadInElevationInMeetups": 0,
+      "segments": [
+        "lutece-sprint",
+        "monceau-sprint",
+        "montmartre-kom",
+        "tchou-tchou-sprint"
+      ],
+      "segmentsOnRoute": [
+        {
+          "from": 1.173,
+          "to": 1.323,
+          "segment": "lutece-sprint"
+        },
+        {
+          "from": 2.736,
+          "to": 3.032,
+          "segment": "monceau-sprint"
+        },
+        {
+          "from": 4.881,
+          "to": 6.115,
+          "segment": "montmartre-kom"
+        },
+        {
+          "from": 8.667,
+          "to": 8.822,
+          "segment": "tchou-tchou-sprint"
+        },
+        {
+          "from": 11.04,
+          "to": 12.273,
+          "segment": "montmartre-kom"
+        },
+        {
+          "from": 14.834,
+          "to": 14.977,
+          "segment": "tchou-tchou-sprint"
+        },
+        {
+          "from": 17.208,
+          "to": 18.44,
+          "segment": "montmartre-kom"
+        },
+        {
+          "from": 20.994,
+          "to": 21.136,
+          "segment": "tchou-tchou-sprint"
+        }
+      ],
+      "levelLocked": false,
+      "lap": true,
+      "supportsTT": false,
+      "supportsMeetups": true,
+      "sports": [
+        "running",
+        "cycling"
+      ],
+      "experience": 485,
+      "stravaSegmentId": 42482500,
+      "stravaSegmentUrl": "https://www.strava.com/segments/42482500",
+      "zwiftInsiderUrl": "https://zwiftinsider.com/route/sacre-trois"
     },
     {
       "id": 966890401,
